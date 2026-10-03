@@ -84,12 +84,19 @@ def _docker_status_cached() -> tuple[bool, str]:
 @app.get("/")
 def index():
     docker_ok, docker_message = _docker_status_cached()
-    return render_template(
+    html = render_template(
         "index.html",
         docker_ok=docker_ok,
         docker_message=docker_message,
         judge_ok=bool(os.environ.get("ANTHROPIC_API_KEY")),
     )
+    # Bez tego przeglądarka potrafi trzymać starą wersję strony (i starego
+    # JavaScriptu) po aktualizacji — objawia się to np. błędem "Failed to
+    # fetch", bo stary skrypt gada z nowym serwerem. Strona jest lekka i
+    # generowana na bieżąco, więc nic nie tracimy, wymuszając świeżą kopię.
+    resp = app.make_response(html)
+    resp.headers["Cache-Control"] = "no-store, must-revalidate"
+    return resp
 
 
 @app.post("/api/analyze")

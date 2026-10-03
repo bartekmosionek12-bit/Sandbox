@@ -191,69 +191,77 @@ awaria, czy brak konfiguracji.
 
 # CZĘŚĆ 3: Co działa, a co nie
 
-## Działa i jest sprawdzone
-- parser `.pkl` i parser `.keras`, oba z testami
-- 7 plików PoC (4 × `.pkl`, 3 × `.keras`) dający pełny kontrast
-- sędzia LLM z ochroną przed injection (logika sprawdzona, bez żywego API)
-- dashboard, kontrakty JSON, **36 testów**
-- dokumentacja instalacji (README)
+Stan po weryfikacji na **żywym Dockerze** (Docker Desktop 29.8.1, WSL2 na
+laptopie). To nie jest „napisane i założone" — to uruchomione i sprawdzone.
 
-## W trakcie
-- pierwsza realna detonacja `.pkl` w kontenerze
+## Działa i JEST SPRAWDZONE NA ŻYWO
+- **Detonacja `.pkl` w kontenerze** — payload faktycznie się wykonuje:
+  `evil_os_system` zapisuje `/tmp/pwned` wewnątrz kontenera (jako
+  nieuprzywilejowany użytkownik, reszta FS tylko do odczytu),
+  `evil_network_beacon` → próba połączenia z `blocked: true`
+  (bo `--network=none`), `clean` → zero zdarzeń.
+- **Detonacja `.keras` w kontenerze** (priorytet 2, ZROBIONE) — prawdziwe
+  `load_model(safe_mode=False)` + przebieg w przód. `evil_lambda.keras`
+  wykonuje `os.system('touch /tmp/pwned_keras')`, `clean_model.keras`
+  ładuje się bez zdarzeń. Podpięte do pipeline'u i widoczne na dashboardzie.
+- **Tensor steganography — LSB w wagach float32** (priorytet 3, ZROBIONE) —
+  wykrywa ładunek ukryty w najmłodszych bitach mantysy. Na pliku z ukrytym
+  reverse shellem wyciąga go i pokazuje; czysty model nie odpala fałszywego
+  alarmu. Werdykt: sama anomalia LSB → `suspicious`, anomalia + wyzwalacz →
+  `malicious`. Obsługa `.npy`/`.npz` w dashboardzie.
+- parser `.pkl` i `.keras`, sędzia LLM z ochroną przed injection (logika),
+  dashboard z czterema panelami, kontrakty JSON, **56 testów**, README.
 
-## Jeszcze nie zrobione
-- **detonacja `.keras`** (priorytet 2)
-- **detekcja tensor steganography** (priorytet 3)
-- logowany egress i `strace` — po domknięciu bramki
+## W trakcie (druga sesja — koordynator)
+- **Śledzenie syscalli przez `strace`** jako czwarte źródło dowodów — łapie
+  payload, który omija nasze haki w Pythonie (np. przez `ctypes`). Parser
+  wyjścia i obraz są gotowe; podpięcie do `docker run` wymaga weryfikacji na
+  maszynie z Dockerem. Wymaga `--cap-add=SYS_PTRACE`, więc świadomie osobny,
+  opcjonalny przebieg.
+
+## Świadomie poza zakresem (roadmapa, nie brak)
+- quorum wielu LLM, gVisor/Firecracker, logowany egress, data poisoning —
+  do opowiedzenia na scenie, nie do zbudowania w czasie hackathonu.
 
 ---
 
-# CZĘŚĆ 4: Jak zamierzam zrobić nowe rzeczy
+# CZĘŚĆ 4: Co się zmieniło względem pierwotnego planu (ustalenia z Dockera)
 
-## Detonator `.keras`
+Dwie rzeczy wyszły dopiero przy uruchomieniu na prawdziwym Dockerze —
+dokładnie to, czego nie dało się sprawdzić w chmurze bez demona.
 
-Osobny obraz kontenera z Kerasem, w którym wykonuje się prawdziwe
-`load_model(safe_mode=False)`. Te same flagi izolacji co dla `.pkl`.
+## Detonator `.keras`: numpy segfaultował, jest TensorFlow
 
-**Ryzyko i mój plan:** pełny TensorFlow to ~600 MB i długi build. Zanim
-po to sięgnę, spróbuję **Keras 3 z backendem `numpy`** (`KERAS_BACKEND=numpy`),
-który jest dużo lżejszy. Jeśli wystarczy do odtworzenia warstwy Lambda —
-oszczędzamy kilkaset MB i sporo czasu budowania. Jeśli nie — wracam do TF
-i mówię o tym wprost.
+Pierwotny plan zakładał lekki backend `numpy` (~1 GB zamiast ~1,9 GB).
+Na żywym Dockerze backend numpy **segfaultował** (exit 139) przy przebiegu
+modelu z warstwą Lambda — czyli dawał pusty log, który wyglądałby jak dowód
+niewinności. To najgorszy możliwy wynik, więc przełączyłem obraz na
+`tensorflow-cpu`, gdzie detonacja działa i payload faktycznie odpala.
+Dodatkowo: fixture z zmarshallowanym kodem Lambdy musi powstać w tej samej
+wersji Pythona co kontener (3.11), więc generuję go w kontenerze, nie na
+hoście (3.14) — inaczej `bad marshal`/segfault.
 
-## Tensor steganography (LSB w wagach float32)
+## Tensor steganography: werdykt na strukturze, nie na rozkładzie bitów
 
-Dwa osobne kroki, zgodnie z tym, co napisałem w części 1:
+Pierwotnie chciałem flagować też **anomalię statystyczną** rozkładu LSB.
+Na prawdziwych modelach to daje **fałszywe alarmy**: tensory zerowe (biasy)
+albo skwantyzowane mają LSB dalekie od losowych, choć są niewinne. Dlatego
+werdykt opieram wyłącznie na **strukturze** w strumieniu LSB — drukowalnym
+tekście i znanych nagłówkach (`#!/`, `PK`, `import os`, `/bin/sh`). Entropię
+i balans bitów pokazuję jako kontekst, nie jako podstawę decyzji.
 
-**Walidator (statystyczny, poza kontenerem — nic nie uruchamia):**
-- wyciąga najmłodsze bity mantysy z tablic `float32`
-- liczy **entropię** i **test chi-kwadrat** rozkładu LSB; w normalnie
-  wytrenowanym modelu LSB są praktycznie losowe
-- szuka w wyciągniętym strumieniu **struktury**: drukowalnego ASCII,
-  nagłówków (`PK`, ELF, `#!/bin/sh`), fraz w rodzaju `import os`
-- raportuje, **w której warstwie** i jaki procent bitów odstaje
-
-**Detonator (w kontenerze):** wyciąga ładunek i sprawdza, czy w pliku jest
-**wyzwalacz**, który by go uruchomił.
-
-**Werdykt:**
-- sama anomalia LSB → **suspicious** (może być kompresja albo kwantyzacja)
-- anomalia LSB **+ wyzwalacz** → **malicious** (pełny łańcuch)
-
-Uczciwie: ładunek zaszyfrowany lub skompresowany wygląda jak szum i będzie
-**trudny do odróżnienia** od czystego modelu. Detektor złapie payloady
-jawnym tekstem i wyraźne anomalie statystyczne, a nie wszystko. Powiem to
-wprost, zamiast obiecywać stuprocentową skuteczność.
+**Uczciwie:** ładunek zaszyfrowany lub skompresowany wygląda jak szum i jest
+trudny do odróżnienia od czystego modelu. Detektor łapie payloady jawnym
+tekstem, a nie wszystko. Mówię to wprost, zamiast obiecywać 100%.
 
 ---
 
 # Czego od Ciebie potrzebuję
 
 1. **Sprawdź część 1** — czy dobrze zrozumiałem polecenia, zwłaszcza
-   akapit o LSB.
-2. **Klucz `ANTHROPIC_API_KEY`**, gdy dojdziemy do testowania sędziego na
-   żywo.
-3. **Decyzja**, gdyby zabrakło czasu: czy wolisz dopracowane `.pkl` +
-   `.keras`, czy dołożone stego kosztem szlifu. Moja rekomendacja: dwa
-   formaty zrobione porządnie biją trzy zrobione po łebkach, bo Design
-   waży w ocenie 20%, a Completeness 10%.
+   akapit o LSB (nośnik vs wyzwalacz).
+2. **Klucz `ANTHROPIC_API_KEY`**, gdy zechcesz zobaczyć werdykt sędziego LLM
+   na żywo (bez niego dashboard pokazuje parser + log + stego bez werdyktu AI).
+3. **Decyzja o `strace`**: czy wiązać czwartą warstwę do końca (druga sesja
+   ją pisze), czy zostawić jako zaplanowaną i skupić się na szlifie trzech
+   warstw, które już działają.

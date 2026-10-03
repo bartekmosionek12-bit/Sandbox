@@ -43,6 +43,7 @@ def _run_detoner_path(path: str, env_extra: dict | None = None) -> dict:
         [sys.executable, "-I", "-u", DETONATE, path],
         capture_output=True,
         text=True,
+        encoding="utf-8",
         timeout=60,
         env=env,
     )

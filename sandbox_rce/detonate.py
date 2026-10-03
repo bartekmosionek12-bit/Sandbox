@@ -208,6 +208,12 @@ def _install_patches() -> None:
 
 
 def detonate(target: str) -> dict:
+    # Log idzie na stdout jako UTF-8 niezależnie od locale. Bez tego zdarzenie
+    # ze znakiem spoza strony kodowej wywala zapis i gubi linię z wynikiem —
+    # payload mógłby tak "zniknąć" z logu.
+    for stream in (sys.stdout, sys.stderr):
+        stream.reconfigure(encoding="utf-8", errors="backslashreplace")
+
     _install_patches()
 
     started = time.monotonic()

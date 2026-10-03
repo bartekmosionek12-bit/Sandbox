@@ -10,6 +10,7 @@ niż brak detonacji, bo wygląda na dowód niewinności.
 from __future__ import annotations
 
 import json
+import pickle
 import os
 import subprocess
 import sys
@@ -32,10 +33,14 @@ def _samples():
 
 
 def _run_detoner(name: str, env_extra: dict | None = None) -> dict:
+    return _run_detoner_path(os.path.join(SAMPLES, name), env_extra)
+
+
+def _run_detoner_path(path: str, env_extra: dict | None = None) -> dict:
     env = dict(os.environ)
     env.update(env_extra or {})
     proc = subprocess.run(
-        [sys.executable, "-I", "-u", DETONATE, os.path.join(SAMPLES, name)],
+        [sys.executable, "-I", "-u", DETONATE, path],
         capture_output=True,
         text=True,
         timeout=60,
@@ -75,8 +80,30 @@ def test_posix_system_is_patched_not_only_os():
     assert any(e["type"] == "os_system" for e in result["events"])
 
 
-def test_network_attempt_is_logged():
-    result = _run_detoner("evil_network_beacon.pkl")
+def _build_unroutable_beacon(tmp_path) -> str:
+    """Fixture sieciowy celujący w 192.0.2.1 (TEST-NET-1, RFC 5737).
+
+    Demo'wy ``evil_network_beacon.pkl`` celuje w example.com, bo tak czytelniej
+    wygląda na dashboardzie — ale on jest uruchamiany WYŁĄCZNIE w kontenerze
+    z ``--network=none``. Testy odpalają detoner bezpośrednio na hoście, więc
+    tamten fixture wysyłałby z maszyny dewelopera prawdziwy pakiet. TEST-NET-1
+    jest zarezerwowany do dokumentacji i nietrasowalny, więc próba zostaje
+    zalogowana, a nic nie opuszcza maszyny.
+    """
+    import socket
+
+    class UnroutableBeacon:
+        def __reduce__(self):
+            return (socket.create_connection, (("192.0.2.1", 80), 1))
+
+    path = os.path.join(str(tmp_path), "beacon_testnet.pkl")
+    with open(path, "wb") as fh:
+        pickle.dump(UnroutableBeacon(), fh, protocol=4)
+    return path
+
+
+def test_network_attempt_is_logged(tmp_path):
+    result = _run_detoner_path(_build_unroutable_beacon(tmp_path))
     assert any(e["type"] == "network" for e in result["events"])
 
 
@@ -86,11 +113,11 @@ def test_clean_model_produces_no_events():
     assert result["events"] == [], f"czysty model nie powinien nic robić: {result['events']}"
 
 
-def test_import_machinery_does_not_pollute_log():
+def test_import_machinery_does_not_pollute_log(tmp_path):
     """Maszyneria importów woła exec() na obiektach code. Logujemy tylko
     kod podany jako źródło (str/bytes), więc zwykłe importy nie mogą
     generować zdarzeń code_exec."""
-    result = _run_detoner("evil_network_beacon.pkl")
+    result = _run_detoner_path(_build_unroutable_beacon(tmp_path))
     code_events = [e for e in result["events"] if e["type"] == "code_exec"]
     assert code_events == [], f"log zaśmiecony przez importy: {code_events}"
 

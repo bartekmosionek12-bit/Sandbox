@@ -195,3 +195,46 @@ def test_clean_payload_reports_no_side_effect(tmp_path):
     )
     assert "SKUTEK" not in proc.stdout
     assert "nie utworzył ani nie zmienił" in proc.stdout
+
+
+# --- .keras: ta sama linia dowodowa co dla pickle'a -----------------------
+
+
+def test_keras_side_effect_of_payload_is_reported(capsys):
+    """Dla .keras log musi dowodzić SKUTKU, nie tylko wywołania.
+
+    To ta sama druga połowa dowodu, którą ma ścieżka pickle'owa. Bez niej
+    „na dysku hosta nic nie ma" czyta się dwuznacznie.
+    """
+    from sandbox_rce import detonate_keras as dk
+
+    dk._report_keras_side_effects({}, {"pwned_keras": 0}, "/tmp")
+    out = capsys.readouterr().out
+    assert "SKUTEK" in out
+    assert "/tmp/pwned_keras" in out
+
+
+def test_keras_framework_cache_is_named_not_hidden(capsys):
+    """Pliki cache'u Kerasa/TF nie udają skutku payloadu, ale nie znikają.
+
+    Milczące filtrowanie wpisów w dowodzie izolacji byłoby dokładnie tą
+    klasą błędu, przed którą ten projekt ostrzega.
+    """
+    from sandbox_rce import detonate_keras as dk
+
+    dk._report_keras_side_effects({}, {".keras/models/a": 12}, "/tmp")
+    out = capsys.readouterr().out
+    assert "nie utworzył ani nie zmienił żadnego pliku" in out
+    assert "ruch frameworka" in out
+    assert "SKUTEK" not in out
+
+
+def test_keras_default_backend_is_tensorflow():
+    """Backend numpy segfaultuje w kontenerze i zostawia PUSTY log."""
+    import inspect
+
+    from sandbox_rce import detonate_keras as dk
+
+    source = inspect.getsource(dk._import_keras)
+    assert '"tensorflow"' in source
+    assert '"numpy"' not in source.split("setdefault")[1].split(")")[0]

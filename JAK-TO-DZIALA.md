@@ -228,6 +228,19 @@ laptopie). To nie jest „napisane i założone" — to uruchomione i sprawdzone
   Bez tego „na dysku hosta nic nie ma" czytało się dwuznacznie: albo
   izolacja zadziałała, albo payload wcale się nie wykonał. Dopisek
   o kontenerze pojawia się tylko wtedy, gdy kod sprawdzi `/.dockerenv`.
+- **Ta sama linia dowodowa dla `.keras`** — detoner Kerasa dostał dokładnie
+  ten sam pomiar, czyli `SKUTEK: payload utworzył /tmp/pwned_keras`. Miał
+  wcześniej tylko log zdarzeń, więc dla `.keras` dowód kończył się na
+  „payload wywołał `os.system`" i nie sięgał „i to wywołanie miało skutek".
+  Pliki, które do `/tmp` zapisują sam Keras i TensorFlow (cache, `HOME`),
+  są w raporcie **nazwane wprost, a nie odfiltrowane po cichu** — ukrywanie
+  wpisów w dowodzie izolacji byłoby tą samą klasą błędu, przed którą to
+  narzędzie ostrzega.
+- **Domyślny backend Kerasa to TensorFlow, nie numpy** — numpy segfaultował
+  w kontenerze na warstwie Lambda i zostawiał PUSTY log, czyli plik jawnie
+  złośliwy wyglądał na czysty. Obraz ustawiał to już sam; teraz ustawia to
+  także kod, więc uruchomienie poza obrazem nie wraca po cichu do wersji,
+  która się wywala.
 - parser `.pkl` i `.keras`, sędzia LLM z ochroną przed injection,
   dashboard (parser → detonacja → sędzia), kontrakty JSON, **50 testów**, README.
 

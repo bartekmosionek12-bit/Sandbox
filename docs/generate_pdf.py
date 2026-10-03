@@ -26,6 +26,7 @@ from reportlab.platypus import (
     HRFlowable,
     ListFlowable,
     ListItem,
+    NextPageTemplate,
     PageBreak,
     PageTemplate,
     Paragraph,
@@ -48,25 +49,40 @@ CODEFG = colors.HexColor("#d7dee8")
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Pickle-Sandbox-Dokumentacja.pdf")
 
-WIN_FONTS = r"C:\Windows\Fonts"
+# Czcionki szukamy w kilku miejscach, bo dokument buduje sie i na Windows,
+# i w Linuksie. Bez TTF-a z polskimi znakami reportlab spada na wbudowana
+# Helvetice, ktora diakrytykow nie ma — w PDF-ie wyszloby "sedzia" zamiast
+# "sedzia". Liberation Sans jest metrycznie zgodny z Arialem, wiec uklad
+# strony zostaje ten sam niezaleznie od systemu.
+FONT_DIRS = [
+    r"C:\Windows\Fonts",
+    "/usr/share/fonts/truetype/liberation",
+    "/usr/share/fonts/truetype/dejavu",
+]
 
 
 def _register_fonts() -> tuple[str, str, str]:
-    """Rejestruje czcionki z obsługą polskich znaków. Zwraca (regular, bold, mono)."""
+    """Rejestruje czcionki z obsluga polskich znakow. Zwraca (regular, bold, mono)."""
     candidates = {
-        "Body": ["arial.ttf", "segoeui.ttf", "calibri.ttf"],
-        "Body-Bold": ["arialbd.ttf", "seguisb.ttf", "calibrib.ttf"],
-        "Mono": ["consola.ttf", "cour.ttf", "lucon.ttf"],
+        "Body": ["arial.ttf", "segoeui.ttf", "calibri.ttf",
+                 "LiberationSans-Regular.ttf", "DejaVuSans.ttf"],
+        "Body-Bold": ["arialbd.ttf", "seguisb.ttf", "calibrib.ttf",
+                      "LiberationSans-Bold.ttf", "DejaVuSans-Bold.ttf"],
+        "Mono": ["consola.ttf", "cour.ttf", "lucon.ttf",
+                 "LiberationMono-Regular.ttf", "DejaVuSansMono.ttf"],
     }
     chosen = {}
     for name, files in candidates.items():
         for fn in files:
-            path = os.path.join(WIN_FONTS, fn)
-            if os.path.exists(path):
-                pdfmetrics.registerFont(TTFont(name, path))
-                chosen[name] = name
+            for directory in FONT_DIRS:
+                path = os.path.join(directory, fn)
+                if os.path.exists(path):
+                    pdfmetrics.registerFont(TTFont(name, path))
+                    chosen[name] = name
+                    break
+            if name in chosen:
                 break
-    # Fallback na wbudowane (bez polskich znaków) — nie powinno się zdarzyć na Win.
+    # Fallback na wbudowane (bez polskich znakow) — nie powinno sie zdarzyc.
     return (
         chosen.get("Body", "Helvetica"),
         chosen.get("Body-Bold", "Helvetica-Bold"),
@@ -233,6 +249,11 @@ def build():
         [Paragraph("Stan", S["TDb"]), Paragraph("zweryfikowane na żywym Dockerze (Docker Desktop 29.8.1, WSL2); 56 testów", S["TD"])],
     ], [3.3 * cm, doc.width - 3.3 * cm], header=False)
     e.append(meta)
+    # Po okladce przechodzimy na szablon tresci. Bez tego reportlab trzyma
+    # szablon PIERWSZEJ strony do konca dokumentu: kazda strona dostawala
+    # okladkowy pasek wysoki na 90 mm, czyli jedna trzecia kazdej kartki szla
+    # na baner, a tekst rozlewal sie na wiecej stron niz potrzebuje.
+    e.append(NextPageTemplate("main"))
     e.append(PageBreak())
 
     # ===== 1. PROBLEM =====
@@ -350,6 +371,19 @@ def build():
         "czyli payload faktycznie się wykonuje, a my to widzimy. Kanał jest "
         "jednokierunkowy: kontener pisze na stdout, host czyta po zakończeniu." %
         (MONO, MONO, MONO, MONO, MONO, MONO)))
+    e.append(P("Druga połowa dowodu: skutek, nie tylko wywołanie", "H2"))
+    e.append(P(
+        "Log zdarzeń mówi, że payload <b>wywołał</b> "
+        "<font face='%s'>os.system</font>. Osobno porównujemy zawartość "
+        "katalogu zapisu przed detonacją i po niej, więc w logu jest też linia "
+        "<font face='%s'>SKUTEK: payload utworzył /tmp/pwned (0 B) — wewnątrz "
+        "kontenera</font>. Dopiero to razem jest dowodem: wykonał się, miał "
+        "skutek i nie wyszedł poza kontener — na dysku hosta tego pliku nie ma "
+        "wcale. Ścieżka <font face='%s'>.keras</font> ma tę samą linię "
+        "(<font face='%s'>/tmp/pwned_keras</font>), a pliki cache'u Kerasa "
+        "i TensorFlow są w raporcie <b>nazwane wprost, nie ukryte</b>: milczące "
+        "filtrowanie wpisów w dowodzie izolacji byłoby tą samą klasą błędu, "
+        "przed którą to narzędzie ostrzega." % (MONO, MONO, MONO, MONO)))
     e.append(P("Izolacja kontenera", "H2"))
     e.append(panel_table([
         [Paragraph("flaga", S["TDb"]), Paragraph("po co", S["TDb"])],
@@ -434,7 +468,7 @@ def build():
          Paragraph("load OK, zero zdarzeń", S["TD"])],
     ], [3.6 * cm, 2.2 * cm, doc.width - 5.8 * cm], header=False))
     e.append(P(
-        "Pokrycie testami: <b>50 testów</b> (parser pickle i keras, instrumentacja "
+        "Pokrycie testami: <b>56 testów</b> (parser pickle i keras, instrumentacja "
         "detonera, kontrakty, sędzia). Testy nie wykonują złośliwych plików poza "
         "kontrolowanymi, nieszkodliwymi fixture'ami.", "Caption"))
     e.append(Spacer(1, 3 * mm))

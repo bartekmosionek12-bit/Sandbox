@@ -52,6 +52,71 @@ RESULT_PREFIX = detonate.RESULT_PREFIX
 # Komunikaty błędów, które oznaczają niezgodność wersji bytecode'u.
 _BYTECODE_ERRORS = ("bad marshal data", "unknown type code", "code object")
 
+# Keras i TensorFlow same z siebie piszą do /tmp: obraz przekierowuje tam
+# HOME, KERAS_HOME i XDG_CACHE_HOME, bo resztę filesystemu kontener montuje
+# read-only. Takie pliki to ruch frameworka, nie skutek payloadu — ale w
+# raporcie są **nazwane wprost, nie ukryte**. Milczące filtrowanie wpisów w
+# dowodzie izolacji byłoby dokładnie tą klasą błędu, przed którą ten projekt
+# ostrzega: artefaktem, który wygląda na dowód, a część prawdy pomija.
+_FRAMEWORK_PREFIXES = (".keras", ".cache", ".config", ".local", ".nv", ".python_history")
+
+
+def _is_framework_noise(relative: str) -> bool:
+    head = relative.replace("\\", "/").split("/", 1)[0]
+    return head.startswith(_FRAMEWORK_PREFIXES)
+
+
+def _report_keras_side_effects(
+    before: dict[str, int], after: dict[str, int], path: str
+) -> None:
+    """Druga połowa dowodu — identyczna jak dla pickle'a, ``detonate.py``.
+
+    Log zdarzeń mówi, że warstwa Lambda **wywołała** ``os.system``; ta
+    różnica pokazuje, że wywołanie miało **skutek**: plik naprawdę powstał.
+    A że powstał w kontenerze, ginie razem z nim — na dysku hosta nie ma go
+    wcale. Bez tej linii „na dysku nic nie ma" czyta się dwuznacznie: albo
+    izolacja zadziałała, albo payload wcale się nie wykonał.
+    """
+    where = "wewnątrz kontenera" if os.path.exists("/.dockerenv") else "w tym procesie"
+
+    created = sorted(set(after) - set(before))
+    changed = sorted(
+        name for name in set(after) & set(before) if after[name] != before[name]
+    )
+    payload = [n for n in created + changed if not _is_framework_noise(n)]
+    framework = [n for n in created + changed if _is_framework_noise(n)]
+
+    if not payload:
+        print(
+            f"[detoner-keras] {path}: payload nie utworzył ani nie zmienił "
+            f"żadnego pliku",
+            flush=True,
+        )
+    for name in created:
+        if _is_framework_noise(name):
+            continue
+        print(
+            f"[detoner-keras] SKUTEK: payload utworzył {path}/{name} "
+            f"({after[name]} B) — {where}",
+            flush=True,
+        )
+    for name in changed:
+        if _is_framework_noise(name):
+            continue
+        print(
+            f"[detoner-keras] SKUTEK: payload zmienił {path}/{name} "
+            f"({before[name]} B → {after[name]} B) — {where}",
+            flush=True,
+        )
+    if framework:
+        count = len(framework)
+        noun = "plik" if count == 1 else ("pliki" if 2 <= count <= 4 else "plików")
+        print(
+            f"[detoner-keras] (poza tym {count} {noun} cache'u Kerasa/TF "
+            f"w {path} — ruch frameworka, nie payloadu)",
+            flush=True,
+        )
+
 
 def _import_keras():
     """Importuje Keras PRZED założeniem patchy.
@@ -61,7 +126,12 @@ def _import_keras():
     i sędzia dostałby dowody, których payload nie wygenerował. Ten sam błąd
     popełniliśmy raz na ``exec`` wołanym przez maszynerię importów.
     """
-    os.environ.setdefault("KERAS_BACKEND", "numpy")
+    # Backend domyslny to TensorFlow, nie numpy. Backend numpy segfaultuje
+    # w kontenerze na przebiegu modelu z warstwa Lambda (kontener wychodzi
+    # z kodem 139 i NIE zostawia wyniku, czyli log jest pusty — plik jawnie
+    # zlosliwy wygladalby na czysty). Obraz ustawia te zmienna sam; ten
+    # default jest siatka bezpieczenstwa na uruchomienie poza obrazem.
+    os.environ.setdefault("KERAS_BACKEND", "tensorflow")
     import keras  # noqa: PLC0415
 
     return keras
@@ -110,6 +180,12 @@ def detonate_keras(target: str) -> dict:
     # os.system/subprocess/socket/open pochodzi od ładowanego modelu.
     detonate._install_patches()
 
+    # Zdjęcie katalogu zapisu PO imporcie frameworka, a przed ładowaniem
+    # modelu: pliki, które TensorFlow zrobił przy starcie, są już w "before",
+    # więc nie wejdą do raportu jako skutek payloadu.
+    writable = detonate._writable_dir()
+    before = detonate._snapshot(writable)
+
     model = None
     print(
         f"[detoner-keras] load_model({os.path.basename(target)}, safe_mode=False)",
@@ -155,6 +231,9 @@ def detonate_keras(target: str) -> dict:
                     f"{type(exc).__name__}: {exc}",
                     flush=True,
                 )
+
+    # Skutki liczymy PO detonacji, zanim kontener zginie.
+    _report_keras_side_effects(before, detonate._snapshot(writable), writable)
 
     return _finish(started, load_succeeded, error)
 

@@ -40,6 +40,9 @@ DANGEROUS_CLASSES = {
 # Moduły, których obecność w polu "module" oznacza kod spoza Kerasa.
 SAFE_MODULE_PREFIXES = ("keras", "tensorflow", "tf", "builtins.")
 
+# Wbudowane kontenery Kerasa, którym Keras sam wpisuje registered_name.
+KERAS_CONTAINER_CLASSES = {"Functional", "Sequential", "Model"}
+
 
 def _empty_report(file_name: str) -> dict:
     return {
@@ -96,16 +99,21 @@ def _walk(node, path: str, report: dict) -> None:
                         f"{path}: warstwa Lambda niesie zserializowany kod Pythona."
                     )
 
-    # registered_name wskazuje obiekt spoza standardowego Kerasa.
+    # registered_name wskazuje obiekt spoza standardowego Kerasa — ale TYLKO
+    # wtedy, gdy faktycznie jest custom. Keras wpisuje tu również własne
+    # kontenery ("Functional", "Sequential") razem z modułem keras.*, więc
+    # flagowanie każdego registered_name dawało "suspicious" na każdym
+    # normalnym modelu funkcyjnym. Patrz _is_custom_registration.
     registered = node.get("registered_name")
     if isinstance(registered, str) and registered:
-        report["suspicious_imports"].append(
-            {"module": registered, "symbol": "registered_name", "pos": None}
-        )
-        report["notes"].append(
-            f"{path}: odwołanie do custom object '{registered}' — ładujący musi "
-            "dostarczyć tę klasę, co jest ścieżką do wykonania cudzego kodu."
-        )
+        if _is_custom_registration(registered, node.get("module")):
+            report["suspicious_imports"].append(
+                {"module": registered, "symbol": "registered_name", "pos": None}
+            )
+            report["notes"].append(
+                f"{path}: odwołanie do custom object '{registered}' — ładujący musi "
+                "dostarczyć tę klasę, co jest ścieżką do wykonania cudzego kodu."
+            )
 
     module = node.get("module")
     if isinstance(module, str) and module:
@@ -117,6 +125,26 @@ def _walk(node, path: str, report: dict) -> None:
 
     for key, value in node.items():
         _walk(value, f"{path}.{key}" if path else str(key), report)
+
+
+def _is_custom_registration(registered: str, module) -> bool:
+    """Czy ``registered_name`` wskazuje obiekt spoza Kerasa?
+
+    Rozstrzyga to jeden sprawdzony na żywo szczegół formatu: obiekt zapisany
+    przez ``@keras.saving.register_keras_serializable(package=...)`` dostaje
+    ``registered_name`` w formie ``pakiet>Klasa`` (i zwykle ``module: null``),
+    a wbudowany kontener Kerasa dostaje samą nazwę klasy razem z modułem
+    ``keras.*``. Bez tego rozróżnienia każdy zwyczajny model funkcyjny
+    wychodził jako „suspicious", bo Keras wpisuje mu ``registered_name:
+    "Functional"``.
+    """
+    if ">" in registered:
+        return True
+    if isinstance(module, str) and module:
+        return not module.startswith(SAFE_MODULE_PREFIXES)
+    # Brak modułu przy nazwie bez separatora — nie ma po czym poznać, że to
+    # Keras, więc traktujemy jako custom (fail closed).
+    return registered not in KERAS_CONTAINER_CLASSES
 
 
 def _carries_code(function) -> bool:

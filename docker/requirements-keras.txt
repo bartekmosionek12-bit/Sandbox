@@ -1,0 +1,14 @@
+# Obraz detonera .keras. Wersje pinowane, zeby obraz byl powtarzalny.
+#
+# Backend numpy, nie TensorFlow. Zmierzone w tym projekcie:
+#   tensorflow-cpu + keras  -> ~1.6 GB
+#   keras + numpy + jax[cpu] + scipy + h5py -> ~0.7 GB
+# Backend numpy Kerasa 3 ciagnie jax (keras/src/backend/numpy/math.py
+# importuje fft z backendu jax) oraz scipy (linalg), wiec "lekki" jest
+# tylko wzglednie - ale i tak jest ponad dwa razy mniejszy od TF.
+keras==3.15.1
+numpy==2.3.4
+scipy==1.16.3
+jax[cpu]==0.8.2
+h5py==3.15.1
+optree==0.18.0

@@ -111,3 +111,110 @@ def test_pipeline_keras_clean_is_safe(monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     result = pipeline.analyze(os.path.join(SAMPLES, "clean_model.keras"))
     assert result["final_verdict"] == "safe"
+
+
+def _keras_zip(tmp_path, name: str, config: dict):
+    path = tmp_path / name
+    with zipfile.ZipFile(path, "w") as archive:
+        archive.writestr("config.json", json.dumps(config))
+        archive.writestr("metadata.json", "{}")
+    return str(path)
+
+
+# Kształty poniżej są odwzorowaniem tego, co Keras 3.15 faktycznie zapisuje —
+# sprawdzone na wygenerowanych modelach, nie wymyślone.
+
+def test_plain_functional_model_is_not_flagged(tmp_path):
+    """Keras wpisuje registered_name 'Functional' KAŻDEMU modelowi funkcyjnemu.
+
+    Flagowanie tego dawało 'suspicious' na każdym normalnym modelu, czyli
+    fałszywy alarm na wszystkim, co nie jest Sequential.
+    """
+    config = {
+        "module": "keras.src.models.functional",
+        "class_name": "Functional",
+        "registered_name": "Functional",
+        "config": {
+            "name": "functional",
+            "layers": [
+                {
+                    "module": "keras.layers",
+                    "class_name": "InputLayer",
+                    "config": {"batch_shape": [None, 4], "dtype": "float32"},
+                    "registered_name": None,
+                },
+                {
+                    "module": "keras.layers",
+                    "class_name": "Dense",
+                    "config": {"name": "dense", "units": 8},
+                    "registered_name": None,
+                },
+            ],
+        },
+    }
+    report = parser_keras.parse_keras(
+        open(_keras_zip(tmp_path, "plain.keras", config), "rb").read()
+    )
+    assert report["static_risk"] == "clean", report["suspicious_imports"]
+    assert report["suspicious_imports"] == []
+
+
+def test_registered_custom_object_is_still_flagged(tmp_path):
+    """Obiekt z @register_keras_serializable ma registered_name 'pakiet>Klasa'
+    i module=null — i to musi dalej lecieć jako podejrzane."""
+    config = {
+        "module": "keras.src.models.functional",
+        "class_name": "Functional",
+        "registered_name": "Functional",
+        "config": {
+            "layers": [
+                {
+                    "module": None,
+                    "class_name": "Backdoor",
+                    "config": {"name": "backdoor"},
+                    "registered_name": "attacker_payload>Backdoor",
+                }
+            ]
+        },
+    }
+    report = parser_keras.parse_keras(
+        open(_keras_zip(tmp_path, "custom.keras", config), "rb").read()
+    )
+    assert report["static_risk"] == "suspicious"
+    assert any(
+        i["module"] == "attacker_payload>Backdoor" for i in report["suspicious_imports"]
+    )
+
+
+def test_real_keras3_lambda_shape_is_malicious(tmp_path):
+    """Keras 3 serializuje anonimowego lambdę jako class_name '__lambda__'
+    z polem 'code' (marshal + base64). To jest realny wektor RCE."""
+    config = {
+        "module": "keras.src.models.functional",
+        "class_name": "Functional",
+        "registered_name": "Functional",
+        "config": {
+            "layers": [
+                {
+                    "module": "keras.layers",
+                    "class_name": "Lambda",
+                    "config": {
+                        "name": "lambda",
+                        "function": {
+                            "class_name": "__lambda__",
+                            "config": {
+                                "code": "4wEAAAAAAAAAAAAAAAMAAAAD",
+                                "defaults": None,
+                                "closure": None,
+                            },
+                        },
+                    },
+                    "registered_name": None,
+                }
+            ]
+        },
+    }
+    report = parser_keras.parse_keras(
+        open(_keras_zip(tmp_path, "lam.keras", config), "rb").read()
+    )
+    assert report["static_risk"] == "malicious"

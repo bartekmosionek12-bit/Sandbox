@@ -130,17 +130,99 @@ To zamierzone: test pilnuje, że instrumentacja faktycznie przechwytuje
 wykonanie. Pusty log jest gorszy niż brak detonacji, bo wygląda jak dowód
 niewinności.
 
-## Sprawdzenie, że detonacja naprawdę działa
+## Weryfikacja detonacji w Dockerze — krok po kroku
 
-Wgraj na dashboard `poc/samples/evil_os_system.pkl`. Panel „Detonacja
-w sandboksie" ma pokazać zdarzenie:
+To jest procedura domykająca bramkę projektu: dowód, że payload wykonuje się
+**w kontenerze**, a nie na Twoim komputerze. Wykonaj kroki po kolei,
+w PowerShellu, w katalogu repo.
 
+**1. Sprawdź, że silnik Dockera odpowiada.**
+
+```powershell
+docker info --format "{{.ServerVersion}}"
 ```
-os_system    touch /tmp/pwned
+
+Ma wypisać numer wersji. Jeśli pisze cokolwiek o `docker API` albo `daemon`,
+uruchom Docker Desktop i poczekaj, aż pokaże „Engine running".
+
+**2. Pobierz aktualny kod.**
+
+```powershell
+git pull origin claude/pkl-rce-sandbox-pcdsri
 ```
 
-Potem `poc/samples/clean_model.pkl` — ten sam panel ma pokazać **zero
-zdarzeń** i zielony werdykt. Ten kontrast jest sednem demo.
+**3. Wygeneruj pliki PoC.**
+
+```powershell
+python -m poc.build_poc
+```
+
+**4. Zbuduj obraz detonera.** Pierwszy raz trwa chwilę, bo ściąga
+`python:3.11-slim`.
+
+```powershell
+docker build -t pickle-sandbox-detoner:latest -f docker/Dockerfile .
+```
+
+**5. Zdetonuj plik złośliwy.**
+
+```powershell
+python -m sandbox_rce.sandbox poc\samples\evil_os_system.pkl
+```
+
+Poprawny wynik ma te pola:
+
+```json
+"detonated": true,
+"detonation_backend": "docker",
+"load_succeeded": true,
+"events": [
+  { "type": "other",     "detail": "import posix" },
+  { "type": "os_system", "detail": "touch /tmp/pwned" }
+]
+```
+
+**6. Zdetonuj plik czysty, dla kontrastu.**
+
+```powershell
+python -m sandbox_rce.sandbox poc\samples\clean_model.pkl
+```
+
+Tu ma być `"detonated": true` i `"events": []`. Zero zdarzeń przy
+poprawnym załadowaniu to jest dowód, że instrumentacja nie zmyśla.
+
+**7. Sprawdź, że izolacja faktycznie trzymała.** Payload robił
+`touch /tmp/pwned`. Jeśli kontener zadziałał, ten plik powstał w kontenerze
+i zniknął razem z nim, a na Twoim komputerze go NIE MA:
+
+```powershell
+Test-Path C:\tmp\pwned
+wsl -- test -f /tmp/pwned ; if ($LASTEXITCODE -eq 0) { "UWAGA: plik jest w WSL" } else { "ok, brak w WSL" }
+```
+
+Oba mają wyjść negatywnie. To jest właściwy koniec weryfikacji: payload się
+wykonał, log to pokazał, a poza kontenerem nie zostało nic.
+
+**8. Zdetonuj pozostałe dwa pliki**, żeby zobaczyć cały kontrast:
+
+```powershell
+python -m sandbox_rce.sandbox poc\samples\evil_file_write.pkl
+python -m sandbox_rce.sandbox poc\samples\evil_network_beacon.pkl
+```
+
+Beacon ma w logu `"blocked": true` przy próbie połączenia. Fixture celuje
+w nazwę w domenie `.invalid`, która z definicji nie istnieje, więc nawet bez
+kontenera nic nigdzie nie wychodzi — a w kontenerze z `--network=none`
+blokuje się dwukrotnie.
+
+**9. Na koniec dashboard.**
+
+```powershell
+python -m app.server
+```
+
+Wgraj `evil_os_system.pkl` (czerwony banner, zdarzenia w panelu detonacji),
+potem `clean_model.pkl` (zielony, zero zdarzeń).
 
 Jeśli panel pisze, że detonacja się nie odbyła, to znaczy, że Docker nie
 działa. Narzędzie **nigdy nie podstawia symulowanego logu** — brak

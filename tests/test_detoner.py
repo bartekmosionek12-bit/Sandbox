@@ -1,7 +1,9 @@
 """Testy detonera i kontraktu sandboksa.
 
 Detoner uruchamiamy jako podproces (nigdy w procesie testów — instaluje
-globalne monkey-patche), na własnych, nieszkodliwych fixture'ach.
+globalne monkey-patche), na fixture'ach budowanych w katalogu tymczasowym
+testu. Plików z ``poc/samples`` testy nie dotykają: one są przeznaczone
+WYŁĄCZNIE do kontenera.
 To są testy, które pilnują najważniejszej rzeczy: że instrumentacja
 faktycznie przechwytuje zachowanie. Pusty log podczas demo jest gorszy
 niż brak detonacji, bo wygląda na dowód niewinności.
@@ -25,15 +27,6 @@ from sandbox_rce import sandbox  # noqa: E402
 
 SAMPLES = os.path.join(ROOT, "poc", "samples")
 DETONATE = os.path.join(ROOT, "sandbox_rce", "detonate.py")
-
-
-@pytest.fixture(scope="module", autouse=True)
-def _samples():
-    build_poc.build(SAMPLES)
-
-
-def _run_detoner(name: str, env_extra: dict | None = None) -> dict:
-    return _run_detoner_path(os.path.join(SAMPLES, name), env_extra)
 
 
 def _run_detoner_path(path: str, env_extra: dict | None = None) -> dict:
@@ -62,21 +55,49 @@ posix_only = pytest.mark.skipif(
 )
 
 
+def _build_marker_payload(tmp_path) -> tuple[str, str]:
+    """Własny payload ``posix.system`` zapisujący znacznik w ``tmp_path``.
+
+    Testy NIE odpalają plików z ``poc/samples`` — one są przeznaczone
+    wyłącznie do kontenera. Odpalanie ich na hoście było dokładnie tą
+    praktyką, przed którą ten projekt ma chronić (zostawiały ``/tmp/pwned``
+    i pisały po ``/tmp`` maszyny dewelopera). Ten fixture ma identyczną
+    mechanikę — ``__reduce__`` → GLOBAL/REDUCE → ``posix.system`` — ale
+    pisze tylko do katalogu tymczasowego testu.
+    """
+    marker = os.path.join(str(tmp_path), "marker")
+
+    class MarkerPayload:
+        def __reduce__(self):
+            return (build_poc._system(), (f"touch {marker}",))
+
+    path = os.path.join(str(tmp_path), "marker_payload.pkl")
+    with build_poc._posix_namespace():
+        with open(path, "wb") as fh:
+            pickle.dump(MarkerPayload(), fh, protocol=4)
+    return path, marker
+
+
 @posix_only
 def test_os_system_payload_is_logged(tmp_path):
-    result = _run_detoner("evil_os_system.pkl")
+    path, marker = _build_marker_payload(tmp_path)
+    result = _run_detoner_path(path)
     types = [e["type"] for e in result["events"]]
     assert "os_system" in types, f"nie przechwycono os.system: {types}"
     detail = next(e["detail"] for e in result["events"] if e["type"] == "os_system")
     assert "touch" in detail
+    # Patch loguje, a POTEM przepuszcza do oryginału — to ma być faktyczne
+    # wykonanie, nie symulacja, więc znacznik musi istnieć.
+    assert os.path.exists(marker), "payload nie wykonał się — patch nie przepuścił"
 
 
 @posix_only
-def test_posix_system_is_patched_not_only_os():
+def test_posix_system_is_patched_not_only_os(tmp_path):
     """os.system to w istocie posix.system, a pickle importuje posix.system
     wprost. Ten test pilnuje, że patch obejmuje moduł posix — bez tego
     detoner pokazywałby pusty log dla najbardziej typowego payloadu."""
-    result = _run_detoner("evil_os_system.pkl")
+    path, _ = _build_marker_payload(tmp_path)
+    result = _run_detoner_path(path)
     assert any(e["type"] == "os_system" for e in result["events"])
 
 
@@ -107,8 +128,11 @@ def test_network_attempt_is_logged(tmp_path):
     assert any(e["type"] == "network" for e in result["events"])
 
 
-def test_clean_model_produces_no_events():
-    result = _run_detoner("clean_model.pkl")
+def test_clean_model_produces_no_events(tmp_path):
+    path = os.path.join(str(tmp_path), "clean.pkl")
+    with open(path, "wb") as fh:
+        pickle.dump({"layers": [128, 64], "weights": [0.1, 0.2]}, fh, protocol=4)
+    result = _run_detoner_path(path)
     assert result["load_succeeded"] is True
     assert result["events"] == [], f"czysty model nie powinien nic robić: {result['events']}"
 

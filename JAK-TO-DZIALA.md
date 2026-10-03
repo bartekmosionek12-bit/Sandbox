@@ -70,7 +70,7 @@ każda zapisuje wynik do **swojego kontraktu JSON**, a dashboard i sędzia
 czytają wyłącznie te kontrakty.
 
 ```
-plik (.pkl / .keras / .npy / .npz)
+plik (.pkl / .keras)
    │
    ├─► WARSTWA 1  parser statyczny      ──► schemas/parser.schema.json
    │               (czyta, nie uruchamia)
@@ -78,24 +78,17 @@ plik (.pkl / .keras / .npy / .npz)
    ├─► WARSTWA 2  detonacja w Dockerze  ──► schemas/sandbox.schema.json
    │               (uruchamia naprawdę, w izolacji)
    │
-   ├─► WARSTWA 2b tensor steganography  ──► analiza LSB wag float32
-   │               (czyta dane, nic nie uruchamia)
-   │
    └─► WARSTWA 3  sędzia LLM            ──► schemas/judge.schema.json
                    (ocenia dowody z 1 i 2)
                         │
                    dashboard
 ```
 
-Warstwa stego jest ponumerowana 2b, a nie 4, bo jest **drugim źródłem
-dowodów o pliku**, nie kolejnym etapem oceny — tak jak detonacja, tyle że
-czyta dane zamiast je uruchamiać. Sędzia zostaje ostatni.
-
 **Dlaczego kontrakty są ważne:** dashboard i sędzia nie wiedzą, jaki format
 czytają. Dzięki temu `.keras` doszedł jako nowy plik parsera i jedna linijka
-routingu, a potem tak samo weszła warstwa stego razem z obsługą plików
-samych wag — za każdym razem bez dotykania interfejsu i sędziego. To jest
-najlepszy dowód, że ten podział był dobry: sprawdził się dwa razy.
+routingu — bez dotykania interfejsu i sędziego. (Warstwa stego, którą na
+Twoją prośbę odłożyłem, weszła dokładnie tak samo — co pokazuje, że ten
+podział się sprawdza; szczegóły w sekcji „Odłożone na później".)
 
 ---
 

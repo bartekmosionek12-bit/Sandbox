@@ -179,7 +179,8 @@
     </div>
     {% if not docker_ok %}
     <div class="note" style="margin-top:14px">
-      <strong>Warstwa detonacyjna jest wyłączona:</strong> {{ docker_message }}
+      <strong>Warstwa detonacyjna jest wyłączona.</strong> {{ docker_message }}
+      <br><br>
       Analiza statyczna działa normalnie, ale nie będzie dowodu z faktycznego
       uruchomienia pliku. Wyniki pokażą to wprost, zamiast podstawiać
       symulowany log.

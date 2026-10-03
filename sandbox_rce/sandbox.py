@@ -63,9 +63,15 @@ def docker_status() -> tuple[bool, str]:
         return False, f"Nie udało się wykonać 'docker info': {exc}"
 
     if proc.returncode != 0:
-        detail = (proc.stderr or proc.stdout or "").strip().splitlines()
-        first = detail[0] if detail else "nieznany błąd"
-        return False, f"Demon Dockera nie odpowiada: {first}"
+        raw = (proc.stderr or proc.stdout or "").strip()
+        # Komunikat trafia do UI, więc skracamy go do jednej czytelnej frazy
+        # zamiast wylewać na stronę całą ścieżkę gniazda i podpowiedzi Dockera.
+        if "docker.sock" in raw or "Cannot connect" in raw or "daemon" in raw.lower():
+            detail = "demon nie jest uruchomiony"
+        else:
+            first = raw.splitlines()[0] if raw else "nieznany błąd"
+            detail = first[:120]
+        return False, f"Demon Dockera nie odpowiada ({detail})."
     return True, f"Docker {proc.stdout.strip()}"
 
 

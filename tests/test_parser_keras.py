@@ -96,20 +96,20 @@ def test_parser_does_not_execute_payload(tmp_path):
     assert not os.path.exists(marker), "parser statyczny wykonał payload"
 
 
-def test_pipeline_routes_keras_and_skips_detonation(monkeypatch):
-    """.keras ma iść do swojego parsera, a brak detonacji ma być powiedziany
-    wprost, a nie pokazany jako pusty log."""
+def test_pipeline_routes_keras(monkeypatch):
+    """.keras ma iść do swojego parsera. Detonację wyłączamy (detonate=False),
+    żeby test był szybki i nie wymagał Dockera — detonacja ma własne testy."""
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
-    result = pipeline.analyze(os.path.join(SAMPLES, "evil_lambda.keras"))
+    result = pipeline.analyze(os.path.join(SAMPLES, "evil_lambda.keras"), detonate=False)
     assert result["parser"]["file_format"] == "keras"
     assert result["final_verdict"] == "malicious"
     assert result["sandbox"]["detonated"] is False
-    assert "nie jest jeszcze zaimplementowana" in result["sandbox"]["skipped_reason"]
+    assert result["sandbox"]["skipped_reason"]
 
 
 def test_pipeline_keras_clean_is_safe(monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
-    result = pipeline.analyze(os.path.join(SAMPLES, "clean_model.keras"))
+    result = pipeline.analyze(os.path.join(SAMPLES, "clean_model.keras"), detonate=False)
     assert result["final_verdict"] == "safe"
 
 

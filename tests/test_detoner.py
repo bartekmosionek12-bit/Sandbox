@@ -175,6 +175,7 @@ def test_side_effect_of_payload_is_reported(tmp_path):
         [sys.executable, "-I", "-u", DETONATE, path],
         capture_output=True,
         text=True,
+        encoding="utf-8",  # detoner pisze UTF-8; bez tego Windows psuje polskie znaki
         timeout=60,
     )
     assert "SKUTEK" in proc.stdout, f"nie zaraportowano skutku: {proc.stdout!r}"
@@ -189,6 +190,7 @@ def test_clean_payload_reports_no_side_effect(tmp_path):
         [sys.executable, "-I", "-u", DETONATE, path],
         capture_output=True,
         text=True,
+        encoding="utf-8",  # detoner pisze UTF-8; bez tego Windows psuje polskie znaki
         timeout=60,
     )
     assert "SKUTEK" not in proc.stdout

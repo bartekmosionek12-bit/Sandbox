@@ -18,7 +18,7 @@ from sandbox_rce import pipeline, sandbox
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 32 * 1024 * 1024  # 32 MB
 
-ALLOWED_EXTENSIONS = {".pkl", ".pickle", ".keras"}
+ALLOWED_EXTENSIONS = {".pkl", ".pickle", ".keras", ".npy", ".npz"}
 
 # Stan zadań trzymany w pamięci procesu — zgodnie z założeniem "zero historii".
 _jobs: dict[str, dict] = {}

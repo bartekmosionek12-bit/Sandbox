@@ -18,7 +18,7 @@ from sandbox_rce import pipeline, sandbox
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 32 * 1024 * 1024  # 32 MB
 
-ALLOWED_EXTENSIONS = {".pkl", ".pickle"}
+ALLOWED_EXTENSIONS = {".pkl", ".pickle", ".keras"}
 
 # Stan zadań trzymany w pamięci procesu — zgodnie z założeniem "zero historii".
 _jobs: dict[str, dict] = {}
@@ -96,7 +96,7 @@ def analyze():
     # Nazwa pliku z uploadu nigdy nie trafia na dysk — zapisujemy pod stałą
     # nazwą w świeżym katalogu tymczasowym.
     staging = tempfile.mkdtemp(prefix="pickle-sandbox-")
-    path = os.path.join(staging, "upload.pkl")
+    path = os.path.join(staging, "upload" + extension)
     uploaded.save(path)
 
     job_id = uuid.uuid4().hex

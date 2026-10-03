@@ -7,7 +7,7 @@
   "properties": {
     "schema_version": { "type": "string", "const": "1.0" },
     "file_name": { "type": "string" },
-    "file_format": { "type": "string", "enum": ["pickle", "unknown"] },
+    "file_format": { "type": "string", "enum": ["pickle", "keras", "unknown"] },
     "opcodes": {
       "type": "array",
       "description": "Wszystkie opcody w kolejności występowania.",

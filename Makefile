@@ -5,6 +5,7 @@ install:
 
 poc:
 	python3 -m poc.build_poc
+	python3 -m poc.build_poc_keras
 
 test:
 	python3 -m pytest tests/ -q

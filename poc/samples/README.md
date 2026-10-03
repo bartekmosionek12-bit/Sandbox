@@ -11,3 +11,17 @@ Fixture'y testowe dla detektora. Pliki `evil_*.pkl` **wykonują kod przy
 | `clean_model.pkl` | zwykły dict, same typy wbudowane | brak — zielony werdykt |
 
 Regeneracja: `python -m poc.build_poc`
+
+## Pliki .keras
+
+| plik | mechanizm | wykrywane jako |
+|---|---|---|
+| `evil_lambda.keras` | warstwa Lambda ze zserializowanym bytecode'em (`touch /tmp/pwned_keras`) | malicious |
+| `evil_custom_object.keras` | `registered_name` + moduł spoza Kerasa | suspicious |
+| `clean_model.keras` | zwykły Sequential, same warstwy Kerasa | clean |
+
+Regeneracja: `python -m poc.build_poc_keras`
+
+Detonacja `.keras` nie jest jeszcze zaimplementowana (wymaga obrazu
+z TensorFlow/Keras), więc dla tego formatu pipeline robi analizę statyczną
+i werdykt LLM, mówiąc wprost, że dowodu dynamicznego brak.

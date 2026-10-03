@@ -11,7 +11,21 @@ from typing import Callable
 
 from sandbox_rce import judge as judge_mod
 from sandbox_rce import parser as parser_mod
+from sandbox_rce import parser_keras as parser_keras_mod
 from sandbox_rce import sandbox as sandbox_mod
+
+# Rozszerzenia obsługiwane przez poszczególne parsery statyczne.
+PICKLE_EXTENSIONS = {".pkl", ".pickle"}
+KERAS_EXTENSIONS = {".keras"}
+
+# Detonacja .keras wymagałaby obrazu z TensorFlow/Keras (~600 MB+). Nie ma
+# go jeszcze, więc dla tego formatu jedziemy static + sędzia i mówimy to
+# wprost, zamiast pokazywać pusty log jako brak zagrożenia.
+KERAS_NO_DETONATION = (
+    "Detonacja plików .keras nie jest jeszcze zaimplementowana — wymaga "
+    "obrazu kontenera z TensorFlow/Keras. Werdykt opiera się na analizie "
+    "statycznej konfiguracji modelu."
+)
 
 # Kolejność ważności werdyktów — do wyznaczenia wyniku końcowego.
 _SEVERITY = {"malicious": 3, "suspicious": 2, "safe": 1, "clean": 1, "unknown": 0}
@@ -40,10 +54,19 @@ def analyze(
         if progress:
             progress(message)
 
-    step("Analiza statyczna pliku")
-    parser_report = parser_mod.parse_file(path)
+    extension = os.path.splitext(path)[1].lower()
+    is_keras = extension in KERAS_EXTENSIONS
 
-    if detonate:
+    step("Analiza statyczna pliku")
+    parser_report = (
+        parser_keras_mod.parse_file(path) if is_keras else parser_mod.parse_file(path)
+    )
+
+    if is_keras:
+        sandbox_report = sandbox_mod._empty_report(
+            os.path.basename(path), KERAS_NO_DETONATION
+        )
+    elif detonate:
         step("Detonacja w izolowanym kontenerze")
         sandbox_report = sandbox_mod.detonate_in_docker(path)
     else:

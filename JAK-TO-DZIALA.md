@@ -65,12 +65,12 @@ powiedz, przerobię.
 
 ## Architektura w jednym zdaniu
 
-Plik wchodzi przez dashboard, przechodzi przez trzy niezależne warstwy
-detekcji, każda warstwa zapisuje wynik do **swojego kontraktu JSON**,
-a dashboard i sędzia czytają wyłącznie te kontrakty.
+Plik wchodzi przez dashboard, przechodzi przez niezależne warstwy detekcji,
+każda zapisuje wynik do **swojego kontraktu JSON**, a dashboard i sędzia
+czytają wyłącznie te kontrakty.
 
 ```
-plik (.pkl / .keras)
+plik (.pkl / .keras / .npy / .npz)
    │
    ├─► WARSTWA 1  parser statyczny      ──► schemas/parser.schema.json
    │               (czyta, nie uruchamia)
@@ -78,15 +78,24 @@ plik (.pkl / .keras)
    ├─► WARSTWA 2  detonacja w Dockerze  ──► schemas/sandbox.schema.json
    │               (uruchamia naprawdę, w izolacji)
    │
+   ├─► WARSTWA 2b tensor steganography  ──► analiza LSB wag float32
+   │               (czyta dane, nic nie uruchamia)
+   │
    └─► WARSTWA 3  sędzia LLM            ──► schemas/judge.schema.json
                    (ocenia dowody z 1 i 2)
                         │
                    dashboard
 ```
 
+Warstwa stego jest ponumerowana 2b, a nie 4, bo jest **drugim źródłem
+dowodów o pliku**, nie kolejnym etapem oceny — tak jak detonacja, tyle że
+czyta dane zamiast je uruchamiać. Sędzia zostaje ostatni.
+
 **Dlaczego kontrakty są ważne:** dashboard i sędzia nie wiedzą, jaki format
 czytają. Dzięki temu `.keras` doszedł jako nowy plik parsera i jedna linijka
-routingu — bez dotykania interfejsu i sędziego. Tak samo wejdzie stego.
+routingu, a potem tak samo weszła warstwa stego razem z obsługą plików
+samych wag — za każdym razem bez dotykania interfejsu i sędziego. To jest
+najlepszy dowód, że ten podział był dobry: sprawdził się dwa razy.
 
 ---
 
@@ -152,7 +161,14 @@ jednokierunkowy: kontener pisze na stdout, host czyta po zakończeniu.
 działa od środka procesu. Payload, który woła syscall bezpośrednio przez
 `ctypes`, ominie te haki — **nadal nic nie zrobi poza kontenerem**, ale
 może nie być widoczny w logu. Zamknięciem tego jest obserwacja z zewnątrz
-(`strace`), zaplanowana po domknięciu obecnej bramki.
+przez `strace`, która widzi syscall niezależnie od tego, jak payload go
+wywołał, i której z wnętrza kontenera nie da się wyłączyć. Parser wyjścia
+jest napisany i ma 12 testów, obraz też jest gotowy; zostaje podpięcie do
+`docker run` i uruchomienie w kontenerze. Ten tryb wymaga
+`--cap-add=SYS_PTRACE`, czyli oddaje jedno uprawnienie, które domyślny
+przebieg zabiera przez `--cap-drop=ALL` — dlatego jest i zostanie **osobnym,
+opcjonalnym przebiegiem**, nigdy domyślnym. Mówiąc wprost: jedno uprawnienie
+kupione za widoczność, wybierane świadomie.
 
 ---
 

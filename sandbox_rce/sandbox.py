@@ -87,7 +87,11 @@ def docker_status() -> tuple[bool, str]:
             ["docker", "info", "--format", "{{.ServerVersion}}"],
             capture_output=True,
             text=True,
-            timeout=15,
+            # Krotki limit celowo. To wywolanie stoi na drodze zadania HTTP
+            # (dashboard pyta o stan Dockera przy wejsciu na strone), a gdy
+            # Docker Desktop sie restartuje, "docker info" potrafi wisiec.
+            # Przy dlugim limicie strona i upload czekaly razem z nim.
+            timeout=6,
         )
     except subprocess.TimeoutExpired:
         return False, "Polecenie 'docker info' przekroczyło limit czasu."

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Pickle Sandbox</title>
+<title>AI Model Sandbox</title>
 <style>
   :root {
     --bg: #0b0f17;
@@ -159,7 +159,7 @@
 
   <header>
     <div class="title">
-      <h1>Pickle Sandbox</h1>
+      <h1>AI Model Sandbox</h1>
       <span class="tag">Detekcja RCE w modelach ML</span>
     </div>
     <p class="sub">
@@ -301,7 +301,15 @@ async function upload(file) {
     res = await fetch("/api/analyze", { method: "POST", body });
     data = await res.json();
   } catch (err) {
-    return fail("Nie udało się wysłać pliku: " + err);
+    // "TypeError: Failed to fetch" znaczy, ze przegladarka w ogole nie
+    // dostala odpowiedzi — praktycznie zawsze dlatego, ze proces serwera nie
+    // dziala (zostal zamkniety albo ubity). Samo "Failed to fetch" nie mowi
+    // tego uzytkownikowi, a to jedyna rzecz, ktora musi w tej sytuacji
+    // zrobic, wiec piszemy to wprost.
+    return fail("Serwer nie odpowiedział. Najczęściej znaczy to, że proces "
+      + "dashboardu już nie działa — sprawdź okno, w którym go uruchomiłeś, "
+      + "i podnieś go ponownie: $env:PORT=\"5050\"; python -m app.server "
+      + "(szczegóły: " + err + ")");
   }
   if (!res.ok) return fail(data.error || "Błąd wysyłania.");
 

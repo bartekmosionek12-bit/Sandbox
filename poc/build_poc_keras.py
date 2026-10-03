@@ -200,14 +200,23 @@ def _write_keras(path: str, config: dict) -> None:
         "date_saved": "2026-10-03@00:00:00",
         "generated_by_python": platform.python_version(),
     }
+    # Wpisy ZIP-a dostają STAŁĄ datę. Bez tego każde uruchomienie generatora
+    # (a testy wołają go sami) dawało inne bajty, więc fixture'y w repo
+    # zmieniały się po każdym `make test` i śmieciły w diffie.
+    def _put(archive, name: str, payload) -> None:
+        info = zipfile.ZipInfo(name, date_time=(2026, 10, 3, 0, 0, 0))
+        info.compress_type = zipfile.ZIP_DEFLATED
+        info.external_attr = 0o644 << 16
+        archive.writestr(info, payload)
+
     with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as archive:
-        archive.writestr("metadata.json", json.dumps(metadata, indent=2))
-        archive.writestr("config.json", json.dumps(config, indent=2))
+        _put(archive, "metadata.json", json.dumps(metadata, indent=2))
+        _put(archive, "config.json", json.dumps(config, indent=2))
         # Tu muszą być PRAWDZIWE wagi w formacie HDF5. Wcześniej leżała tu
         # zaślepka z samym nagłówkiem i h5py odrzucał ją przy ładowaniu
         # ("bad superblock version number") — load_model padał, zanim
         # cokolwiek się wykonało, więc detonacja dawała pusty log.
-        archive.writestr("model.weights.h5", base64.b64decode(EMPTY_HDF5_B64))
+        _put(archive, "model.weights.h5", base64.b64decode(EMPTY_HDF5_B64))
 
 
 def build(out_dir: str = SAMPLES_DIR) -> list[str]:

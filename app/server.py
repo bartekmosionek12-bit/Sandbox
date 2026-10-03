@@ -9,6 +9,7 @@ from __future__ import annotations
 import os
 import tempfile
 import threading
+import time
 import uuid
 
 from flask import Flask, jsonify, render_template, request
@@ -61,9 +62,28 @@ def _run_analysis(job_id: str, path: str, display_name: str) -> None:
             pass
 
 
+# Odpowiedz "docker info" trzymamy przez chwile w pamieci. Kazde wejscie na
+# strone odpalalo to polecenie na nowo, a na Windows z WSL2 potrafi ono zajac
+# sekunde albo dwie — strona wstawala wtedy zauwazalnie wolniej, mimo ze stan
+# demona praktycznie sie nie zmienia. TTL jest krotki, wiec uruchomienie
+# Dockera widac od razu po odswiezeniu.
+_DOCKER_STATUS_TTL_S = 5.0
+_docker_status_cache: dict[str, object] = {"at": 0.0, "value": None}
+
+
+def _docker_status_cached() -> tuple[bool, str]:
+    now = time.monotonic()
+    cached = _docker_status_cache["value"]
+    if cached is None or now - float(_docker_status_cache["at"]) > _DOCKER_STATUS_TTL_S:
+        cached = sandbox.docker_status()
+        _docker_status_cache["value"] = cached
+        _docker_status_cache["at"] = now
+    return cached  # type: ignore[return-value]
+
+
 @app.get("/")
 def index():
-    docker_ok, docker_message = sandbox.docker_status()
+    docker_ok, docker_message = _docker_status_cached()
     return render_template(
         "index.html",
         docker_ok=docker_ok,

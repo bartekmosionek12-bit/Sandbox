@@ -72,6 +72,7 @@
     border-radius: 50%; animation: sp .7s linear infinite;
   }
   @keyframes sp { to { transform: rotate(360deg); } }
+  .elapsed { color: var(--muted); font-family: var(--mono); font-size: 12px; margin-left: 8px; }
 
   .banner {
     margin-top: 28px; border-radius: 12px; padding: 22px 24px;
@@ -234,15 +235,51 @@ fileInput.addEventListener("change", () => {
   if (fileInput.files.length) upload(fileInput.files[0]);
 });
 
+// Nazwa kroku z backendu moze miec dopisek z formatem, np. "Detonacja
+// w izolowanym kontenerze (keras)". Porownujemy po nazwie bazowej — inaczej
+// zaden krok nie pasuje do listy, nic sie nie podswietla i interfejs wyglada
+// na zawieszony przez cala minute, ktora trwa detonacja .keras.
+const baseStep = (name) => String(name || "").replace(/\s*\(.*\)\s*$/, "").trim();
+
+let stepKey = "";      // ostatnio wyrenderowany stan listy krokow
+let stepStarted = 0;   // kiedy zaczal sie aktywny krok
+
 function renderSteps(current, finished) {
   stepsEl.classList.add("show");
-  stepsEl.innerHTML = STEP_NAMES.map((name) => {
-    const done = finished || STEP_NAMES.indexOf(name) < STEP_NAMES.indexOf(current);
-    const active = !finished && name === current;
+  const base = baseStep(current);
+  const idx = STEP_NAMES.indexOf(base);
+  // Nieznany krok nie kasuje tego, co widac — lepiej zostawic poprzedni
+  // stan niz pokazac liste bez zadnego aktywnego elementu.
+  if (idx < 0 && !finished) return tickElapsed();
+
+  const key = base + "|" + finished;
+  // Przerysowanie listy tworzy nowy element spinnera, a wraz z nim animacja
+  // CSS startuje od zera. Przy odpytywaniu co pol sekundy spinner zacinal sie
+  // w miejscu. Rysujemy wiec tylko wtedy, gdy stan naprawde sie zmienil.
+  if (key === stepKey) return tickElapsed();
+  stepKey = key;
+  stepStarted = Date.now();
+
+  stepsEl.innerHTML = STEP_NAMES.map((name, i) => {
+    const done = finished || i < idx;
+    const active = !finished && i === idx;
     const mark = done ? "✓" : active ? '<span class="spin"></span>' : "○";
     const cls = done ? "done" : active ? "active" : "";
-    return `<div class="step ${cls}"><span class="mark">${mark}</span>${esc(name)}</div>`;
+    const timer = active ? '<span class="elapsed" id="elapsed"></span>' : "";
+    return `<div class="step ${cls}"><span class="mark">${mark}</span>${esc(name)}${timer}</div>`;
   }).join("");
+  tickElapsed();
+}
+
+// Licznik sekund przy aktywnym kroku. Pierwsza detonacja .keras trwa okolo
+// minuty, bo w kontenerze startuje TensorFlow — bez licznika nie widac
+// roznicy miedzy "pracuje" a "zawiesilo sie". Podmieniamy sam tekst, nie
+// cala liste, zeby nie restartowac animacji spinnera.
+function tickElapsed() {
+  const el = document.getElementById("elapsed");
+  if (!el) return;
+  const seconds = Math.round((Date.now() - stepStarted) / 1000);
+  el.textContent = seconds >= 3 ? seconds + " s" : "";
 }
 
 async function upload(file) {
@@ -269,9 +306,17 @@ function poll(jobId) {
     let job;
     try {
       const res = await fetch("/api/status/" + jobId);
+      // Serwer nie zna tego zadania — zwykle znaczy, ze zostal po drodze
+      // zrestartowany (stan zadan zyje w pamieci procesu). Bez tego warunku
+      // interfejs odpytywalby w nieskonczonosc, nie pokazujac niczego.
+      if (res.status === 404) {
+        clearInterval(timer);
+        return fail("Serwer nie zna tego zadania — prawdopodobnie został "
+          + "zrestartowany w trakcie analizy. Wgraj plik jeszcze raz.");
+      }
       job = await res.json();
     } catch {
-      return;
+      return;  // chwilowy brak odpowiedzi: nastepne odpytanie sprobuje znowu
     }
     if (job.step) renderSteps(job.step, job.status === "done");
     if (job.status === "done") {
@@ -281,7 +326,7 @@ function poll(jobId) {
       clearInterval(timer);
       fail(job.error);
     }
-  }, 350);
+  }, 500);
 }
 
 function fail(message) {

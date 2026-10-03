@@ -47,8 +47,9 @@ def _truncate(value: object, limit: int = 400) -> str:
 
 def _install_patches() -> None:
     # --- wykonanie polecenia powłoki -------------------------------------
-    import posix
-
+    # Moduły patchujemy przez sys.modules, a nie przez bezpośredni import:
+    # 'posix' nie istnieje na Windows, a 'nt' na Linuksie, więc twardy import
+    # wywaliłby detoner na jednym z nich.
     real_system = os.system
 
     def traced_system(command):  # noqa: ANN001, ANN202

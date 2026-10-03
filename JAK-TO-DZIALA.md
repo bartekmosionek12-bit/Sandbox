@@ -4,7 +4,9 @@ Ten plik jest do sprawdzenia przeze mnie i przez Ciebie. Pierwsza część to
 **moje rozumienie Twoich poleceń** — przeczytaj i popraw, jeśli coś
 przekręciłem. Druga to opis, jak system faktycznie działa.
 
-Stan na: **3.10.2026**, branch `claude/pkl-rce-sandbox-pcdsri`, PR #1.
+Stan na: **3.10.2026, 11:20**, branch `claude/pkl-rce-sandbox-pcdsri`, PR #1.
+Trzy priorytety, które podałeś, są zrobione i potwierdzone na żywym Dockerze;
+sędzia LLM odpowiedział na Twoim kluczu. 59 testów przechodzi.
 
 ---
 
@@ -19,7 +21,10 @@ Stan na: **3.10.2026**, branch `claude/pkl-rce-sandbox-pcdsri`, PR #1.
 3. **Potem tensor steganography** — detekcja i walidacja LSB w plikach wag
    float32.
 
-Trzymam się tej kolejności. Nie zaczynam punktu 3, zanim 1 i 2 nie działają.
+Trzymałem się tej kolejności i **wszystkie trzy są zrobione i sprawdzone
+w prawdziwym Dockerze** — szczegóły w części 3. Czwarta warstwa (`strace`)
+jest napisana, ale jeszcze nieuruchomiona w kontenerze, i jest opisana jako
+taka, a nie jako działająca.
 
 ## Zasada, którą uznaję za najważniejszą
 
@@ -209,8 +214,33 @@ laptopie). To nie jest „napisane i założone" — to uruchomione i sprawdzone
   reverse shellem wyciąga go i pokazuje; czysty model nie odpala fałszywego
   alarmu. Werdykt: sama anomalia LSB → `suspicious`, anomalia + wyzwalacz →
   `malicious`. Obsługa `.npy`/`.npz` w dashboardzie.
-- parser `.pkl` i `.keras`, sędzia LLM z ochroną przed injection (logika),
-  dashboard z czterema panelami, kontrakty JSON, **56 testów**, README.
+- **Sędzia LLM na żywo** — potwierdzone 3.10 o 11:12 na kluczu Bartka:
+  model `claude-sonnet-5-5` odpowiedział i zwrócił werdykt `malicious` na
+  prawdziwym kontrakcie. Wcześniej sprawdzona była tylko logika, bez ani
+  jednego żywego wywołania.
+- **Dowód skutku, nie tylko wywołania** — detoner porównuje katalog zapisu
+  przed i po deserializacji i wypisuje różnicę, np.
+  `SKUTEK: payload utworzył /tmp/pwned (0 B) — wewnątrz kontenera`.
+  Bez tego „na dysku hosta nic nie ma" czytało się dwuznacznie: albo
+  izolacja zadziałała, albo payload wcale się nie wykonał. Dopisek
+  o kontenerze pojawia się tylko wtedy, gdy kod sprawdzi `/.dockerenv`.
+- parser `.pkl` i `.keras`, sędzia LLM z ochroną przed injection,
+  dashboard z czterema panelami, kontrakty JSON, **59 testów**, README.
+
+## Narzędzie diagnostyczne
+
+`python tools\check_judge.py` — „sędzia niedostępny" ma pięć różnych
+przyczyn (brak zmiennej w środowisku procesu, brak pakietu, za stare SDK bez
+`output_config`, odrzucony klucz lub brak środków, niedostępny model) i
+z samego komunikatu nie da się ich rozróżnić. Skrypt przechodzi je po kolei
+i zatrzymuje się na pierwszej, która nie przechodzi, podając komendę
+naprawczą. Klucza nigdy nie wypisuje — tylko długość i siedem pierwszych
+znaków, i sprawdza spacje na brzegach, bo to typowy skutek wklejania.
+
+Przy okazji podniesiony dolny próg `anthropic` z 0.40 na 0.125:
+`output_config` wszedł do SDK dopiero w tej wersji, więc wcześniej pip mógł
+zainstalować wydanie, w którym **klucz jest poprawny, a wywołanie i tak się
+wywala**. Teraz nie da się tego trafić z `requirements.txt`.
 
 ## W trakcie (druga sesja — koordynator)
 - **Śledzenie syscalli przez `strace`** jako czwarte źródło dowodów — łapie
@@ -260,8 +290,13 @@ tekstem, a nie wszystko. Mówię to wprost, zamiast obiecywać 100%.
 
 1. **Sprawdź część 1** — czy dobrze zrozumiałem polecenia, zwłaszcza
    akapit o LSB (nośnik vs wyzwalacz).
-2. **Klucz `ANTHROPIC_API_KEY`**, gdy zechcesz zobaczyć werdykt sędziego LLM
-   na żywo (bez niego dashboard pokazuje parser + log + stego bez werdyktu AI).
-3. **Decyzja o `strace`**: czy wiązać czwartą warstwę do końca (druga sesja
-   ją pisze), czy zostawić jako zaplanowaną i skupić się na szlifie trzech
-   warstw, które już działają.
+2. **Zrzuty ekranu z dashboardu** dla pliku złośliwego i czystego, najlepiej
+   z rozwiniętym logiem z kontenera, żeby było widać linię `SKUTEK`. To
+   jedyna brakująca rzecz na slajdzie z demem, a zrzut musi pochodzić
+   z Twojej maszyny — u mnie nie ma Dockera, więc moje pokazywałyby brak
+   detonacji.
+3. **Decyzja o `strace`**: czy wiązać czwartą warstwę do końca (parser i
+   obraz są gotowe, zostaje podpięcie i weryfikacja w kontenerze), czy
+   zostawić jako zaplanowaną i skupić się na szlifie trzech warstw, które
+   już działają. Moja rekomendacja: zostawić jako zaplanowaną, bo Design
+   waży w ocenie 20%, a Completeness 10%.

@@ -1,0 +1,90 @@
+# 🛡️ Safe Tensor Sandbox
+
+**Zaawansowane środowisko izolacyjne chroniące potoki MLOps przed atakami typu Supply Chain w modelach AI.**
+*(Projekt przygotowany w ramach konkursu HackYeah – Kategoria: DEFENCE. Twórca: Bartosz Mosionek)*
+
+---
+
+## 📖 Opis Produktu
+
+Safe Tensor Sandbox to autorska, stworzona przeze mnie biblioteka Pythona klasy korporacyjnej, zaprojektowana w celu mitygacji krytycznych podatności występujących podczas ładowania formatów uczenia maszynowego (takich jak Pickle `.pkl` czy Keras `.keras`). Zjawisko ukrywania złośliwego kodu (Remote Code Execution) w plikach z wagami stało się obecnie jednym z najgroźniejszych wektorów ataków wymierzonych w inżynierów Data Science oraz infrastrukturę produkcyjną.
+
+Zaprojektowałem to narzędzie jako bezinwazyjny zastępnik (*Drop-in Replacement*) dla standardowych, podatnych funkcji ładujących. 
+
+Moje oprogramowanie automatyzuje trójwarstwowy system ochrony przed deserializacją modelu:
+1. **Analiza Statyczna:** Skuteczne parsowanie instrukcji wirtualnej maszyny (opcode) i konfiguracji archiwum bez ewaluacji kodu w pamięci, co eliminuje zagrożenie wykonania typu "on-load".
+2. **Dynamiczna Detonacja:** Automatyczne wdrożenie odciętego od sieci kontenera Docker. Narzędzie testuje potencjalny złośliwy ładunek w rygorystycznie kontrolowanym środowisku (zablokowany system plików, brak uprawnień administracyjnych), stosując przechwytywanie wywołań systemowych (Monkey-Patching).
+3. **Zautomatyzowany Sędzia AI:** Integracja z modelem LLM (Claude Sonnet), który w sposób deterministyczny ocenia zebrane logi z piaskownicy pod kątem intencji ataku. Wdrożyłem autorski mechanizm zabezpieczający przed manipulacją ze strony wirusa (Prompt Injection) z użyciem znaczników kryptograficznych (nonce).
+
+Otrzymujesz dzięki temu pewność, że wczytywany model nie posiada zaszytych backdoorów, zapewniając pełne bezpieczeństwo środowiska.
+
+---
+
+## 🚀 Krok po kroku: Jak wdrożyć i skorzystać z narzędzia
+
+Zadbałem o to, aby instalacja oraz wdrożenie narzędzia w dowolnym projekcie MLOps przebiegało intuicyjnie.
+
+### Krok 1: Wymagania systemowe
+Przed rozpoczęciem upewnij się, że Twoje środowisko posiada:
+* **Python w wersji 3.10 lub wyższej.**
+* **Działający Docker Daemon:** Wirtualizacja środowiska obronnego opiera się na technologii Docker. Upewnij się, że usługa działa w tle.
+* Opcjonalnie: Biblioteka `keras` (wymagana wyłącznie, jeśli planujesz przetwarzać pliki w formacie `.keras`).
+
+### Krok 2: Pobranie i instalacja
+Pobierz kod do swojego środowiska, a następnie zainstaluj moją bibliotekę systemowo.
+```bash
+git clone <adres_repozytorium>
+cd SAFE_LOAD_MODEL
+pip install -e .
+```
+*(Plik `pyproject.toml` automatycznie zainstaluje niezbędne zależności, w tym pakiet `anthropic` do obsługi modułu AI).*
+
+### Krok 3: Konfiguracja środowiska
+Dla poprawnego działania Sędziego LLM, wymagane jest zadeklarowanie klucza API w środowisku operacyjnym. W terminalu wykonaj polecenie:
+```bash
+# Systemy Linux / macOS:
+export ANTHROPIC_API_KEY="twój-klucz-api"
+
+# Systemy Windows (PowerShell):
+$env:ANTHROPIC_API_KEY="twój-klucz-api"
+```
+
+### Krok 4: Użycie biblioteki we własnym kodzie
+Aby zabezpieczyć aplikację, wystarczy dokonać zamiany systemowej funkcji ładującej na wywołanie mojego API. Zmiana ogranicza się do dwóch linijek kodu.
+
+*Zamiast używać niebezpiecznego podejścia:*
+```python
+import pickle
+model = pickle.load(open('nieznany_model.pkl', 'rb')) 
+```
+
+*Użyj zabezpieczonej wersji:*
+```python
+from sandbox_rce import safe_load_model
+
+# Biblioteka automatycznie zidentyfikuje format pliku,
+# przeanalizuje go w tle i zwróci bezpieczny obiekt.
+model = safe_load_model('nieznany_model.pkl') 
+```
+
+### Krok 5: Weryfikacja działania (Gotowe skrypty testowe)
+W folderze głównym przygotowałem zestaw skryptów udowadniających skuteczność rozwiązania. Sprawdź, jak system reaguje na prawdziwe zagrożenia.
+
+Aby wczytać **bezpieczny** plik:
+```bash
+python test_1_clean_pkl.py
+python test_2_clean_keras.py
+```
+*(Spodziewany rezultat: Narzędzie zachowa się transparentnie i wyświetli krótki komunikat o pomyślnej weryfikacji pliku).*
+
+Aby wczytać **złośliwy** plik z ładunkiem RCE:
+```bash
+python test_3_evil_pkl.py
+python test_4_evil_keras.py
+```
+*(Spodziewany rezultat: Narzędzie błyskawicznie zainicjuje izolację Docker, przechwyci próbę ataku, a w konsoli zaprezentuje szczegółowy, profesjonalnie sformatowany Raport Bezpieczeństwa wygenerowany przez asystenta AI).*
+
+---
+
+## ⚖️ Oświadczenie o wykorzystaniu AI (HackYeah Rules)
+Zgodnie z regulaminem hackathonu pragnę w pełni i transparentnie poinformować o wykorzystaniu AI. Cały ten projekt, włączając w to kod źródłowy biblioteki Pythona, architekturę izolacji w środowisku Docker, skrypty testowe oraz niniejszą dokumentację, **został w 100% zaprojektowany i napisany przeze mnie we współpracy z asystentem LLM (Claude)**. Wewnętrzna heurystyka produktu opiera się na API Anthropic (model Claude Sonnet). Jako wyłączny twórca całkowicie rozumiem działanie wygenerowanego kodu, jestem w stanie obronić mechanizmy jego wdrożenia i ponoszę pełną odpowiedzialność techniczną za przygotowane rozwiązanie.

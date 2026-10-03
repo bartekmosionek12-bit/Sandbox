@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "safe-tensor-sandbox"
+version = "0.1.0"
+authors = [
+  { name="HackYeah Team", email="team@example.com" },
+]
+description = "AI Model Sandbox — warstwy detekcji RCE w plikach modeli ML (.pkl, .keras)."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "Flask>=3.0,<4.0",
+    "anthropic>=0.125,<1.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/example/safe-tensor-sandbox"
+
+[tool.setuptools.packages.find]
+include = ["sandbox_rce*"]
+

@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Safe Tensor Sandbox - Prezentacja</title>
+    <style>
+        /* Wymuszamy proporcje 16:9 lub A4 Landscape dla PDF */
+        @page {
+            size: A4 landscape;
+            margin: 0;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0f111a;
+            color: #ffffff;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        .slide {
+            width: 297mm;
+            height: 210mm;
+            page-break-after: always;
+            page-break-inside: avoid;
+            padding: 12mm 15mm;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            position: relative;
+            background-color: #0f111a;
+            background-image: radial-gradient(circle at 100% 0%, #1a1c29 0%, transparent 50%),
+                              radial-gradient(circle at 0% 100%, #161b2b 0%, transparent 50%);
+            overflow: hidden; /* zapobiega rozjeżdżaniu się tekstu */
+        }
+
+        .slide:last-child {
+            page-break-after: auto;
+        }
+
+        h1 {
+            font-size: 38pt;
+            color: #00d2ff;
+            margin-top: 0;
+            margin-bottom: 8mm;
+            font-weight: 700;
+            text-shadow: 0 4px 10px rgba(0, 210, 255, 0.3);
+        }
+
+        h2 {
+            font-size: 26pt;
+            color: #3a86ff;
+            margin-top: 0;
+            margin-bottom: 8mm;
+            border-bottom: 3px solid #3a86ff;
+            padding-bottom: 5px;
+        }
+
+        p, li {
+            font-size: 15pt;
+            line-height: 1.5;
+            color: #e0e6ed;
+            margin-top: 0;
+            margin-bottom: 4mm;
+        }
+
+        ul {
+            padding-left: 10mm;
+            margin-bottom: 4mm;
+        }
+
+        .highlight {
+            color: #ff006e;
+            font-weight: bold;
+        }
+
+        .success {
+            color: #06d6a0;
+            font-weight: bold;
+        }
+
+        .code-block {
+            background-color: #1e2233;
+            border-left: 5px solid #00d2ff;
+            padding: 12px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 13pt;
+            border-radius: 4px;
+            margin: 5mm 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .center-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            text-align: center;
+        }
+
+        .footer {
+            position: absolute;
+            bottom: 8mm;
+            left: 15mm;
+            font-size: 11pt;
+            color: #6b7280;
+        }
+        
+        .slide-number {
+            position: absolute;
+            bottom: 8mm;
+            right: 15mm;
+            font-size: 12pt;
+            color: #6b7280;
+            font-weight: bold;
+        }
+
+        .flex-row {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            gap: 10mm;
+            width: 100%;
+        }
+
+        .col {
+            flex: 1;
+        }
+        
+        .box {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+        
+        .box p, .box li {
+            font-size: 14pt;
+            margin-bottom: 2mm;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- SLAJD 1: Tytułowy -->
+    <div class="slide">
+        <div class="center-content">
+            <h1>🛡️ Safe Tensor Sandbox</h1>
+            <p style="font-size: 22pt; color: #8a9fc4;">Kompleksowe rozwiązanie anty-malware chroniące potoki MLOps przed zatrutymi modelami AI.</p>
+            <br>
+            <p style="font-size: 18pt; color: #06d6a0;">Twórca: <strong>Bartosz Mosionek</strong></p>
+            <br><br>
+            <p style="font-size: 20pt;"><strong>HackYeah</strong> - Kategoria: <span class="highlight">DEFENCE</span></p>
+        </div>
+        <div class="slide-number">1 / 9</div>
+    </div>
+
+    <!-- SLAJD 2: Problem -->
+    <div class="slide">
+        <h2>1. Problem: Zatrute Modele AI (Supply Chain)</h2>
+        <div class="flex-row">
+            <div class="col">
+                <p>Pobieranie modeli z publicznych platform to obecnie standard w branży ML. Jednak formaty takie jak <span class="highlight">Pickle (.pkl)</span> czy <span class="highlight">Keras (.keras)</span> są podatne na krytyczne luki.</p>
+                <p>Podczas wczytywania modelu pozwalają one na <strong>RCE (Remote Code Execution)</strong>.</p>
+                <ul>
+                    <li>Atakujący osadza złośliwy kod w wagach lub architekturze sieci.</li>
+                    <li>Wystarczy jedna instrukcja, by infrastruktura badacza została przejęta.</li>
+                    <li>Konwencjonalne skanery nie radzą sobie z logiką wewnątrz plików ML, traktując je jak zwykłe dane matematyczne.</li>
+                </ul>
+            </div>
+            <div class="col">
+                <div class="code-block" style="border-color: #ff006e;">
+# TRADYCYJNE PODEJŚCIE:
+
+import pickle
+
+# Ładunek złośliwy wykonuje się automatycznie!
+model = pickle.load(open('model.pkl', 'rb'))
+                </div>
+            </div>
+        </div>
+        <div class="footer">Safe Tensor Sandbox | Bartosz Mosionek | Kategoria DEFENCE</div>
+        <div class="slide-number">2 / 9</div>
+    </div>
+
+    <!-- SLAJD 3: Rozwiązanie -->
+    <div class="slide">
+        <h2>2. Rozwiązanie: Safe Tensor Sandbox</h2>
+        <p>Projekt dostarcza <strong>gotową do wdrożenia bibliotekę Pythona</strong> (Drop-in Replacement), która zastępuje standardowe metody wczytywania modeli, wprowadzając zautomatyzowaną warstwę analityczną działającą w tle.</p>
+        
+        <div class="code-block" style="border-color: #06d6a0;">
+# BEZPIECZNE PODEJŚCIE Z WYKORZYSTANIEM BIBLIOTEKI:
+
+from sandbox_rce import safe_load_model
+
+# Biblioteka izoluje, detonuje, ocenia i ładuje model.
+model = safe_load_model('model.pkl')
+        </div>
+        <ul>
+            <li><span class="success">Zero konfiguracji dla dewelopera</span> – proces sprowadza się do podmiany jednej funkcji.</li>
+            <li>Jeśli model jest bezpieczny -> wczytuje się natychmiast i zwraca czysty obiekt.</li>
+            <li>Jeśli model zawiera złośliwy kod -> wykonanie jest blokowane, a system generuje Szczegółowy Raport Bezpieczeństwa.</li>
+        </ul>
+        <div class="footer">Safe Tensor Sandbox | Bartosz Mosionek | Kategoria DEFENCE</div>
+        <div class="slide-number">3 / 9</div>
+    </div>
+
+    <!-- SLAJD 4: Architektura -->
+    <div class="slide">
+        <h2>3. Architektura Hybrydowa (3 Warstwy Ochrony)</h2>
+        <p>System wykorzystuje podejście hybrydowe, co zapobiega zjawisku "Sandbox Evasion". Złośliwy kod próbujący ukryć swoje działanie przed piaskownicą zostaje zatrzymany na etapie parsowania struktury.</p>
+        
+        <div class="box">
+            <p><strong style="color: #00d2ff;">WARSTWA 1: Analiza Statyczna (Parser)</strong></p>
+            <p>Błyskawiczne filtrowanie kodu (bez jego uruchamiania). Skanowanie instrukcji wirtualnej maszyny (opcode) i importów, zapobiegając wykonaniu ukrytych operacji w pamięci.</p>
+        </div>
+        <div class="box">
+            <p><strong style="color: #ff006e;">WARSTWA 2: Dynamiczna Detonacja (Docker Sandbox)</strong></p>
+            <p>Uruchomienie modelu w rygorystycznie odciętym kontenerze z nasłuchiwaniem na wywołania systemowe. System pozwala złośliwemu kodowi zaatakować w pełni wyizolowane środowisko.</p>
+        </div>
+        <div class="box">
+            <p><strong style="color: #06d6a0;">WARSTWA 3: Ocena przez Sędziego LLM</strong></p>
+            <p>Sztuczna Inteligencja analizuje intencje działania zarejestrowane w logach, co skutecznie eliminuje problem fałszywych alarmów (False Positives).</p>
+        </div>
+        <div class="footer">Safe Tensor Sandbox | Bartosz Mosionek | Kategoria DEFENCE</div>
+        <div class="slide-number">4 / 9</div>
+    </div>
+
+    <!-- SLAJD 5: Warstwa 1 -->
+    <div class="slide">
+        <h2>Warstwa 1: Inteligentny Parser Statyczny</h2>
+        <div class="flex-row">
+            <div class="col">
+                <p>Parser stanowi pierwszą linię obrony, tworząc ustrukturyzowany kontrakt danych dla modułu decyzyjnego AI.</p>
+                <ul>
+                    <li>Dla plików <code>.pkl</code> proces obejmuje odczyt surowego strumienia instrukcji (np. <code>REDUCE</code>) w poszukiwaniu prób wstrzyknięcia.</li>
+                    <li>Dla modeli <code>.keras</code> analizowana jest struktura archiwum (ZIP) pod kątem wbudowanych warstw wykonujących kod bajtowy (np. <code>Lambda</code>).</li>
+                    <li>Analiza przebiega z pominięciem groźnej deserializacji, minimalizując ryzyko infekcji.</li>
+                </ul>
+            </div>
+            <div class="col">
+                <div class="code-block">
+Wynik warstwy 1 to obiekt JSON:
+{
+  "file_name": "evil.pkl",
+  "static_risk": "suspicious",
+  "flagged_opcodes": ["REDUCE"],
+  "suspicious_imports": ["os.system"]
+}
+                </div>
+            </div>
+        </div>
+        <div class="footer">Safe Tensor Sandbox | Bartosz Mosionek | Kategoria DEFENCE</div>
+        <div class="slide-number">5 / 9</div>
+    </div>
+
+    <!-- SLAJD 6: Warstwa 2 -->
+    <div class="slide">
+        <h2>Warstwa 2: Detonacja w Prawdziwym Sandboksie</h2>
+        <p>Analizę statyczną można omijać za pomocą obfuskacji kodu (np. dynamiczne budowanie ciągów znaków). Aby temu zapobiec, zaimplementowano piaskownicę opartą na platformie Docker.</p>
+        <ul>
+            <li>Biblioteka automatycznie inicjuje odizolowany kontener testowy:</li>
+            <li><span class="highlight">--network=none</span> : Zablokowana komunikacja sieciowa (obrona przed C2).</li>
+            <li><span class="highlight">--read-only</span> : Zamknięty system plików, weryfikujący intencje zapisu.</li>
+            <li><span class="highlight">--cap-drop=ALL</span> : Brak jakichkolwiek uprawnień na poziomie jądra hosta.</li>
+        </ul>
+        <p>Wewnątrz środowiska testowego zastosowano mechanizm Monkey-Patching na kluczowych wektorach ataków (<code>os.system</code>, <code>subprocess</code>). Ruch systemowy jest rejestrowany, a następnie cały kontener ulega bezpowrotnemu zniszczeniu, pozostawiając infrastrukturę hosta nienaruszoną.</p>
+        <div class="footer">Safe Tensor Sandbox | Bartosz Mosionek | Kategoria DEFENCE</div>
+        <div class="slide-number">6 / 9</div>
+    </div>
+
+    <!-- SLAJD 7: Warstwa 3 -->
+    <div class="slide">
+        <h2>Warstwa 3: AI jako Zautomatyzowany Sędzia</h2>
+        <p>Zamiast polegać na podatnych na omijanie, naiwnych regułach tekstowych (np. YARA), do oceny logów z izolacji włączono zaawansowany model językowy (LLM). Pozwala to na ocenę <strong>intencji</strong> kodu, nie tylko jego syntaktyki.</p>
+        
+        <div class="box">
+            <p><strong>🛡️ Ochrona przed atakiem Prompt Injection:</strong></p>
+            <p>Ponieważ dane do analizy generowane są bezpośrednio przez badany (potencjalnie złośliwy) kod, atakujący mógłby osadzić w modelu polecenia modyfikujące działanie samego Sędziego AI. Problem ten rozwiązano poprzez kryptograficzne oznaczanie danych wejściowych (unikalny <code>nonce</code> w każdym procesie). Model traktuje ten obszar jako wysoce nieufny, oflagowując ewentualne próby manipulacji jako <code>injection_attempt_detected</code>.</p>
+        </div>
+        
+        <p>Wynik działania algorytmu jest standaryzowany poprzez JSON Schema (zwracając wartości: <code>safe</code>, <code>suspicious</code>, <code>malicious</code>).</p>
+        <div class="footer">Safe Tensor Sandbox | Bartosz Mosionek | Kategoria DEFENCE</div>
+        <div class="slide-number">7 / 9</div>
+    </div>
+
+    <!-- SLAJD 8: Wymagania -->
+    <div class="slide">
+        <h2>4. Integracja w Potokach CI/CD (MLOps)</h2>
+        <p>Mimo rygorystycznej oceny dynamicznej trwającej kilka sekund, system jest zoptymalizowany pod nowoczesne środowiska produkcyjne – ochronę realizuje się na etapie wdrożenia w potoku (np. GitHub Actions), gwarantując brak spadku wydajności aplikacji końcowej (Zero Overhead na produkcji).</p>
+        
+        <div class="flex-row">
+            <div class="col">
+                <div class="box" style="height: 100%; border-color: #ffbe0b;">
+                    <p><strong>Wymagania infrastrukturalne:</strong></p>
+                    <ul>
+                        <li><strong>Python >= 3.10</strong></li>
+                        <li><strong>Docker Daemon:</strong> Oś izolacji.</li>
+                        <li><strong>ANTHROPIC_API_KEY:</strong> Do pracy modułu AI. W przypadku jego braku, system bezpiecznie opiera się wyłącznie na heurystyce!</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="col">
+                <div class="code-block" style="height: 100%; margin-top: 0;">
+# Instalacja w środowisku (Plug & Play):
+$ cd SAFE_LOAD_MODEL
+$ pip install -e .
+
+# Przykładowy skrypt CI:
+model = safe_load_model('artifact.pkl')
+                </div>
+            </div>
+        </div>
+        <div class="footer">Safe Tensor Sandbox | Bartosz Mosionek | Kategoria DEFENCE</div>
+        <div class="slide-number">8 / 9</div>
+    </div>
+
+    <!-- SLAJD 9: Roadmapa -->
+    <div class="slide">
+        <h2>5. Roadmapa Rozwoju (Co dalej?)</h2>
+        <p>Obecna architektura zapewnia wysoką skuteczność ochrony, bazując na sprawdzonych mechanizmach konteneryzacji. System został zaprojektowany z myślą o adaptacji do przyszłych standardów branżowych:</p>
+        
+        <div class="box">
+            <ul>
+                <li><strong>WebAssembly (WASM) / Pyodide:</strong> Planowane przejście z Dockera na wbudowany interpreter, ładujący modele w natywnie izolowanym silniku WASM. Standard WASI na poziomie samej architektury blokuje dostęp do systemu operacyjnego, redukując narzut czasowy izolacji do milisekund.</li>
+                <li><strong>Tensor Steganography Detection:</strong> Skalowanie modułu heurystycznego wykrywającego kod ukryty w najmłodszych bitach (LSB) wielkich macierzy wag (float32).</li>
+                <li><strong>Rozwój w kierunku AI Data Compliance:</strong> Rozbudowanie Sędziego LLM o skanowanie ładowanego modelu pod kątem zgodności z regulacjami (np. AI Act) – m.in. zautomatyzowane wyszukiwanie zaszytych danych wrażliwych (PII) lub wykrywanie tzw. zatrucia danych (Data Poisoning).</li>
+            </ul>
+        </div>
+        <div class="footer">Safe Tensor Sandbox | Bartosz Mosionek | Kategoria DEFENCE</div>
+        <div class="slide-number">9 / 9</div>
+    </div>
+
+</body>
+</html>

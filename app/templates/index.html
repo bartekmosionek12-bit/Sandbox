@@ -232,7 +232,14 @@ drop.addEventListener("drop", (ev) => {
   if (ev.dataTransfer.files.length) upload(ev.dataTransfer.files[0]);
 });
 fileInput.addEventListener("change", () => {
-  if (fileInput.files.length) upload(fileInput.files[0]);
+  const file = fileInput.files[0];
+  // Czyscimy pole PRZED analiza. Przegladarka wysyla zdarzenie "change" tylko
+  // wtedy, gdy wybor sie zmienil — wiec wskazanie TEGO SAMEGO pliku drugi raz
+  // nie wywolywalo niczego i wygladalo, jakby dashboard przestal przyjmowac
+  // pliki. A ponowne wgranie tego samego pliku to normalny ruch: po zmianie
+  // kodu albo zeby zrobic zrzut z rozwinietym logiem.
+  fileInput.value = "";
+  if (file) upload(file);
 });
 
 // Nazwa kroku z backendu moze miec dopisek z formatem, np. "Detonacja
@@ -439,7 +446,10 @@ function render(r) {
       : `<p class="empty">Zero zdarzeń — deserializacja nie próbowała nic wykonać.</p>`;
     html += `</div>`;
     if (s.error) html += `<div class="note" style="margin-top:14px">${esc(s.error)}</div>`;
-    html += `<details>
+    // Gdy cokolwiek sie wydarzylo, log jest DOWODEM, nie zalacznikiem:
+    // to w nim jest linia o skutku payloadu. Zwiniety domyslnie oznaczal, ze
+    // zrzut ekranu z dashboardu pokazywal sam werdykt, bez dowodu pod nim.
+    html += `<details${events.length ? " open" : ""}>
         <summary>Pokaż surowy log z kontenera</summary>
         <pre>${esc(s.raw_log) || "(pusty)"}</pre>
       </details>`;

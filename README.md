@@ -1,4 +1,4 @@
-# Safe Tensor Sandbox
+# SafeLoadAI
 
 Produkt leży w katalogu [`SAFE_LOAD_MODEL/`](SAFE_LOAD_MODEL/) — biblioteka Pythona,
 która wczytuje modele ML (`.pkl`, `.keras`) dopiero po przejściu trzech warstw

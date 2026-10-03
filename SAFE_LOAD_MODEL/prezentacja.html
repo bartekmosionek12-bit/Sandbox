@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <title>Safe Tensor Sandbox - Prezentacja</title>
+    <title>SafeLoadAI - Prezentacja</title>
     <style>
         /* Wymuszamy proporcje 16:9 lub A4 Landscape dla PDF */
         @page {
@@ -154,7 +154,7 @@
     <!-- SLAJD 1: Tytułowy -->
     <div class="slide">
         <div class="center-content">
-            <h1>🛡️ Safe Tensor Sandbox</h1>
+            <h1>🛡️ SafeLoadAI</h1>
             <p style="font-size: 22pt; color: #8a9fc4;">Kompleksowe rozwiązanie anty-malware chroniące potoki MLOps przed zatrutymi modelami AI.</p>
             <br>
             <p style="font-size: 18pt; color: #06d6a0;">Twórca: <strong>Bartosz Mosionek</strong></p>
@@ -188,13 +188,13 @@ model = pickle.load(open('model.pkl', 'rb'))
                 </div>
             </div>
         </div>
-        <div class="footer">Safe Tensor Sandbox | Bartosz Mosionek | Kategoria DEFENCE</div>
+        <div class="footer">SafeLoadAI | Bartosz Mosionek | Kategoria DEFENCE</div>
         <div class="slide-number">2 / 9</div>
     </div>
 
     <!-- SLAJD 3: Rozwiązanie -->
     <div class="slide">
-        <h2>2. Rozwiązanie: Safe Tensor Sandbox</h2>
+        <h2>2. Rozwiązanie: SafeLoadAI</h2>
         <p>Projekt dostarcza <strong>gotową do wdrożenia bibliotekę Pythona</strong> (Drop-in Replacement), która zastępuje standardowe metody wczytywania modeli, wprowadzając zautomatyzowaną warstwę analityczną działającą w tle.</p>
         
         <div class="code-block" style="border-color: #06d6a0;">
@@ -210,7 +210,7 @@ model = safe_load_model('model.pkl')
             <li>Jeśli model jest bezpieczny -> wczytuje się natychmiast i zwraca czysty obiekt.</li>
             <li>Jeśli model zawiera złośliwy kod -> wykonanie jest blokowane, a system generuje Szczegółowy Raport Bezpieczeństwa.</li>
         </ul>
-        <div class="footer">Safe Tensor Sandbox | Bartosz Mosionek | Kategoria DEFENCE</div>
+        <div class="footer">SafeLoadAI | Bartosz Mosionek | Kategoria DEFENCE</div>
         <div class="slide-number">3 / 9</div>
     </div>
 
@@ -231,7 +231,7 @@ model = safe_load_model('model.pkl')
             <p><strong style="color: #06d6a0;">WARSTWA 3: Ocena przez Sędziego LLM</strong></p>
             <p>Sztuczna Inteligencja analizuje intencje działania zarejestrowane w logach, co skutecznie eliminuje problem fałszywych alarmów (False Positives).</p>
         </div>
-        <div class="footer">Safe Tensor Sandbox | Bartosz Mosionek | Kategoria DEFENCE</div>
+        <div class="footer">SafeLoadAI | Bartosz Mosionek | Kategoria DEFENCE</div>
         <div class="slide-number">4 / 9</div>
     </div>
 
@@ -259,7 +259,7 @@ Wynik warstwy 1 to obiekt JSON:
                 </div>
             </div>
         </div>
-        <div class="footer">Safe Tensor Sandbox | Bartosz Mosionek | Kategoria DEFENCE</div>
+        <div class="footer">SafeLoadAI | Bartosz Mosionek | Kategoria DEFENCE</div>
         <div class="slide-number">5 / 9</div>
     </div>
 
@@ -274,7 +274,7 @@ Wynik warstwy 1 to obiekt JSON:
             <li><span class="highlight">--cap-drop=ALL</span> : Brak jakichkolwiek uprawnień na poziomie jądra hosta.</li>
         </ul>
         <p>Wewnątrz środowiska testowego zastosowano mechanizm Monkey-Patching na kluczowych wektorach ataków (<code>os.system</code>, <code>subprocess</code>). Ruch systemowy jest rejestrowany, a następnie cały kontener ulega bezpowrotnemu zniszczeniu, pozostawiając infrastrukturę hosta nienaruszoną.</p>
-        <div class="footer">Safe Tensor Sandbox | Bartosz Mosionek | Kategoria DEFENCE</div>
+        <div class="footer">SafeLoadAI | Bartosz Mosionek | Kategoria DEFENCE</div>
         <div class="slide-number">6 / 9</div>
     </div>
 
@@ -289,7 +289,7 @@ Wynik warstwy 1 to obiekt JSON:
         </div>
         
         <p>Wynik działania algorytmu jest standaryzowany poprzez JSON Schema (zwracając wartości: <code>safe</code>, <code>suspicious</code>, <code>malicious</code>).</p>
-        <div class="footer">Safe Tensor Sandbox | Bartosz Mosionek | Kategoria DEFENCE</div>
+        <div class="footer">SafeLoadAI | Bartosz Mosionek | Kategoria DEFENCE</div>
         <div class="slide-number">7 / 9</div>
     </div>
 
@@ -320,7 +320,7 @@ model = safe_load_model('artifact.pkl')
                 </div>
             </div>
         </div>
-        <div class="footer">Safe Tensor Sandbox | Bartosz Mosionek | Kategoria DEFENCE</div>
+        <div class="footer">SafeLoadAI | Bartosz Mosionek | Kategoria DEFENCE</div>
         <div class="slide-number">8 / 9</div>
     </div>
 
@@ -336,7 +336,7 @@ model = safe_load_model('artifact.pkl')
                 <li><strong>Rozwój w kierunku AI Data Compliance:</strong> Rozbudowanie Sędziego LLM o skanowanie ładowanego modelu pod kątem zgodności z regulacjami (np. AI Act) – m.in. zautomatyzowane wyszukiwanie zaszytych danych wrażliwych (PII) lub wykrywanie tzw. zatrucia danych (Data Poisoning).</li>
             </ul>
         </div>
-        <div class="footer">Safe Tensor Sandbox | Bartosz Mosionek | Kategoria DEFENCE</div>
+        <div class="footer">SafeLoadAI | Bartosz Mosionek | Kategoria DEFENCE</div>
         <div class="slide-number">9 / 9</div>
     </div>
 

@@ -2,7 +2,7 @@ import pickle
 from sandbox_rce import safe_load_pickle, SecurityException
 
 def main():
-    print("=== Testowanie nowej biblioteki safe-tensor-sandbox ===")
+    print("=== Testowanie nowej biblioteki safeloadai ===")
     
     # Utwórzmy czysty plik pickle do testów
     test_file = "test_clean.pkl"

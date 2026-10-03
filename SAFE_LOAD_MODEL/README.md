@@ -1,4 +1,4 @@
-# 🛡️ Safe Tensor Sandbox
+# 🛡️ SafeLoadAI
 
 **Zaawansowane środowisko izolacyjne chroniące potoki MLOps przed atakami typu Supply Chain w modelach AI.**
 *(Projekt przygotowany w ramach konkursu HackYeah – Kategoria: DEFENCE. Twórca: Bartosz Mosionek)*
@@ -7,7 +7,7 @@
 
 ## 📖 Opis Produktu
 
-Safe Tensor Sandbox to autorska, stworzona przeze mnie biblioteka Pythona klasy korporacyjnej, zaprojektowana w celu mitygacji krytycznych podatności występujących podczas ładowania formatów uczenia maszynowego (takich jak Pickle `.pkl` czy Keras `.keras`). Zjawisko ukrywania złośliwego kodu (Remote Code Execution) w plikach z wagami stało się obecnie jednym z najgroźniejszych wektorów ataków wymierzonych w inżynierów Data Science oraz infrastrukturę produkcyjną.
+SafeLoadAI to autorska, stworzona przeze mnie biblioteka Pythona klasy korporacyjnej, zaprojektowana w celu mitygacji krytycznych podatności występujących podczas ładowania formatów uczenia maszynowego (takich jak Pickle `.pkl` czy Keras `.keras`). Zjawisko ukrywania złośliwego kodu (Remote Code Execution) w plikach z wagami stało się obecnie jednym z najgroźniejszych wektorów ataków wymierzonych w inżynierów Data Science oraz infrastrukturę produkcyjną.
 
 Zaprojektowałem to narzędzie jako bezinwazyjny zastępnik (*Drop-in Replacement*) dla standardowych, podatnych funkcji ładujących. 
 

@@ -1,5 +1,5 @@
 """
-High-level API dla safe-tensor-sandbox.
+High-level API dla safeloadai.
 Pozwala na bezpieczne wczytywanie modeli w projektach Pythonowych.
 """
 from typing import Any

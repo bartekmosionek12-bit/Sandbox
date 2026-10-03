@@ -1,0 +1,24 @@
+# Obraz detonera w trybie sledzenia syscalli.
+#
+# Osobny od domyslnego z dwoch powodow. Pierwszy: zawiera strace, a w obrazie
+# detonacyjnym trzymamy minimum narzedzi, zeby payload mial jak najmniej do
+# wykorzystania. Drugi: ten tryb wymaga --cap-add=SYS_PTRACE, czyli oddaje
+# jedno uprawnienie, ktore domyslny przebieg zabiera przez --cap-drop=ALL.
+# To jest swiadomy kompromis: jedno uprawnienie kupione za widocznosc, i ma
+# byc wybierany jawnie, nigdy domyslnie.
+FROM python:3.11-slim
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends strace \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY sandbox_rce/detonate.py /opt/detonate.py
+COPY docker/trace_entry.sh /opt/trace_entry.sh
+RUN chmod 0755 /opt/trace_entry.sh
+
+RUN useradd --create-home --shell /usr/sbin/nologin detoner
+USER detoner
+
+WORKDIR /tmp
+
+ENTRYPOINT ["/opt/trace_entry.sh"]

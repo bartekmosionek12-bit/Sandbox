@@ -71,6 +71,23 @@ docker run --rm hello-world
 Na Windows zamiast `make ...` i `python3` używaj poleceń `python -m ...`
 podanych niżej; obraz detonera buduje się sam przy pierwszej detonacji.
 
+Całość da się cofnąć: `wsl --uninstall` albo odznaczenie funkcji
+w `optionalfeatures.exe`.
+
+## Docker na Linux i macOS
+
+Linux:
+
+```bash
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker $USER   # wyloguj sie i zaloguj ponownie
+```
+
+macOS: Docker Desktop ze strony docker.com, uruchom i poczekaj na
+„Engine running".
+
+Sprawdzenie na obu: `docker run --rm hello-world`.
+
 ## Uruchomienie dashboardu
 
 ```bash
@@ -112,6 +129,32 @@ przebiegu w `/tmp` pojawi się plik-znacznik `pwned` i `sandbox_poc_note.txt`.
 To zamierzone: test pilnuje, że instrumentacja faktycznie przechwytuje
 wykonanie. Pusty log jest gorszy niż brak detonacji, bo wygląda jak dowód
 niewinności.
+
+## Sprawdzenie, że detonacja naprawdę działa
+
+Wgraj na dashboard `poc/samples/evil_os_system.pkl`. Panel „Detonacja
+w sandboksie" ma pokazać zdarzenie:
+
+```
+os_system    touch /tmp/pwned
+```
+
+Potem `poc/samples/clean_model.pkl` — ten sam panel ma pokazać **zero
+zdarzeń** i zielony werdykt. Ten kontrast jest sednem demo.
+
+Jeśli panel pisze, że detonacja się nie odbyła, to znaczy, że Docker nie
+działa. Narzędzie **nigdy nie podstawia symulowanego logu** — brak
+detonacji jest zawsze powiedziany wprost.
+
+## Typowe problemy
+
+| Objaw | Przyczyna | Co zrobić |
+|---|---|---|
+| `wsl --install` → „Zabronione" | HTTP 403 z `api.github.com`, limit zapytań z Twojego IP | Hotspot z telefonu (inny IP) albo `winget install --id Microsoft.WSL -e` |
+| „failed to connect to the docker API" | Silnik nie wstał | Uruchom Docker Desktop i poczekaj na „Engine running" |
+| Docker Desktop nie startuje na Windows 11 Home | Brak WSL2 (Home nie ma Hyper-V) | Wykonaj kroki z sekcji o Windows i zrestartuj komputer |
+| Dashboard pisze o braku detonacji | Docker niewidoczny dla aplikacji | `docker run --rm hello-world` w tym samym terminalu, z którego startujesz dashboard |
+| Brak werdyktu LLM | Brak `ANTHROPIC_API_KEY` | Ustaw klucz; bez niego parser i log działają normalnie |
 
 ## Co jest świadomie poza zakresem v1
 

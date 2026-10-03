@@ -1,0 +1,1 @@
+"""Dashboard — jedyny interfejs narzędzia."""

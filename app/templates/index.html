@@ -162,10 +162,11 @@
       <span class="tag">Detekcja RCE w modelach ML</span>
     </div>
     <p class="sub">
-      Plik modelu dystrybuowany jako pickle może wykonać dowolny kod już przy
-      <code>pickle.load()</code>. To narzędzie sprawdza to trzema niezależnymi
-      warstwami: analizą statyczną opcode'ów, faktyczną detonacją w izolowanym
-      kontenerze i oceną przez LLM.
+      Plik modelu może wykonać dowolny kod już przy wczytaniu — pickle przez
+      <code>pickle.load()</code>, Keras przez warstwę Lambda przy
+      <code>load_model(safe_mode=False)</code>. To narzędzie sprawdza to trzema
+      niezależnymi warstwami: analizą statyczną, faktyczną detonacją
+      w izolowanym kontenerze i oceną przez LLM.
     </p>
     <div class="chips">
       <span class="chip">
@@ -189,9 +190,10 @@
   </header>
 
   <div class="drop" id="drop">
-    <h2>Wgraj plik <code>.pkl</code></h2>
-    <p>Przeciągnij tutaj albo kliknij, żeby wybrać. Limit 32 MB.</p>
-    <input type="file" id="file" accept=".pkl,.pickle">
+    <h2>Wgraj plik modelu</h2>
+    <p>Przeciągnij tutaj albo kliknij, żeby wybrać. Obsługiwane formaty:
+      <code>.pkl</code>, <code>.pickle</code>, <code>.keras</code>. Limit 32 MB.</p>
+    <input type="file" id="file" accept=".pkl,.pickle,.keras">
   </div>
 
   <div class="steps" id="steps"></div>
@@ -352,7 +354,8 @@ function render(r) {
       </div>
       ${p.error ? `<div class="note err" style="margin-top:14px">${esc(p.error)}</div>` : ""}
       <details>
-        <summary>Pokaż surowy disasm (pickletools)</summary>
+        <summary>Pokaż surową analizę statyczną${p.file_format === "keras"
+          ? " (config.json modelu)" : " (pickletools)"}</summary>
         <pre>${esc(p.raw_disasm) || "(pusty)"}</pre>
       </details>
     </div>

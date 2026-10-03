@@ -15,16 +15,38 @@ sys.path.insert(0, ROOT)
 from poc import build_poc_keras  # noqa: E402
 from sandbox_rce import parser_keras, pipeline  # noqa: E402
 
+# Fixture'y budujemy do katalogu TYMCZASOWEGO, nie do ``poc/samples``.
+# Budowanie ich w repo brudziło drzewo robocze przy każdym uruchomieniu
+# testów (pliki .keras to archiwa ZIP, więc wychodziła różnica w bajtach),
+# a potem ten sam katalog przychodził pullem i git odmawiał scalenia.
+# Katalog ``poc/samples`` jest do pokazywania, nie do przebudowy przez testy.
 SAMPLES = os.path.join(ROOT, "poc", "samples")
+_BUILT: dict[str, str] = {}
 
 
 @pytest.fixture(scope="module", autouse=True)
-def _samples():
-    build_poc_keras.build(SAMPLES)
+def _samples(tmp_path_factory):
+    _BUILT["dir"] = str(tmp_path_factory.mktemp("samples_keras"))
+    build_poc_keras.build(_BUILT["dir"])
+
+
+def _sample(name: str) -> str:
+    """Ścieżka do fixture'u: najpierw świeżo zbudowany, potem ``poc/samples``.
+
+    ``evil_lambda.keras`` i ``clean_model.keras`` to prawdziwe modele Kerasa,
+    generowane raz w kontenerze i trzymane w repo — generator ich nie odtwarza.
+    Reszta powstaje przy każdym uruchomieniu testów, więc czytamy ją z katalogu
+    tymczasowego: budowanie ich w ``poc/samples`` brudziło drzewo robocze przy
+    każdym przebiegu (pliki .keras to archiwa ZIP, więc wychodziła różnica
+    w bajtach), a potem ten sam katalog przychodził pullem i git odmawiał
+    scalenia.
+    """
+    fresh = os.path.join(_BUILT["dir"], name)
+    return fresh if os.path.exists(fresh) else os.path.join(SAMPLES, name)
 
 
 def _parse(name: str) -> dict:
-    return parser_keras.parse_file(os.path.join(SAMPLES, name))
+    return parser_keras.parse_file(_sample(name))
 
 
 def test_lambda_with_serialized_code_is_malicious():
@@ -100,7 +122,7 @@ def test_pipeline_routes_keras(monkeypatch):
     """.keras ma iść do swojego parsera. Detonację wyłączamy (detonate=False),
     żeby test był szybki i nie wymagał Dockera — detonacja ma własne testy."""
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
-    result = pipeline.analyze(os.path.join(SAMPLES, "evil_lambda.keras"), detonate=False)
+    result = pipeline.analyze(_sample("evil_lambda.keras"), detonate=False)
     assert result["parser"]["file_format"] == "keras"
     assert result["final_verdict"] == "malicious"
     assert result["sandbox"]["detonated"] is False
@@ -109,7 +131,7 @@ def test_pipeline_routes_keras(monkeypatch):
 
 def test_pipeline_keras_clean_is_safe(monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
-    result = pipeline.analyze(os.path.join(SAMPLES, "clean_model.keras"), detonate=False)
+    result = pipeline.analyze(_sample("clean_model.keras"), detonate=False)
     assert result["final_verdict"] == "safe"
 
 

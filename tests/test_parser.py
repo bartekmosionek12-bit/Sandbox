@@ -64,7 +64,9 @@ def test_global_proto2_import_is_resolved():
     report = parser.parse_pickle(data, "legacy.pkl")
     assert report["static_risk"] == "malicious"
     pairs = {(i["module"], i["symbol"]) for i in report["suspicious_imports"]}
-    assert ("posix", "system") in pairs
+    # Ten pickle powstaje w locie, więc niesie nazwę modułu z bieżącego
+    # systemu: os.system to posix.system na POSIX-ie i nt.system na Windows.
+    assert (os.system.__module__, "system") in pairs
 
 
 def test_contract_shape():
@@ -99,7 +101,7 @@ sys.path.insert(0, {os.path.dirname(os.path.dirname(os.path.abspath(__file__)))!
 import os
 class P:
     def __reduce__(self):
-        return (os.system, ("touch {marker}",))
+        return (os.system, ("touch " + {str(marker)!r},))
 data = pickle.dumps(P(), protocol=4)
 from sandbox_rce import parser
 r = parser.parse_pickle(data, "x.pkl")

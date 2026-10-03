@@ -16,8 +16,11 @@ tak, jak robią to zestawy testowe picklescan i ModelScan.
 
 from __future__ import annotations
 
+import contextlib
 import os
 import pickle
+import sys
+import types
 
 SAMPLES_DIR = os.path.join(os.path.dirname(__file__), "samples")
 
@@ -25,11 +28,49 @@ MARKER = "/tmp/pwned"
 WRITTEN_FILE = "/tmp/sandbox_poc_note.txt"
 
 
+def _system():
+    """Callable, który pickle zapisze jako ``posix.system``.
+
+    ``os.system`` picklowany na Windows trafia do pliku jako ``nt.system``,
+    a taki fixture wywala się w linuksowym kontenerze na imporcie ``nt``,
+    zanim cokolwiek wykona. Fixture'y muszą być identyczne niezależnie od
+    systemu, na którym je wygenerowano — patrz ``_posix_namespace``.
+    """
+    return sys.modules["posix"].system
+
+
+@contextlib.contextmanager
+def _posix_namespace():
+    """Na czas zapisu udostępnia moduł ``posix`` także poza POSIX-em.
+
+    Podstawiona funkcja nigdy nie jest wywoływana — pickle potrzebuje jej
+    tylko po to, by zapisać referencję ``posix.system`` po nazwie.
+    """
+    if "posix" in sys.builtin_module_names:
+        import posix  # noqa: F401
+
+        yield
+        return
+
+    def system(command):  # noqa: ANN001, ANN202
+        raise RuntimeError("atrapa posix.system — tylko do generowania fixture'ów")
+
+    system.__module__ = "posix"
+    system.__qualname__ = "system"
+    shim = types.ModuleType("posix")
+    shim.system = system
+    sys.modules["posix"] = shim
+    try:
+        yield
+    finally:
+        del sys.modules["posix"]
+
+
 class TouchMarker:
     """PoC 1: wykonanie polecenia systemowego przez os.system."""
 
     def __reduce__(self):
-        return (os.system, (f"touch {MARKER}",))
+        return (_system(), (f"touch {MARKER}",))
 
 
 class WriteFile:
@@ -37,7 +78,7 @@ class WriteFile:
 
     def __reduce__(self):
         payload = "deserialization executed arbitrary code"
-        return (os.system, (f"echo '{payload}' > {WRITTEN_FILE}",))
+        return (_system(), (f"echo '{payload}' > {WRITTEN_FILE}",))
 
 
 class NetworkBeacon:
@@ -89,7 +130,7 @@ def build(out_dir: str = SAMPLES_DIR) -> list[str]:
     written = []
     for name, obj in SAMPLES.items():
         path = os.path.join(out_dir, name)
-        with open(path, "wb") as fh:
+        with open(path, "wb") as fh, _posix_namespace():
             pickle.dump(obj, fh, protocol=4)
         written.append(path)
     return written

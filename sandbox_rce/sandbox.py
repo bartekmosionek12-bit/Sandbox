@@ -193,6 +193,10 @@ def detonate_in_docker(
                 cmd,
                 capture_output=True,
                 text=True,
+                # Detoner pisze UTF-8; bez tego Windows dekoduje log stroną
+                # kodową systemu i zdarzenia wychodzą jako krzaki.
+                encoding="utf-8",
+                errors="replace",
                 timeout=timeout_s,
             )
             stdout, stderr, returncode = proc.stdout, proc.stderr, proc.returncode

@@ -49,6 +49,15 @@ def _run_detoner(name: str, env_extra: dict | None = None) -> dict:
     return result
 
 
+# Fixture'y celują w posix.system (tak jak kontener detonera), więc poza
+# POSIX-em pickle.load() kończy się na imporcie i nie ma czego przechwycić.
+posix_only = pytest.mark.skipif(
+    os.name != "posix",
+    reason="fixture'y odwołują się do posix.system — detonacja tylko na POSIX/w kontenerze",
+)
+
+
+@posix_only
 def test_os_system_payload_is_logged(tmp_path):
     result = _run_detoner("evil_os_system.pkl")
     types = [e["type"] for e in result["events"]]
@@ -57,6 +66,7 @@ def test_os_system_payload_is_logged(tmp_path):
     assert "touch" in detail
 
 
+@posix_only
 def test_posix_system_is_patched_not_only_os():
     """os.system to w istocie posix.system, a pickle importuje posix.system
     wprost. Ten test pilnuje, że patch obejmuje moduł posix — bez tego

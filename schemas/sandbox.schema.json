@@ -1,0 +1,47 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SandboxDetonationReport",
+  "description": "Wynik warstwy 2: detonacja pliku w izolacji. 'detonated: false' oznacza, że detonacja NIE zaszła (np. brak Dockera) — nigdy nie jest to udawany log.",
+  "type": "object",
+  "required": ["schema_version", "file_name", "detonated", "events", "raw_log"],
+  "properties": {
+    "schema_version": { "type": "string", "const": "1.0" },
+    "file_name": { "type": "string" },
+    "detonated": {
+      "type": "boolean",
+      "description": "Czy plik faktycznie został zdeserializowany w sandboksie. false = detonacja się nie odbyła."
+    },
+    "detonation_backend": {
+      "type": ["string", "null"],
+      "enum": ["docker", null],
+      "description": "Jak odpalono detonację. Tylko 'docker' jest zaufaną izolacją."
+    },
+    "skipped_reason": {
+      "type": ["string", "null"],
+      "description": "Gdy detonated=false: czytelny powód (np. 'Docker daemon unavailable')."
+    },
+    "load_succeeded": {
+      "type": ["boolean", "null"],
+      "description": "Czy pickle.load() zakończył się bez wyjątku."
+    },
+    "duration_ms": { "type": ["integer", "null"] },
+    "events": {
+      "type": "array",
+      "description": "Zarejestrowane próby działań podczas deserializacji.",
+      "items": {
+        "type": "object",
+        "required": ["type", "detail"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["os_system", "subprocess", "network", "file_write", "file_read", "code_exec", "other"]
+          },
+          "detail": { "type": "string" },
+          "blocked": { "type": ["boolean", "null"] }
+        }
+      }
+    },
+    "raw_log": { "type": "string", "description": "Surowy log z kontenera do pokazania na dashboardzie." },
+    "error": { "type": ["string", "null"] }
+  }
+}

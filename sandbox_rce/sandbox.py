@@ -153,20 +153,40 @@ def detonate_in_docker(
 
         cmd = [
             "docker", "run", "--rm",
-            "--network=none",              # brak jakiegokolwiek wyjścia na sieć
+            # --- odcięcie od sieci ---
+            # Brak interfejsu poza loopbackiem — DNS i hosty są bezprzedmiotowe,
+            # a Docker i tak odrzuca --dns/--add-host razem z network=none.
+            "--network=none",
+            # --- filesystem ---
             "--read-only",                 # cały filesystem ro...
-            "--tmpfs", "/tmp:rw,size=16m", # ...poza /tmp, gdzie payload może pisać
-            "--cap-drop=ALL",
+            # ...poza /tmp. noexec: payload nie uruchomi binarki, którą zrzuci.
+            # nosuid/nodev: nie podniesie uprawnień i nie stworzy urządzenia.
+            "--tmpfs", "/tmp:rw,noexec,nosuid,nodev,size=16m",
+            # --- uprawnienia ---
+            "--cap-drop=ALL",              # zero capabilities
             "--security-opt=no-new-privileges",
+            # --- izolacja przestrzeni nazw ---
+            "--ipc=none",                  # brak współdzielonej pamięci
+            # --- limity zasobów (ochrona przed fork bombą i zajeżdżeniem hosta) ---
             "--memory=256m",
+            "--memory-swap=256m",          # bez tego swap jest nielimitowany
             "--pids-limit=128",
             "--cpus=1",
+            "--ulimit", "nofile=256:256",
+            "--ulimit", "fsize=16777216",  # 16 MB, limit rozmiaru pliku
             "-v", f"{staging}:/target:ro",
             # ENTRYPOINT obrazu to już sam detoner, więc dokładamy tylko
             # ścieżkę pliku jako jego argument.
             IMAGE_TAG,
             "/target/sample.pkl",
         ]
+
+        # Opcjonalnie: gVisor (runsc) albo inny runtime z własnym jądrem.
+        # Zwykły kontener dzieli jądro z hostem, więc dopiero to daje
+        # izolację, przy której "w pełni odcięty" jest uczciwym określeniem.
+        runtime = os.environ.get("SANDBOX_RUNTIME")
+        if runtime:
+            cmd.insert(2, f"--runtime={runtime}")
 
         try:
             proc = subprocess.run(

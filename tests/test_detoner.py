@@ -162,3 +162,34 @@ def test_docker_status_never_raises():
     available, message = sandbox.docker_status()
     assert isinstance(available, bool)
     assert isinstance(message, str) and message
+
+
+@posix_only
+def test_side_effect_of_payload_is_reported(tmp_path):
+    """Log zdarzeń mówi, że payload WYWOŁAŁ os.system. To nie to samo co
+    dowód, że wywołanie miało SKUTEK — a bez tego drugiego „na dysku nic nie
+    ma" czyta się dwuznacznie: albo izolacja zadziałała, albo payload wcale
+    się nie wykonał. Detoner porównuje katalog zapisu przed i po."""
+    path, marker = _build_marker_payload(tmp_path)
+    proc = subprocess.run(
+        [sys.executable, "-I", "-u", DETONATE, path],
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert "SKUTEK" in proc.stdout, f"nie zaraportowano skutku: {proc.stdout!r}"
+    assert os.path.basename(marker) in proc.stdout
+
+
+def test_clean_payload_reports_no_side_effect(tmp_path):
+    path = os.path.join(str(tmp_path), "clean.pkl")
+    with open(path, "wb") as fh:
+        pickle.dump({"layers": [8, 4]}, fh, protocol=4)
+    proc = subprocess.run(
+        [sys.executable, "-I", "-u", DETONATE, path],
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert "SKUTEK" not in proc.stdout
+    assert "nie utworzył ani nie zmienił" in proc.stdout

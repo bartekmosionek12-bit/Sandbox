@@ -24,6 +24,7 @@ import json
 import os
 import pickle
 import sys
+import tempfile
 import time
 import traceback
 
@@ -207,6 +208,87 @@ def _install_patches() -> None:
     builtins.__import__ = traced_import  # type: ignore[assignment]
 
 
+def _writable_dir() -> str:
+    """Jedyny katalog, w którym payload może cokolwiek zapisać.
+
+    Kontener jedzie z ``--read-only`` i ``--tmpfs /tmp``, więc ``/tmp`` to
+    cała przestrzeń zapisu, jaką payload dostaje.
+    """
+    return "/tmp" if os.path.isdir("/tmp") else tempfile.gettempdir()
+
+
+# Limit na obejście katalogu zapisu. W kontenerze /tmp to świeży tmpfs na
+# 16 MB, więc to nigdy nie jest ograniczeniem; limit jest po to, by przy
+# uruchomieniu poza kontenerem nie przeczesywać cudzego, dużego /tmp.
+_SNAPSHOT_MAX_ENTRIES = 2000
+
+
+def _snapshot(path: str) -> dict[str, int]:
+    """Ścieżki i rozmiary plików w katalogu zapisu, rekurencyjnie.
+
+    Rekurencyjnie, bo payload może pisać w podkatalogu — samo listowanie
+    pierwszego poziomu przegapiłoby taki zapis i skutek wyglądałby na brak
+    skutku. Błąd nie może przerwać detonacji, więc wszystko jest łykane.
+    """
+    found: dict[str, int] = {}
+    try:
+        for root, _dirs, files in os.walk(path):
+            for name in files:
+                full = os.path.join(root, name)
+                try:
+                    found[os.path.relpath(full, path)] = os.path.getsize(full)
+                except OSError:
+                    continue
+                if len(found) >= _SNAPSHOT_MAX_ENTRIES:
+                    return found
+    except OSError:
+        pass
+    return found
+
+
+def _report_side_effects(before: dict[str, int], after: dict[str, int], path: str) -> None:
+    """Wypisuje RÓŻNICĘ w katalogu zapisu przed i po detonacji.
+
+    To jest druga połowa dowodu. Log zdarzeń mówi, że payload **wywołał**
+    ``os.system``; ta różnica pokazuje, że wywołanie miało **skutek** — plik
+    naprawdę powstał. A że powstał w kontenerze, ginie razem z nim, więc na
+    maszynie hosta nie ma go wcale. Bez tego porównania „na dysku nic nie ma"
+    da się odczytać dwuznacznie: albo izolacja zadziałała, albo payload wcale
+    się nie wykonał.
+
+    Wypisujemy wyłącznie różnicę, nie całą zawartość katalogu, żeby przy
+    uruchomieniu poza kontenerem nie wylewać do logu cudzych plików
+    tymczasowych.
+    """
+    # Dopisek o kontenerze tylko wtedy, gdy naprawdę jesteśmy w kontenerze.
+    # Ta linia jest dowodem pokazywanym na dashboardzie, więc nie może
+    # twierdzić czegoś, czego nie sprawdziła.
+    where = "wewnątrz kontenera" if os.path.exists("/.dockerenv") else "w tym procesie"
+
+    created = sorted(set(after) - set(before))
+    changed = sorted(
+        name for name in set(after) & set(before) if after[name] != before[name]
+    )
+    if not created and not changed:
+        print(
+            f"[detoner] {path}: payload nie utworzył ani nie zmienił żadnego pliku",
+            flush=True,
+        )
+        return
+    for name in created:
+        print(
+            f"[detoner] SKUTEK: payload utworzył {path}/{name} "
+            f"({after[name]} B) — {where}",
+            flush=True,
+        )
+    for name in changed:
+        print(
+            f"[detoner] SKUTEK: payload zmienił {path}/{name} "
+            f"({before[name]} B → {after[name]} B) — {where}",
+            flush=True,
+        )
+
+
 def detonate(target: str) -> dict:
     # Log idzie na stdout jako UTF-8 niezależnie od locale. Bez tego zdarzenie
     # ze znakiem spoza strony kodowej wywala zapis i gubi linię z wynikiem —
@@ -215,6 +297,9 @@ def detonate(target: str) -> dict:
         stream.reconfigure(encoding="utf-8", errors="backslashreplace")
 
     _install_patches()
+
+    writable = _writable_dir()
+    before = _snapshot(writable)
 
     started = time.monotonic()
     load_succeeded = False
@@ -232,6 +317,9 @@ def detonate(target: str) -> dict:
         traceback.print_exc()
 
     duration_ms = int((time.monotonic() - started) * 1000)
+
+    # Skutki uboczne liczymy PO detonacji, zanim kontener zginie.
+    _report_side_effects(before, _snapshot(writable), writable)
 
     result = {
         "load_succeeded": load_succeeded,

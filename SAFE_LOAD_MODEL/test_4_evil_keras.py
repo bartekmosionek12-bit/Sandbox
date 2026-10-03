@@ -17,8 +17,10 @@ def print_security_report(e: SecurityException):
         print("\n--- Analiza statyczna (Parser) ---")
         if parser.get('static_risk'):
             print(f"Ryzyko statyczne: {parser.get('static_risk')}")
-        if parser.get('indicators'):
-            print(f"Znalezione indykatory RCE: {', '.join(parser.get('indicators'))}")
+        for op in parser.get('flagged_opcodes') or []:
+            print(f"Podejrzany opcode: {op.get('name')} (pozycja {op.get('pos')}) — {op.get('reason')}")
+        for imp in parser.get('suspicious_imports') or []:
+            print(f"Podejrzany import: {imp.get('module')}.{imp.get('symbol')} (pozycja {imp.get('pos')})")
             
     sandbox = report.get('sandbox', {})
     if sandbox.get('detonated'):

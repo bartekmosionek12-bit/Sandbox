@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "safe-tensor-sandbox"
 version = "0.1.0"
 authors = [
-  { name="HackYeah Team", email="team@example.com" },
+  { name="Bartosz Mosionek" },
 ]
 description = "AI Model Sandbox — warstwy detekcji RCE w plikach modeli ML (.pkl, .keras)."
 readme = "README.md"
@@ -22,7 +22,7 @@ dev = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/example/safe-tensor-sandbox"
+"Homepage" = "https://github.com/bartekmosionek12-bit/Sandbox"
 
 [tool.setuptools.packages.find]
 include = ["sandbox_rce*"]

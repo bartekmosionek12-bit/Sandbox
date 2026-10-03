@@ -13,10 +13,10 @@ Zaprojektowałem to narzędzie jako bezinwazyjny zastępnik (*Drop-in Replacemen
 
 Moje oprogramowanie automatyzuje trójwarstwowy system ochrony przed deserializacją modelu:
 1. **Analiza Statyczna:** Skuteczne parsowanie instrukcji wirtualnej maszyny (opcode) i konfiguracji archiwum bez ewaluacji kodu w pamięci, co eliminuje zagrożenie wykonania typu "on-load".
-2. **Dynamiczna Detonacja:** Automatyczne wdrożenie odciętego od sieci kontenera Docker. Narzędzie testuje potencjalny złośliwy ładunek w rygorystycznie kontrolowanym środowisku (zablokowany system plików, brak uprawnień administracyjnych), stosując przechwytywanie wywołań systemowych (Monkey-Patching).
+2. **Dynamiczna Detonacja:** Automatyczne wdrożenie odciętego od sieci kontenera Docker. Narzędzie testuje potencjalny złośliwy ładunek w rygorystycznie kontrolowanym środowisku (zablokowany system plików, brak uprawnień administracyjnych), stosując przechwytywanie wywołań systemowych (Monkey-Patching). Uczciwa granica: zwykły Docker dzieli jądro z hostem, więc nie jest izolacją pełną — dlatego wspierany jest też `SANDBOX_RUNTIME=runsc` (gVisor).
 3. **Zautomatyzowany Sędzia AI:** Integracja z modelem LLM (Claude Sonnet), który w sposób deterministyczny ocenia zebrane logi z piaskownicy pod kątem intencji ataku. Wdrożyłem autorski mechanizm zabezpieczający przed manipulacją ze strony wirusa (Prompt Injection) z użyciem znaczników kryptograficznych (nonce).
 
-Otrzymujesz dzięki temu pewność, że wczytywany model nie posiada zaszytych backdoorów, zapewniając pełne bezpieczeństwo środowiska.
+Biblioteka nie obiecuje pewności, bo żadne narzędzie tej klasy nie może jej dać. Daje trzy niezależne sygnały zamiast jednego i **odmawia wczytania modelu, gdy któregokolwiek z nich brakuje** — w szczególności gdy detonacja nie może się odbyć, bo nie ma działającego Dockera. Pusty log z warstwy, która nie wystartowała, wygląda identycznie jak log pliku nieszkodliwego, więc traktowanie go jako przesłanki czystości byłoby fałszywym dowodem niewinności.
 
 ---
 
@@ -66,6 +66,21 @@ from sandbox_rce import safe_load_model
 # przeanalizuje go w tle i zwróci bezpieczny obiekt.
 model = safe_load_model('nieznany_model.pkl') 
 ```
+
+### Co się stanie, gdy nie ma Dockera
+
+Biblioteka **nie wczyta modelu**. Zamiast tego rzuci `SecurityException` z powodem, na przykład
+„Demon Dockera nie odpowiada". Analiza statyczna sama nie jest dowodem niewinności, więc nie
+wystarcza do wpuszczenia pliku.
+
+Jeśli świadomie akceptujesz to ryzyko, możesz pominąć warstwę dynamiczną jawnym parametrem — nigdy
+nie dzieje się to domyślnie:
+
+```python
+model = safe_load_model('model.pkl', require_detonation=False)
+```
+
+Wynik jest wtedy oznaczony wprost jako potwierdzony wyłącznie analizą statyczną.
 
 ### Krok 5: Weryfikacja działania (Gotowe skrypty testowe)
 W folderze głównym przygotowałem zestaw skryptów udowadniających skuteczność rozwiązania. Sprawdź, jak system reaguje na prawdziwe zagrożenia.

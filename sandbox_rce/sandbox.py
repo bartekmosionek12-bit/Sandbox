@@ -281,8 +281,25 @@ def detonate_in_docker(
         )
         report["detonated"] = True
     elif not report["detonated"]:
+        # Dwa kody wychodza tu czesto i oba znacza cos konkretnego. Bez nazwania
+        # ich wprost raport mowi tylko "brak wyniku", czyli dokladnie to samo,
+        # co powiedzialby o pliku nieszkodliwym — a to jest najgorszy mozliwy
+        # komunikat w detektorze zlosliwego kodu.
+        _KILLED = {
+            137: (
+                "kod 137 = proces zabity (SIGKILL), prawie zawsze przez limit "
+                f"pamieci kontenera (--memory={cfg['memory']}). Podnies limit "
+                "w profilu detonacji i sprobuj ponownie"
+            ),
+            139: (
+                "kod 139 = naruszenie ochrony pamieci (SIGSEGV) wewnatrz "
+                "kontenera — biblioteka wywalila sie przed zapisaniem wyniku"
+            ),
+        }
+        detail = _KILLED.get(returncode)
         report["skipped_reason"] = (
             f"Kontener zakończył się kodem {returncode}, bez wyniku detonacji."
+            + (f" {detail}. To NIE znaczy, że plik jest nieszkodliwy." if detail else "")
         )
         report["error"] = (stderr or stdout or "").strip()[:1000] or None
 

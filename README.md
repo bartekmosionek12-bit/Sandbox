@@ -60,3 +60,47 @@ python -m sandbox_rce.pipeline poc/samples/evil_os_system.pkl
 Detonacja uruchamia **nieufny kod**. Zawsze w kontenerze z `--network=none`.
 Nie uruchamiaj `sandbox_rce.detonate` bezpośrednio na hoście na nieznanym
 pliku — to detoner, który ma wykonać payload.
+
+## Testy
+
+```bash
+make test        # 26 testów
+```
+
+Testy detonera uruchamiają własne fixture'y PoC jako podproces, więc po
+przebiegu w `/tmp` pojawi się plik-znacznik `pwned` i `sandbox_poc_note.txt`.
+To zamierzone: test pilnuje, że instrumentacja faktycznie przechwytuje
+wykonanie. Pusty log jest gorszy niż brak detonacji, bo wygląda jak dowód
+niewinności.
+
+## Co jest świadomie poza zakresem v1
+
+Te rzeczy są kierunkiem rozwoju, nie brakiem:
+
+- **`.keras`** — ten sam pipeline, parser czytający `config.json` pod kątem
+  Lambda layers i `custom_objects`. Kontrakty JSON są już pod to
+  przygotowane: dashboard i sędzia nie znają formatu pliku.
+- **Quorum kilku niezależnych LLM** zamiast jednego sędziego — redukuje
+  ślepe punkty pojedynczego modelu, kosztem czasu integracji.
+- **Izolacja klasy produkcyjnej** (gVisor / Firecracker) — zwykły kontener
+  ma znane techniki ucieczki. Świadomy kompromis czasowy, nie przeoczenie.
+- **Kontrolowany egress z logowaniem** zamiast pełnego odcięcia sieci —
+  pozwala obserwować, dokąd malware próbuje się połączyć, a nie tylko
+  blokować.
+- **Data poisoning / backdoory w datasetach** — osobny problem badawczy
+  (spectral signatures, activation clustering).
+
+## Architektura
+
+```
+plik .pkl
+   │
+   ├─► parser.py      pickletools.genops, bez wykonywania  ──► schemas/parser.schema.json
+   │
+   ├─► sandbox.py ──► docker run --network=none --read-only
+   │                      └─ detonate.py  prawdziwy pickle.load() ──► schemas/sandbox.schema.json
+   │
+   └─► judge.py       jedno wywołanie LLM, dane w bloku z nonce ──► schemas/judge.schema.json
+                                   │
+                              pipeline.py ──► app/server.py (dashboard)
+```

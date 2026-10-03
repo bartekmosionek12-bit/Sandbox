@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pickle Sandbox</title>
+<style>
+  :root {
+    --bg: #0b0f17;
+    --panel: #121824;
+    --panel-2: #0e131d;
+    --border: #1f2838;
+    --text: #e6ecf5;
+    --muted: #8a98ad;
+    --accent: #4f8cff;
+    --red: #ff4d5e;
+    --red-dim: #2a0f16;
+    --amber: #ffb224;
+    --amber-dim: #2a1f0a;
+    --green: #2ad17e;
+    --green-dim: #0c2619;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1060px; margin: 0 auto; padding: 32px 20px 80px; }
+
+  header { border-bottom: 1px solid var(--border); padding-bottom: 20px; margin-bottom: 28px; }
+  .title { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  h1 { font-size: 24px; margin: 0; letter-spacing: -0.02em; }
+  .tag {
+    font: 600 11px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--accent); border: 1px solid var(--accent); border-radius: 4px;
+    padding: 5px 7px;
+  }
+  .sub { color: var(--muted); margin: 8px 0 0; font-size: 14px; max-width: 72ch; }
+
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 7px;
+    font: 500 12.5px/1 var(--mono);
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 999px; padding: 7px 12px; color: var(--muted);
+  }
+  .dot { width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto; }
+  .dot.on { background: var(--green); box-shadow: 0 0 7px var(--green); }
+  .dot.off { background: var(--amber); box-shadow: 0 0 7px var(--amber); }
+
+  .drop {
+    border: 1.5px dashed var(--border); border-radius: 12px;
+    background: var(--panel-2); padding: 40px 24px; text-align: center;
+    transition: border-color .15s, background .15s; cursor: pointer;
+  }
+  .drop:hover, .drop.over { border-color: var(--accent); background: #10192b; }
+  .drop h2 { margin: 0 0 6px; font-size: 17px; font-weight: 600; }
+  .drop p { margin: 0; color: var(--muted); font-size: 13.5px; }
+  input[type=file] { display: none; }
+
+  .steps { margin-top: 24px; display: none; }
+  .steps.show { display: block; }
+  .step { display: flex; align-items: center; gap: 11px; padding: 7px 0; color: var(--muted); font-size: 14px; }
+  .step .mark { width: 16px; text-align: center; flex: 0 0 auto; font-family: var(--mono); }
+  .step.active { color: var(--text); }
+  .step.done { color: var(--muted); }
+  .spin {
+    display: inline-block; width: 11px; height: 11px;
+    border: 2px solid var(--border); border-top-color: var(--accent);
+    border-radius: 50%; animation: sp .7s linear infinite;
+  }
+  @keyframes sp { to { transform: rotate(360deg); } }
+
+  .banner {
+    margin-top: 28px; border-radius: 12px; padding: 22px 24px;
+    border: 1px solid; display: flex; gap: 18px; align-items: flex-start;
+  }
+  .banner .glyph { font-size: 26px; line-height: 1; flex: 0 0 auto; }
+  .banner h2 { margin: 0 0 5px; font-size: 19px; letter-spacing: -0.01em; }
+  .banner p { margin: 0; font-size: 14px; opacity: .92; }
+  .banner .src { font: 500 12px/1.4 var(--mono); opacity: .66; margin-top: 9px; }
+  .b-malicious { background: var(--red-dim); border-color: var(--red); color: #ffd9de; }
+  .b-malicious h2 { color: var(--red); }
+  .b-suspicious { background: var(--amber-dim); border-color: var(--amber); color: #ffe9c2; }
+  .b-suspicious h2 { color: var(--amber); }
+  .b-safe { background: var(--green-dim); border-color: var(--green); color: #c4f2da; }
+  .b-safe h2 { color: var(--green); }
+  .b-unknown { background: var(--panel); border-color: var(--border); color: var(--text); }
+  .b-unknown h2 { color: var(--muted); }
+
+  .panel {
+    margin-top: 18px; background: var(--panel); border: 1px solid var(--border);
+    border-radius: 12px; overflow: hidden;
+  }
+  .panel > h3 {
+    margin: 0; padding: 14px 18px; font-size: 14px; font-weight: 600;
+    border-bottom: 1px solid var(--border); display: flex;
+    align-items: center; justify-content: space-between; gap: 12px;
+  }
+  .panel > h3 .n { font: 600 11px/1 var(--mono); color: var(--muted); letter-spacing: .07em; }
+  .body { padding: 18px; }
+  .body > *:first-child { margin-top: 0; }
+  .body > *:last-child { margin-bottom: 0; }
+
+  .kv { display: grid; grid-template-columns: minmax(130px, auto) 1fr; gap: 9px 18px; font-size: 14px; }
+  .kv dt { color: var(--muted); }
+  .kv dd { margin: 0; }
+
+  .pills { display: flex; flex-wrap: wrap; gap: 7px; margin: 12px 0; }
+  .pill {
+    font: 600 12px/1 var(--mono); padding: 6px 9px; border-radius: 5px;
+    background: var(--red-dim); color: #ff8e9b; border: 1px solid #45202a;
+  }
+  .pill.neutral { background: #16202f; color: var(--muted); border-color: var(--border); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; }
+  tr:last-child td { border-bottom: 0; }
+  td.t { font-family: var(--mono); white-space: nowrap; }
+  .ev-network { color: var(--amber); }
+  .ev-os_system, .ev-subprocess, .ev-code_exec { color: var(--red); }
+  .ev-file_write { color: #ff9f68; }
+  .ev-other { color: var(--muted); }
+  .blocked { font: 600 11px/1 var(--mono); padding: 4px 6px; border-radius: 4px; background: #16202f; color: var(--muted); }
+
+  pre {
+    margin: 0; padding: 14px; background: #080c13; border: 1px solid var(--border);
+    border-radius: 8px; overflow-x: auto; font: 12.5px/1.6 var(--mono);
+    color: #cfd9e8; max-height: 340px; overflow-y: auto; white-space: pre;
+  }
+  details { margin-top: 14px; }
+  summary {
+    cursor: pointer; color: var(--accent); font-size: 13.5px; font-weight: 500;
+    padding: 4px 0; user-select: none;
+  }
+  summary:hover { text-decoration: underline; }
+  details[open] summary { margin-bottom: 10px; }
+
+  .note {
+    border-left: 2px solid var(--amber); background: var(--amber-dim);
+    padding: 11px 14px; border-radius: 0 7px 7px 0; font-size: 13.5px; color: #ffe9c2;
+  }
+  .note.err { border-color: var(--red); background: var(--red-dim); color: #ffd9de; }
+  .empty { color: var(--muted); font-size: 14px; font-style: italic; }
+  .again { margin-top: 24px; }
+  button.again {
+    background: var(--panel); color: var(--text); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 16px; font-size: 14px; cursor: pointer; font-weight: 500;
+  }
+  button.again:hover { border-color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="title">
+      <h1>Pickle Sandbox</h1>
+      <span class="tag">Detekcja RCE w modelach ML</span>
+    </div>
+    <p class="sub">
+      Plik modelu dystrybuowany jako pickle może wykonać dowolny kod już przy
+      <code>pickle.load()</code>. To narzędzie sprawdza to trzema niezależnymi
+      warstwami: analizą statyczną opcode'ów, faktyczną detonacją w izolowanym
+      kontenerze i oceną przez LLM.
+    </p>
+    <div class="chips">
+      <span class="chip">
+        <span class="dot {% if docker_ok %}on{% else %}off{% endif %}"></span>
+        Detonacja: {% if docker_ok %}{{ docker_message }}{% else %}niedostępna{% endif %}
+      </span>
+      <span class="chip">
+        <span class="dot {% if judge_ok %}on{% else %}off{% endif %}"></span>
+        Sędzia LLM: {% if judge_ok %}gotowy{% else %}brak ANTHROPIC_API_KEY{% endif %}
+      </span>
+    </div>
+    {% if not docker_ok %}
+    <div class="note" style="margin-top:14px">
+      <strong>Warstwa detonacyjna jest wyłączona:</strong> {{ docker_message }}
+      Analiza statyczna działa normalnie, ale nie będzie dowodu z faktycznego
+      uruchomienia pliku. Wyniki pokażą to wprost, zamiast podstawiać
+      symulowany log.
+    </div>
+    {% endif %}
+  </header>
+
+  <div class="drop" id="drop">
+    <h2>Wgraj plik <code>.pkl</code></h2>
+    <p>Przeciągnij tutaj albo kliknij, żeby wybrać. Limit 32 MB.</p>
+    <input type="file" id="file" accept=".pkl,.pickle">
+  </div>
+
+  <div class="steps" id="steps"></div>
+  <div id="out"></div>
+
+</div>
+
+<script>
+const VERDICTS = {
+  malicious:  { cls: "b-malicious",  glyph: "⛔", label: "Złośliwy" },
+  suspicious: { cls: "b-suspicious", glyph: "⚠️", label: "Podejrzany" },
+  safe:       { cls: "b-safe",       glyph: "✅", label: "Bezpieczny" },
+  unknown:    { cls: "b-unknown",    glyph: "❔", label: "Nieokreślony" },
+};
+const STEP_NAMES = [
+  "Analiza statyczna pliku",
+  "Detonacja w izolowanym kontenerze",
+  "Ocena przez sędziego LLM",
+];
+
+const drop = document.getElementById("drop");
+const fileInput = document.getElementById("file");
+const stepsEl = document.getElementById("steps");
+const outEl = document.getElementById("out");
+
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g,
+  (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+drop.addEventListener("click", () => fileInput.click());
+["dragenter", "dragover"].forEach((e) =>
+  drop.addEventListener(e, (ev) => { ev.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach((e) =>
+  drop.addEventListener(e, (ev) => { ev.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", (ev) => {
+  if (ev.dataTransfer.files.length) upload(ev.dataTransfer.files[0]);
+});
+fileInput.addEventListener("change", () => {
+  if (fileInput.files.length) upload(fileInput.files[0]);
+});
+
+function renderSteps(current, finished) {
+  stepsEl.classList.add("show");
+  stepsEl.innerHTML = STEP_NAMES.map((name) => {
+    const done = finished || STEP_NAMES.indexOf(name) < STEP_NAMES.indexOf(current);
+    const active = !finished && name === current;
+    const mark = done ? "✓" : active ? '<span class="spin"></span>' : "○";
+    const cls = done ? "done" : active ? "active" : "";
+    return `<div class="step ${cls}"><span class="mark">${mark}</span>${esc(name)}</div>`;
+  }).join("");
+}
+
+async function upload(file) {
+  outEl.innerHTML = "";
+  renderSteps(STEP_NAMES[0], false);
+
+  const body = new FormData();
+  body.append("file", file);
+
+  let res, data;
+  try {
+    res = await fetch("/api/analyze", { method: "POST", body });
+    data = await res.json();
+  } catch (err) {
+    return fail("Nie udało się wysłać pliku: " + err);
+  }
+  if (!res.ok) return fail(data.error || "Błąd wysyłania.");
+
+  poll(data.job_id);
+}
+
+function poll(jobId) {
+  const timer = setInterval(async () => {
+    let job;
+    try {
+      const res = await fetch("/api/status/" + jobId);
+      job = await res.json();
+    } catch {
+      return;
+    }
+    if (job.step) renderSteps(job.step, job.status === "done");
+    if (job.status === "done") {
+      clearInterval(timer);
+      render(job.result);
+    } else if (job.status === "error") {
+      clearInterval(timer);
+      fail(job.error);
+    }
+  }, 350);
+}
+
+function fail(message) {
+  outEl.innerHTML = `<div class="note err" style="margin-top:22px">
+    <strong>Analiza nie powiodła się.</strong><br>${esc(message)}</div>` + againButton();
+  bindAgain();
+}
+
+function againButton() {
+  return `<div class="again"><button class="again" id="again">Przeanalizuj kolejny plik</button></div>`;
+}
+function bindAgain() {
+  const b = document.getElementById("again");
+  if (b) b.addEventListener("click", () => {
+    outEl.innerHTML = ""; stepsEl.classList.remove("show"); fileInput.value = "";
+  });
+}
+
+function render(r) {
+  const v = VERDICTS[r.final_verdict] || VERDICTS.unknown;
+  const p = r.parser, s = r.sandbox, j = r.judge;
+
+  const reasoning = j.available
+    ? esc(j.reasoning)
+    : esc(p.static_risk === "malicious"
+        ? "Analiza statyczna wykryła łańcuch dający wykonanie kodu."
+        : p.static_risk === "suspicious"
+        ? "Analiza statyczna wykryła elementy wymagające uwagi."
+        : "Analiza statyczna nie wykryła opcode'ów ani importów dających wykonanie kodu.");
+
+  let html = `
+  <div class="banner ${v.cls}">
+    <div class="glyph">${v.glyph}</div>
+    <div>
+      <h2>${v.label}</h2>
+      <p>${reasoning}</p>
+      <div class="src">plik: ${esc(r.file_name)} &nbsp;·&nbsp; źródło werdyktu: ${esc(r.verdict_source)}${
+        j.confidence ? " · pewność: " + esc(j.confidence) : ""}</div>
+    </div>
+  </div>`;
+
+  // ---- warstwa 1: parser ----
+  const flagged = p.flagged_opcodes || [];
+  const imports = p.suspicious_imports || [];
+  const uniqFlags = [...new Set(flagged.map((o) => o.name))];
+
+  html += `
+  <div class="panel">
+    <h3>Analiza statyczna <span class="n">WARSTWA 1</span></h3>
+    <div class="body">
+      <dl class="kv">
+        <dt>Format</dt><dd>${esc(p.file_format)}</dd>
+        <dt>Opcody łącznie</dt><dd>${(p.opcodes || []).length}</dd>
+        <dt>Ocena heurystyczna</dt><dd>${esc(p.static_risk)}</dd>
+      </dl>
+      <div style="margin-top:14px">
+        <div style="color:var(--muted);font-size:13px;margin-bottom:6px">
+          Opcody dające wykonanie kodu</div>
+        ${uniqFlags.length
+          ? `<div class="pills">${uniqFlags.map((n) => `<span class="pill">${esc(n)}</span>`).join("")}</div>`
+          : `<p class="empty">Brak — plik nie zawiera GLOBAL/REDUCE ani pokrewnych.</p>`}
+      </div>
+      <div style="margin-top:14px">
+        <div style="color:var(--muted);font-size:13px;margin-bottom:6px">
+          Podejrzane importy</div>
+        ${imports.length
+          ? `<div class="pills">${imports.map((i) =>
+              `<span class="pill">${esc(i.module)}.${esc(i.symbol)}</span>`).join("")}</div>`
+          : `<p class="empty">Brak.</p>`}
+      </div>
+      ${p.error ? `<div class="note err" style="margin-top:14px">${esc(p.error)}</div>` : ""}
+      <details>
+        <summary>Pokaż surowy disasm (pickletools)</summary>
+        <pre>${esc(p.raw_disasm) || "(pusty)"}</pre>
+      </details>
+    </div>
+  </div>`;
+
+  // ---- warstwa 2: sandbox ----
+  const events = s.events || [];
+  html += `
+  <div class="panel">
+    <h3>Detonacja w sandboksie <span class="n">WARSTWA 2</span></h3>
+    <div class="body">`;
+
+  if (!s.detonated) {
+    html += `<div class="note">
+      <strong>Detonacja się nie odbyła.</strong><br>${esc(s.skipped_reason || s.error || "Nieznany powód.")}
+      <br><br>Werdykt opiera się wyłącznie na analizie statycznej — nie ma dowodu
+      z faktycznego uruchomienia pliku.</div>`;
+  } else {
+    html += `
+      <dl class="kv">
+        <dt>Izolacja</dt><dd>Docker, <code>--network=none</code>, <code>--read-only</code>, <code>--cap-drop=ALL</code></dd>
+        <dt>pickle.load()</dt><dd>${s.load_succeeded ? "wykonany bez wyjątku" : "zakończony wyjątkiem"}</dd>
+        <dt>Czas</dt><dd>${s.duration_ms != null ? esc(s.duration_ms) + " ms" : "—"}</dd>
+      </dl>
+      <div style="margin-top:16px">
+        <div style="color:var(--muted);font-size:13px;margin-bottom:8px">
+          Zarejestrowane zachowanie (${events.length})</div>`;
+    html += events.length
+      ? `<table><thead><tr><th>Typ</th><th>Szczegóły</th><th></th></tr></thead><tbody>
+          ${events.map((e) => `<tr>
+            <td class="t ev-${esc(e.type)}">${esc(e.type)}</td>
+            <td>${esc(e.detail)}</td>
+            <td>${e.blocked === true ? '<span class="blocked">zablokowane</span>' : ""}</td>
+          </tr>`).join("")}
+        </tbody></table>`
+      : `<p class="empty">Zero zdarzeń — deserializacja nie próbowała nic wykonać.</p>`;
+    html += `</div>`;
+    if (s.error) html += `<div class="note" style="margin-top:14px">${esc(s.error)}</div>`;
+    html += `<details>
+        <summary>Pokaż surowy log z kontenera</summary>
+        <pre>${esc(s.raw_log) || "(pusty)"}</pre>
+      </details>`;
+  }
+  html += `</div></div>`;
+
+  // ---- warstwa 3: sędzia ----
+  html += `
+  <div class="panel">
+    <h3>Werdykt sędziego LLM <span class="n">WARSTWA 3</span></h3>
+    <div class="body">`;
+  if (j.available) {
+    html += `
+      <dl class="kv">
+        <dt>Werdykt</dt><dd><strong>${esc(j.verdict)}</strong></dd>
+        <dt>Pewność</dt><dd>${esc(j.confidence || "—")}</dd>
+        <dt>Model</dt><dd><code>${esc(j.model)}</code></dd>
+      </dl>
+      <p style="margin-top:14px;white-space:pre-wrap">${esc(j.reasoning)}</p>`;
+  } else {
+    html += `<div class="note"><strong>Sędzia niedostępny.</strong><br>${esc(j.error || j.reasoning)}</div>`;
+  }
+  html += `</div></div>` + againButton();
+
+  outEl.innerHTML = html;
+  bindAgain();
+}
+</script>
+</body>
+</html>

@@ -31,6 +31,46 @@ przepisywania pipeline'u.
 pip install -r requirements.txt
 ```
 
+## Docker na Windows — instalacja krok po kroku
+
+Docker Desktop na Windows potrzebuje WSL2. To **nie** jest instalacja
+Linuksa obok Windowsa: WSL2 to mała, ukryta maszyna wirtualna, w której
+Docker trzyma kontenery. Nie zmienia dysku ani rozruchu, nie trzeba
+instalować Ubuntu, a całość można odinstalować jak zwykły program.
+Dla sandboksa to zaleta — payload działa w kontenerze wewnątrz tej
+maszyny, a nie bezpośrednio na Windowsie.
+
+W PowerShellu uruchomionym **jako administrator**:
+
+```powershell
+wsl --install --no-distribution
+```
+
+Jeśli polecenie zwraca „Zabronione” (HTTP 403 — GitHub ogranicza liczbę
+zapytań z jednego adresu IP, częste w sieci współdzielonej), użyj zamiast
+niego:
+
+```powershell
+dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart
+dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux /all /norestart
+winget install --id Microsoft.WSL -e
+```
+
+Potem:
+
+1. Zrestartuj komputer.
+2. Zainstaluj Docker Desktop (`winget install Docker.DockerDesktop` albo
+   instalator ze strony Dockera) i uruchom go z menu Start.
+3. Zaakceptuj licencję i poczekaj na status „Engine running”.
+4. Sprawdź w zwykłym terminalu:
+
+```powershell
+docker run --rm hello-world
+```
+
+Na Windows zamiast `make ...` i `python3` używaj poleceń `python -m ...`
+podanych niżej; obraz detonera buduje się sam przy pierwszej detonacji.
+
 ## Uruchomienie dashboardu
 
 ```bash

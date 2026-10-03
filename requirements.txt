@@ -1,2 +1,7 @@
 Flask>=3.0,<4.0
-anthropic>=0.40,<1.0
+# Sedzia uzywa output_config (wymuszenie schematu JSON na odpowiedzi), a ten
+# parametr jest w SDK dopiero od 0.125. Wczesniejszy dolny prog (>=0.40)
+# pozwalal pip-owi zainstalowac wersje, w ktorej klucz jest poprawny, a
+# wywolanie i tak sie wywala na nieznanym parametrze — czyli dashboard pisze
+# "sedzia niedostepny" bez widocznej przyczyny.
+anthropic>=0.125,<1.0

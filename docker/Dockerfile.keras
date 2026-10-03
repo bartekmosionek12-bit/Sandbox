@@ -11,11 +11,13 @@ COPY docker/requirements-keras.txt /tmp/requirements-keras.txt
 RUN pip install --no-cache-dir -r /tmp/requirements-keras.txt \
     && rm /tmp/requirements-keras.txt
 
-# Backend numpy: nie potrzebujemy trenowania ani GPU, tylko wiernego
-# odtworzenia modelu. Patrz docker/requirements-keras.txt.
-ENV KERAS_BACKEND=numpy
-# Keras bez tego próbuje pisać ~/.keras w trakcie importu.
-ENV KERAS_HOME=/tmp/keras
+# Backend TensorFlow (CPU): backend numpy segfaultuje przy przebiegu modelu
+# z warstwą Lambda — patrz docker/requirements-keras.txt.
+ENV KERAS_BACKEND=tensorflow
+# Na read-only filesystemie (zapisywalny tylko /tmp) przekierowujemy cache
+# Kerasa/TF do /tmp, żeby sam framework nie padł na braku praw do zapisu.
+# To nie poluzowuje izolacji: /tmp i tak jest jedynym zapisywalnym miejscem.
+ENV HOME=/tmp KERAS_HOME=/tmp/.keras XDG_CACHE_HOME=/tmp/.cache
 
 # Kontekst budowy to katalog główny repo (patrz sandbox_rce/sandbox.py).
 # detonate.py jedzie razem, bo detonate_keras.py bierze z niego patche —

@@ -26,6 +26,38 @@ RESULT_PREFIX = "@@RESULT@@"
 _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _DOCKERFILE_DIR = os.path.join(_REPO_ROOT, "docker")
 
+# Profile detonacji. Pickle jedzie na minimalnym obrazie (sam Python); keras
+# potrzebuje TensorFlow, więc dostaje więcej pamięci, większy /tmp i dłuższy
+# limit czasu (sam import TF to kilkanaście sekund). Flagi izolacji
+# (--network=none, --read-only, --cap-drop=ALL, no-new-privileges, --ipc=none)
+# są identyczne dla obu — różnią się tylko rozmiary i limity.
+_PROFILES = {
+    "pickle": {
+        "image_tag": IMAGE_TAG,
+        "dockerfile": "Dockerfile",
+        "sample_name": "sample.pkl",
+        "tmpfs": "/tmp:rw,noexec,nosuid,nodev,size=16m",
+        "memory": "256m",
+        "pids": "128",
+        "nofile": "256:256",
+        "timeout_s": DEFAULT_TIMEOUT_S,
+        "build_timeout_s": 600,
+    },
+    "keras": {
+        "image_tag": "pickle-sandbox-detoner-keras:latest",
+        "dockerfile": "Dockerfile.keras",
+        "sample_name": "sample.keras",
+        # TF zapisuje do /tmp przy starcie — 16 MB to za mało.
+        "tmpfs": "/tmp:rw,noexec,nosuid,nodev,size=512m",
+        "memory": "2g",
+        "pids": "512",
+        "nofile": "4096:4096",
+        # Import TF + load_model + przebieg w przód potrafi zająć ~minutę.
+        "timeout_s": 120,
+        "build_timeout_s": 1800,
+    },
+}
+
 
 class DockerUnavailable(RuntimeError):
     """Docker nie jest dostępny — detonacja nie może się odbyć."""
@@ -75,15 +107,16 @@ def docker_status() -> tuple[bool, str]:
     return True, f"Docker {proc.stdout.strip()}"
 
 
-def ensure_image(force_rebuild: bool = False) -> None:
-    """Buduje obraz detonera, jeśli jeszcze nie istnieje."""
+def ensure_image(force_rebuild: bool = False, profile: str = "pickle") -> None:
+    """Buduje obraz detonera dla danego profilu, jeśli jeszcze nie istnieje."""
+    cfg = _PROFILES[profile]
     available, message = docker_status()
     if not available:
         raise DockerUnavailable(message)
 
     if not force_rebuild:
         probe = subprocess.run(
-            ["docker", "image", "inspect", IMAGE_TAG],
+            ["docker", "image", "inspect", cfg["image_tag"]],
             capture_output=True,
             text=True,
         )
@@ -93,17 +126,18 @@ def ensure_image(force_rebuild: bool = False) -> None:
     build = subprocess.run(
         [
             "docker", "build", "-q",
-            "-t", IMAGE_TAG,
-            "-f", os.path.join(_DOCKERFILE_DIR, "Dockerfile"),
+            "-t", cfg["image_tag"],
+            "-f", os.path.join(_DOCKERFILE_DIR, cfg["dockerfile"]),
             _REPO_ROOT,
         ],
         capture_output=True,
         text=True,
-        timeout=600,
+        timeout=cfg["build_timeout_s"],
     )
     if build.returncode != 0:
         raise DockerUnavailable(
-            f"Budowa obrazu detonera nie powiodła się: {build.stderr.strip()[:500]}"
+            f"Budowa obrazu detonera ({profile}) nie powiodła się: "
+            f"{build.stderr.strip()[:500]}"
         )
 
 
@@ -127,9 +161,17 @@ def _parse_detoner_output(stdout: str) -> tuple[list[dict], dict | None]:
 
 def detonate_in_docker(
     path: str,
-    timeout_s: int = DEFAULT_TIMEOUT_S,
+    timeout_s: int | None = None,
+    profile: str = "pickle",
 ) -> dict:
-    """Odpala plik w kontenerze i zwraca kontrakt sandboksa."""
+    """Odpala plik w kontenerze i zwraca kontrakt sandboksa.
+
+    ``profile`` wybiera obraz i limity: ``pickle`` (lekki) albo ``keras``
+    (z TensorFlow). Flagi izolacji są dla obu takie same.
+    """
+    cfg = _PROFILES[profile]
+    if timeout_s is None:
+        timeout_s = cfg["timeout_s"]
     file_name = os.path.basename(path)
 
     available, message = docker_status()
@@ -137,7 +179,7 @@ def detonate_in_docker(
         return _empty_report(file_name, message)
 
     try:
-        ensure_image()
+        ensure_image(profile=profile)
     except DockerUnavailable as exc:
         return _empty_report(file_name, str(exc))
 
@@ -147,7 +189,7 @@ def detonate_in_docker(
     # Plik kopiujemy do katalogu tymczasowego i montujemy read-only pod
     # stałą nazwą, żeby nazwa pliku z uploadu nie trafiła do argv kontenera.
     with tempfile.TemporaryDirectory() as staging:
-        staged = os.path.join(staging, "sample.pkl")
+        staged = os.path.join(staging, cfg["sample_name"])
         shutil.copyfile(path, staged)
         os.chmod(staged, 0o444)
 
@@ -161,24 +203,24 @@ def detonate_in_docker(
             "--read-only",                 # cały filesystem ro...
             # ...poza /tmp. noexec: payload nie uruchomi binarki, którą zrzuci.
             # nosuid/nodev: nie podniesie uprawnień i nie stworzy urządzenia.
-            "--tmpfs", "/tmp:rw,noexec,nosuid,nodev,size=16m",
+            "--tmpfs", cfg["tmpfs"],
             # --- uprawnienia ---
             "--cap-drop=ALL",              # zero capabilities
             "--security-opt=no-new-privileges",
             # --- izolacja przestrzeni nazw ---
             "--ipc=none",                  # brak współdzielonej pamięci
             # --- limity zasobów (ochrona przed fork bombą i zajeżdżeniem hosta) ---
-            "--memory=256m",
-            "--memory-swap=256m",          # bez tego swap jest nielimitowany
-            "--pids-limit=128",
+            f"--memory={cfg['memory']}",
+            f"--memory-swap={cfg['memory']}",  # bez tego swap jest nielimitowany
+            f"--pids-limit={cfg['pids']}",
             "--cpus=1",
-            "--ulimit", "nofile=256:256",
+            "--ulimit", f"nofile={cfg['nofile']}",
             "--ulimit", "fsize=16777216",  # 16 MB, limit rozmiaru pliku
             "-v", f"{staging}:/target:ro",
             # ENTRYPOINT obrazu to już sam detoner, więc dokładamy tylko
             # ścieżkę pliku jako jego argument.
-            IMAGE_TAG,
-            "/target/sample.pkl",
+            cfg["image_tag"],
+            f"/target/{cfg['sample_name']}",
         ]
 
         # Opcjonalnie: gVisor (runsc) albo inny runtime z własnym jądrem.
@@ -247,6 +289,8 @@ if __name__ == "__main__":
     import sys
 
     if len(sys.argv) != 2:
-        print("usage: python -m sandbox_rce.sandbox <plik.pkl>", file=sys.stderr)
+        print("usage: python -m sandbox_rce.sandbox <plik.pkl|.keras>", file=sys.stderr)
         raise SystemExit(2)
-    print(json.dumps(detonate_in_docker(sys.argv[1]), indent=2, ensure_ascii=False))
+    target = sys.argv[1]
+    prof = "keras" if os.path.splitext(target)[1].lower() == ".keras" else "pickle"
+    print(json.dumps(detonate_in_docker(target, profile=prof), indent=2, ensure_ascii=False))

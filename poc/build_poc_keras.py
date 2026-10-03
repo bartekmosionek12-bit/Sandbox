@@ -182,11 +182,20 @@ def _clean_config() -> dict:
     }
 
 
-SAMPLES = {
-    "evil_lambda.keras": _malicious_config,
+# Fixture statyczny (hand-built, deterministyczny): demonstruje wektor
+# custom-object w samym config.json. Nie jest ładowalny prawdziwym Kerasem
+# (detonacja uczciwie pokaże "could not locate class") — służy warstwie
+# statycznej. Buduje się na hoście, bez TensorFlow.
+HANDBUILT = {
     "evil_custom_object.keras": _custom_object_config,
-    "clean_model.keras": _clean_config,
 }
+
+# Fixture'y DETONOWALNE to PRAWDZIWE modele Keras. Zmarshallowany kod warstwy
+# Lambda odtwarza się tylko w tej samej wersji Pythona, więc muszą powstać
+# w kontenerze (py3.11), nie na hoście (py3.14) — inaczej detoner dostaje
+# bad marshal / segfault. Generuje je docker/build_keras_fixtures.py; są
+# zacommitowane, a build() ich NIE nadpisuje, tylko potwierdza obecność.
+GENUINE = ("evil_lambda.keras", "clean_model.keras")
 
 
 def _write_keras(path: str, config: dict) -> None:
@@ -222,16 +231,29 @@ def _write_keras(path: str, config: dict) -> None:
 def build(out_dir: str = SAMPLES_DIR) -> list[str]:
     os.makedirs(out_dir, exist_ok=True)
     written = []
-    for name, factory in SAMPLES.items():
+
+    # Hand-built fixture statyczny — regenerowany za każdym razem.
+    for name, factory in HANDBUILT.items():
         path = os.path.join(out_dir, name)
         _write_keras(path, factory())
         written.append(path)
+
+    # Prawdziwe modele Keras — nie nadpisujemy, tylko potwierdzamy obecność.
+    for name in GENUINE:
+        path = os.path.join(out_dir, name)
+        if os.path.exists(path):
+            written.append(path)
+        else:
+            print(
+                f"UWAGA: brak {name}. To prawdziwy model Keras — wygeneruj raz "
+                "w kontenerze (docker/build_keras_fixtures.py); patrz README."
+            )
     return written
 
 
 if __name__ == "__main__":
     for path in build():
-        print(f"zapisano {path} ({os.path.getsize(path)} B)")
+        print(f"zapisano/jest {path} ({os.path.getsize(path)} B)")
     print(
         "\nUWAGA: 'evil_lambda.keras' niesie kod wykonywany przy "
         "load_model(safe_mode=False). Otwieraj WYŁĄCZNIE w sandboksie."

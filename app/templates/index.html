@@ -398,58 +398,6 @@ function render(r) {
   }
   html += `</div></div>`;
 
-  // ---- warstwa LSB: tensor steganography ----
-  const st = r.stego;
-  if (st) {
-    html += `
-    <div class="panel">
-      <h3>Tensor steganography <span class="n">WARSTWA LSB</span></h3>
-      <div class="body">`;
-    if (!st.checked) {
-      html += `<p class="empty">Brak wag float32 do analizy LSB w tym pliku.</p>`;
-      if (st.notes && st.notes.length)
-        html += `<div class="note" style="margin-top:12px">${st.notes.map(esc).join("<br>")}</div>`;
-    } else {
-      const sus = st.suspicious_arrays || [];
-      html += `
-        <dl class="kv">
-          <dt>Przeanalizowane tablice</dt><dd>${esc(st.arrays_analyzed)}</dd>
-          <dt>Ryzyko LSB</dt><dd><strong>${esc(st.stego_risk)}</strong></dd>
-          <dt>Wyzwalacz w pliku</dt><dd>${st.trigger_present
-            ? "tak — anomalia LSB domyka łańcuch do malicious"
-            : "nie — sama anomalia to najwyżej suspicious"}</dd>
-        </dl>`;
-      if (sus.length) {
-        html += `<div style="margin-top:16px">
-          <div style="color:var(--muted);font-size:13px;margin-bottom:8px">
-            Wagi z ukrytą strukturą w LSB (${sus.length})</div>`;
-        sus.forEach((a) => {
-          html += `<div class="note" style="margin-bottom:10px">
-            <code>${esc(a.array)}</code> — ${esc(a.reasons.join("; "))}<br>`;
-          if (a.printable_preview)
-            html += `<div style="margin-top:6px">wyciągnięty tekst:
-              <pre style="margin:4px 0 0">${esc(a.printable_preview)}</pre></div>`;
-          if (a.markers && a.markers.length)
-            html += `<div style="margin-top:6px">markery: ${a.markers
-              .map((m) => `<span class="t">${esc(m.marker)}</span> <span style="color:var(--muted)">(${esc(m.meaning)})</span>`)
-              .join(", ")}</div>`;
-          html += `</div>`;
-        });
-        html += `</div>`;
-      } else {
-        html += `<p class="empty" style="margin-top:14px">Rozkład LSB jak w normalnym modelu — brak ukrytej struktury.</p>`;
-      }
-      html += `<details><summary>Statystyki LSB per tablica</summary>
-        <table><thead><tr><th>Tablica</th><th>Elem.</th><th>LSB=1</th><th>Entropia</th><th>Tekst</th></tr></thead><tbody>
-        ${(st.all_arrays || []).map((a) => `<tr>
-          <td>${esc(a.array)}</td><td>${esc(a.elements)}</td>
-          <td>${esc(a.lsb_ones_ratio)}</td><td>${esc(a.packed_byte_entropy)}</td>
-          <td>${esc(a.longest_printable_run)}</td></tr>`).join("")}
-        </tbody></table></details>`;
-    }
-    html += `</div></div>`;
-  }
-
   // ---- warstwa 3: sędzia ----
   html += `
   <div class="panel">

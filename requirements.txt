@@ -5,8 +5,3 @@ Flask>=3.0,<4.0
 # wywolanie i tak sie wywala na nieznanym parametrze — czyli dashboard pisze
 # "sedzia niedostepny" bez widocznej przyczyny.
 anthropic>=0.125,<1.0
-# Analiza LSB wag float32 (tensor steganography) — czyta dane, nic nie uruchamia.
-numpy>=1.24
-# Opcjonalnie: odczyt wag z .keras (HDF5) do analizy LSB. Bez h5py warstwa LSB
-# dla .keras jest pomijana z jawną notką — reszta pipeline'u działa.
-h5py>=3.8

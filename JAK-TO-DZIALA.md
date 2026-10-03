@@ -225,11 +225,6 @@ laptopie). To nie jest „napisane i założone" — to uruchomione i sprawdzone
   `load_model(safe_mode=False)` + przebieg w przód. `evil_lambda.keras`
   wykonuje `os.system('touch /tmp/pwned_keras')`, `clean_model.keras`
   ładuje się bez zdarzeń. Podpięte do pipeline'u i widoczne na dashboardzie.
-- **Tensor steganography — LSB w wagach float32** (priorytet 3, ZROBIONE) —
-  wykrywa ładunek ukryty w najmłodszych bitach mantysy. Na pliku z ukrytym
-  reverse shellem wyciąga go i pokazuje; czysty model nie odpala fałszywego
-  alarmu. Werdykt: sama anomalia LSB → `suspicious`, anomalia + wyzwalacz →
-  `malicious`. Obsługa `.npy`/`.npz` w dashboardzie.
 - **Sędzia LLM na żywo** — potwierdzone 3.10 o 11:12 na kluczu Bartka:
   model `claude-sonnet-5-5` odpowiedział i zwrócił werdykt `malicious` na
   prawdziwym kontrakcie. Wcześniej sprawdzona była tylko logika, bez ani
@@ -241,7 +236,15 @@ laptopie). To nie jest „napisane i założone" — to uruchomione i sprawdzone
   izolacja zadziałała, albo payload wcale się nie wykonał. Dopisek
   o kontenerze pojawia się tylko wtedy, gdy kod sprawdzi `/.dockerenv`.
 - parser `.pkl` i `.keras`, sędzia LLM z ochroną przed injection,
-  dashboard z czterema panelami, kontrakty JSON, **59 testów**, README.
+  dashboard (parser → detonacja → sędzia), kontrakty JSON, **50 testów**, README.
+
+## Odłożone na później (na Twoją prośbę)
+- **Tensor steganography (LSB w wagach float32)** — było zrobione i działało
+  (wykrywało reverse shell ukryty w najmłodszych bitach, bez fałszywych
+  alarmów na czystych modelach), ale na Twoją prośbę zdjąłem to z aktywnego
+  kodu, żeby skupić się na `.pkl` + `.keras`. Kod jest w historii gita
+  (commit 369329e) i da się przywrócić jedną komendą, gdy zechcesz wrócić.
+  Zostaje w roadmapie jako kierunek rozwoju.
 
 ## Narzędzie diagnostyczne
 

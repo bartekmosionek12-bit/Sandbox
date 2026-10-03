@@ -84,12 +84,12 @@ def _styles():
     ss.add(ParagraphStyle("Sub", fontName=BODY, fontSize=12.5, leading=17,
                           textColor=MUTED, spaceAfter=2))
     ss.add(ParagraphStyle("H1", fontName=BOLD, fontSize=16, leading=20, textColor=INK,
-                          spaceBefore=4, spaceAfter=8))
+                          spaceBefore=3, spaceAfter=6))
     ss.add(ParagraphStyle("H2", fontName=BOLD, fontSize=12.5, leading=16, textColor=ACCENT,
                           spaceBefore=10, spaceAfter=4))
-    ss.add(ParagraphStyle("Body2", fontName=BODY, fontSize=10.3, leading=15.5,
+    ss.add(ParagraphStyle("Body2", fontName=BODY, fontSize=9.4, leading=13.3,
                           textColor=INK, alignment=TA_JUSTIFY, spaceAfter=7))
-    ss.add(ParagraphStyle("Bul", fontName=BODY, fontSize=10.3, leading=15,
+    ss.add(ParagraphStyle("Bul", fontName=BODY, fontSize=9.4, leading=13.3,
                           textColor=INK, alignment=TA_LEFT))
     ss.add(ParagraphStyle("CodeBox", fontName=MONO, fontSize=8.6, leading=12.2,
                           textColor=CODEFG, backColor=CODEBG, borderPadding=(8, 8, 8, 8),
@@ -189,7 +189,7 @@ def _cover_decor(canvas, doc):
     canvas.setFont(BODY, 15)
     canvas.drawCentredString(w / 2, h - 62 * mm, "Wykrywanie RCE w plikach modeli ML")
     canvas.setFont(MONO, 10)
-    canvas.drawCentredString(w / 2, h - 72 * mm, "pickle  ·  keras  ·  tensor steganography")
+    canvas.drawCentredString(w / 2, h - 72 * mm, "pickle  ·  keras  ·  realna detonacja w izolacji")
     canvas.setFillColor(MUTED)
     canvas.setFont(BODY, 8)
     canvas.drawCentredString(w / 2, 12 * mm, "Dokumentacja techniczna · stan zweryfikowany na żywym Dockerze")
@@ -224,13 +224,12 @@ def build():
         "Pickle Sandbox pokazuje ten atak na żywo i wykrywa go <b>trzema "
         "niezależnymi warstwami</b> — analizą statyczną, faktyczną detonacją "
         "w izolowanym kontenerze i oceną przez model językowy — a dodatkowo "
-        "wykrywa ładunek <b>ukryty w najmłodszych bitach wag</b> "
-        "(tensor steganography).", "Body2"))
+        "ocenia go kontekstowo.", "Body2"))
     e.append(Spacer(1, 6 * mm))
     meta = panel_table([
         [Paragraph("Kategoria", S["TDb"]), Paragraph("Defence — narzędzie obronne", S["TD"])],
-        [Paragraph("Formaty", S["TDb"]), Paragraph(".pkl / .pickle, .keras, .npy / .npz", S["TD"])],
-        [Paragraph("Warstwy detekcji", S["TDb"]), Paragraph("parser statyczny · detonacja w Dockerze · sędzia LLM · analiza LSB", S["TD"])],
+        [Paragraph("Formaty", S["TDb"]), Paragraph(".pkl / .pickle, .keras", S["TD"])],
+        [Paragraph("Warstwy detekcji", S["TDb"]), Paragraph("parser statyczny · detonacja w Dockerze · sędzia LLM", S["TD"])],
         [Paragraph("Stan", S["TDb"]), Paragraph("zweryfikowane na żywym Dockerze (Docker Desktop 29.8.1, WSL2); 56 testów", S["TD"])],
     ], [3.3 * cm, doc.width - 3.3 * cm], header=False)
     e.append(meta)
@@ -251,33 +250,23 @@ def build():
         "uruchomić dowolny kod: pobrać reverse shell, wykraść klucze, "
         "zaszyfrować dysk. To nie teoria — to klasa podatności obecna w "
         "realnych łańcuchach dostaw modeli." % (MONO, MONO)))
-    e.append(P("Dlaczego to trudne do wyłapania „na oko”", "H2"))
-    e.append(bullets([
-        "Plik wygląda jak zwykły model i <b>działa</b> poprawnie — payload jest doklejony obok wag.",
-        "Skanery statyczne widzą, że plik <i>może</i> wykonać kod, ale nie widzą, co <i>faktycznie</i> robi.",
-        "Nowsze formaty (.keras) miały być bezpieczniejsze, a mimo to niosą własny wektor (warstwa Lambda).",
-        "Ładunek można dodatkowo <b>ukryć w samych wagach</b>, w najmłodszych bitach liczb float32.",
-    ]))
     e.append(P(
-        "Pickle Sandbox odpowiada na to nie jednym testem, lecz <b>warstwami</b>, "
-        "które patrzą na plik z różnych stron i których wyniki się uzupełniają — "
-        "od taniej analizy statycznej, przez faktyczne uruchomienie w izolacji, "
-        "po ocenę kontekstową."))
-    e.append(PageBreak())
+        "Co gorsza, taki plik <b>wygląda jak zwykły model i działa poprawnie</b> — "
+        "payload jest doklejony obok wag. Skanery statyczne widzą, że plik "
+        "<i>może</i> wykonać kod, ale nie to, co <i>faktycznie</i> robi. Pickle "
+        "Sandbox odpowiada na to nie jednym testem, lecz <b>warstwami</b> — od "
+        "taniej analizy statycznej, przez faktyczne uruchomienie w izolacji, po "
+        "ocenę kontekstową."))
 
     # ===== 2. MODEL ZAGROŻEŃ =====
-    e.append(P("2. Model zagrożeń i wektory ataku", "H1"))
+    e.append(P("2. Wektory ataku", "H1"))
     e.append(P("2.1. Pickle — <font face='%s'>__reduce__</font> → GLOBAL + REDUCE" % MONO, "H2"))
     e.append(P(
         "Obiekt w pickle może zdefiniować metodę <font face='%s'>__reduce__</font>, "
         "która zwraca parę <i>(wywoływalny, argumenty)</i>. Przy wczytaniu pickle "
         "importuje ten wywoływalny i wywołuje go z argumentami. Atakujący zwraca "
-        "np. <font face='%s'>(os.system, ('polecenie',))</font>." % (MONO, MONO)))
-    e.append(code(
-        "class Payload:\n"
-        "    def __reduce__(self):\n"
-        "        return (os.system, ('touch /tmp/pwned',))\n"
-        "# pickle.dumps(Payload())  ->  przy pickle.load() wykona os.system"))
+        "np. <font face='%s'>(os.system, ('touch /tmp/pwned',))</font> — i to "
+        "polecenie wykonuje się przy <font face='%s'>pickle.load()</font>." % (MONO, MONO, MONO)))
     e.append(P("2.2. Keras — warstwa Lambda z zserializowanym kodem", "H2"))
     e.append(P(
         "Format <b>.keras</b> to archiwum ZIP z <font face='%s'>config.json</font>. "
@@ -287,14 +276,11 @@ def build():
         "w przód ją wykonuje. <font face='%s'>safe_mode=True</font> blokuje to — "
         "ale tutoriale i kod ładujący cudze modele masowo ustawiają "
         "<font face='%s'>safe_mode=False</font>." % (MONO, MONO, MONO, MONO)))
-    e.append(P("2.3. Tensor steganography — ładunek w LSB wag float32", "H2"))
     e.append(P(
-        "Najmłodszy bit mantysy liczby <font face='%s'>float32</font> zmienia jej "
-        "wartość o ~1e-7 — niezauważalnie dla modelu. W LSB kolejnych wag można "
-        "więc <b>ukryć dowolne bajty</b>. Sama steganografia niczego nie wykonuje "
-        "(to <b>nośnik</b>); pełny atak potrzebuje jeszcze <b>wyzwalacza</b> "
-        "(Lambda, <font face='%s'>__reduce__</font>), który ładunek wyciągnie i "
-        "uruchomi. Dlatego traktujemy je osobno." % (MONO, MONO)))
+        "Oba wektory łączy jedno: kod jest odtwarzany i wykonywany w chwili "
+        "<b>wczytania</b> modelu, zanim ktokolwiek zrobi na nim choćby jedną "
+        "predykcję. Dlatego samej analizy statycznej nie wystarcza — trzeba plik "
+        "faktycznie uruchomić w izolacji i zobaczyć, co robi."))
     e.append(PageBreak())
 
     # ===== 3. ARCHITEKTURA =====
@@ -303,26 +289,23 @@ def build():
         "Plik wchodzi przez dashboard i przechodzi przez niezależne warstwy. "
         "Każda zapisuje wynik do <b>swojego kontraktu JSON</b>, a dashboard i "
         "sędzia czytają wyłącznie te kontrakty — nie wiedzą, jaki to format pliku. "
-        "Dzięki temu dołożenie <font face='%s'>.keras</font> i warstwy LSB nie "
-        "wymagało przepisywania interfejsu." % MONO))
+        "Dzięki temu dołożenie formatu <font face='%s'>.keras</font> nie wymagało "
+        "przepisywania interfejsu — wystarczył nowy parser i jedna linia routingu." % MONO))
     e.append(code(
-        "plik (.pkl / .keras / .npy)\n"
+        "plik (.pkl / .keras)\n"
         "   |\n"
         "   +--> WARSTWA 1  parser statyczny      -> schemas/parser.schema.json\n"
-        "   |             (czyta opcode'y, nie uruchamia)\n"
+        "   |             (czyta opcode'y / config, nie uruchamia)\n"
         "   +--> WARSTWA 2  detonacja w Dockerze   -> schemas/sandbox.schema.json\n"
         "   |             (uruchamia naprawde, w izolacji)\n"
-        "   +--> WARSTWA LSB  tensor steganography -> schemas/stego.schema.json\n"
-        "   |             (statyczna analiza najmlodszych bitow wag)\n"
         "   +--> WARSTWA 3  sedzia LLM             -> schemas/judge.schema.json\n"
-        "                 (ocenia dowody z 1, 2 i LSB)\n"
+        "                 (ocenia dowody z 1 i 2)\n"
         "                      |\n"
         "                 dashboard (czerwony / zolty / zielony)"))
     e.append(P(
         "Werdykt końcowy bierze najwyższe ryzyko ze wszystkich warstw i "
         "<b>jawnie podaje swoje źródło</b> (sędzia LLM albo heurystyka "
-        "statyczna, albo tensor steganography) — żeby nigdy nie udawać oceny AI, "
-        "gdy jej nie ma."))
+        "statyczna) — żeby nigdy nie udawać oceny AI, gdy jej nie ma."))
     e.append(PageBreak())
 
     # ===== 4. WARSTWA 1 =====
@@ -404,46 +387,13 @@ def build():
     ]))
     e.append(P(
         "Bez klucza API sędzia zwraca „niedostępny”, a dashboard pokazuje parser, "
-        "log z detonacji i analizę LSB <b>bez werdyktu AI</b> — ocena końcowa "
+        "log z detonacji <b>bez werdyktu AI</b> — ocena końcowa "
         "spada wtedy na heurystykę statyczną z jawną adnotacją, skąd pochodzi. "
         "Nigdy nie udajemy, że mamy werdykt modelu, gdy go nie ma."))
     e.append(PageBreak())
 
-    # ===== 7. STEGO =====
-    e.append(P("7. Warstwa LSB — tensor steganography", "H1"))
-    e.append(P(
-        "Warstwa dodatkowa, wykrywająca ładunek ukryty w najmłodszych bitach "
-        "mantysy wag <font face='%s'>float32</font>. Jest <b>statyczna i "
-        "bezpieczna</b>: czyta wyłącznie dane (tablice liczb), nigdy nie wykonuje "
-        "pliku. Pickle rozpakowuje ograniczonym unpicklerem, który <b>odmawia</b> "
-        "GLOBAL/REDUCE; <font face='%s'>.npy</font> czyta z "
-        "<font face='%s'>allow_pickle=False</font>; wagi <font face='%s'>.keras</font> "
-        "z HDF5." % (MONO, MONO, MONO, MONO)))
-    e.append(P("Na czym opieramy werdykt", "H2"))
-    e.append(P(
-        "Wyłącznie na <b>strukturze</b> w strumieniu LSB: długich ciągach "
-        "drukowalnego ASCII i znanych nagłówkach (<font face='%s'>#!/</font>, "
-        "<font face='%s'>PK</font>, <font face='%s'>import os</font>, "
-        "<font face='%s'>/bin/sh</font>). Rozkład i entropię bitów podajemy jako "
-        "kontekst, <b>nie</b> jako podstawę decyzji — bo tensory zerowe (biasy) "
-        "albo skwantyzowane mają LSB dalekie od losowych, choć są niewinne. "
-        "To świadoma decyzja, która eliminuje fałszywe alarmy na czystych "
-        "modelach." % (MONO, MONO, MONO, MONO)))
-    e.append(P("Werdykt", "H2"))
-    e.append(panel_table([
-        [Paragraph("sytuacja", S["TDb"]), Paragraph("werdykt", S["TDb"])],
-        [Paragraph("sama anomalia LSB (nośnik bez wyzwalacza)", S["TD"]), Paragraph("suspicious", S["TDb"])],
-        [Paragraph("anomalia LSB + wyzwalacz (Lambda / REDUCE) w tym samym pliku", S["TD"]), Paragraph("malicious", S["TDb"])],
-    ], [doc.width - 3.2 * cm, 3.2 * cm], header=False))
-    e.append(P(
-        "Uczciwie: ładunek zaszyfrowany lub skompresowany wygląda jak szum i "
-        "jest trudny do odróżnienia od czystego modelu. Łapiemy payloady jawnym "
-        "tekstem i wyraźne nagłówki, a nie wszystko — i mówimy to wprost, zamiast "
-        "obiecywać 100%.", "Caption"))
-    e.append(PageBreak())
-
-    # ===== 8. BEZPIECZEŃSTWO + OGRANICZENIA =====
-    e.append(P("8. Bezpieczeństwo sandboksa i uczciwe ograniczenia", "H1"))
+    # ===== 7. BEZPIECZEŃSTWO + OGRANICZENIA =====
+    e.append(P("7. Bezpieczeństwo sandboksa i uczciwe ograniczenia", "H1"))
     e.append(P(
         "Nazywamy rzeczy po imieniu, bo w kategorii Defence przesada w "
         "deklaracjach jest gorsza niż uczciwa granica.", "Body2"))
@@ -466,52 +416,46 @@ def build():
         "gorszy niż brak funkcji." % MONO))
     e.append(PageBreak())
 
-    # ===== 9. DEMO / WYNIKI =====
-    e.append(P("9. Demo i zweryfikowane wyniki", "H1"))
+    # ===== 8. DEMO / WYNIKI =====
+    e.append(P("8. Demo i zweryfikowane wyniki", "H1"))
     e.append(P(
         "Wszystko poniżej zostało uruchomione na żywym Dockerze (Docker Desktop "
         "29.8.1, backend WSL2), nie założone. Dashboard: upload pliku → status → "
-        "wynik parsera → log z detonacji → analiza LSB → werdykt."))
+        "wynik parsera → log z detonacji → werdykt."))
     e.append(panel_table([
-        [Paragraph("plik", S["TDb"]), Paragraph("werdykt", S["TDb"]), Paragraph("dowód z detonacji / LSB", S["TDb"])],
+        [Paragraph("plik", S["TDb"]), Paragraph("werdykt", S["TDb"]), Paragraph("dowód z detonacji", S["TDb"])],
         [Paragraph("evil_os_system.pkl", S["TDm"]), Paragraph("malicious", S["TDb"]),
          Paragraph("zdarzenie os_system: touch /tmp/pwned — zapis w /tmp wewnątrz kontenera", S["TD"])],
         [Paragraph("evil_network_beacon.pkl", S["TDm"]), Paragraph("malicious", S["TDb"]),
          Paragraph("network: próba połączenia, blocked:true (--network=none)", S["TD"])],
         [Paragraph("evil_lambda.keras", S["TDm"]), Paragraph("malicious", S["TDb"]),
          Paragraph("load_model(safe_mode=False) + przebieg → os.system('touch /tmp/pwned_keras')", S["TD"])],
-        [Paragraph("stego_weights.npy", S["TDm"]), Paragraph("suspicious", S["TDb"]),
-         Paragraph("wyciągnięty z LSB reverse shell + markery #!/, import os, /bin/sh", S["TD"])],
         [Paragraph("clean_model.keras", S["TDm"]), Paragraph("safe", S["TDb"]),
-         Paragraph("load OK, zero zdarzeń, LSB bez struktury", S["TD"])],
-        [Paragraph("clean_weights.npy", S["TDm"]), Paragraph("safe", S["TDb"]),
-         Paragraph("LSB jak w normalnym modelu — brak fałszywego alarmu", S["TD"])],
+         Paragraph("load OK, zero zdarzeń", S["TD"])],
     ], [3.6 * cm, 2.2 * cm, doc.width - 5.8 * cm], header=False))
     e.append(P(
-        "Pokrycie testami: <b>56 testów</b> (parser pickle i keras, instrumentacja "
-        "detonera, kontrakty, sędzia, tensor steganography, parser strace). "
-        "Testy nie wykonują złośliwych plików poza kontrolowanymi, nieszkodliwymi "
-        "fixture'ami.", "Caption"))
-    e.append(PageBreak())
+        "Pokrycie testami: <b>50 testów</b> (parser pickle i keras, instrumentacja "
+        "detonera, kontrakty, sędzia). Testy nie wykonują złośliwych plików poza "
+        "kontrolowanymi, nieszkodliwymi fixture'ami.", "Caption"))
+    e.append(Spacer(1, 3 * mm))
 
-    # ===== 10. ROADMAPA =====
-    e.append(P("10. Roadmapa i wnioski", "H1"))
+    # ===== 9. ROADMAPA =====
+    e.append(P("9. Roadmapa i wnioski", "H1"))
     e.append(P("Kierunki rozwoju (świadomie poza zakresem v1)", "H2"))
     e.append(bullets([
-        "<b>strace / ptrace</b> jako czwarte źródło dowodów — widzi syscall niezależnie od tego, jak payload go wywołał (zamyka lukę monkey-patcha). Parser i obraz gotowe, podpięcie w toku.",
+        "<b>strace / ptrace</b> jako czwarte źródło dowodów — widzi syscall niezależnie od tego, jak payload go wywołał (zamyka lukę monkey-patcha).",
         "<b>Izolacja klasy produkcyjnej</b> — gVisor / Firecracker z własnym jądrem, przy których „w pełni odcięty” jest uczciwym określeniem.",
-        "<b>Logowany egress</b> zamiast pełnego odcięcia — pozwala zobaczyć, dokąd malware próbuje się połączyć, a nie tylko blokować.",
-        "<b>Quorum wielu LLM</b> zamiast jednego sędziego — redukuje ślepe punkty pojedynczego modelu.",
-        "<b>Kolejne formaty</b> (.pt, .pth, .safetensors, .onnx) — ten sam pipeline, nowy parser i jedna linia routingu dzięki kontraktom JSON.",
+        "<b>Tensor steganography</b> — wykrywanie ładunku ukrytego w najmłodszych bitach wag float32 (nośnik, który dopełnia wyzwalacz typu Lambda / REDUCE).",
+        "<b>Kolejne formaty</b> (.pt, .safetensors, .onnx) — ten sam pipeline, nowy parser i jedna linia routingu dzięki kontraktom JSON.",
     ]))
     e.append(P("Wniosek", "H2"))
     e.append(P(
         "Model ML jest dziś plikiem wykonywalnym, a traktuje się go jak dane. "
         "Pickle Sandbox pokazuje atak <b>na żywo</b> i wykrywa go warstwami, "
         "których wyniki się uzupełniają: tania analiza statyczna, faktyczna "
-        "detonacja w izolacji, ocena kontekstowa i analiza ukrytych bitów. "
-        "Najważniejsze w kategorii Defence: narzędzie <b>nigdy nie udaje</b> "
-        "dowodu, którego nie ma — a granice swojej skuteczności nazywa wprost."))
+        "detonacja w izolacji i ocena kontekstowa. Najważniejsze w kategorii "
+        "Defence: narzędzie <b>nigdy nie udaje</b> dowodu, którego nie ma — "
+        "a granice swojej skuteczności nazywa wprost."))
     e.append(Spacer(1, 6 * mm))
     e.append(HRFlowable(width="100%", thickness=0.7, color=BORDER))
     e.append(Spacer(1, 3 * mm))

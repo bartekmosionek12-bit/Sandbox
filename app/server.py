@@ -145,4 +145,6 @@ def too_large(_error):
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", "5000"))
-    app.run(host="127.0.0.1", port=port, debug=False)
+    # threaded=True: serwer obsługuje polling statusu równolegle z innymi
+    # żądaniami, więc UI nie czeka w kolejce podczas analizy.
+    app.run(host="127.0.0.1", port=port, debug=False, threaded=True)

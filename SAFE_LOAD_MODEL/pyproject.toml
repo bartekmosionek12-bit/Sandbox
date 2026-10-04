@@ -8,7 +8,7 @@ version = "0.1.0"
 authors = [
   { name="Bartosz Mosionek" },
 ]
-description = "AI Model Sandbox — warstwy detekcji RCE w plikach modeli ML (.pkl, .keras)."
+description = "SafeLoadAI — warstwy detekcji RCE w plikach modeli ML (.pkl, .keras)."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [

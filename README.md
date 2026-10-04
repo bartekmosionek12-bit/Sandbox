@@ -7,6 +7,10 @@ sędziego LLM.
 
 Instrukcja instalacji i użycia: [`SAFE_LOAD_MODEL/README.md`](SAFE_LOAD_MODEL/README.md).
 
-Wcześniejsza wersja projektu (dashboard Flask, dokumentacja PDF, zestaw testów
-pytest) została usunięta z drzewa na rzecz biblioteki. Pliki pozostają w historii
-gita, w commicie `712016c` i wcześniejszych.
+W katalogu biblioteki leży też `app/` — dashboard Flask, który jest widokiem
+dowodowym tego samego silnika (to z niego pochodzą zrzuty ekranu w materiałach).
+Produktem jest biblioteka; dashboard służy do oglądania jej wyniku.
+
+Wcześniejsza, równoległa kopia rdzenia oraz dokumentacja PDF i testy pytest
+zostały usunięte z drzewa na rzecz biblioteki. Pliki pozostają w historii gita,
+w commicie `712016c` i wcześniejszych.

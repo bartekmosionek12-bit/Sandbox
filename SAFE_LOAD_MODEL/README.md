@@ -101,5 +101,22 @@ python test_4_evil_keras.py
 
 ---
 
+### Podgląd w przeglądarce (opcjonalnie)
+
+W katalogu `app/` leży dashboard Flask. Nie jest osobnym produktem — to widok
+dowodowy tego samego silnika, który biblioteka wywołuje pod spodem. Wrzucasz
+plik, a on pokazuje obok siebie wynik parsera, surowy log z kontenera i werdykt
+sędziego.
+
+```bash
+pip install flask
+PORT=5050 python -m app.server      # Linux / macOS
+$env:PORT=5050; python -m app.server  # Windows PowerShell
+```
+
+Następnie otwórz `http://127.0.0.1:5050`.
+
+---
+
 ## ⚖️ Oświadczenie o wykorzystaniu AI (HackYeah Rules)
 Zgodnie z regulaminem hackathonu pragnę w pełni i transparentnie poinformować o wykorzystaniu AI. Cały ten projekt, włączając w to kod źródłowy biblioteki Pythona, architekturę izolacji w środowisku Docker, skrypty testowe oraz niniejszą dokumentację, **został w 100% zaprojektowany i napisany przeze mnie we współpracy z asystentem LLM (Claude)**. Wewnętrzna heurystyka produktu opiera się na API Anthropic (model Claude Sonnet). Jako wyłączny twórca całkowicie rozumiem działanie wygenerowanego kodu, jestem w stanie obronić mechanizmy jego wdrożenia i ponoszę pełną odpowiedzialność techniczną za przygotowane rozwiązanie.

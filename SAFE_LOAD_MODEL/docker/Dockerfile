@@ -2,8 +2,14 @@
 # Payload z pickle'a wykonuje się TUTAJ, nigdy na hoście.
 FROM python:3.11-slim
 
-# Nie instalujemy żadnych pakietów: im mniej narzędzi w obrazie, tym mniej
-# payload może wykorzystać. 'touch', 'echo' i powłoka pochodzą z obrazu bazowego.
+# Jedyne pakiety to biblioteki potrzebne do odtworzenia zwykłych modeli
+# (numpy, scikit-learn) — bez nich realny model nie wczytuje się w kontenerze
+# i detonacja niczego nie dowodzi. Żadnych narzędzi sieciowych ani
+# kompilatorów: im mniej w obrazie, tym mniej payload może wykorzystać.
+# 'touch', 'echo' i powłoka pochodzą z obrazu bazowego.
+COPY docker/requirements-pickle.txt /tmp/requirements-pickle.txt
+RUN pip install --no-cache-dir -r /tmp/requirements-pickle.txt \
+    && rm /tmp/requirements-pickle.txt
 
 # Kontekst budowy to katalog główny repo (patrz sandbox_rce/sandbox.py),
 # żeby detoner miał jedno źródło prawdy i nie trzeba go było duplikować.

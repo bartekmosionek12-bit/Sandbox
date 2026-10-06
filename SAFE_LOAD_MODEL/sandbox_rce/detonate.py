@@ -46,6 +46,24 @@ def _truncate(value: object, limit: int = 400) -> str:
     return text if len(text) <= limit else text[:limit] + "…(obcięte)"
 
 
+# Moduły biblioteki standardowej, które same generują kod przez exec/eval:
+# collections.namedtuple (eval lambdy) i dataclasses (exec __init__). Przy
+# wczytaniu modelu scikit-learn daje to kilkadziesiąt zdarzeń "code_exec",
+# które nie pochodzą od ładunku i tylko zaszumiałyby dowody dla sędziego.
+_CODEGEN_MODULES = {"collections", "dataclasses", "typing", "enum"}
+
+# Pakiety, których wewnętrzne importy nie są ruchem ładunku.
+_TRUSTED_IMPORTERS = ("numpy", "scipy", "sklearn", "joblib", "threadpoolctl")
+
+
+def _caller_module(depth: int = 2) -> str:
+    """Nazwa modułu, z którego wywołano zapatchowaną funkcję."""
+    try:
+        return sys._getframe(depth).f_globals.get("__name__", "") or ""
+    except ValueError:
+        return ""
+
+
 def _install_patches() -> None:
     # --- wykonanie polecenia powłoki -------------------------------------
     # Moduły patchujemy przez sys.modules, a nie przez bezpośredni import:
@@ -186,12 +204,12 @@ def _install_patches() -> None:
     # woła exec() na gotowych obiektach code przy każdym imporcie; wrzucanie
     # tego do logu zaśmiecałoby dowody i myliło sędziego.
     def traced_eval(expr, *a, **kw):  # noqa: ANN001, ANN002, ANN003
-        if isinstance(expr, (str, bytes)):
+        if isinstance(expr, (str, bytes)) and _caller_module() not in _CODEGEN_MODULES:
             _emit("code_exec", f"eval: {_truncate(expr)}")
         return real_eval(expr, *a, **kw)
 
     def traced_exec(code, *a, **kw):  # noqa: ANN001, ANN002, ANN003
-        if isinstance(code, (str, bytes)):
+        if isinstance(code, (str, bytes)) and _caller_module() not in _CODEGEN_MODULES:
             _emit("code_exec", f"exec: {_truncate(code)}")
         return real_exec(code, *a, **kw)
 
@@ -202,7 +220,9 @@ def _install_patches() -> None:
 
     def traced_import(name, *a, **kw):  # noqa: ANN001, ANN002, ANN003
         if name in ("os", "posix", "subprocess", "socket", "shutil", "ctypes", "pty"):
-            _emit("other", f"import {name}")
+            importer = _caller_module()
+            if not importer.split(".", 1)[0] in _TRUSTED_IMPORTERS:
+                _emit("other", f"import {name} (z modułu {importer or '?'})")
         return real_import(name, *a, **kw)
 
     builtins.__import__ = traced_import  # type: ignore[assignment]
@@ -289,6 +309,23 @@ def _report_side_effects(before: dict[str, int], after: dict[str, int], path: st
         )
 
 
+# Biblioteki, których prawdziwe modele potrzebują przy wczytaniu. Importujemy
+# je PRZED założeniem patchy, z tego samego powodu co Kerasa w
+# detonate_keras.py: ich własny import otwiera pliki i importuje os/ctypes,
+# a to nie jest ruch ładunku i nie może trafić do dowodów.
+_PREIMPORT = ("numpy", "sklearn", "joblib")
+
+
+def _preimport() -> None:
+    import importlib  # noqa: PLC0415
+
+    for name in _PREIMPORT:
+        try:
+            importlib.import_module(name)
+        except Exception:  # noqa: BLE001 — brak pakietu to nie błąd detonacji
+            continue
+
+
 def detonate(target: str) -> dict:
     # Log idzie na stdout jako UTF-8 niezależnie od locale. Bez tego zdarzenie
     # ze znakiem spoza strony kodowej wywala zapis i gubi linię z wynikiem —
@@ -296,6 +333,7 @@ def detonate(target: str) -> dict:
     for stream in (sys.stdout, sys.stderr):
         stream.reconfigure(encoding="utf-8", errors="backslashreplace")
 
+    _preimport()
     _install_patches()
 
     writable = _writable_dir()

@@ -1,0 +1,16 @@
+# Biblioteki dostępne w kontenerze detonacji pickle'a.
+#
+# Prawdziwe modele w .pkl to prawie zawsze obiekty numpy i scikit-learn.
+# Obraz bez nich nie umiał ich wczytać: pickle.load padał na
+# ModuleNotFoundError, zanim doszedł do reszty pliku, więc detonacja
+# niczego nie dowodziła (a ładunek schowany dalej w pliku w ogóle się nie
+# wykonał). Bramka nie wpuszcza takiego pliku, ale bez tych pakietów
+# nie wpuściłaby żadnego realnego modelu.
+#
+# Wersje warto zrównać z tymi, którymi model był zapisany: pickle
+# scikit-learn z innej wersji potrafi się nie wczytać, a wtedy bramka
+# odmówi (load_succeeded = false). Po zmianie tego pliku obraz przebuduje
+# się sam przy następnym skanie (etykieta ze skrótem źródeł).
+numpy>=1.26,<3
+scikit-learn>=1.4,<2
+joblib>=1.3,<2

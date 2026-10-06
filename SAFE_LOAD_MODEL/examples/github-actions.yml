@@ -1,0 +1,45 @@
+# Przykład: skan modeli w GitHub Actions przed scaleniem zmian.
+# Skopiuj do .github/workflows/ w repozytorium, które trzyma modele.
+# Runner ubuntu-latest ma Dockera, więc detonacja się odbywa.
+name: skan-modeli
+
+on:
+  pull_request:
+    paths: ["models/**"]
+
+jobs:
+  safeloadai:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalacja SafeLoadAI
+        run: |
+          git clone --depth 1 https://github.com/bartekmosionek12-bit/Sandbox safeloadai
+          pip install -e safeloadai/SAFE_LOAD_MODEL
+
+      # Cache po skrócie pliku: ten sam model nie jest detonowany drugi raz.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/safeloadai
+          key: safeloadai-${{ github.sha }}
+          restore-keys: safeloadai-
+
+      - name: Skan
+        env:
+          # Bez klucza werdykt pochodzi z heurystyki i logu detonacji.
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          safeloadai scan models/ --cache-dir ~/.cache/safeloadai --report safeloadai-raport.json
+        # Kod 1 = plik zablokowany, 3 = nie dało się potwierdzić czystości.
+        # Oba zatrzymują job.
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: safeloadai-raport
+          path: safeloadai-raport.json

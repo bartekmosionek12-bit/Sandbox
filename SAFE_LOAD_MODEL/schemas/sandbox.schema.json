@@ -25,6 +25,10 @@
       "description": "Czy pickle.load() zakończył się bez wyjątku."
     },
     "duration_ms": { "type": ["integer", "null"] },
+    "timed_out": {
+      "type": "boolean",
+      "description": "Kontener zabity po limicie czasu. Detonacja niepełna: bramka nie wpuszcza takiego pliku."
+    },
     "events": {
       "type": "array",
       "description": "Zarejestrowane próby działań podczas deserializacji.",

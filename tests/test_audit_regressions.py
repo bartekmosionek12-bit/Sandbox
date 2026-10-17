@@ -19,7 +19,8 @@ import zipfile
 import pytest
 from conftest import sandbox_report
 
-from safeloadai import SecurityException, api, judge, pipeline, sandbox
+from safeloadai import SecurityException, api, judge, pipeline
+from safeloadai import docker_sandbox as sandbox
 from safeloadai.static import keras_static as parser_keras
 from safeloadai.static import pickle_static as parser
 

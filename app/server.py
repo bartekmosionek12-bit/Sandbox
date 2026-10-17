@@ -14,7 +14,8 @@ import uuid
 
 from flask import Flask, jsonify, render_template, request
 
-from safeloadai import pipeline, sandbox
+from safeloadai import docker_sandbox as sandbox
+from safeloadai import pipeline
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 32 * 1024 * 1024  # 32 MB

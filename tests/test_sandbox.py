@@ -1,6 +1,6 @@
 import subprocess
 
-from safeloadai import sandbox
+from safeloadai import docker_sandbox as sandbox
 
 
 class Proc:

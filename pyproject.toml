@@ -11,7 +11,10 @@ authors = [
 description = "SafeLoadAI: decide whether an ML model file is safe to load (static analysis + sandboxed emulation)."
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+# wasmtime is pinned exactly: the sandbox boundary is only as good as the runtime.
+dependencies = [
+    "wasmtime==49.0.0",
+]
 
 [project.optional-dependencies]
 # The LLM judge is optional and off by default; the library works without it.
@@ -36,6 +39,9 @@ safeloadai = "safeloadai.__main__:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["safeloadai*"]
+
+[tool.setuptools.package-data]
+"safeloadai.sandbox" = ["guest/*.py"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

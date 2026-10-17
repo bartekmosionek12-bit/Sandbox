@@ -48,7 +48,7 @@ def sandbox_report(**overrides):
 @pytest.fixture
 def fake_detonation(monkeypatch):
     """Podmienia detonację. Zwraca listę wywołań; raport ustawia się przez .result."""
-    from safeloadai import sandbox
+    from safeloadai import docker_sandbox as sandbox
 
     class Fake:
         calls = []
@@ -97,9 +97,20 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "allow_host_unpickle: test may call pickle.load/loads on host-built, benign data"
     )
-    config.addinivalue_line(
-        "markers", "allow_host_subprocess: test may start a subprocess (sandbox runner only)"
-    )
+    config.addinivalue_line("markers", "wasi: needs the pinned WASI runtime (skipped if absent)")
+
+
+def pytest_collection_modifyitems(config, items):
+    from safeloadai.sandbox import runtime
+
+    try:
+        runtime.locate()
+        return
+    except runtime.RuntimeUnavailable as exc:
+        reason = f"WASI runtime unavailable: {exc}"
+    for item in items:
+        if item.get_closest_marker("wasi"):
+            item.add_marker(pytest.mark.skip(reason=reason))
 
 
 @pytest.fixture(autouse=True)
@@ -110,8 +121,17 @@ def _host_execution_guard(request, monkeypatch):
                      "fork", "forkpty"):
             if hasattr(mod, name):
                 monkeypatch.setattr(mod, name, _refuse(f"{mod.__name__}.{name}"))
-    if request.node.get_closest_marker("allow_host_subprocess") is None:
-        monkeypatch.setattr(subprocess, "Popen", _refuse("subprocess.Popen"))
+    # The only process tests may start is the sandbox runner (wasmtime child).
+    from safeloadai.sandbox.host import RUNNER_ARGV
+
+    real_popen = subprocess.Popen
+
+    def popen(args, *a, **kw):
+        if list(args) != RUNNER_ARGV:
+            raise HostExecutionError(f"host execution attempted during tests: subprocess {args!r}")
+        return real_popen(args, *a, **kw)
+
+    monkeypatch.setattr(subprocess, "Popen", popen)
     if request.node.get_closest_marker("allow_host_unpickle") is None:
         monkeypatch.setattr(pickle, "load", _refuse("pickle.load"))
         monkeypatch.setattr(pickle, "loads", _refuse("pickle.loads"))

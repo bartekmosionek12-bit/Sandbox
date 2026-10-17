@@ -12,8 +12,8 @@ import os
 from collections.abc import Callable
 
 from safeloadai import cache as cache_mod
+from safeloadai import docker_sandbox as sandbox_mod
 from safeloadai import judge as judge_mod
-from safeloadai import sandbox as sandbox_mod
 from safeloadai import static as static_mod
 
 KERAS_DETONATION_DISABLED = (

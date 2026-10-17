@@ -394,7 +394,7 @@ if __name__ == "__main__":
     import sys
 
     if len(sys.argv) != 2:
-        print("usage: python -m safeloadai.sandbox <plik.pkl|.keras>", file=sys.stderr)
+        print("usage: python -m safeloadai.docker_sandbox <plik.pkl|.keras>", file=sys.stderr)
         raise SystemExit(2)
     target = sys.argv[1]
     prof = "keras" if os.path.splitext(target)[1].lower() == ".keras" else "pickle"

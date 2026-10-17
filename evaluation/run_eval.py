@@ -21,6 +21,7 @@ import shutil
 import statistics
 import subprocess
 import sys
+import tempfile
 import time
 from datetime import UTC, datetime
 
@@ -82,7 +83,9 @@ def run_tool(name: str, path: str, tool_bin: str | None) -> dict:
     exe = os.path.join(tool_bin, argv[0]) if tool_bin else shutil.which(argv[0])
     started = time.perf_counter()
     try:
-        proc = subprocess.run([exe, *argv[1:], path], capture_output=True, text=True, timeout=TOOL_TIMEOUT_S)
+        with tempfile.TemporaryDirectory() as scratch:  # fickling writes safety_results.json to the cwd
+            proc = subprocess.run([exe, *argv[1:], os.path.abspath(path)], capture_output=True, text=True,
+                                  timeout=TOOL_TIMEOUT_S, cwd=scratch)
     except subprocess.TimeoutExpired:
         return {"outcome": "error", "error": "timeout", "seconds": TOOL_TIMEOUT_S}
     output = ((proc.stdout or "") + (proc.stderr or "")).replace(os.path.dirname(path) + os.sep, "")

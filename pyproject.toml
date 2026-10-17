@@ -51,7 +51,7 @@ pythonpath = ["src", "."]
 [tool.ruff]
 line-length = 120
 target-version = "py311"
-extend-exclude = ["audit", "poc/samples", "test_1_clean_pkl.py", "test_2_clean_keras.py", "test_3_evil_pkl.py", "test_4_evil_keras.py", "test_lib.py", "simple_evil.py"]
+extend-exclude = ["audit", "poc/samples"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP"]

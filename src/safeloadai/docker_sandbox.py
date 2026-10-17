@@ -1,11 +1,8 @@
-"""Warstwa 2 — orkiestracja detonacji w kontenerze Docker.
+"""Deep-mode Docker backend: build the detoner image once, then run the real loader
+in a hardened container. If Docker is unavailable the report says
+``detonated: false`` with the reason; a missing detonation is never faked.
 
-Host buduje (raz) obraz, a potem uruchamia detoner w kontenerze z twardo
-zakręconą izolacją. Jeśli Docker jest niedostępny, zwracamy kontrakt
-z ``detonated: false`` i czytelnym powodem — **nigdy nie udajemy logu
-i nie podmieniamy detonacji na symulację**.
-
-Output to kontrakt zgodny ze ``schemas/sandbox.schema.json``.
+Output: the deep-detonation report dict consumed by ``verdict.docker_layer``.
 """
 
 from __future__ import annotations

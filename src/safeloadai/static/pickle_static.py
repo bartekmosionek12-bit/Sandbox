@@ -15,7 +15,7 @@ Scoring, strictest first:
 * CLEAN: everything else.
 
 A file may hold several pickles back to back (legacy PyTorch, joblib); all of them
-are analysed. The output follows ``schemas/parser.schema.json``.
+are analysed.
 """
 from __future__ import annotations
 

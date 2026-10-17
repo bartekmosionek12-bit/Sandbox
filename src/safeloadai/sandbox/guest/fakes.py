@@ -126,6 +126,50 @@ class FakeModule(FakeObject):
         return FakeObject.__getattr__(self, attr)
 
 
+class FakeMeta(type):
+    """Metaclass for fake classes: pickle's NEWOBJ needs a real type object."""
+
+    def __call__(cls, *args, **kwargs):
+        record_call(cls._fake_name, args, kwargs)
+        return _call_result(cls._fake_name, args, kwargs)
+
+    def __getattr__(cls, attr):
+        if attr.startswith("__") and attr.endswith("__"):
+            raise AttributeError(attr)
+        return _resolve(cls._fake_name + "." + attr)
+
+    def __repr__(cls):
+        return "<fake class %s>" % cls._fake_name
+
+
+class _FakeInstance:
+    def __new__(cls, *args, **kwargs):
+        record_call(cls._fake_name + ".__new__", args, kwargs)
+        return object.__new__(cls)
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def __setstate__(self, state):
+        record_call(type(self)._fake_name + ".__setstate__", (state,))
+
+    def __setitem__(self, key, value):
+        record_call(type(self)._fake_name + ".__setitem__", (key, value))
+
+    def append(self, value):
+        record_call(type(self)._fake_name + ".append", (value,))
+
+    def extend(self, values):
+        record_call(type(self)._fake_name + ".extend", (values,))
+
+    def __repr__(self):
+        return "<fake %s instance>" % type(self)._fake_name
+
+
+def fake_class(dotted):
+    return FakeMeta(dotted.rsplit(".", 1)[-1], (_FakeInstance,), {"_fake_name": dotted})
+
+
 # --- tensors ------------------------------------------------------------------
 
 class FakeTensor:

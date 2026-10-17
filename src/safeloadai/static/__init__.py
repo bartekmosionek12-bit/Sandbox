@@ -11,15 +11,15 @@ from .torch_static import parse_torch_zip
 MAX_FILE_BYTES = 4 * 1024 * 1024 * 1024
 
 
-def analyze_bytes(data: bytes, file_name: str = "<memory>") -> dict:
+def analyze_bytes(data: bytes, file_name: str = "<memory>", extra_allowed: frozenset = frozenset()) -> dict:
     """Static report for any supported container, dispatched on content."""
     fmt = detect_mod.detect(data)
     if fmt == detect_mod.KERAS:
         report = parse_keras(data, file_name)
     elif fmt == detect_mod.TORCH:
-        report = parse_torch_zip(data, file_name)
+        report = parse_torch_zip(data, file_name, extra_allowed)
     elif fmt == detect_mod.PICKLE:
-        report = parse_pickle(data, file_name)
+        report = parse_pickle(data, file_name, extra_allowed=extra_allowed)
     else:
         report = parse_pickle(b"", file_name, file_format=fmt)
         reason = (
@@ -38,7 +38,7 @@ def analyze_bytes(data: bytes, file_name: str = "<memory>") -> dict:
     return report
 
 
-def analyze_file(path: str | os.PathLike) -> dict:
+def analyze_file(path: str | os.PathLike, extra_allowed: frozenset = frozenset()) -> dict:
     path = os.fspath(path)
     size = os.path.getsize(path)
     if size > MAX_FILE_BYTES:
@@ -49,7 +49,7 @@ def analyze_file(path: str | os.PathLike) -> dict:
         return report
     with open(path, "rb") as fh:
         data = fh.read()
-    return analyze_bytes(data, os.path.basename(path))
+    return analyze_bytes(data, os.path.basename(path), extra_allowed)
 
 
 __all__ = ["analyze_bytes", "analyze_file", "parse_keras", "parse_pickle", "parse_torch_zip"]

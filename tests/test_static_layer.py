@@ -208,3 +208,20 @@ def test_lambda_without_sink_tokens_is_suspicious_pending_emulation():
 def test_marshal_sink_tokens_match_exact_framing_only():
     assert keras_static.marshal_sink_tokens(b"\xda\x06system") == ["system"]
     assert keras_static.marshal_sink_tokens(b"filesystem_name") == []
+
+
+def test_lambda_function_object_outside_lambda_layer_is_flagged():
+    import io as _io
+    import json as _json
+    import zipfile as _zipfile
+
+    model = {"module": "keras", "class_name": "Functional", "registered_name": "Functional", "config": {
+        "layers": [{"module": "keras.layers", "class_name": "Dense", "registered_name": None,
+                    "config": {"activation": {"class_name": "__lambda__", "config": {"code": "AAAA"}}}}]}}
+    buf = _io.BytesIO()
+    with _zipfile.ZipFile(buf, "w") as zf:
+        zf.writestr("config.json", _json.dumps(model))
+        zf.writestr("metadata.json", _json.dumps({"keras_version": "3.15.1"}))
+    report = keras_static.parse_keras(buf.getvalue())
+    assert report["static_risk"] != "clean"
+    assert any(i["symbol"] == "__lambda__" for i in report["unknown_imports"])

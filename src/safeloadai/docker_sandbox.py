@@ -94,6 +94,7 @@ def _empty_report(file_name: str, reason: str) -> dict:
         "events": [],
         "raw_log": "",
         "error": None,
+        "tampered": False,
     }
 
 
@@ -221,9 +222,17 @@ def _kill_container(name: str) -> None:
         pass
 
 
-def _parse_detoner_output(stdout: str) -> tuple[list[dict], dict | None]:
+def _parse_detoner_output(stdout: str) -> tuple[list[dict], dict | None, int]:
+    """Streamed events, the last RESULT record, and how many RESULT lines there were.
+
+    The payload shares stdout with the detoner, so it can print lines of its own.
+    Events are therefore the union of every streamed EVENT line and the events in
+    the RESULT record (a payload can add lines but not remove printed ones), and
+    more than one RESULT line means somebody forged one.
+    """
     events: list[dict] = []
     result: dict | None = None
+    result_lines = 0
     for line in stdout.splitlines():
         stripped = line.strip()
         if stripped.startswith(EVENT_PREFIX):
@@ -232,11 +241,23 @@ def _parse_detoner_output(stdout: str) -> tuple[list[dict], dict | None]:
             except json.JSONDecodeError:
                 continue
         elif stripped.startswith(RESULT_PREFIX):
+            result_lines += 1
             try:
                 result = json.loads(stripped[len(RESULT_PREFIX) :].strip())
             except json.JSONDecodeError:
                 continue
-    return events, result
+    return events, result, result_lines
+
+
+def _union_events(streamed: list[dict], from_result: list) -> list[dict]:
+    merged: list[dict] = []
+    seen: set[str] = set()
+    for event in list(streamed) + [e for e in from_result if isinstance(e, dict)]:
+        key = json.dumps(event, sort_keys=True, default=repr)
+        if key not in seen:
+            seen.add(key)
+            merged.append(event)
+    return merged
 
 
 def detonate_in_docker(
@@ -335,7 +356,7 @@ def detonate_in_docker(
             timed_out = True
             _kill_container(container_name)
 
-    events, result = _parse_detoner_output(stdout)
+    events, result, result_lines = _parse_detoner_output(stdout)
 
     # Surowy log do pokazania na dashboardzie — bez linii kontrolnych.
     log_lines = [
@@ -349,7 +370,10 @@ def detonate_in_docker(
 
     report["detonated"] = result is not None or bool(events)
     report["detonation_backend"] = "docker"
-    report["events"] = result["events"] if result else events
+    report["events"] = _union_events(events, (result or {}).get("events") or [])
+    report["tampered"] = result_lines > 1
+    if report["tampered"]:
+        report["tamper_reason"] = f"{result_lines} RESULT lines on stdout; the payload forged at least one"
     report["raw_log"] = "\n".join(log_lines).strip()
 
     if result:

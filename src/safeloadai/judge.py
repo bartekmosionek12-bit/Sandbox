@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import secrets
 
 SCHEMA_VERSION = "1.0"
@@ -34,9 +35,6 @@ SCHEMA_VERSION = "1.0"
 # Sędzia nie musi być najdroższym modelem — to zadanie klasyfikacyjne na
 # gotowych przesłankach. Bieżący Sonnet jest tu właściwym wyborem.
 DEFAULT_MODEL = os.environ.get("JUDGE_MODEL", "claude-sonnet-5-5")
-
-MAX_DISASM_CHARS = 6000
-MAX_LOG_CHARS = 6000
 
 SYSTEM_PROMPT = """\
 Jesteś analitykiem bezpieczeństwa oceniającym, czy plik modelu ML jest
@@ -110,51 +108,54 @@ def _unavailable(reason: str) -> dict:
     }
 
 
-def _truncate(text: str, limit: int) -> str:
-    text = text or ""
-    if len(text) <= limit:
-        return text
-    return text[:limit] + f"\n…(obcięto, łącznie {len(text)} znaków)"
+_TOKEN = re.compile(r"[A-Za-z_][A-Za-z0-9_.]{0,119}")
+_EVENT_KEYS = ("kind", "type", "target", "category", "severity", "what")
+
+
+def _token(value) -> str | None:
+    """Identifier-shaped strings pass; anything else is replaced, never quoted."""
+    if value is None:
+        return None
+    text = str(value)
+    return text if _TOKEN.fullmatch(text) else "<non-identifier>"
 
 
 def _build_evidence(parser_report: dict, sandbox_report: dict, nonce: str) -> str:
-    """Składa dane wejściowe w jeden, wyraźnie ogrodzony blok."""
+    """Structured evidence only (audit S12).
+
+    Disassembly, logs, argument values, reasons and error messages are attacker
+    controlled free text, so none of them reaches the model. What remains are
+    counts, enum-like fields and identifier-shaped names.
+    """
     static_part = {
-        "file_name": parser_report.get("file_name"),
-        "file_format": parser_report.get("file_format"),
-        "static_risk_heuristic": parser_report.get("static_risk"),
-        "flagged_opcodes": [
-            {"name": o.get("name"), "arg": o.get("arg")}
-            for o in parser_report.get("flagged_opcodes", [])
-        ],
-        "suspicious_imports": parser_report.get("suspicious_imports", []),
-        "parser_error": parser_report.get("error"),
+        "file_format": _token(parser_report.get("file_format")),
+        "static_risk_heuristic": _token(parser_report.get("static_risk")),
+        "flagged_opcodes": sorted({_token(o.get("name")) for o in parser_report.get("flagged_opcodes", [])},
+                                  key=str),
+        "suspicious_imports": [
+            {"module": _token(i.get("module")), "symbol": _token(i.get("symbol"))}
+            for i in parser_report.get("suspicious_imports", [])
+        ][:50],
+        "unknown_imports": [
+            {"module": _token(i.get("module")), "symbol": _token(i.get("symbol"))}
+            for i in parser_report.get("unknown_imports", [])
+        ][:50],
+        "lambda_layers": len(parser_report.get("lambdas") or []),
+        "parser_error": bool(parser_report.get("error")),
     }
     dynamic_part = {
-        "detonated": sandbox_report.get("detonated"),
-        "skipped_reason": sandbox_report.get("skipped_reason"),
-        "load_succeeded": sandbox_report.get("load_succeeded"),
-        "events": sandbox_report.get("events", []),
-        "sandbox_error": sandbox_report.get("error"),
+        "ran": bool(sandbox_report.get("detonated")),
+        "completed": sandbox_report.get("load_succeeded") is True,
+        "events": [
+            {k: _token(e.get(k)) for k in _EVENT_KEYS if e.get(k) is not None}
+            for e in sandbox_report.get("events", []) if isinstance(e, dict)
+        ][:100],
     }
-
-    return "\n".join(
-        [
-            f"<evidence-{nonce}>",
-            "## Analiza statyczna (dane JSON)",
-            json.dumps(static_part, indent=2, ensure_ascii=False),
-            "",
-            "## Surowy zapis statyczny (disasm pickle albo config.json)",
-            _truncate(parser_report.get("raw_disasm", ""), MAX_DISASM_CHARS),
-            "",
-            "## Detonacja w sandboksie (dane JSON)",
-            json.dumps(dynamic_part, indent=2, ensure_ascii=False),
-            "",
-            "## Surowy log z sandboksa",
-            _truncate(sandbox_report.get("raw_log", ""), MAX_LOG_CHARS),
-            f"</evidence-{nonce}>",
-        ]
-    )
+    return "\n".join([
+        f"<evidence-{nonce}>",
+        json.dumps({"static": static_part, "dynamic": dynamic_part}, indent=2),
+        f"</evidence-{nonce}>",
+    ])
 
 
 def judge(

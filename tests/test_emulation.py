@@ -175,3 +175,39 @@ def test_lambda_from_other_python_version_is_not_executed():
                                   "input_shape": [None, 4]}])
     assert _anomalies(run), "foreign bytecode must be an anomaly"
     assert not any(e.get("category") == "lambda" for e in run.events)
+
+
+def test_newobj_and_build_on_allowlisted_class_run_through_fakes():
+    # Protocol 2 object as sklearn writes it: NEWOBJ then BUILD with a state dict.
+    data = b"\x80\x02csklearn.linear_model._logistic\nLogisticRegression\n)\x81}X\x01\x00\x00\x00CK\x01sb."
+    run = emulate_pickle([data])
+    assert run.completed and _anomalies(run) == []
+    assert _targets(run) == ["sklearn.linear_model._logistic.LogisticRegression.__new__",
+                             "sklearn.linear_model._logistic.LogisticRegression.__setstate__"]
+
+
+def test_lambda_closure_values_from_config_are_used():
+    code = ("import marshal, base64\n"
+            "def outer(cmd):\n"
+            "    return lambda x: (__import__('os').system(cmd), x)[1]\n"
+            "print(base64.b64encode(marshal.dumps(outer('').__code__)).decode())\n")
+    blob = run_guest({"kind": "python", "code": code}, {}).guest_stdout.strip()
+    run = emulate_keras_lambdas([{"path": "l", "code_b64": blob, "closure": ["echo MARKER"],
+                                  "input_shape": [None, 4]}])
+    call = next(c for c in _calls(run) if c["target"] == "os.system")
+    assert call["args"] == ["'echo MARKER'"]
+
+
+def test_sample_lambda_from_another_python_is_rejected_before_execution():
+    # poc/samples/evil_lambda.keras carries bytecode from another CPython version
+    # that starts with RESUME too; it must be rejected, not run until it traps.
+    import os
+
+    from safeloadai.static import keras_static
+
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    report = keras_static.parse_file(os.path.join(root, "poc", "samples", "evil_lambda.keras"))
+    run = emulate_keras_lambdas(report["lambdas"])
+    assert run.completed
+    assert any("layout invalid" in a for a in _anomalies(run))
+    assert not any(e.get("category") == "lambda" for e in run.events)

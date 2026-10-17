@@ -1,73 +1,128 @@
+"""Monotone verdict: no layer can lower another (judge escalate-only, evidence always counts)."""
+import pytest
 from conftest import sandbox_report
 
-from safeloadai import api, pipeline
+from safeloadai import behaviour, verdict
+from safeloadai.report import LayerResult, Verdict, combine
+from safeloadai.sandbox.host import GuestRun
 
 CLEAN_PARSER = {"static_risk": "clean"}
 JUDGE_SAFE = {"available": True, "verdict": "safe", "injection_attempt_detected": False}
 NO_JUDGE = {"available": False, "verdict": "unknown"}
-EXEC_EVENT = [{"type": "os_system", "detail": "touch /tmp/pwned"}]
+EXEC_EVENT = [{"type": "os_system", "detail": "echo MARKER"}]
+
+
+def test_combine_is_the_worst_layer():
+    layers = [LayerResult("a", Verdict.CLEAN), LayerResult("b", Verdict.SUSPICIOUS), LayerResult("c", Verdict.CLEAN)]
+    assert combine(layers)[0] is Verdict.SUSPICIOUS
 
 
 def test_judge_cannot_clear_observed_execution():
-    verdict, source = pipeline.final_verdict(
-        CLEAN_PARSER, JUDGE_SAFE, sandbox_report(events=EXEC_EVENT)
-    )
-    assert verdict == "malicious"
-    assert "twarde przesłanki" in source
+    assert verdict.final_verdict(CLEAN_PARSER, JUDGE_SAFE, sandbox_report(events=EXEC_EVENT))[0] is Verdict.MALICIOUS
 
 
 def test_without_judge_sandbox_events_still_count():
-    # Dawniej: brak klucza API = werdykt tylko z parsera, a log detonacji
-    # był ignorowany. Ładunek, którego parser nie rozpoznał, przechodził.
-    verdict, _ = pipeline.final_verdict(CLEAN_PARSER, NO_JUDGE, sandbox_report(events=EXEC_EVENT))
-    assert verdict == "malicious"
+    assert verdict.final_verdict(CLEAN_PARSER, NO_JUDGE, sandbox_report(events=EXEC_EVENT))[0] is Verdict.MALICIOUS
 
 
-def test_judge_cannot_clear_static_malicious():
-    verdict, _ = pipeline.final_verdict({"static_risk": "malicious"}, JUDGE_SAFE, sandbox_report())
-    assert verdict == "suspicious"
+@pytest.mark.parametrize("judge_verdict", ["safe", "suspicious", "malicious", "unknown"])
+@pytest.mark.parametrize("static", ["clean", "suspicious", "malicious"])
+def test_judge_never_lowers(static, judge_verdict):
+    without, _ = verdict.final_verdict({"static_risk": static}, None, None)
+    with_judge, _ = verdict.final_verdict({"static_risk": static}, dict(JUDGE_SAFE, verdict=judge_verdict), None)
+    assert with_judge.rank >= without.rank
 
 
 def test_injection_attempt_raises_verdict():
     judge = dict(JUDGE_SAFE, injection_attempt_detected=True)
-    verdict, _ = pipeline.final_verdict(CLEAN_PARSER, judge, sandbox_report())
-    assert verdict == "suspicious"
+    assert verdict.final_verdict(CLEAN_PARSER, judge, None)[0] is Verdict.SUSPICIOUS
 
 
-def test_judge_can_still_escalate():
-    judge = dict(JUDGE_SAFE, verdict="malicious")
-    assert pipeline.final_verdict(CLEAN_PARSER, judge, sandbox_report())[0] == "malicious"
+def test_judge_can_escalate():
+    assert verdict.final_verdict(CLEAN_PARSER, dict(JUDGE_SAFE, verdict="malicious"), None)[0] is Verdict.MALICIOUS
 
 
-def _report(**sandbox):
-    return {"final_verdict": "safe", "verdict_source": "x", "sandbox": sandbox_report(**sandbox)}
+@pytest.mark.parametrize("overrides", [
+    {"detonated": False, "skipped_reason": "no Docker"},
+    {"timed_out": True},
+    {"load_succeeded": False, "error": "ModuleNotFoundError"},
+])
+def test_incomplete_deep_detonation_is_suspicious(overrides):
+    assert verdict.final_verdict(CLEAN_PARSER, None, sandbox_report(**overrides))[0] is Verdict.SUSPICIOUS
 
 
-def test_gate_allows_full_clean_scan():
-    assert api.gate_decision(_report())["code"] == api.OK
+def test_unknown_static_risk_is_suspicious():
+    assert verdict.final_verdict({"static_risk": "unknown"})[0] is Verdict.SUSPICIOUS
 
 
-def test_gate_blocks_timeout():
-    decision = api.gate_decision(_report(timed_out=True, load_succeeded=None))
-    assert not decision["allowed"] and decision["code"] == api.DETONATION_TIMEOUT
+def test_lambda_only_static_defers_to_emulation():
+    report = {"file_format": "keras", "static_risk": "suspicious", "error": None,
+              "lambdas": [{"path": "layers[1]", "has_code": True, "sink_tokens": []}],
+              "flagged_opcodes": [{"name": "Lambda"}], "suspicious_imports": [], "unknown_imports": [],
+              "reasons": ["layers[1]: Lambda layer with marshalled bytecode"]}
+    assert verdict.static_layer(report, defer_lambdas=True).verdict is Verdict.CLEAN
+    assert verdict.static_layer(report).verdict is Verdict.SUSPICIOUS
+    report["unknown_imports"] = [{"module": "x", "symbol": "y"}]
+    assert verdict.static_layer(report, defer_lambdas=True).verdict is Verdict.SUSPICIOUS
 
 
-def test_gate_blocks_failed_load_in_sandbox():
-    decision = api.gate_decision(_report(load_succeeded=False, error="ModuleNotFoundError: sklearn"))
-    assert not decision["allowed"] and decision["code"] == api.LOAD_FAILED_IN_SANDBOX
+# --- behaviour classification of emulation records -----------------------------
+
+def _run(*events, **kw):
+    base = {"status": "ok", "completed": True}
+    base.update(kw)
+    return GuestRun(events=[{"kind": "start", "seq": 0}, *events], **base)
 
 
-def test_gate_blocks_missing_detonation():
-    decision = api.gate_decision(_report(detonated=False, skipped_reason="Brak Dockera."))
-    assert not decision["allowed"] and decision["code"] == api.NO_DETONATION
+def _call(target, *args):
+    return {"kind": "call", "target": target, "args": list(args), "kwargs": {}}
 
 
-def test_gate_explicit_opt_out_is_marked():
-    decision = api.gate_decision(_report(detonated=False), require_detonation=False)
-    assert decision["allowed"] and decision["code"] == api.OK_STATIC_ONLY
+def test_tampered_channel_is_malicious():
+    assert behaviour.classify(_run(tampered=True)).verdict is Verdict.MALICIOUS
 
 
-def test_gate_blocks_unknown_verdict():
-    report = _report()
-    report["final_verdict"] = "unknown"
-    assert api.gate_decision(report)["code"] == api.BLOCKED_VERDICT
+@pytest.mark.parametrize("status", ["timeout", "fuel_exhausted", "exit", "trap"])
+def test_incomplete_emulation_is_suspicious(status):
+    assert behaviour.classify(_run(status=status, completed=False)).verdict is Verdict.SUSPICIOUS
+
+
+def test_unavailable_emulation_is_suspicious():
+    layer = behaviour.classify(GuestRun(status="unavailable", problems=["no runtime"]))
+    assert layer.verdict is Verdict.SUSPICIOUS and not layer.ran
+
+
+def test_any_anomaly_is_suspicious():
+    assert behaviour.classify(_run({"kind": "anomaly", "what": "marshal error"})).verdict is Verdict.SUSPICIOUS
+
+
+@pytest.mark.parametrize("target", ["posix.system", "os.popen().read", "subprocess.Popen", "socket.socket",
+                                    "builtins.exec", "tf.io.write_file", "tf.py_function", "ctypes.CDLL",
+                                    "importlib.import_module", "shutil.rmtree"])
+def test_sinks_are_malicious(target):
+    assert behaviour.classify(_run(_call(target))).verdict is Verdict.MALICIOUS
+
+
+def test_open_for_write_is_malicious_and_read_is_suspicious():
+    assert behaviour.classify(_run(_call("builtins.open", "'/tmp/safeloadai_marker'", "'w'"))).verdict \
+        is Verdict.MALICIOUS
+    assert behaviour.classify(_run(_call("builtins.open", "'/etc/hostname'", "'r'"))).verdict is Verdict.SUSPICIOUS
+
+
+@pytest.mark.parametrize("target", ["os.environ.get", "builtins.getattr", "mystery.helper", "sys.modules"])
+def test_probes_and_unexpected_calls_are_suspicious(target):
+    assert behaviour.classify(_run(_call(target))).verdict is Verdict.SUSPICIOUS
+
+
+def test_framework_and_allowlisted_calls_are_clean():
+    run = _run(_call("tf.nn.relu"), _call("Tensor.reshape"),
+               _call("numpy.core.multiarray._reconstruct"),
+               _call("numpy.core.multiarray._reconstruct().__setstate__"))
+    assert behaviour.classify(run).verdict is Verdict.CLEAN
+
+
+def test_import_outside_allowlist_is_suspicious():
+    event = {"kind": "import", "module": "evilpkg", "name": "Thing", "resolved": "fake"}
+    assert behaviour.classify(_run(event)).verdict is Verdict.SUSPICIOUS
+    allowed = behaviour.classify(_run(event), extra_allowed=frozenset({("evilpkg", "Thing")}))
+    assert allowed.verdict is Verdict.CLEAN

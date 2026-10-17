@@ -17,7 +17,7 @@ MAX_PICKLE_MEMBER_BYTES = 256 * 1024 * 1024
 _SEVERITY = {"clean": 0, "suspicious": 1, "malicious": 2}
 
 
-def parse_torch_zip(data: bytes, file_name: str = "<memory>") -> dict:
+def parse_torch_zip(data: bytes, file_name: str = "<memory>", extra_allowed: frozenset = frozenset()) -> dict:
     try:
         with SafeZip(data, max_member_bytes=MAX_PICKLE_MEMBER_BYTES) as zf:
             problems = list(zf.inventory.problems)
@@ -33,7 +33,8 @@ def parse_torch_zip(data: bytes, file_name: str = "<memory>") -> dict:
 
     combined = None
     for member, raw in members.items():
-        part = parse_pickle(raw, f"{file_name}:{member}", torch=True, file_format="torch")
+        part = parse_pickle(raw, f"{file_name}:{member}", torch=True, file_format="torch",
+                            extra_allowed=extra_allowed)
         if combined is None:
             combined = part
             combined["file_name"] = file_name

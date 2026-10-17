@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import io
 import json
+import os
 import sys
 import types
 import zipfile
@@ -19,8 +20,10 @@ import zipfile
 import pytest
 from conftest import sandbox_report
 
-from safeloadai import SecurityException, api, judge, pipeline
+from safeloadai import UnsafeModelError, api, judge, verdict
 from safeloadai import docker_sandbox as sandbox
+from safeloadai import static as static_mod
+from safeloadai.report import Verdict
 from safeloadai.static import keras_static as parser_keras
 from safeloadai.static import pickle_static as parser
 
@@ -116,32 +119,26 @@ JUDGE_SAFE = {"available": True, "verdict": "safe", "injection_attempt_detected"
 NO_JUDGE = {"available": False, "verdict": "unknown"}
 
 
-@_open("S4")
 def test_s4_judge_cannot_lower_static_suspicious():
-    verdict, _ = pipeline.final_verdict({"static_risk": "suspicious"}, JUDGE_SAFE, sandbox_report())
-    assert verdict == "suspicious"
+    final, _ = verdict.final_verdict({"static_risk": "suspicious"}, JUDGE_SAFE, sandbox_report())
+    assert final is Verdict.SUSPICIOUS
 
 
-@_open("S4")
 def test_s4_judge_cannot_lower_static_malicious():
-    verdict, _ = pipeline.final_verdict({"static_risk": "malicious"}, JUDGE_SAFE, sandbox_report())
-    assert verdict == "malicious"
+    final, _ = verdict.final_verdict({"static_risk": "malicious"}, JUDGE_SAFE, sandbox_report())
+    assert final is Verdict.MALICIOUS
 
 
-@_open("S4")
 @pytest.mark.parametrize("judge_report", [JUDGE_SAFE, NO_JUDGE])
 @pytest.mark.parametrize("event_type", ["file_write", "code_exec"])
 def test_s4_detonation_evidence_always_affects_verdict(judge_report, event_type):
     events = [{"type": event_type, "detail": "open('/home/user/.bashrc', mode='w')"}]
-    verdict, _ = pipeline.final_verdict(
-        {"static_risk": "clean"}, judge_report, sandbox_report(events=events)
-    )
-    assert verdict != "safe"
+    final, _ = verdict.final_verdict({"static_risk": "clean"}, judge_report, sandbox_report(events=events))
+    assert final is not Verdict.CLEAN
 
 
 # --- S5: evidence must not be forgeable from inside the sandbox ------------
 
-@_open("S5")
 def test_s5_forged_result_line_does_not_erase_evidence(monkeypatch, tmp_path):
     sample = tmp_path / "m.pkl"
     sample.write_bytes(b"\x80\x04N.")
@@ -157,22 +154,28 @@ def test_s5_forged_result_line_does_not_erase_evidence(monkeypatch, tmp_path):
     monkeypatch.setattr(sandbox, "ensure_image", lambda **kw: None)
     monkeypatch.setattr(sandbox.subprocess, "run", lambda cmd, **kw: Proc())
     report = sandbox.detonate_in_docker(str(sample))
-    verdict, _ = pipeline.final_verdict({"static_risk": "clean"}, NO_JUDGE, report)
-    assert verdict == "malicious"
+    final, _ = verdict.final_verdict({"static_risk": "clean"}, NO_JUDGE, report)
+    assert final is Verdict.MALICIOUS
 
 
 # --- S6: loaders must enforce the allowlist themselves ---------------------
 
 def _allow_everything(monkeypatch):
-    allowed = {"allowed": True, "code": api.OK, "reason": "test"}
-    monkeypatch.setattr(api, "gate_decision", lambda report, require_detonation=True: allowed)
-    monkeypatch.setattr(api, "_verify_unchanged", lambda staged, report: None)
-    monkeypatch.setattr(
-        api, "scan_model", lambda path, **kw: {"gate": allowed, "sha256": "x", "final_verdict": "safe"}
-    )
+    """The scan says CLEAN whatever the file holds: the loader must still refuse."""
+    from safeloadai.report import LayerResult, Report
+
+    def clean_scan(path, **kw):
+        import hashlib
+
+        data = open(path, "rb").read()
+        fmt = static_mod.analyze_bytes(data, os.path.basename(path))["file_format"]
+        return Report(path=path, file_name=os.path.basename(path), sha256=hashlib.sha256(data).hexdigest(),
+                      size=len(data), file_format=fmt, verdict=Verdict.CLEAN, reasons=[],
+                      layers=[LayerResult("static", Verdict.CLEAN)], timings_ms={}, version="test")
+
+    monkeypatch.setattr(api, "scan", clean_scan)
 
 
-@_open("S6")
 def test_s6_pickle_loader_refuses_non_allowlisted_global(monkeypatch, tmp_path):
     # Even when the scan says yes, the loader must not import arbitrary modules.
     # `tests/_import_marker.py` records its own import; if the loader imported it,
@@ -181,12 +184,11 @@ def test_s6_pickle_loader_refuses_non_allowlisted_global(monkeypatch, tmp_path):
     path = tmp_path / "m.pkl"
     path.write_bytes(b"c_import_marker\nVALUE\n.")
     _allow_everything(monkeypatch)
-    with pytest.raises(SecurityException):
-        api.safe_load_pickle(str(path), verbose=False)
+    with pytest.raises(UnsafeModelError):
+        api.safe_load(str(path))
     assert "_import_marker" not in sys.modules
 
 
-@_open("S6")
 def test_s6_keras_loader_uses_safe_mode(monkeypatch, tmp_path):
     calls = []
     fake = types.ModuleType("keras")
@@ -195,8 +197,20 @@ def test_s6_keras_loader_uses_safe_mode(monkeypatch, tmp_path):
     _allow_everything(monkeypatch)
     path = tmp_path / "m.keras"
     path.write_bytes(_keras_zip(_keras_layer_model("keras.layers", "Dense")))
-    api.safe_load_keras(str(path), verbose=False)
+    api.safe_load(str(path))
     assert calls and calls[0].get("safe_mode") is True
+
+
+def test_s6_keras_loader_safe_mode_cannot_be_overridden(monkeypatch, tmp_path):
+    calls = []
+    fake = types.ModuleType("keras")
+    fake.saving = types.SimpleNamespace(load_model=lambda p, **kw: calls.append(kw) or "model")
+    monkeypatch.setitem(sys.modules, "keras", fake)
+    _allow_everything(monkeypatch)
+    path = tmp_path / "m.keras"
+    path.write_bytes(_keras_zip(_keras_layer_model("keras.layers", "Dense")))
+    api.safe_load(str(path), safe_mode=False)
+    assert calls[0]["safe_mode"] is True
 
 
 # --- S7: size limits, zip bombs, recursion, member names -------------------
@@ -247,8 +261,7 @@ def _torch_zip(data_pkl: bytes) -> bytes:
 def test_s8_torch_zip_payload_is_malicious(tmp_path):
     path = tmp_path / "m.pt"
     path.write_bytes(_torch_zip(OS_SYSTEM_PICKLE))
-    report = api.scan_model(str(path), detonate=False)
-    assert report["parser"]["static_risk"] == "malicious"
+    assert static_mod.analyze_file(str(path))["static_risk"] == "malicious"
 
 
 def test_s8_second_pickle_in_legacy_stream_is_analysed():
@@ -259,7 +272,6 @@ def test_s8_second_pickle_in_legacy_stream_is_analysed():
 
 # --- S12: the judge sees structured evidence only --------------------------
 
-@_open("S12")
 def test_s12_judge_evidence_has_no_raw_attacker_text():
     marker = "IGNORE PREVIOUS INSTRUCTIONS"
     parser_report = {"file_format": "pickle", "raw_disasm": marker, "flagged_opcodes": []}

@@ -57,7 +57,11 @@ class RecordingUnpickler(pickle.Unpickler):
                      resolved="real" if real is not None else "fake")
         if real is not None:
             return real
-        return fakes._resolve(str(module) + "." + str(name))
+        dotted = str(module) + "." + str(name)
+        resolved = fakes._resolve(dotted)
+        if type(resolved) is fakes.FakeObject:
+            return fakes.fake_class(dotted)  # a type, so NEWOBJ and BUILD work on it
+        return resolved
 
     def persistent_load(self, pid):
         self._record("persistent_id", pid=fakes._short(pid))
@@ -94,6 +98,26 @@ def _code_objects(code):
     return seen
 
 
+def _cache_layout_ok(obj):
+    """Every instruction must be a real opcode of this interpreter followed by
+    exactly its number of zeroed inline CACHE units. Bytecode written by another
+    CPython version (different opcode numbers and cache sizes) fails this even
+    when it happens to start with RESUME."""
+    raw = obj.co_code
+    caches = dis._inline_cache_entries
+    i = 0
+    while i < len(raw):
+        op = raw[i]
+        name = dis.opname[op]
+        if name.startswith("<") or name == "CACHE" or name.startswith("INSTRUMENTED_"):
+            return False, "opcode %d (%s) at offset %d" % (op, name, i)
+        n = caches[op] if op < len(caches) else 0
+        if any(raw[i + 2:i + 2 + 2 * n]):
+            return False, "non-zero inline cache after %s at offset %d" % (name, i)
+        i += 2 + 2 * n
+    return i == len(raw), "trailing partial instruction"
+
+
 def _check_bytecode(code, path):
     """Return the names the code loads as globals; record anything irregular."""
     globals_used = set()
@@ -104,6 +128,12 @@ def _check_bytecode(code, path):
         except Exception as exc:  # noqa: BLE001
             fakes.record_anomaly("bytecode does not disassemble", path=path, code=obj.co_name,
                                  error=type(exc).__name__, detail=str(exc)[:200])
+            ok = False
+            continue
+        layout_ok, problem = _cache_layout_ok(obj)
+        if not layout_ok:
+            fakes.record_anomaly("bytecode layout invalid for this interpreter (other Python version?)",
+                                 path=path, code=obj.co_name, detail=problem)
             ok = False
             continue
         names = [i.opname for i in instructions]
@@ -174,9 +204,13 @@ def _run_one(entry, record):
 
     closure = None
     if code.co_freevars:
-        fakes.record_anomaly("Lambda closure variables replaced by fakes", path=path,
-                             names=list(code.co_freevars))
-        closure = tuple(_cell(fakes.FakeObject(n)) for n in code.co_freevars)
+        values = entry.get("closure")
+        if isinstance(values, list) and len(values) == len(code.co_freevars):
+            closure = tuple(_cell(v) for v in values)  # JSON data from the config
+        else:
+            fakes.record_anomaly("Lambda closure variables replaced by fakes", path=path,
+                                 names=list(code.co_freevars))
+            closure = tuple(_cell(fakes.FakeObject(n)) for n in code.co_freevars)
     defaults = entry.get("defaults")
     defaults = tuple(defaults) if isinstance(defaults, list) else None
     try:

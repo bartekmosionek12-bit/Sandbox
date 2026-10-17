@@ -66,13 +66,28 @@ def fake_detonation(monkeypatch):
 
 
 @pytest.fixture
-def forbid_pickle_load(monkeypatch):
-    from safeloadai import api
+def fake_emulation(monkeypatch):
+    """Replaces the WASI emulation layer. Set .verdict / .reasons; .calls lists scanned formats."""
+    from safeloadai import pipeline
+    from safeloadai.report import LayerResult, Verdict
 
-    def boom(*a, **k):
-        raise AssertionError("pickle.load wywołany na pliku, który miał zostać zablokowany")
+    class Fake:
+        calls = []
+        verdict = Verdict.CLEAN
+        reasons = []
+        side_effect = None
 
-    monkeypatch.setattr(api.pickle, "load", boom)
+    def fake(data, parser_report, extra_allowed, limits=None):
+        Fake.calls.append(parser_report.get("file_format"))
+        if Fake.side_effect:
+            Fake.side_effect(data)
+        layer = LayerResult(name="emulation", verdict=Verdict.CLEAN)
+        for reason in Fake.reasons or (["fake"] if Fake.verdict is not Verdict.CLEAN else []):
+            layer.raise_to(Fake.verdict, reason)
+        return layer
+
+    monkeypatch.setattr(pipeline, "emulation_layer", fake)
+    return Fake
 
 
 # --- host-execution guard (audit S13) ----------------------------------------
@@ -94,9 +109,6 @@ def _refuse(what):
 
 
 def pytest_configure(config):
-    config.addinivalue_line(
-        "markers", "allow_host_unpickle: test may call pickle.load/loads on host-built, benign data"
-    )
     config.addinivalue_line("markers", "wasi: needs the pinned WASI runtime (skipped if absent)")
 
 
@@ -134,9 +146,9 @@ def _host_execution_guard(request, monkeypatch):
         return real_popen(args, *a, **kw)
 
     monkeypatch.setattr(subprocess, "Popen", popen)
-    if request.node.get_closest_marker("allow_host_unpickle") is None:
-        monkeypatch.setattr(pickle, "load", _refuse("pickle.load"))
-        monkeypatch.setattr(pickle, "loads", _refuse("pickle.loads"))
+    # Unrestricted unpickling is never allowed; loaders use RestrictedUnpickler.
+    monkeypatch.setattr(pickle, "load", _refuse("pickle.load"))
+    monkeypatch.setattr(pickle, "loads", _refuse("pickle.loads"))
 
     real_connect = socket.socket.connect
 

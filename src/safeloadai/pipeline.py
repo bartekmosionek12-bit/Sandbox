@@ -1,190 +1,153 @@
-"""Spina warstwy w jeden przebieg: parser → sandbox → sędzia.
+"""One scan: container parsing and static analysis, fake-API emulation in the WASI
+sandbox, then the optional deep detonation and the optional LLM judge.
 
-Zwraca jeden obiekt z kontraktami w środku. Dashboard konsumuje wyłącznie
-to; nie wie nic o pickle'u ani o Dockerze. Obsługiwane formaty: .pkl i
-.keras — oba z realną detonacją w kontenerze.
+The final verdict is the worst layer verdict (report.combine). CLEAN therefore
+needs a clean static layer AND a completed emulation without any recorded
+anomaly or dangerous call, and nothing found by the optional layers.
 """
-
 from __future__ import annotations
 
 import hashlib
 import os
-from collections.abc import Callable
+import time
+from collections.abc import Callable, Iterable
 
-from safeloadai import cache as cache_mod
-from safeloadai import docker_sandbox as sandbox_mod
-from safeloadai import judge as judge_mod
-from safeloadai import static as static_mod
+from . import behaviour, verdict
+from . import static as static_mod
+from .parsing import detect as detect_mod
+from .parsing.zipsafe import SafeZip, ZipRefused
+from .report import LayerResult, Report, Verdict, combine
+from .sandbox import Limits, emulate_keras_lambdas, emulate_pickle
+from .static.torch_static import MAX_PICKLE_MEMBER_BYTES
 
-KERAS_DETONATION_DISABLED = (
-    "Detonacja .keras wyłączona przez wywołującego — werdykt z analizy "
-    "statycznej konfiguracji modelu."
-)
-
-# Kolejność ważności werdyktów — do wyznaczenia wyniku końcowego.
-_SEVERITY = {"malicious": 3, "suspicious": 2, "safe": 1, "clean": 1, "unknown": 0}
-
-# Zdarzenia z detonacji, które same w sobie są dowodem wykonania kodu: zwykły
-# model przy wczytaniu nie uruchamia procesów i nie łączy się z siecią.
-# Celowo NIE ma tu "file_write", "code_exec" ani "other" — te potrafi
-# wygenerować sam framework (Keras/TF), więc oceniamy je w kontekście.
-HARD_EVENT_TYPES = {"os_system", "subprocess", "network"}
+Progress = Callable[[str], None] | None
 
 
-def hard_evidence(parser_report: dict, sandbox_report: dict, judge_report: dict) -> list[str]:
-    """Przesłanki, których żadna warstwa nie może "przegłosować".
-
-    Sędzia LLM czyta treść kontrolowaną przez atakującego, więc jego
-    werdykt "safe" nie może zbić dowodu, który zebrały warstwy niezależne od
-    modelu językowego. Zwraca listę opisów (pusta = brak twardych przesłanek).
-    """
-    found: list[str] = []
-    hard_events = [
-        e for e in sandbox_report.get("events") or []
-        if e.get("type") in HARD_EVENT_TYPES
-    ]
-    if hard_events:
-        kinds = sorted({e.get("type") for e in hard_events})
-        found.append(
-            f"detonacja zarejestrowała {len(hard_events)} zdarzeń typu "
-            f"{', '.join(kinds)}"
-        )
-    if parser_report.get("static_risk") == "malicious":
-        found.append("parser statyczny ocenił plik jako malicious")
-    if judge_report.get("injection_attempt_detected"):
-        found.append("sędzia wykrył w danych próbę sterowania oceną")
-    return found
+def _ms(start: float) -> float:
+    return round((time.perf_counter() - start) * 1000, 1)
 
 
-def final_verdict(
-    parser_report: dict,
-    judge_report: dict,
-    sandbox_report: dict | None = None,
-) -> tuple[str, str]:
-    """Werdykt końcowy + skąd się wziął.
+def _is_legacy_torch(parser_report: dict) -> bool:
+    return any("legacy PyTorch" in str(n) for n in parser_report.get("notes") or [])
 
-    Sędzia decyduje, jeśli jest dostępny — ale tylko w górę od twardych
-    przesłanek, nigdy w dół. Bez sędziego spadamy na heurystykę statyczną
-    i mówimy o tym otwarcie, a log z detonacji i tak jest brany pod uwagę.
 
-    Poprzednia wersja przy braku sędziego patrzyła wyłącznie na parser:
-    plik, którego parser nie rozpoznał, a który w kontenerze uruchomił
-    os.system, dostawał "safe" i był wczytywany na hoście.
-    """
-    sandbox_report = sandbox_report or {}
-    evidence = hard_evidence(parser_report, sandbox_report, judge_report)
-    executed = any(
-        e.get("type") in HARD_EVENT_TYPES for e in sandbox_report.get("events") or []
-    )
+def emulation_layer(data: bytes, parser_report: dict, extra_allowed: frozenset,
+                    limits: Limits | None = None) -> LayerResult:
+    fmt = parser_report.get("file_format")
+    if fmt == detect_mod.PICKLE:
+        torch = _is_legacy_torch(parser_report)
+        run = emulate_pickle([data], max_pickles=parser_report.get("pickle_count") or 1, limits=limits)
+        return behaviour.classify(run, torch=torch, extra_allowed=extra_allowed)
+    if fmt == detect_mod.TORCH:
+        try:
+            with SafeZip(data, max_member_bytes=MAX_PICKLE_MEMBER_BYTES) as zf:
+                streams = [zf.read(n) for n in zf.names if n.endswith(".pkl")]
+        except ZipRefused as exc:
+            layer = LayerResult(name="emulation", verdict=Verdict.CLEAN, ran=False)
+            layer.raise_to(Verdict.SUSPICIOUS, f"archive refused, nothing emulated: {exc}")
+            return layer
+        if not streams:
+            layer = LayerResult(name="emulation", verdict=Verdict.CLEAN, ran=False)
+            layer.raise_to(Verdict.SUSPICIOUS, "torch archive without a pickle member")
+            return layer
+        run = emulate_pickle(streams, max_pickles=1, limits=limits)
+        return behaviour.classify(run, torch=True, extra_allowed=extra_allowed)
+    if fmt == detect_mod.KERAS:
+        lambdas = parser_report.get("lambdas") or []
+        if not lambdas:
+            return LayerResult(name="emulation", verdict=Verdict.CLEAN, ran=False,
+                               reasons=["no executable content in the Keras config; nothing to emulate"])
+        return behaviour.classify(emulate_keras_lambdas(lambdas, limits=limits))
+    layer = LayerResult(name="emulation", verdict=Verdict.CLEAN, ran=False)
+    layer.raise_to(Verdict.SUSPICIOUS, f"no emulator for format {fmt!r}")
+    return layer
 
-    if judge_report.get("available"):
-        verdict, source = judge_report.get("verdict", "unknown"), "sędzia LLM"
+
+def _deep_layer(path: str, file_format: str) -> LayerResult:
+    from . import docker_sandbox
+
+    profile = {"pickle": "pickle", "keras": "keras"}.get(file_format)
+    if profile is None:
+        report = docker_sandbox._empty_report(os.path.basename(path), f"no deep backend for {file_format!r}")
     else:
-        static = parser_report.get("static_risk", "unknown")
-        verdict = {"clean": "safe"}.get(static, static)
-        source = "heurystyka statyczna (sędzia niedostępny)"
-
-    floor = "malicious" if executed else ("suspicious" if evidence else None)
-    if floor and _SEVERITY.get(verdict, 0) < _SEVERITY[floor]:
-        verdict = floor
-        source += " — podniesione przez twarde przesłanki: " + "; ".join(evidence)
-    return verdict, source
+        report = docker_sandbox.detonate_in_docker(path, profile=profile)
+    return verdict.docker_layer(report)
 
 
-def file_sha256(path: str) -> str:
-    digest = hashlib.sha256()
-    with open(path, "rb") as fh:
-        for chunk in iter(lambda: fh.read(1 << 20), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
+def _judge_layer(parser_report: dict, emulation: LayerResult) -> LayerResult | None:
+    from . import judge as judge_mod
+
+    summary = {"detonated": emulation.ran, "load_succeeded": emulation.details.get("completed"),
+               "events": emulation.evidence}
+    return verdict.judge_layer(judge_mod.judge(parser_report, summary))
 
 
-def analyze(
-    path: str,
-    detonate: bool = True,
-    progress: Callable[[str], None] | None = None,
-    cache_dir: str | os.PathLike | None = None,
-) -> dict:
-    """Pełny przebieg: parser → detonacja → sędzia → werdykt końcowy.
+def scan(path: str | os.PathLike, *, judge: bool = False, deep: bool = False,
+         allow: Iterable[tuple[str, str]] = (), limits: Limits | None = None,
+         progress: Progress = None) -> Report:
+    """Scan one model file. Never deserialises it on the host."""
+    from . import __version__
 
-    ``cache_dir`` (albo zmienna ``SAFELOADAI_CACHE_DIR``) włącza cache po
-    skrócie pliku — patrz ``safeloadai/cache.py``.
-    """
     def step(message: str) -> None:
         if progress:
             progress(message)
 
     path = os.fspath(path)
-    sha256 = file_sha256(path)
+    extra_allowed = frozenset((str(m), str(n)) for m, n in allow)
+    started = time.perf_counter()
+    timings: dict[str, float] = {}
 
-    directory = cache_mod.resolve_dir(cache_dir) if detonate else None
-    if directory:
-        cached = cache_mod.load(directory, sha256)
-        if cached is not None:
-            step("Wynik z cache (ten sam plik, ta sama wersja silnika)")
-            cached["file_name"] = os.path.basename(path)
-            return cached
-
-    step("Analiza statyczna pliku")
-    parser_report = static_mod.analyze_file(path)
-    file_format = parser_report.get("file_format")
-    is_keras = file_format == "keras"
-
-    if not detonate:
-        reason = (
-            KERAS_DETONATION_DISABLED
-            if is_keras
-            else "Detonacja wyłączona przez wywołującego."
-        )
-        sandbox_report = sandbox_mod._empty_report(os.path.basename(path), reason)
-    elif is_keras:
-        step("Detonacja w izolowanym kontenerze (keras)")
-        sandbox_report = sandbox_mod.detonate_in_docker(path, profile="keras")
-    elif file_format != "pickle":
-        sandbox_report = sandbox_mod._empty_report(
-            os.path.basename(path), f"No detonation backend for format '{file_format}' yet."
-        )
+    size = os.path.getsize(path)
+    if size > static_mod.MAX_FILE_BYTES:
+        parser_report = static_mod.analyze_file(path)
+        data = b""
     else:
-        step("Detonacja w izolowanym kontenerze")
-        sandbox_report = sandbox_mod.detonate_in_docker(path, profile="pickle")
+        with open(path, "rb") as fh:
+            data = fh.read()
+    sha256 = hashlib.sha256(data).hexdigest() if data else _sha256_file(path)
 
-    step("Ocena przez sędziego LLM")
-    judge_report = judge_mod.judge(parser_report, sandbox_report)
+    step("static analysis")
+    t = time.perf_counter()
+    if data:
+        parser_report = static_mod.analyze_bytes(data, os.path.basename(path), extra_allowed)
+    file_format = str(parser_report.get("file_format"))
+    layers = [verdict.static_layer(parser_report, defer_lambdas=True)]
+    layers[0].timings_ms["total"] = timings["static"] = _ms(t)
 
-    verdict, source = final_verdict(parser_report, judge_report, sandbox_report)
+    step("emulation in the WASI sandbox")
+    t = time.perf_counter()
+    if data:
+        emulation = emulation_layer(data, parser_report, extra_allowed, limits)
+    else:
+        emulation = LayerResult(name="emulation", verdict=Verdict.CLEAN, ran=False)
+        emulation.raise_to(Verdict.SUSPICIOUS, "file too large to emulate")
+    timings["emulation"] = _ms(t)
+    layers.append(emulation)
 
-    report = {
-        "file_name": os.path.basename(path),
-        "sha256": sha256,
-        "parser": parser_report,
-        "sandbox": sandbox_report,
-        "judge": judge_report,
-        "final_verdict": verdict,
-        "verdict_source": source,
-        "cache": {"hit": False},
-    }
-    if directory:
-        cache_mod.store(directory, sha256, report)
-    return report
+    if deep:
+        step("deep detonation")
+        t = time.perf_counter()
+        layers.append(_deep_layer(path, file_format))
+        timings["deep"] = _ms(t)
+
+    if judge:
+        step("LLM judge")
+        t = time.perf_counter()
+        judged = _judge_layer(parser_report, emulation)
+        if judged is not None:
+            layers.append(judged)
+        timings["judge"] = _ms(t)
+
+    final, reasons = combine(layers)
+    timings["total"] = _ms(started)
+    return Report(path=path, file_name=os.path.basename(path), sha256=sha256, size=size,
+                  file_format=file_format, verdict=final, reasons=reasons, layers=layers,
+                  timings_ms=timings, version=__version__)
 
 
-if __name__ == "__main__":
-    import json
-    import sys
-
-    args = [a for a in sys.argv[1:] if not a.startswith("-")]
-    no_detonate = "--no-detonate" in sys.argv
-
-    if len(args) != 1:
-        print(
-            "usage: python -m safeloadai.pipeline [--no-detonate] <plik.pkl|.keras>",
-            file=sys.stderr,
-        )
-        raise SystemExit(2)
-
-    result = analyze(
-        args[0],
-        detonate=not no_detonate,
-        progress=lambda m: print(f"[*] {m}", file=sys.stderr),
-    )
-    print(json.dumps(result, indent=2, ensure_ascii=False))
+def _sha256_file(path: str) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as fh:
+        for chunk in iter(lambda: fh.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()

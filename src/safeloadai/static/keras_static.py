@@ -130,6 +130,15 @@ def _check_object(node: dict, path: str, report: dict) -> None:
     registered = node.get("registered_name")
     report["opcodes"].append({"name": class_name, "arg": path, "pos": 0})
 
+    if class_name == "__lambda__":
+        # The marshalled function inside a Lambda layer's config, already captured
+        # with its layer. Anywhere else it is code in an unexpected place.
+        if any(path == lam["path"] + ".config.function" for lam in report["lambdas"]):
+            return
+        report["unknown_imports"].append({"module": str(module), "symbol": "__lambda__", "pos": None,
+                                          "path": path})
+        return
+
     if class_name == "function":
         name = node.get("config")
         pair = (module, name)

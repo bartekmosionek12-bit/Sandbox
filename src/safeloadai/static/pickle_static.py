@@ -194,14 +194,15 @@ def _walk_one(stream: io.BytesIO, report: dict, index: int) -> tuple[bool, Any]:
 
 
 def parse_pickle(data: bytes, file_name: str = "<memory>", *, torch: bool = False,
-                 file_format: str = "pickle") -> dict:
+                 file_format: str = "pickle", extra_allowed: frozenset = frozenset()) -> dict:
     """Analyse pickle bytes and return the parser contract (dict).
 
     ``torch=True`` widens the allowlist with the globals a PyTorch checkpoint
     needs and accepts persistent ids (torch stores tensor data out of band).
     """
     report = _empty_report(file_name, file_format)
-    allow = PICKLE_GLOBALS | TORCH_GLOBALS if torch else PICKLE_GLOBALS
+    base = PICKLE_GLOBALS | frozenset(extra_allowed)
+    allow = base | TORCH_GLOBALS if torch else base
     stream = io.BytesIO(data)
     try:
         index = 0
@@ -214,7 +215,7 @@ def parse_pickle(data: bytes, file_name: str = "<memory>", *, torch: bool = Fals
             if index == 0 and first_int == TORCH_LEGACY_MAGIC:
                 legacy_torch = True
                 torch = True
-                allow = PICKLE_GLOBALS | TORCH_GLOBALS
+                allow = base | TORCH_GLOBALS
                 report["notes"].append("legacy PyTorch serialization (magic number found)")
             index += 1
             if legacy_torch and index == TORCH_LEGACY_PICKLES:

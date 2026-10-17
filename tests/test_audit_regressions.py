@@ -19,7 +19,9 @@ import zipfile
 import pytest
 from conftest import sandbox_report
 
-from safeloadai import SecurityException, api, judge, parser, parser_keras, pipeline, sandbox
+from safeloadai import SecurityException, api, judge, pipeline, sandbox
+from safeloadai.static import keras_static as parser_keras
+from safeloadai.static import pickle_static as parser
 
 
 def _open(hole: str):
@@ -61,12 +63,10 @@ FORTRANFILE = (
 )
 
 
-@_open("S1")
 def test_s1_scipy_fortranfile_is_not_clean():
     assert _risk(FORTRANFILE) != "clean"
 
 
-@_open("S1")
 def test_s1_any_capitalised_sklearn_symbol_is_not_allowlisted():
     data = b"\x80\x02csklearn.made_up\nAnyClass\n)R."
     assert _risk(data) != "clean"
@@ -74,43 +74,36 @@ def test_s1_any_capitalised_sklearn_symbol_is_not_allowlisted():
 
 # --- S2: imports and object-construction opcodes outside the allowlist -----
 
-@_open("S2")
 def test_s2_global_without_call_is_not_clean():
     # find_class imports the module; importing `antigravity` opens a browser.
     assert _risk(b"cantigravity\nfly\n.") != "clean"
 
 
-@_open("S2")
 def test_s2_stack_global_without_call_is_not_clean():
     data = b"\x80\x04\x8c\x0bantigravity\x94\x8c\x03fly\x94\x93."
     assert _risk(data) != "clean"
 
 
-@_open("S2")
 def test_s2_newobj_on_unknown_class_is_not_clean():
     assert _risk(b"\x80\x02cfoo.bar\nBaz\n)\x81.") != "clean"
 
 
-@_open("S2")
 def test_s2_newobj_ex_on_unknown_class_is_not_clean():
     assert _risk(b"\x80\x04cfoo.bar\nBaz\n)}\x92.") != "clean"
 
 
-@_open("S2")
 def test_s2_build_on_unknown_class_is_not_clean():
     assert _risk(b"\x80\x02cfoo.bar\nBaz\n}b.") != "clean"
 
 
 # --- S3: Keras module matching by prefix and by namespace ------------------
 
-@_open("S3")
 @pytest.mark.parametrize("module", ["tf_evil_pkg", "kerasx", "tensorflow_backdoor"])
 def test_s3_keras_module_prefix_is_not_trusted(module):
     report = parser_keras.parse_keras(_keras_zip(_keras_layer_model(module, "Dense")))
     assert report["static_risk"] != "clean"
 
 
-@_open("S3")
 def test_s3_keras_namespace_function_outside_allowlist_is_not_clean():
     report = parser_keras.parse_keras(_keras_zip(_keras_layer_model("keras.utils", "get_file")))
     assert report["static_risk"] != "clean"
@@ -207,7 +200,6 @@ def test_s6_keras_loader_uses_safe_mode(monkeypatch, tmp_path):
 
 # --- S7: size limits, zip bombs, recursion, member names -------------------
 
-@_open("S7")
 def test_s7_zip_bomb_config_is_refused_without_decompressing():
     import tracemalloc
 
@@ -222,7 +214,6 @@ def test_s7_zip_bomb_config_is_refused_without_decompressing():
     assert peak < 64 * 1024 * 1024
 
 
-@_open("S7")
 def test_s7_deeply_nested_config_does_not_escape():
     node: dict = {"class_name": "Dense"}
     for _ in range(2000):
@@ -232,7 +223,6 @@ def test_s7_deeply_nested_config_does_not_escape():
     assert report["static_risk"] != "clean"
 
 
-@_open("S7")
 @pytest.mark.parametrize("name", ["../evil.py", "/abs/evil.py", "a/../../evil.py"])
 def test_s7_path_traversal_member_names_are_flagged(name):
     clean = _keras_layer_model("keras.layers", "Dense")
@@ -253,7 +243,6 @@ def _torch_zip(data_pkl: bytes) -> bytes:
     return buf.getvalue()
 
 
-@_open("S8")
 def test_s8_torch_zip_payload_is_malicious(tmp_path):
     path = tmp_path / "m.pt"
     path.write_bytes(_torch_zip(OS_SYSTEM_PICKLE))
@@ -261,7 +250,6 @@ def test_s8_torch_zip_payload_is_malicious(tmp_path):
     assert report["parser"]["static_risk"] == "malicious"
 
 
-@_open("S8")
 def test_s8_second_pickle_in_legacy_stream_is_analysed():
     # Legacy torch files are several pickles back to back; the payload sits in the second.
     data = b"\x80\x02K\x01." + OS_SYSTEM_PICKLE

@@ -3,7 +3,8 @@ import pickle
 import pytest
 from conftest import SAMPLES
 
-from safeloadai import parser, parser_keras
+from safeloadai.static import keras_static as parser_keras
+from safeloadai.static import pickle_static as parser
 
 
 def _su(text):

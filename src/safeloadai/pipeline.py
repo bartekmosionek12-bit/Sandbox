@@ -13,13 +13,8 @@ from collections.abc import Callable
 
 from safeloadai import cache as cache_mod
 from safeloadai import judge as judge_mod
-from safeloadai import parser as parser_mod
-from safeloadai import parser_keras as parser_keras_mod
 from safeloadai import sandbox as sandbox_mod
-
-# Rozszerzenia obsługiwane przez poszczególne parsery statyczne.
-PICKLE_EXTENSIONS = {".pkl", ".pickle"}
-KERAS_EXTENSIONS = {".keras"}
+from safeloadai import static as static_mod
 
 KERAS_DETONATION_DISABLED = (
     "Detonacja .keras wyłączona przez wywołującego — werdykt z analizy "
@@ -120,8 +115,6 @@ def analyze(
             progress(message)
 
     path = os.fspath(path)
-    extension = os.path.splitext(path)[1].lower()
-    is_keras = extension in KERAS_EXTENSIONS
     sha256 = file_sha256(path)
 
     directory = cache_mod.resolve_dir(cache_dir) if detonate else None
@@ -133,9 +126,9 @@ def analyze(
             return cached
 
     step("Analiza statyczna pliku")
-    parser_report = (
-        parser_keras_mod.parse_file(path) if is_keras else parser_mod.parse_file(path)
-    )
+    parser_report = static_mod.analyze_file(path)
+    file_format = parser_report.get("file_format")
+    is_keras = file_format == "keras"
 
     if not detonate:
         reason = (
@@ -147,6 +140,10 @@ def analyze(
     elif is_keras:
         step("Detonacja w izolowanym kontenerze (keras)")
         sandbox_report = sandbox_mod.detonate_in_docker(path, profile="keras")
+    elif file_format != "pickle":
+        sandbox_report = sandbox_mod._empty_report(
+            os.path.basename(path), f"No detonation backend for format '{file_format}' yet."
+        )
     else:
         step("Detonacja w izolowanym kontenerze")
         sandbox_report = sandbox_mod.detonate_in_docker(path, profile="pickle")

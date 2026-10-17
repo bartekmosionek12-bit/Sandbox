@@ -26,7 +26,7 @@ import warnings
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src"))
 
-from safeloadai import parser  # noqa: E402
+from safeloadai.static import pickle_static as parser  # noqa: E402
 
 PROTOCOLS = (2, 4, 5)
 

@@ -64,14 +64,9 @@ def emulation_layer(data: bytes, parser_report: dict, extra_allowed: frozenset,
 
 
 def _deep_layer(path: str, file_format: str) -> LayerResult:
-    from . import docker_sandbox
+    from . import deep
 
-    profile = {"pickle": "pickle", "keras": "keras"}.get(file_format)
-    if profile is None:
-        report = docker_sandbox._empty_report(os.path.basename(path), f"no deep backend for {file_format!r}")
-    else:
-        report = docker_sandbox.detonate_in_docker(path, profile=profile)
-    return verdict.docker_layer(report)
+    return verdict.docker_layer(deep.run_deep(path, file_format))
 
 
 def _judge_layer(parser_report: dict, emulation: LayerResult) -> LayerResult | None:

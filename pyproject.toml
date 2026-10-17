@@ -28,6 +28,7 @@ dashboard = [
 dev = [
     "pytest",
     "ruff",
+    "Flask>=3.0,<4.0",
 ]
 
 [project.scripts]

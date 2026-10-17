@@ -1,158 +1,46 @@
-"""Serwer dashboardu — jedna strona, jeden przepływ.
+"""Dashboard: a viewer for Report JSON produced by ``safeloadai scan --json``.
 
-Upload → status → wynik parsera → log z sandboksa → werdykt.
-Bez kont, bez historii, bez dodatkowych ekranów.
+It never scans or loads model files. Paste or upload a report (or a list of
+reports) and it renders verdict, reasons, per-layer results and evidence. All
+report text is attacker-influenced, so templates rely on Jinja autoescaping.
+
+    pip install 'safeloadai[dashboard]'
+    flask --app app.server run --host 127.0.0.1
 """
-
 from __future__ import annotations
 
-import os
-import tempfile
-import threading
-import time
-import uuid
+import json
 
-from flask import Flask, jsonify, render_template, request
-
-from safeloadai import docker_sandbox as sandbox
-from safeloadai import pipeline
+from flask import Flask, render_template, request
 
 app = Flask(__name__)
-app.config["MAX_CONTENT_LENGTH"] = 32 * 1024 * 1024  # 32 MB
+app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024
 
-ALLOWED_EXTENSIONS = {".pkl", ".pickle", ".keras"}
-
-# Stan zadań trzymany w pamięci procesu — zgodnie z założeniem "zero historii".
-_jobs: dict[str, dict] = {}
-_jobs_lock = threading.Lock()
+REQUIRED_KEYS = ("verdict", "layers", "file_name")
 
 
-def _set_job(job_id: str, **fields) -> None:
-    with _jobs_lock:
-        _jobs.setdefault(job_id, {}).update(fields)
+def parse_reports(text: str) -> list[dict]:
+    data = json.loads(text)
+    reports = data if isinstance(data, list) else [data]
+    for report in reports:
+        if not isinstance(report, dict) or any(k not in report for k in REQUIRED_KEYS):
+            raise ValueError("not a safeloadai Report (needs verdict, layers, file_name)")
+    return reports
 
 
-def _get_job(job_id: str) -> dict | None:
-    with _jobs_lock:
-        job = _jobs.get(job_id)
-        return dict(job) if job else None
-
-
-def _run_analysis(job_id: str, path: str, display_name: str) -> None:
-    try:
-        def progress(message: str) -> None:
-            _set_job(job_id, status="running", step=message)
-
-        result = pipeline.analyze(path, progress=progress)
-        result["file_name"] = display_name
-        result["parser"]["file_name"] = display_name
-        result["sandbox"]["file_name"] = display_name
-        _set_job(job_id, status="done", step="Gotowe", result=result)
-    except Exception as exc:  # noqa: BLE001 — błąd ma dotrzeć do UI, nie do logu
-        _set_job(
-            job_id,
-            status="error",
-            step="Błąd",
-            error=f"{type(exc).__name__}: {exc}",
-        )
-    finally:
-        try:
-            os.unlink(path)
-            os.rmdir(os.path.dirname(path))
-        except OSError:
-            pass
-
-
-# Odpowiedz "docker info" trzymamy przez chwile w pamieci. Kazde wejscie na
-# strone odpalalo to polecenie na nowo, a na Windows z WSL2 potrafi ono zajac
-# sekunde albo dwie — strona wstawala wtedy zauwazalnie wolniej, mimo ze stan
-# demona praktycznie sie nie zmienia. TTL jest krotki, wiec uruchomienie
-# Dockera widac od razu po odswiezeniu.
-_DOCKER_STATUS_TTL_S = 5.0
-_docker_status_cache: dict[str, object] = {"at": 0.0, "value": None}
-
-
-def _docker_status_cached() -> tuple[bool, str]:
-    now = time.monotonic()
-    cached = _docker_status_cache["value"]
-    if cached is None or now - float(_docker_status_cache["at"]) > _DOCKER_STATUS_TTL_S:
-        cached = sandbox.docker_status()
-        _docker_status_cache["value"] = cached
-        _docker_status_cache["at"] = now
-    return cached  # type: ignore[return-value]
-
-
-@app.get("/")
+@app.route("/", methods=["GET", "POST"])
 def index():
-    docker_ok, docker_message = _docker_status_cached()
-    html = render_template(
-        "index.html",
-        docker_ok=docker_ok,
-        docker_message=docker_message,
-        judge_ok=bool(os.environ.get("ANTHROPIC_API_KEY")),
-    )
-    # Bez tego przeglądarka potrafi trzymać starą wersję strony (i starego
-    # JavaScriptu) po aktualizacji — objawia się to np. błędem "Failed to
-    # fetch", bo stary skrypt gada z nowym serwerem. Strona jest lekka i
-    # generowana na bieżąco, więc nic nie tracimy, wymuszając świeżą kopię.
-    resp = app.make_response(html)
-    resp.headers["Cache-Control"] = "no-store, must-revalidate"
-    return resp
-
-
-@app.post("/api/analyze")
-def analyze():
-    uploaded = request.files.get("file")
-    if uploaded is None or not uploaded.filename:
-        return jsonify({"error": "Nie wybrano pliku."}), 400
-
-    display_name = os.path.basename(uploaded.filename)
-    extension = os.path.splitext(display_name)[1].lower()
-    if extension not in ALLOWED_EXTENSIONS:
-        return (
-            jsonify(
-                {
-                    "error": (
-                        f"Obsługiwane rozszerzenia: {', '.join(sorted(ALLOWED_EXTENSIONS))}. "
-                        f"Otrzymano: {extension or 'brak'}."
-                    )
-                }
-            ),
-            400,
-        )
-
-    # Nazwa pliku z uploadu nigdy nie trafia na dysk — zapisujemy pod stałą
-    # nazwą w świeżym katalogu tymczasowym.
-    staging = tempfile.mkdtemp(prefix="pickle-sandbox-")
-    path = os.path.join(staging, "upload" + extension)
-    uploaded.save(path)
-
-    job_id = uuid.uuid4().hex
-    _set_job(job_id, status="queued", step="W kolejce", result=None, error=None)
-
-    thread = threading.Thread(
-        target=_run_analysis, args=(job_id, path, display_name), daemon=True
-    )
-    thread.start()
-
-    return jsonify({"job_id": job_id})
-
-
-@app.get("/api/status/<job_id>")
-def status(job_id: str):
-    job = _get_job(job_id)
-    if job is None:
-        return jsonify({"error": "Nieznane zadanie."}), 404
-    return jsonify(job)
+    reports, error = [], None
+    if request.method == "POST":
+        upload = request.files.get("report")
+        text = upload.read().decode("utf-8", "replace") if upload and upload.filename else request.form.get("text", "")
+        try:
+            reports = parse_reports(text)
+        except (ValueError, json.JSONDecodeError) as exc:
+            error = str(exc)
+    return render_template("index.html", reports=reports, error=error)
 
 
 @app.errorhandler(413)
 def too_large(_error):
-    return jsonify({"error": "Plik jest za duży (limit 32 MB)."}), 413
-
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", "5000"))
-    # threaded=True: serwer obsługuje polling statusu równolegle z innymi
-    # żądaniami, więc UI nie czeka w kolejce podczas analizy.
-    app.run(host="127.0.0.1", port=port, debug=False, threaded=True)
+    return render_template("index.html", reports=[], error="report larger than 16 MB"), 413

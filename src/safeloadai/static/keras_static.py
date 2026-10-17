@@ -107,6 +107,23 @@ def _lambda_code(config: dict) -> bytes | None:
         return None
 
 
+def _lambda_context(node: dict, config: dict) -> dict:
+    """What the emulator needs to call a Lambda: arguments, defaults, closure, input shape."""
+    function = config.get("function")
+    inner = function.get("config") if isinstance(function, dict) else None
+    inner = inner if isinstance(inner, dict) else {}
+    if isinstance(function, list) and len(function) == 3:
+        inner = {"defaults": function[1], "closure": function[2]}
+    build = node.get("build_config") if isinstance(node.get("build_config"), dict) else {}
+    arguments = config.get("arguments")
+    return {
+        "arguments": arguments if isinstance(arguments, dict) else {},
+        "defaults": inner.get("defaults"),
+        "closure": inner.get("closure"),
+        "input_shape": build.get("input_shape"),
+    }
+
+
 def _check_object(node: dict, path: str, report: dict) -> None:
     class_name = node.get("class_name")
     module = node.get("module")
@@ -138,6 +155,7 @@ def _check_object(node: dict, path: str, report: dict) -> None:
                 "has_code": code is not None,
                 "code_b64": base64.b64encode(code).decode() if code else None,
                 "sink_tokens": tokens,
+                **_lambda_context(node, config),
             })
             for token in tokens:
                 report["suspicious_imports"].append(

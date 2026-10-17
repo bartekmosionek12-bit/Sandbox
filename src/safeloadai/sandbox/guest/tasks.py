@@ -4,6 +4,7 @@
 ``python``: executes a code string from the task file with empty globals. It is
 the harness the test suite uses to play the role of a payload inside the sandbox;
 production scans use the pickle and keras tasks.
+``pickle`` / ``keras_lambda``: see ``emulate.py``.
 """
 import time
 
@@ -24,5 +25,13 @@ def run(task, record):
         record("event", category="selftest", detail="channel works")
     elif kind == "python":
         exec(compile(task["code"], "<payload>", "exec"), {"__name__": "payload"})  # noqa: S102
+    elif kind == "pickle":
+        import emulate
+
+        emulate.run_pickle(task, record)
+    elif kind == "keras_lambda":
+        import emulate
+
+        emulate.run_keras_lambda(task, record)
     else:
         raise ValueError("unknown task kind: " + repr(kind))

@@ -54,3 +54,7 @@ extend-exclude = ["audit", "poc/samples", "test_1_clean_pkl.py", "test_2_clean_k
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+# Guest code runs inside the sandbox and keeps a plain, version-neutral style.
+"src/safeloadai/sandbox/guest/*.py" = ["UP031"]

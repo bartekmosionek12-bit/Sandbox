@@ -1,45 +1,36 @@
-# Przykład: skan modeli w GitHub Actions przed scaleniem zmian.
-# Skopiuj do .github/workflows/ w repozytorium, które trzyma modele.
-# Runner ubuntu-latest ma Dockera, więc detonacja się odbywa.
-name: skan-modeli
+# Example: scan model files in a pull request with safeloadai.
+# Copy to .github/workflows/ in the repository that holds the models.
+name: model-scan
 
 on:
   pull_request:
     paths: ["models/**"]
+
+permissions:
+  contents: read
 
 jobs:
   safeloadai:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
-
-      - name: Instalacja SafeLoadAI
+          python-version: "3.12"
+      - name: Install safeloadai
         run: |
-          git clone --depth 1 https://github.com/bartekmosionek12-bit/Sandbox safeloadai
-          pip install -e safeloadai/SAFE_LOAD_MODEL
-
-      # Cache po skrócie pliku: ten sam model nie jest detonowany drugi raz.
-      - uses: actions/cache@v4
-        with:
-          path: ~/.cache/safeloadai
-          key: safeloadai-${{ github.sha }}
-          restore-keys: safeloadai-
-
-      - name: Skan
-        env:
-          # Bez klucza werdykt pochodzi z heurystyki i logu detonacji.
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          git clone --depth 1 https://github.com/bartekmosionek12-bit/Sandbox safeloadai-src
+          pip install -e safeloadai-src
+      - name: Fetch the pinned WASI runtime
         run: |
-          safeloadai scan models/ --cache-dir ~/.cache/safeloadai --report safeloadai-raport.json
-        # Kod 1 = plik zablokowany, 3 = nie dało się potwierdzić czystości.
-        # Oba zatrzymują job.
-
+          mkdir -p ~/.cache/safeloadai/runtime && cd ~/.cache/safeloadai/runtime
+          curl -fsSLO "https://github.com/vmware-labs/webassembly-language-runtimes/releases/download/python%2F3.12.0%2B20231211-040d5a6/python-3.12.0.wasm"
+          echo "e5dc5a398b07b54ea8fdb503bf68fb583d533f10ec3f930963e02b9505f7a763  python-3.12.0.wasm" | sha256sum -c -
+      - name: Scan
+        # Exit 1 = MALICIOUS, 3 = SUSPICIOUS; both fail the job.
+        run: safeloadai scan models/ --report safeloadai-report.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: safeloadai-raport
-          path: safeloadai-raport.json
+          name: safeloadai-report
+          path: safeloadai-report.json

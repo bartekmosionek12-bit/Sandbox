@@ -1,0 +1,33 @@
+# Obraz detonera .keras — osobny od pickle'owego, bo musi zawierać Kerasa.
+# Payload z warstwy Lambda wykonuje się TUTAJ, nigdy na hoście.
+FROM python:3.11-slim
+
+# Wersja Pythona ma znaczenie: zmarshallowany obiekt code z warstwy Lambda
+# odtwarza się tylko w tej samej wersji, w której powstał. Fixture'y
+# generuje poc/build_poc_keras.py i stempluje w metadata.json wersją
+# generatora, a detoner mówi wprost, gdy się nie zgadza.
+
+COPY docker/requirements-keras.txt /tmp/requirements-keras.txt
+RUN pip install --no-cache-dir -r /tmp/requirements-keras.txt \
+    && rm /tmp/requirements-keras.txt
+
+# Backend TensorFlow (CPU): backend numpy segfaultuje przy przebiegu modelu
+# z warstwą Lambda — patrz docker/requirements-keras.txt.
+ENV KERAS_BACKEND=tensorflow
+# Na read-only filesystemie (zapisywalny tylko /tmp) przekierowujemy cache
+# Kerasa/TF do /tmp, żeby sam framework nie padł na braku praw do zapisu.
+# To nie poluzowuje izolacji: /tmp i tak jest jedynym zapisywalnym miejscem.
+ENV HOME=/tmp KERAS_HOME=/tmp/.keras XDG_CACHE_HOME=/tmp/.cache
+
+# Kontekst budowy to katalog główny repo (patrz src/safeloadai/sandbox.py).
+# detonate.py jedzie razem, bo detonate_keras.py bierze z niego patche —
+# jedno źródło prawdy dla obu formatów.
+COPY src/safeloadai/detonate.py /opt/detonate.py
+COPY src/safeloadai/detonate_keras.py /opt/detonate_keras.py
+
+RUN useradd --create-home --shell /usr/sbin/nologin detoner
+USER detoner
+
+WORKDIR /tmp
+
+ENTRYPOINT ["python", "-I", "-u", "/opt/detonate_keras.py"]

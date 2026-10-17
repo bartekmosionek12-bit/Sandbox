@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>safeloadai report viewer</title>
+<style>
+  :root { --bg: #fff; --fg: #1d1d1f; --muted: #6e6e73; --line: #d2d2d7;
+          --clean: #1a7f37; --suspicious: #9a6700; --malicious: #cf222e; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #161618; --fg: #f2f2f7; --muted: #98989d; --line: #3a3a3c;
+            --clean: #3fb950; --suspicious: #d29922; --malicious: #f85149; }
+  }
+  body { background: var(--bg); color: var(--fg); font: 15px/1.5 system-ui, sans-serif;
+         max-width: 960px; margin: 0 auto; padding: 16px; }
+  textarea { width: 100%; min-height: 8em; font-family: ui-monospace, monospace;
+             background: var(--bg); color: var(--fg); border: 1px solid var(--line); }
+  .verdict { font-weight: 700; }
+  .CLEAN { color: var(--clean); } .SUSPICIOUS { color: var(--suspicious); } .MALICIOUS { color: var(--malicious); }
+  section { border-top: 1px solid var(--line); margin-top: 24px; padding-top: 8px; }
+  table { border-collapse: collapse; width: 100%; } td, th { border-bottom: 1px solid var(--line);
+  text-align: left; padding: 4px 8px; vertical-align: top; }
+  code, pre { font-family: ui-monospace, monospace; white-space: pre-wrap; word-break: break-all; }
+  .muted { color: var(--muted); }
+</style>
+</head>
+<body>
+<h1>safeloadai report viewer</h1>
+<p class="muted">Shows Report JSON from <code>safeloadai scan --json</code>. Nothing is scanned or loaded here.</p>
+<form method="post" enctype="multipart/form-data">
+  <p><input type="file" name="report" accept="application/json,.json"></p>
+  <p><textarea name="text" placeholder="or paste Report JSON"></textarea></p>
+  <p><button type="submit">Show</button></p>
+</form>
+{% if error %}<p class="MALICIOUS">Could not read the report: {{ error }}</p>{% endif %}
+{% for r in reports %}
+<section>
+  <h2><span class="verdict {{ r.verdict }}">{{ r.verdict }}</span> {{ r.file_name }}</h2>
+  <p class="muted">format {{ r.file_format }} · sha256 <code>{{ r.sha256 }}</code> · {{ r.timings_ms.total }} ms · safeloadai {{ r.version }}</p>
+  {% if r.reasons %}<ul>{% for reason in r.reasons %}<li><code>{{ reason }}</code></li>{% endfor %}</ul>{% endif %}
+  <table>
+    <tr><th>layer</th><th>verdict</th><th>ran</th><th>reasons</th></tr>
+    {% for layer in r.layers %}
+    <tr><td>{{ layer.name }}</td><td class="verdict {{ layer.verdict }}">{{ layer.verdict }}</td>
+        <td>{{ "yes" if layer.ran else "no" }}</td>
+        <td>{% for reason in layer.reasons %}<code>{{ reason }}</code><br>{% endfor %}</td></tr>
+    {% endfor %}
+  </table>
+  {% for layer in r.layers if layer.evidence %}
+  <details><summary>{{ layer.name }} evidence ({{ layer.evidence|length }})</summary>
+    <pre>{{ layer.evidence|tojson(indent=2) }}</pre></details>
+  {% endfor %}
+</section>
+{% endfor %}
+</body>
+</html>

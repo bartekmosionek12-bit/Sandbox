@@ -1,0 +1,19 @@
+# Benign model files on the Hugging Face Hub: "<repo> <file>" per line.
+# UNVERIFIED: written without Hub access (blocked in the environment that wrote
+# it). Missing entries are reported and skipped; edit freely.
+# PyTorch pickles (pytorch_model.bin is a torch zip, or legacy format in old repos)
+hf-internal-testing/tiny-random-bert pytorch_model.bin
+hf-internal-testing/tiny-random-gpt2 pytorch_model.bin
+hf-internal-testing/tiny-random-t5 pytorch_model.bin
+hf-internal-testing/tiny-random-distilbert pytorch_model.bin
+hf-internal-testing/tiny-random-roberta pytorch_model.bin
+hf-internal-testing/tiny-random-vit pytorch_model.bin
+prajjwal1/bert-tiny pytorch_model.bin
+google/bert_uncased_L-2_H-128_A-2 pytorch_model.bin
+sshleifer/tiny-gpt2 pytorch_model.bin
+sentence-transformers/all-MiniLM-L6-v2 pytorch_model.bin
+# scikit-learn pickles / joblib
+julien-c/wine-quality sklearn_model.joblib
+scikit-learn/tabular-playground skops-user.pkl
+# Keras
+keras-io/timeseries-anomaly-detection model.keras

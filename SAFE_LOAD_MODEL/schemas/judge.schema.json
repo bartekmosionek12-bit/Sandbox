@@ -20,6 +20,10 @@
     },
     "reasoning": { "type": "string", "description": "2-3 zdania uzasadnienia." },
     "model": { "type": ["string", "null"] },
+    "injection_attempt_detected": {
+      "type": "boolean",
+      "description": "Sędzia znalazł w danych tekst próbujący sterować oceną. Werdykt końcowy nie spada wtedy poniżej 'suspicious'."
+    },
     "error": { "type": ["string", "null"] }
   }
 }

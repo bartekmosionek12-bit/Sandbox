@@ -22,6 +22,6 @@ Regeneracja: `python -m poc.build_poc`
 
 Regeneracja: `python -m poc.build_poc_keras`
 
-Detonacja `.keras` nie jest jeszcze zaimplementowana (wymaga obrazu
-z TensorFlow/Keras), więc dla tego formatu pipeline robi analizę statyczną
-i werdykt LLM, mówiąc wprost, że dowodu dynamicznego brak.
+Detonacja `.keras` działa w osobnym obrazie z TensorFlow
+(`docker/Dockerfile.keras`) i trwa około minuty, bo w kontenerze startuje
+TensorFlow.

@@ -1,0 +1,3407 @@
+{
+  "created": "20261017T140950Z",
+  "python": "3.13.16",
+  "tools": [
+    "picklescan",
+    "fickling",
+    "modelscan"
+  ],
+  "summary": {
+    "safeloadai": {
+      "malicious": 38,
+      "benign": 35,
+      "detected": 38,
+      "detection_rate": 1.0,
+      "false_positives": 7,
+      "fp_rate": 0.2,
+      "errors": 0,
+      "unsupported": 0,
+      "seconds_median": 0.5028,
+      "seconds_p95": 0.5978,
+      "seconds_max": 0.6352,
+      "layer_contribution": {
+        "static_only": 4,
+        "emulation_only": 1,
+        "both": 33,
+        "neither": 0
+      },
+      "reached_expected_severity": 38,
+      "per_category": {
+        "process": {
+          "total": 11,
+          "detected": 11
+        },
+        "code_exec": {
+          "total": 6,
+          "detected": 6
+        },
+        "file_write": {
+          "total": 4,
+          "detected": 4
+        },
+        "network": {
+          "total": 2,
+          "detected": 2
+        },
+        "native": {
+          "total": 1,
+          "detected": 1
+        },
+        "unknown_global": {
+          "total": 1,
+          "detected": 1
+        },
+        "multi_pickle": {
+          "total": 1,
+          "detected": 1
+        },
+        "evasion": {
+          "total": 6,
+          "detected": 6
+        },
+        "evidence_forgery": {
+          "total": 1,
+          "detected": 1
+        },
+        "torch_legacy": {
+          "total": 1,
+          "detected": 1
+        },
+        "torch_zip": {
+          "total": 1,
+          "detected": 1
+        },
+        "custom_object": {
+          "total": 1,
+          "detected": 1
+        },
+        "module_prefix": {
+          "total": 1,
+          "detected": 1
+        },
+        "missing_stub": {
+          "total": 1,
+          "detected": 1
+        }
+      }
+    },
+    "picklescan": {
+      "malicious": 38,
+      "benign": 35,
+      "detected": 22,
+      "detection_rate": 0.5789,
+      "false_positives": 0,
+      "fp_rate": 0.0,
+      "errors": 8,
+      "unsupported": 0,
+      "seconds_median": 0.1046,
+      "seconds_p95": 0.135,
+      "seconds_max": 0.1566
+    },
+    "fickling": {
+      "malicious": 38,
+      "benign": 35,
+      "detected": 24,
+      "detection_rate": 0.6316,
+      "false_positives": 25,
+      "fp_rate": 0.7143,
+      "errors": 22,
+      "unsupported": 0,
+      "seconds_median": 0.0764,
+      "seconds_p95": 0.0937,
+      "seconds_max": 0.0979
+    },
+    "modelscan": {
+      "malicious": 38,
+      "benign": 35,
+      "detected": 21,
+      "detection_rate": 0.5526,
+      "false_positives": 0,
+      "fp_rate": 0.0,
+      "errors": 0,
+      "unsupported": 24,
+      "seconds_median": 0.2023,
+      "seconds_p95": 0.2589,
+      "seconds_max": 0.2677
+    }
+  },
+  "entries": [
+    {
+      "file": "p_os_system.pkl",
+      "label": "malicious",
+      "category": "process",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.3,
+            "emulation": 553.9,
+            "total": 554.3
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: posix.system",
+            "[emulation] SUSPICIOUS: import outside the allowlist: posix.system",
+            "[emulation] MALICIOUS: process: posix.system"
+          ],
+          "seconds": 0.5542932230000588
+        },
+        "picklescan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.09165531200005717,
+          "output_tail": "p_os_system.pkl: dangerous import 'posix system' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.09083770200004437,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.24276756099970953,
+          "output_tail": "H: 0\n    - CRITICAL: 1\n\n--- Issues by Severity ---\n\n--- CRITICAL ---\n\nUnsafe operator found:\n  - Severity: CRITICAL\n  - Description: Use of unsafe operator 'system' from module 'posix'\n  - Source: p_os_system.pkl"
+        }
+      }
+    },
+    {
+      "file": "p_os_system_stack_global.pkl",
+      "label": "malicious",
+      "category": "process",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.3,
+            "emulation": 539.5,
+            "total": 539.9
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: os.system",
+            "[emulation] SUSPICIOUS: import outside the allowlist: os.system",
+            "[emulation] MALICIOUS: process: os.system"
+          ],
+          "seconds": 0.5399005799999941
+        },
+        "picklescan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.11686566200023663,
+          "output_tail": "p_os_system_stack_global.pkl: dangerous import 'os system' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.06808484800012593,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.17680794899979446,
+          "output_tail": " CRITICAL: 1\n\n--- Issues by Severity ---\n\n--- CRITICAL ---\n\nUnsafe operator found:\n  - Severity: CRITICAL\n  - Description: Use of unsafe operator 'system' from module 'os'\n  - Source: p_os_system_stack_global.pkl"
+        }
+      }
+    },
+    {
+      "file": "p_nt_system.pkl",
+      "label": "malicious",
+      "category": "process",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 597.5,
+            "total": 597.8
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: nt.system",
+            "[emulation] SUSPICIOUS: import outside the allowlist: nt.system",
+            "[emulation] MALICIOUS: process: nt.system"
+          ],
+          "seconds": 0.5978492310000547
+        },
+        "picklescan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.11516394199998103,
+          "output_tail": "p_nt_system.pkl: dangerous import 'nt system' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.0708595249998325,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.20231057499995586,
+          "output_tail": "HIGH: 0\n    - CRITICAL: 1\n\n--- Issues by Severity ---\n\n--- CRITICAL ---\n\nUnsafe operator found:\n  - Severity: CRITICAL\n  - Description: Use of unsafe operator 'system' from module 'nt'\n  - Source: p_nt_system.pkl"
+        }
+      }
+    },
+    {
+      "file": "p_subprocess_getoutput.pkl",
+      "label": "malicious",
+      "category": "process",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.3,
+            "emulation": 485.7,
+            "total": 486.0
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: subprocess.getoutput",
+            "[emulation] SUSPICIOUS: import outside the allowlist: subprocess.getoutput",
+            "[emulation] MALICIOUS: process: subprocess.getoutput"
+          ],
+          "seconds": 0.4860689189999903
+        },
+        "picklescan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.1076562059997741,
+          "output_tail": "p_subprocess_getoutput.pkl: dangerous import 'subprocess getoutput' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.08517415400001482,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.19640350100007709,
+          "output_tail": ": 1\n\n--- Issues by Severity ---\n\n--- CRITICAL ---\n\nUnsafe operator found:\n  - Severity: CRITICAL\n  - Description: Use of unsafe operator 'getoutput' from module 'subprocess'\n  - Source: p_subprocess_getoutput.pkl"
+        }
+      }
+    },
+    {
+      "file": "p_inst_opcode.pkl",
+      "label": "malicious",
+      "category": "process",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 527.1,
+            "total": 527.5
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: os.system",
+            "[emulation] SUSPICIOUS: import outside the allowlist: os.system",
+            "[emulation] MALICIOUS: process: os.system"
+          ],
+          "seconds": 0.5274881800000912
+        },
+        "picklescan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.1140421699997205,
+          "output_tail": "p_inst_opcode.pkl: dangerous import 'os system' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.09370853600012197,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.1738494310002352,
+          "output_tail": "GH: 0\n    - CRITICAL: 1\n\n--- Issues by Severity ---\n\n--- CRITICAL ---\n\nUnsafe operator found:\n  - Severity: CRITICAL\n  - Description: Use of unsafe operator 'system' from module 'os'\n  - Source: p_inst_opcode.pkl"
+        }
+      }
+    },
+    {
+      "file": "p_obj_opcode.pkl",
+      "label": "malicious",
+      "category": "process",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.3,
+            "emulation": 572.1,
+            "total": 572.5
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: posix.system",
+            "[emulation] SUSPICIOUS: import outside the allowlist: posix.system",
+            "[emulation] MALICIOUS: process: posix.system"
+          ],
+          "seconds": 0.5725364830000217
+        },
+        "picklescan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.12864982199971564,
+          "output_tail": "p_obj_opcode.pkl: dangerous import 'posix system' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.06677038799989532,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.19910859799983882,
+          "output_tail": ": 0\n    - CRITICAL: 1\n\n--- Issues by Severity ---\n\n--- CRITICAL ---\n\nUnsafe operator found:\n  - Severity: CRITICAL\n  - Description: Use of unsafe operator 'system' from module 'posix'\n  - Source: p_obj_opcode.pkl"
+        }
+      }
+    },
+    {
+      "file": "p_getattr_chain.pkl",
+      "label": "malicious",
+      "category": "process",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.3,
+            "emulation": 488.4,
+            "total": 488.8
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: builtins.getattr",
+            "[static] MALICIOUS: import of a known sink: builtins.__import__",
+            "[emulation] SUSPICIOUS: import outside the allowlist: builtins.getattr",
+            "[emulation] SUSPICIOUS: import outside the allowlist: builtins.__import__",
+            "[emulation] SUSPICIOUS: import: builtins.__import__"
+          ],
+          "seconds": 0.48885814799996297
+        },
+        "picklescan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.09326771800033384,
+          "output_tail": "p_getattr_chain.pkl: dangerous import 'builtins getattr' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 1\nDangerous globals: 1"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.08982347599976492,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.20088368300002912,
+          "output_tail": "5c14-9ffd-58f7a82cba9f/scratchpad/corpus/p_getattr_chain.pkl\n\nUnsafe operator found:\n  - Severity: CRITICAL\n  - Description: Use of unsafe operator 'getattr' from module 'builtins'\n  - Source: p_getattr_chain.pkl"
+        }
+      }
+    },
+    {
+      "file": "p_exec_nested.pkl",
+      "label": "malicious",
+      "category": "code_exec",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 508.8,
+            "total": 509.2
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: builtins.exec",
+            "[emulation] SUSPICIOUS: import outside the allowlist: builtins.exec",
+            "[emulation] MALICIOUS: code_exec: builtins.exec",
+            "[emulation] SUSPICIOUS: import: builtins.__import__",
+            "[emulation] MALICIOUS: process: os.system"
+          ],
+          "seconds": 0.5091869890002272
+        },
+        "picklescan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.13184081899999,
+          "output_tail": "p_exec_nested.pkl: dangerous import 'builtins exec' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.06747793499971522,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.2588698870004009,
+          "output_tail": "0\n    - CRITICAL: 1\n\n--- Issues by Severity ---\n\n--- CRITICAL ---\n\nUnsafe operator found:\n  - Severity: CRITICAL\n  - Description: Use of unsafe operator 'exec' from module 'builtins'\n  - Source: p_exec_nested.pkl"
+        }
+      }
+    },
+    {
+      "file": "p_eval.pkl",
+      "label": "malicious",
+      "category": "code_exec",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.3,
+            "emulation": 602.8,
+            "total": 603.3
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: builtins.eval",
+            "[emulation] SUSPICIOUS: import outside the allowlist: builtins.eval",
+            "[emulation] MALICIOUS: code_exec: builtins.eval",
+            "[emulation] SUSPICIOUS: import: builtins.__import__",
+            "[emulation] MALICIOUS: process: os.system"
+          ],
+          "seconds": 0.6033647790000032
+        },
+        "picklescan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.1258017249997465,
+          "output_tail": "p_eval.pkl: dangerous import 'builtins eval' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.07947399000022415,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.17563538399963363,
+          "output_tail": " HIGH: 0\n    - CRITICAL: 1\n\n--- Issues by Severity ---\n\n--- CRITICAL ---\n\nUnsafe operator found:\n  - Severity: CRITICAL\n  - Description: Use of unsafe operator 'eval' from module 'builtins'\n  - Source: p_eval.pkl"
+        }
+      }
+    },
+    {
+      "file": "p_runpy.pkl",
+      "label": "malicious",
+      "category": "code_exec",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 539.9,
+            "total": 540.2
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: runpy.run_path",
+            "[emulation] SUSPICIOUS: import outside the allowlist: runpy.run_path",
+            "[emulation] MALICIOUS: code_exec: runpy.run_path"
+          ],
+          "seconds": 0.5402243730000009
+        },
+        "picklescan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.1189925570001833,
+          "output_tail": "p_runpy.pkl: dangerous import 'runpy run_path' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.0971925070002726,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.2340977069998189,
+          "output_tail": "IGH: 0\n    - CRITICAL: 1\n\n--- Issues by Severity ---\n\n--- CRITICAL ---\n\nUnsafe operator found:\n  - Severity: CRITICAL\n  - Description: Use of unsafe operator 'run_path' from module 'runpy'\n  - Source: p_runpy.pkl"
+        }
+      }
+    },
+    {
+      "file": "p_importlib.pkl",
+      "label": "malicious",
+      "category": "code_exec",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.3,
+            "emulation": 539.1,
+            "total": 539.5
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: importlib.import_module",
+            "[emulation] SUSPICIOUS: import outside the allowlist: importlib.import_module",
+            "[emulation] SUSPICIOUS: import: builtins.__import__"
+          ],
+          "seconds": 0.539577983000072
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.0968314259998806,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 1\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.07642047099989213,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.18034749499975078,
+          "output_tail": "No settings file detected at /home/user/Sandbox/modelscan-settings.toml. Using defaults. \n\nScanning p_importlib.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
+        }
+      }
+    },
+    {
+      "file": "p_open_write.pkl",
+      "label": "malicious",
+      "category": "file_write",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 461.0,
+            "total": 461.4
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: builtins.open",
+            "[emulation] SUSPICIOUS: import outside the allowlist: builtins.open",
+            "[emulation] MALICIOUS: file_write: builtins.open"
+          ],
+          "seconds": 0.46141291699996145
+        },
+        "picklescan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.09019693900017955,
+          "output_tail": "p_open_write.pkl: dangerous import 'builtins open' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.07474897300016892,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.20277838400033943,
+          "output_tail": " 0\n    - CRITICAL: 1\n\n--- Issues by Severity ---\n\n--- CRITICAL ---\n\nUnsafe operator found:\n  - Severity: CRITICAL\n  - Description: Use of unsafe operator 'open' from module 'builtins'\n  - Source: p_open_write.pkl"
+        }
+      }
+    },
+    {
+      "file": "p_shutil_rmtree.pkl",
+      "label": "malicious",
+      "category": "file_write",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.3,
+            "emulation": 479.3,
+            "total": 479.8
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: shutil.rmtree",
+            "[emulation] SUSPICIOUS: import outside the allowlist: shutil.rmtree",
+            "[emulation] MALICIOUS: file_write: shutil.rmtree"
+          ],
+          "seconds": 0.4797945750001418
+        },
+        "picklescan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.12242042199977732,
+          "output_tail": "p_shutil_rmtree.pkl: dangerous import 'shutil rmtree' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.09785288299963213,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.2661990199999309,
+          "output_tail": "    - CRITICAL: 1\n\n--- Issues by Severity ---\n\n--- CRITICAL ---\n\nUnsafe operator found:\n  - Severity: CRITICAL\n  - Description: Use of unsafe operator 'rmtree' from module 'shutil'\n  - Source: p_shutil_rmtree.pkl"
+        }
+      }
+    },
+    {
+      "file": "p_socket_loopback.pkl",
+      "label": "malicious",
+      "category": "network",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.3,
+            "emulation": 565.1,
+            "total": 565.6
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: socket.create_connection",
+            "[emulation] SUSPICIOUS: import outside the allowlist: socket.create_connection",
+            "[emulation] MALICIOUS: network: socket.create_connection"
+          ],
+          "seconds": 0.5655913740001779
+        },
+        "picklescan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.13503480500003207,
+          "output_tail": "p_socket_loopback.pkl: dangerous import 'socket create_connection' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.08171460300036415,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.19339307200016265,
+          "output_tail": "L: 1\n\n--- Issues by Severity ---\n\n--- CRITICAL ---\n\nUnsafe operator found:\n  - Severity: CRITICAL\n  - Description: Use of unsafe operator 'create_connection' from module 'socket'\n  - Source: p_socket_loopback.pkl"
+        }
+      }
+    },
+    {
+      "file": "p_webbrowser.pkl",
+      "label": "malicious",
+      "category": "network",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 538.7,
+            "total": 539.0
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: webbrowser.open",
+            "[emulation] SUSPICIOUS: import outside the allowlist: webbrowser.open",
+            "[emulation] MALICIOUS: network: webbrowser.open"
+          ],
+          "seconds": 0.5390031980000458
+        },
+        "picklescan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.11913969900024313,
+          "output_tail": "p_webbrowser.pkl: dangerous import 'webbrowser open' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.07419795199984947,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.20136075799973696,
+          "output_tail": " HIGH: 1\n    - CRITICAL: 0\n\n--- Issues by Severity ---\n\n--- HIGH ---\n\nUnsafe operator found:\n  - Severity: HIGH\n  - Description: Use of unsafe operator 'open' from module 'webbrowser'\n  - Source: p_webbrowser.pkl"
+        }
+      }
+    },
+    {
+      "file": "p_ctypes.pkl",
+      "label": "malicious",
+      "category": "native",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 554.7,
+            "total": 555.0
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: ctypes.CDLL",
+            "[emulation] SUSPICIOUS: import outside the allowlist: ctypes.CDLL",
+            "[emulation] MALICIOUS: native: ctypes.CDLL"
+          ],
+          "seconds": 0.5550102130000596
+        },
+        "picklescan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.1566059699998732,
+          "output_tail": "p_ctypes.pkl: dangerous import 'ctypes CDLL' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.09159473699992304,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.22770363199970234,
+          "output_tail": "No settings file detected at /home/user/Sandbox/modelscan-settings.toml. Using defaults. \n\nScanning p_ctypes.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
+        }
+      }
+    },
+    {
+      "file": "p_numpy_runstring.pkl",
+      "label": "malicious",
+      "category": "code_exec",
+      "expected": "SUSPICIOUS",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 502.4,
+            "total": 502.8
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: import outside the allowlist: numpy.testing._private.utils.runstring",
+            "[emulation] SUSPICIOUS: import outside the allowlist: numpy.testing._private.utils.runstring",
+            "[emulation] SUSPICIOUS: unexpected_call: numpy.testing._private.utils.runstring"
+          ],
+          "seconds": 0.5028380449998622
+        },
+        "picklescan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.10478008699965358,
+          "output_tail": "p_numpy_runstring.pkl: dangerous import 'numpy.testing._private.utils runstring' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.0770742039999277,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.1797048889998223,
+          "output_tail": " settings file detected at /home/user/Sandbox/modelscan-settings.toml. Using defaults. \n\nScanning p_numpy_runstring.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
+        }
+      }
+    },
+    {
+      "file": "p_unknown_global.pkl",
+      "label": "malicious",
+      "category": "unknown_global",
+      "expected": "SUSPICIOUS",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 568.3,
+            "total": 568.6
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: import outside the allowlist: safeloadai_marker_pkg.Thing",
+            "[emulation] SUSPICIOUS: import outside the allowlist: safeloadai_marker_pkg.Thing"
+          ],
+          "seconds": 0.5686514289996012
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.12140794500010088,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 1\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.08655432100022153,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.2079002909999872,
+          "output_tail": "o settings file detected at /home/user/Sandbox/modelscan-settings.toml. Using defaults. \n\nScanning p_unknown_global.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
+        }
+      }
+    },
+    {
+      "file": "p_second_pickle.pkl",
+      "label": "malicious",
+      "category": "multi_pickle",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 449.1,
+            "total": 449.4
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: posix.system",
+            "[emulation] SUSPICIOUS: import outside the allowlist: posix.system",
+            "[emulation] MALICIOUS: process: posix.system"
+          ],
+          "seconds": 0.44946067299997594
+        },
+        "picklescan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.0920481309999559,
+          "output_tail": "p_second_pickle.pkl: dangerous import 'posix system' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.06994964900013656,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.23143996900034836,
+          "output_tail": "\n    - CRITICAL: 1\n\n--- Issues by Severity ---\n\n--- CRITICAL ---\n\nUnsafe operator found:\n  - Severity: CRITICAL\n  - Description: Use of unsafe operator 'system' from module 'posix'\n  - Source: p_second_pickle.pkl"
+        }
+      }
+    },
+    {
+      "file": "p_time_gated.pkl",
+      "label": "malicious",
+      "category": "evasion",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 504.3,
+            "total": 504.6
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: builtins.exec",
+            "[emulation] SUSPICIOUS: import outside the allowlist: builtins.exec",
+            "[emulation] MALICIOUS: code_exec: builtins.exec",
+            "[emulation] SUSPICIOUS: import: builtins.__import__",
+            "[emulation] SUSPICIOUS: unexpected_call: time.sleep"
+          ],
+          "seconds": 0.5046798460002719
+        },
+        "picklescan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.10063980399991124,
+          "output_tail": "p_time_gated.pkl: dangerous import 'builtins exec' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.06387533799988887,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.1934149969997634,
+          "output_tail": " 0\n    - CRITICAL: 1\n\n--- Issues by Severity ---\n\n--- CRITICAL ---\n\nUnsafe operator found:\n  - Severity: CRITICAL\n  - Description: Use of unsafe operator 'exec' from module 'builtins'\n  - Source: p_time_gated.pkl"
+        }
+      }
+    },
+    {
+      "file": "p_env_probe.pkl",
+      "label": "malicious",
+      "category": "evasion",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.3,
+            "emulation": 529.1,
+            "total": 529.5
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: builtins.exec",
+            "[emulation] SUSPICIOUS: import outside the allowlist: builtins.exec",
+            "[emulation] MALICIOUS: code_exec: builtins.exec",
+            "[emulation] SUSPICIOUS: import: builtins.__import__",
+            "[emulation] SUSPICIOUS: environment_probe: os.environ.get"
+          ],
+          "seconds": 0.5295086179999089
+        },
+        "picklescan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.10876558300014949,
+          "output_tail": "p_env_probe.pkl: dangerous import 'builtins exec' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.06653590799987796,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.19585202500002197,
+          "output_tail": ": 0\n    - CRITICAL: 1\n\n--- Issues by Severity ---\n\n--- CRITICAL ---\n\nUnsafe operator found:\n  - Severity: CRITICAL\n  - Description: Use of unsafe operator 'exec' from module 'builtins'\n  - Source: p_env_probe.pkl"
+        }
+      }
+    },
+    {
+      "file": "p_sandbox_probe.pkl",
+      "label": "malicious",
+      "category": "evasion",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.3,
+            "emulation": 464.8,
+            "total": 465.2
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: builtins.exec",
+            "[emulation] SUSPICIOUS: import outside the allowlist: builtins.exec",
+            "[emulation] MALICIOUS: code_exec: builtins.exec",
+            "[emulation] SUSPICIOUS: import: builtins.__import__",
+            "[emulation] SUSPICIOUS: environment_probe: os.path.exists"
+          ],
+          "seconds": 0.465269932999945
+        },
+        "picklescan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.0909401879998768,
+          "output_tail": "p_sandbox_probe.pkl: dangerous import 'builtins exec' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.06951019999996788,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.1931624130002092,
+          "output_tail": "    - CRITICAL: 1\n\n--- Issues by Severity ---\n\n--- CRITICAL ---\n\nUnsafe operator found:\n  - Severity: CRITICAL\n  - Description: Use of unsafe operator 'exec' from module 'builtins'\n  - Source: p_sandbox_probe.pkl"
+        }
+      }
+    },
+    {
+      "file": "p_forge_clean_log.pkl",
+      "label": "malicious",
+      "category": "evidence_forgery",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.3,
+            "emulation": 507.3,
+            "total": 507.6
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: builtins.exec",
+            "[emulation] SUSPICIOUS: import outside the allowlist: builtins.exec",
+            "[emulation] MALICIOUS: code_exec: builtins.exec",
+            "[emulation] SUSPICIOUS: import: builtins.__import__",
+            "[emulation] MALICIOUS: file_write: os.write"
+          ],
+          "seconds": 0.5076456460001282
+        },
+        "picklescan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.13359507499990286,
+          "output_tail": "p_forge_clean_log.pkl: dangerous import 'builtins exec' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.06845751700029723,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.24704441400035648,
+          "output_tail": "  - CRITICAL: 1\n\n--- Issues by Severity ---\n\n--- CRITICAL ---\n\nUnsafe operator found:\n  - Severity: CRITICAL\n  - Description: Use of unsafe operator 'exec' from module 'builtins'\n  - Source: p_forge_clean_log.pkl"
+        }
+      }
+    },
+    {
+      "file": "p_torch_legacy.pkl",
+      "label": "malicious",
+      "category": "torch_legacy",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.5,
+            "emulation": 444.5,
+            "total": 445.1
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: posix.system",
+            "[emulation] SUSPICIOUS: import outside the allowlist: posix.system",
+            "[emulation] MALICIOUS: process: posix.system"
+          ],
+          "seconds": 0.44514097999990554
+        },
+        "picklescan": {
+          "outcome": "error",
+          "exit_code": 2,
+          "seconds": 0.10085603499965146,
+          "output_tail": " at position 65, opcode b'\\x00' unknown\np_torch_legacy.pkl: dangerous import 'posix system' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.08521515899974474,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.21071128999983557,
+          "output_tail": "0\n    - CRITICAL: 1\n\n--- Issues by Severity ---\n\n--- CRITICAL ---\n\nUnsafe operator found:\n  - Severity: CRITICAL\n  - Description: Use of unsafe operator 'system' from module 'posix'\n  - Source: p_torch_legacy.pkl"
+        }
+      }
+    },
+    {
+      "file": "p_torch_zip.pt",
+      "label": "malicious",
+      "category": "torch_zip",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 1.2,
+            "emulation": 442.3,
+            "total": 443.6
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: posix.system",
+            "[emulation] SUSPICIOUS: import outside the allowlist: posix.system",
+            "[emulation] MALICIOUS: process: posix.system"
+          ],
+          "seconds": 0.4436715339998045
+        },
+        "picklescan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.09182259199997134,
+          "output_tail": "p_torch_zip.pt:archive/data.pkl: dangerous import 'posix system' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
+        },
+        "fickling": {
+          "outcome": "error",
+          "exit_code": 2,
+          "seconds": 0.07466495200014833,
+          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
+        },
+        "modelscan": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.26768687200001295,
+          "output_tail": "erity: CRITICAL\n  - Description: Use of unsafe operator 'system' from module 'posix'\n  - Source: p_torch_zip.pt:archive/data.pkl\n\n--- Skipped --- \n\nTotal skipped: 1 - run with --show-skipped to see the full list."
+        }
+      }
+    },
+    {
+      "file": "b_builtins_p0.pkl",
+      "label": "benign",
+      "category": "benign",
+      "expected": "CLEAN",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 1.0,
+            "emulation": 574.2,
+            "total": 575.2
+          },
+          "reasons": [],
+          "seconds": 0.5752694759999031
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.08910924500014517,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 2\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "error",
+          "exit_code": 1,
+          "seconds": 0.0681460339997102,
+          "output_tail": "\n  File \"<venv>/lib/python3.12/site-packages/fickling/fickle.py\", line 387, in __new__\n    raise NotImplementedError(f\"TODO: Add support for Opcode {info.name}\")\nNotImplementedError: TODO: Add support for Opcode FLOAT"
+        },
+        "modelscan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.1749064690002342,
+          "output_tail": "No settings file detected at /home/user/Sandbox/modelscan-settings.toml. Using defaults. \n\nScanning b_builtins_p0.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
+        }
+      }
+    },
+    {
+      "file": "b_builtins_p1.pkl",
+      "label": "benign",
+      "category": "benign",
+      "expected": "CLEAN",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.7,
+            "emulation": 466.3,
+            "total": 467.1
+          },
+          "reasons": [],
+          "seconds": 0.4671271679999336
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.09324591599988707,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 2\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.08695426199983558,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.19796614999995654,
+          "output_tail": "No settings file detected at /home/user/Sandbox/modelscan-settings.toml. Using defaults. \n\nScanning b_builtins_p1.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
+        }
+      }
+    },
+    {
+      "file": "b_builtins_p2.pkl",
+      "label": "benign",
+      "category": "benign",
+      "expected": "CLEAN",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.5,
+            "emulation": 448.9,
+            "total": 449.6
+          },
+          "reasons": [],
+          "seconds": 0.44966406999992614
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.09045947599997817,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 2\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.06565291700007947,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.21824014699996042,
+          "output_tail": "No settings file detected at /home/user/Sandbox/modelscan-settings.toml. Using defaults. \n\nScanning b_builtins_p2.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
+        }
+      }
+    },
+    {
+      "file": "b_builtins_p3.pkl",
+      "label": "benign",
+      "category": "benign",
+      "expected": "CLEAN",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.7,
+            "emulation": 478.3,
+            "total": 479.1
+          },
+          "reasons": [],
+          "seconds": 0.4791299210000943
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.12339280900005178,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 1\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.07490503900044132,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.2505948369998805,
+          "output_tail": "No settings file detected at /home/user/Sandbox/modelscan-settings.toml. Using defaults. \n\nScanning b_builtins_p3.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
+        }
+      }
+    },
+    {
+      "file": "b_builtins_p4.pkl",
+      "label": "benign",
+      "category": "benign",
+      "expected": "CLEAN",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.6,
+            "emulation": 626.0,
+            "total": 626.8
+          },
+          "reasons": [],
+          "seconds": 0.6268227380001008
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.13326518000030774,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.06943402999968384,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.23367537800004357,
+          "output_tail": "No settings file detected at /home/user/Sandbox/modelscan-settings.toml. Using defaults. \n\nScanning b_builtins_p4.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
+        }
+      }
+    },
+    {
+      "file": "b_builtins_p5.pkl",
+      "label": "benign",
+      "category": "benign",
+      "expected": "CLEAN",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.6,
+            "emulation": 478.9,
+            "total": 479.7
+          },
+          "reasons": [],
+          "seconds": 0.47970249099989815
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.12078616400003739,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.08865239499982636,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.22694240200007698,
+          "output_tail": "No settings file detected at /home/user/Sandbox/modelscan-settings.toml. Using defaults. \n\nScanning b_builtins_p5.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
+        }
+      }
+    },
+    {
+      "file": "b_two_pickles.pkl",
+      "label": "benign",
+      "category": "benign",
+      "expected": "CLEAN",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 464.8,
+            "total": 465.1
+          },
+          "reasons": [],
+          "seconds": 0.46515755500013256
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.09492227800001274,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.07852434899996297,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.19301759300014965,
+          "output_tail": "No settings file detected at /home/user/Sandbox/modelscan-settings.toml. Using defaults. \n\nScanning b_two_pickles.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
+        }
+      }
+    },
+    {
+      "file": "b_keras_dense.keras",
+      "label": "benign",
+      "category": "benign",
+      "expected": "CLEAN",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.5,
+            "emulation": 0.0,
+            "total": 0.6
+          },
+          "reasons": [],
+          "seconds": 0.0006024200001775171
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.11323515200001566,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "error",
+          "exit_code": 1,
+          "seconds": 0.09314909000022453,
+          "output_tail": "aude-0/-home-user-Sandbox/0b766ac5-1dfd-5c14-9ffd-58f7a82cba9f/scratchpad/tools312/lib/python3.12/site-packages/fickling/fickle.py\", line 391, in run\n    raise NotImplementedError(f\"TODO: Add support for Pickle opcode {self.info.name}\")\nNotImplementedError: TODO: Add support for Pickle opcode PERSID"
+        },
+        "modelscan": {
+          "outcome": "unsupported",
+          "exit_code": 3,
+          "seconds": 0.22110121200012145,
+          "output_tail": "1:\nThe following error was raised during a keras scan: \nTo use modelscan.scanners.KerasLambdaDetectScan, please install modelscan with \ntensorflow extras. `pip install 'modelscan[ tensorflow ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
+        }
+      }
+    },
+    {
+      "file": "k_custom_object.keras",
+      "label": "malicious",
+      "category": "custom_object",
+      "expected": "SUSPICIOUS",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.4,
+            "emulation": 0.0,
+            "total": 0.5
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: config.layers[1]: object outside the allowlist safeloadai_marker_pkg.layers.Backdoor",
+            "[static] SUSPICIOUS: config.layers[1]: object outside the allowlist Custom>Backdoor.registered_name"
+          ],
+          "seconds": 0.0005582589997175091
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.11053501400010646,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "error",
+          "exit_code": 2,
+          "seconds": 0.07800718399994366,
+          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
+        },
+        "modelscan": {
+          "outcome": "unsupported",
+          "exit_code": 3,
+          "seconds": 0.2619584369999757,
+          "output_tail": "1:\nThe following error was raised during a keras scan: \nTo use modelscan.scanners.KerasLambdaDetectScan, please install modelscan with \ntensorflow extras. `pip install 'modelscan[ tensorflow ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
+        }
+      }
+    },
+    {
+      "file": "k_function_os_system.keras",
+      "label": "malicious",
+      "category": "process",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.6,
+            "emulation": 0.0,
+            "total": 0.7
+          },
+          "reasons": [
+            "[static] MALICIOUS: config.layers[1].config.activation: known sink posix.system"
+          ],
+          "seconds": 0.0007988520001163124
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.09248997799977587,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "error",
+          "exit_code": 2,
+          "seconds": 0.07620800199993027,
+          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
+        },
+        "modelscan": {
+          "outcome": "unsupported",
+          "exit_code": 3,
+          "seconds": 0.2271126059999915,
+          "output_tail": "1:\nThe following error was raised during a keras scan: \nTo use modelscan.scanners.KerasLambdaDetectScan, please install modelscan with \ntensorflow extras. `pip install 'modelscan[ tensorflow ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
+        }
+      }
+    },
+    {
+      "file": "k_tfoplambda_write_file.keras",
+      "label": "malicious",
+      "category": "file_write",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.4,
+            "emulation": 0.0,
+            "total": 0.5
+          },
+          "reasons": [
+            "[static] MALICIOUS: config.layers[1]: known sink tf.io.write_file",
+            "[static] MALICIOUS: config.layers[1]: TFOpLambda layer carries executable Python"
+          ],
+          "seconds": 0.0005457789998217777
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.135478723000233,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "error",
+          "exit_code": 2,
+          "seconds": 0.06857463200003622,
+          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
+        },
+        "modelscan": {
+          "outcome": "unsupported",
+          "exit_code": 3,
+          "seconds": 0.19696450099991125,
+          "output_tail": "1:\nThe following error was raised during a keras scan: \nTo use modelscan.scanners.KerasLambdaDetectScan, please install modelscan with \ntensorflow extras. `pip install 'modelscan[ tensorflow ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
+        }
+      }
+    },
+    {
+      "file": "k_prefix_module.keras",
+      "label": "malicious",
+      "category": "module_prefix",
+      "expected": "SUSPICIOUS",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.5,
+            "emulation": 0.0,
+            "total": 0.6
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: config.layers[1]: object outside the allowlist kerasx.layers.Dense"
+          ],
+          "seconds": 0.0006092220000937232
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.13552551299972038,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "error",
+          "exit_code": 2,
+          "seconds": 0.08135959199989884,
+          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
+        },
+        "modelscan": {
+          "outcome": "unsupported",
+          "exit_code": 3,
+          "seconds": 0.19104681199996776,
+          "output_tail": "1:\nThe following error was raised during a keras scan: \nTo use modelscan.scanners.KerasLambdaDetectScan, please install modelscan with \ntensorflow extras. `pip install 'modelscan[ tensorflow ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
+        }
+      }
+    },
+    {
+      "file": "k_lambda_os_system.keras",
+      "label": "malicious",
+      "category": "process",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.8,
+            "emulation": 559.3,
+            "total": 560.2
+          },
+          "reasons": [
+            "[static] MALICIOUS: config.layers[1]: Lambda layer with marshalled bytecode; sink names in bytecode: __import__, os, system",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.__import__",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.os",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.system",
+            "[emulation] SUSPICIOUS: anomaly: introspection names in Lambda"
+          ],
+          "seconds": 0.5602223600003526
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.10603373300000385,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "error",
+          "exit_code": 2,
+          "seconds": 0.06746080699986123,
+          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
+        },
+        "modelscan": {
+          "outcome": "unsupported",
+          "exit_code": 3,
+          "seconds": 0.1917135040002904,
+          "output_tail": "1:\nThe following error was raised during a keras scan: \nTo use modelscan.scanners.KerasLambdaDetectScan, please install modelscan with \ntensorflow extras. `pip install 'modelscan[ tensorflow ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
+        }
+      }
+    },
+    {
+      "file": "k_lambda_write_file.keras",
+      "label": "malicious",
+      "category": "file_write",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 1.2,
+            "emulation": 589.7,
+            "total": 591.0
+          },
+          "reasons": [
+            "[static] MALICIOUS: config.layers[1]: Lambda layer with marshalled bytecode; sink names in bytecode: io, write_file",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.io",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.write_file",
+            "[emulation] MALICIOUS: file_write: tf.io.write_file"
+          ],
+          "seconds": 0.5910577099998591
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.12541650399998616,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "error",
+          "exit_code": 2,
+          "seconds": 0.09178245299972332,
+          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
+        },
+        "modelscan": {
+          "outcome": "unsupported",
+          "exit_code": 3,
+          "seconds": 0.19936827400033508,
+          "output_tail": "1:\nThe following error was raised during a keras scan: \nTo use modelscan.scanners.KerasLambdaDetectScan, please install modelscan with \ntensorflow extras. `pip install 'modelscan[ tensorflow ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
+        }
+      }
+    },
+    {
+      "file": "k_lambda_py_function.keras",
+      "label": "malicious",
+      "category": "code_exec",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.8,
+            "emulation": 481.9,
+            "total": 482.7
+          },
+          "reasons": [
+            "[static] MALICIOUS: config.layers[1]: Lambda layer with marshalled bytecode; sink names in bytecode: py_function",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.py_function",
+            "[emulation] MALICIOUS: code_exec: tf.py_function"
+          ],
+          "seconds": 0.4827771400000529
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.12425526999959402,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "error",
+          "exit_code": 2,
+          "seconds": 0.0712451859999419,
+          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
+        },
+        "modelscan": {
+          "outcome": "unsupported",
+          "exit_code": 3,
+          "seconds": 0.24622522899971955,
+          "output_tail": "1:\nThe following error was raised during a keras scan: \nTo use modelscan.scanners.KerasLambdaDetectScan, please install modelscan with \ntensorflow extras. `pip install 'modelscan[ tensorflow ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
+        }
+      }
+    },
+    {
+      "file": "k_lambda_getattr_strings.keras",
+      "label": "malicious",
+      "category": "process",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 1.1,
+            "emulation": 505.4,
+            "total": 506.6
+          },
+          "reasons": [
+            "[static] MALICIOUS: config.layers[1]: Lambda layer with marshalled bytecode; sink names in bytecode: __import__, getattr, os, system",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.__import__",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.getattr",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.os",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.system"
+          ],
+          "seconds": 0.5066321600002084
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.10319176099983451,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "error",
+          "exit_code": 2,
+          "seconds": 0.08029274899990924,
+          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
+        },
+        "modelscan": {
+          "outcome": "unsupported",
+          "exit_code": 3,
+          "seconds": 0.20038413099973695,
+          "output_tail": "1:\nThe following error was raised during a keras scan: \nTo use modelscan.scanners.KerasLambdaDetectScan, please install modelscan with \ntensorflow extras. `pip install 'modelscan[ tensorflow ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
+        }
+      }
+    },
+    {
+      "file": "k_lambda_env_probe.keras",
+      "label": "malicious",
+      "category": "evasion",
+      "expected": "SUSPICIOUS",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 1.1,
+            "emulation": 540.1,
+            "total": 541.3
+          },
+          "reasons": [
+            "[static] MALICIOUS: config.layers[1]: Lambda layer with marshalled bytecode; sink names in bytecode: __import__, environ, os",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.__import__",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.environ",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.os",
+            "[emulation] SUSPICIOUS: anomaly: introspection names in Lambda"
+          ],
+          "seconds": 0.5413094660002571
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.10288897600003111,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "error",
+          "exit_code": 2,
+          "seconds": 0.07447205099970233,
+          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
+        },
+        "modelscan": {
+          "outcome": "unsupported",
+          "exit_code": 3,
+          "seconds": 0.19786226399992302,
+          "output_tail": "1:\nThe following error was raised during a keras scan: \nTo use modelscan.scanners.KerasLambdaDetectScan, please install modelscan with \ntensorflow extras. `pip install 'modelscan[ tensorflow ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
+        }
+      }
+    },
+    {
+      "file": "k_lambda_weight_gated.keras",
+      "label": "malicious",
+      "category": "evasion",
+      "expected": "SUSPICIOUS",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.8,
+            "emulation": 487.9,
+            "total": 488.8
+          },
+          "reasons": [
+            "[static] MALICIOUS: config.layers[1]: Lambda layer with marshalled bytecode; sink names in bytecode: __import__, os, system",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.__import__",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.os",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.system",
+            "[emulation] SUSPICIOUS: anomaly: introspection names in Lambda"
+          ],
+          "seconds": 0.4888267649998852
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.08995892300026753,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "error",
+          "exit_code": 2,
+          "seconds": 0.06360862899964559,
+          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
+        },
+        "modelscan": {
+          "outcome": "unsupported",
+          "exit_code": 3,
+          "seconds": 0.18609580600013942,
+          "output_tail": "1:\nThe following error was raised during a keras scan: \nTo use modelscan.scanners.KerasLambdaDetectScan, please install modelscan with \ntensorflow extras. `pip install 'modelscan[ tensorflow ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
+        }
+      }
+    },
+    {
+      "file": "k_lambda_introspection.keras",
+      "label": "malicious",
+      "category": "evasion",
+      "expected": "SUSPICIOUS",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 1.1,
+            "emulation": 563.4,
+            "total": 564.6
+          },
+          "reasons": [
+            "[static] MALICIOUS: config.layers[1]: Lambda layer with marshalled bytecode; sink names in bytecode: __subclasses__",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.__subclasses__",
+            "[emulation] SUSPICIOUS: anomaly: introspection names in Lambda"
+          ],
+          "seconds": 0.5646725510000579
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.12459498399994118,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "error",
+          "exit_code": 2,
+          "seconds": 0.08558757699984199,
+          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
+        },
+        "modelscan": {
+          "outcome": "unsupported",
+          "exit_code": 3,
+          "seconds": 0.24324311399959697,
+          "output_tail": "1:\nThe following error was raised during a keras scan: \nTo use modelscan.scanners.KerasLambdaDetectScan, please install modelscan with \ntensorflow extras. `pip install 'modelscan[ tensorflow ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
+        }
+      }
+    },
+    {
+      "file": "k_lambda_unknown_global.keras",
+      "label": "malicious",
+      "category": "missing_stub",
+      "expected": "SUSPICIOUS",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.8,
+            "emulation": 514.9,
+            "total": 515.8
+          },
+          "reasons": [
+            "[emulation] SUSPICIOUS: anomaly: missing stub for global",
+            "[emulation] SUSPICIOUS: unexpected_call: helper_not_defined"
+          ],
+          "seconds": 0.5158546229999956
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.111559319999742,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "error",
+          "exit_code": 2,
+          "seconds": 0.08875122500012367,
+          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
+        },
+        "modelscan": {
+          "outcome": "unsupported",
+          "exit_code": 3,
+          "seconds": 0.19017804600025556,
+          "output_tail": "1:\nThe following error was raised during a keras scan: \nTo use modelscan.scanners.KerasLambdaDetectScan, please install modelscan with \ntensorflow extras. `pip install 'modelscan[ tensorflow ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
+        }
+      }
+    },
+    {
+      "file": "b_lambda_scale.keras",
+      "label": "benign",
+      "category": "benign",
+      "expected": "CLEAN",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.8,
+            "emulation": 508.4,
+            "total": 509.2
+          },
+          "reasons": [],
+          "seconds": 0.5092963209999652
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.11234933900004762,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "error",
+          "exit_code": 2,
+          "seconds": 0.06757431699998051,
+          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
+        },
+        "modelscan": {
+          "outcome": "unsupported",
+          "exit_code": 3,
+          "seconds": 0.21754117099999348,
+          "output_tail": "1:\nThe following error was raised during a keras scan: \nTo use modelscan.scanners.KerasLambdaDetectScan, please install modelscan with \ntensorflow extras. `pip install 'modelscan[ tensorflow ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
+        }
+      }
+    },
+    {
+      "file": "b_lambda_relu.keras",
+      "label": "benign",
+      "category": "benign",
+      "expected": "CLEAN",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.8,
+            "emulation": 485.9,
+            "total": 486.8
+          },
+          "reasons": [],
+          "seconds": 0.48687778800012893
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.08817361199999141,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "error",
+          "exit_code": 2,
+          "seconds": 0.062242703000265465,
+          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
+        },
+        "modelscan": {
+          "outcome": "unsupported",
+          "exit_code": 3,
+          "seconds": 0.2486416309998276,
+          "output_tail": "1:\nThe following error was raised during a keras scan: \nTo use modelscan.scanners.KerasLambdaDetectScan, please install modelscan with \ntensorflow extras. `pip install 'modelscan[ tensorflow ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
+        }
+      }
+    },
+    {
+      "file": "k_lambda_closure_cmd.keras",
+      "label": "malicious",
+      "category": "process",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 1.0,
+            "emulation": 634.0,
+            "total": 635.2
+          },
+          "reasons": [
+            "[static] MALICIOUS: config.layers[1]: Lambda layer with marshalled bytecode; sink names in bytecode: __import__, os, system",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.__import__",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.os",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.system",
+            "[emulation] SUSPICIOUS: anomaly: introspection names in Lambda"
+          ],
+          "seconds": 0.6351922079998076
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.12445781199994599,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "error",
+          "exit_code": 2,
+          "seconds": 0.08507347400018261,
+          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
+        },
+        "modelscan": {
+          "outcome": "unsupported",
+          "exit_code": 3,
+          "seconds": 0.22603506600034962,
+          "output_tail": "1:\nThe following error was raised during a keras scan: \nTo use modelscan.scanners.KerasLambdaDetectScan, please install modelscan with \ntensorflow extras. `pip install 'modelscan[ tensorflow ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
+        }
+      }
+    },
+    {
+      "file": "clean_model.keras",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign-local",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.6,
+            "emulation": 0.0,
+            "total": 1.3
+          },
+          "reasons": [],
+          "seconds": 0.0013562859999183274
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.09857922699984556,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "error",
+          "exit_code": 2,
+          "seconds": 0.0784459000001334,
+          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
+        },
+        "modelscan": {
+          "outcome": "unsupported",
+          "exit_code": 3,
+          "seconds": 0.2045308069996281,
+          "output_tail": "sing pip.\n\nError 2:\nThe following error was raised during a hdf5 scan: \nTo use modelscan.scanners.H5LambdaDetectScan, please install modelscan with h5py\nextras. `pip install 'modelscan[ h5py ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
+        }
+      }
+    },
+    {
+      "file": "clean_model.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign-local",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 2.5,
+            "emulation": 508.5,
+            "total": 511.1
+          },
+          "reasons": [],
+          "seconds": 0.5111346100002265
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.09223746499992558,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.07323835099987264,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.23209292599995024,
+          "output_tail": " settings file detected at /home/user/Sandbox/modelscan-settings.toml. Using defaults. \n\nScanning clean_model.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
+        }
+      }
+    },
+    {
+      "file": "np_array_f32_p2.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign-local",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.7,
+            "emulation": 546.1,
+            "total": 547.0
+          },
+          "reasons": [],
+          "seconds": 0.5470148899999003
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.12258931800033679,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 1\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.0725803770001221,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.2394215310000618,
+          "output_tail": "tings file detected at /home/user/Sandbox/modelscan-settings.toml. Using defaults. \n\nScanning np_array_f32_p2.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
+        }
+      }
+    },
+    {
+      "file": "np_array_f32_p4.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign-local",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.6,
+            "emulation": 579.7,
+            "total": 580.4
+          },
+          "reasons": [],
+          "seconds": 0.5803955379997205
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.10395525200010525,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.0863970129998961,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.23237497499985693,
+          "output_tail": "tings file detected at /home/user/Sandbox/modelscan-settings.toml. Using defaults. \n\nScanning np_array_f32_p4.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
+        }
+      }
+    },
+    {
+      "file": "np_array_f32_p5.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign-local",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.5,
+            "emulation": 548.3,
+            "total": 548.8
+          },
+          "reasons": [],
+          "seconds": 0.5488859050001338
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.1260186419999627,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 1\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "error",
+          "exit_code": 1,
+          "seconds": 0.08750611999994362,
+          "output_tail": "le \"<venv>/lib/python3.12/site-packages/fickling/fickle.py\", line 387, in __new__\n    raise NotImplementedError(f\"TODO: Add support for Opcode {info.name}\")\nNotImplementedError: TODO: Add support for Opcode BYTEARRAY8"
+        },
+        "modelscan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.23582099699979153,
+          "output_tail": "tings file detected at /home/user/Sandbox/modelscan-settings.toml. Using defaults. \n\nScanning np_array_f32_p5.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
+        }
+      }
+    },
+    {
+      "file": "np_array_i64_p2.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign-local",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.9,
+            "emulation": 519.1,
+            "total": 520.2
+          },
+          "reasons": [],
+          "seconds": 0.5201958779998677
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.09763849000000846,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 1\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.07029100199997629,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.19471475599993937,
+          "output_tail": "tings file detected at /home/user/Sandbox/modelscan-settings.toml. Using defaults. \n\nScanning np_array_i64_p2.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
+        }
+      }
+    },
+    {
+      "file": "np_array_i64_p4.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign-local",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.5,
+            "emulation": 491.3,
+            "total": 491.9
+          },
+          "reasons": [],
+          "seconds": 0.4920095290003701
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.10462225599985686,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.061998586999834515,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.18176193099998272,
+          "output_tail": "tings file detected at /home/user/Sandbox/modelscan-settings.toml. Using defaults. \n\nScanning np_array_i64_p4.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
+        }
+      }
+    },
+    {
+      "file": "np_array_i64_p5.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign-local",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.5,
+            "emulation": 484.2,
+            "total": 484.9
+          },
+          "reasons": [],
+          "seconds": 0.48491894100016
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.08755817500014018,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 1\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "error",
+          "exit_code": 1,
+          "seconds": 0.06843433800031562,
+          "output_tail": "le \"<venv>/lib/python3.12/site-packages/fickling/fickle.py\", line 387, in __new__\n    raise NotImplementedError(f\"TODO: Add support for Opcode {info.name}\")\nNotImplementedError: TODO: Add support for Opcode BYTEARRAY8"
+        },
+        "modelscan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.17146999999977197,
+          "output_tail": "tings file detected at /home/user/Sandbox/modelscan-settings.toml. Using defaults. \n\nScanning np_array_i64_p5.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
+        }
+      }
+    },
+    {
+      "file": "np_dict_p2.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign-local",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.6,
+            "emulation": 470.0,
+            "total": 470.7
+          },
+          "reasons": [],
+          "seconds": 0.4707734809999238
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.09964180899987696,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 1\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.07794522799986225,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.23185434000015448,
+          "output_tail": "o settings file detected at /home/user/Sandbox/modelscan-settings.toml. Using defaults. \n\nScanning np_dict_p2.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
+        }
+      }
+    },
+    {
+      "file": "np_dict_p4.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign-local",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.6,
+            "emulation": 470.9,
+            "total": 471.6
+          },
+          "reasons": [],
+          "seconds": 0.47162887900003625
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.09061895500008177,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.0764875499999107,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.199592532999759,
+          "output_tail": "o settings file detected at /home/user/Sandbox/modelscan-settings.toml. Using defaults. \n\nScanning np_dict_p4.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
+        }
+      }
+    },
+    {
+      "file": "np_dict_p5.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign-local",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.5,
+            "emulation": 457.8,
+            "total": 458.4
+          },
+          "reasons": [],
+          "seconds": 0.45842179999999644
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.09198394700024437,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 1\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "error",
+          "exit_code": 1,
+          "seconds": 0.07306146599967178,
+          "output_tail": "le \"<venv>/lib/python3.12/site-packages/fickling/fickle.py\", line 387, in __new__\n    raise NotImplementedError(f\"TODO: Add support for Opcode {info.name}\")\nNotImplementedError: TODO: Add support for Opcode BYTEARRAY8"
+        },
+        "modelscan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.1897229379997043,
+          "output_tail": "o settings file detected at /home/user/Sandbox/modelscan-settings.toml. Using defaults. \n\nScanning np_dict_p5.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
+        }
+      }
+    },
+    {
+      "file": "sk_forest.joblib",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign-local",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 1.7,
+            "emulation": 500.8,
+            "total": 502.6
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: opcode walk failed: ValueError: at position 913, opcode b'\\x0e' unknown",
+            "[static] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: unexpected_call: joblib.numpy_pickle.NumpyArrayWrapper.__new__",
+            "[emulation] SUSPICIOUS: unexpected_call: joblib.numpy_pickle.NumpyArrayWrapper.__setstate__"
+          ],
+          "seconds": 0.502636197999891
+        },
+        "picklescan": {
+          "outcome": "error",
+          "exit_code": 2,
+          "seconds": 0.12398187400003735,
+          "output_tail": "ERROR: parsing pickle in sk_forest.joblib: at position 913, opcode b'\\x0e' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 3\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.06408942899997783,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "unsupported",
+          "exit_code": 3,
+          "seconds": 0.2388146170001164,
+          "output_tail": "c5-1dfd-5c14-9ffd-58f7a82cba9f/scratchpad/benign-local/sk_forest.joblib using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89\n\n--- Errors --- \n\nError 1:\nThe following error was raised during a pickle scan: \nParsing error: at position 913, opcode b'\\x0e' unknown"
+        }
+      }
+    },
+    {
+      "file": "sk_forest.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign-local",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 8.1,
+            "emulation": 498.9,
+            "total": 507.1
+          },
+          "reasons": [],
+          "seconds": 0.5071814370003267
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.08733993200030454,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 4\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.08934262599996146,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.19103232599991316,
+          "output_tail": "No settings file detected at /home/user/Sandbox/modelscan-settings.toml. Using defaults. \n\nScanning sk_forest.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
+        }
+      }
+    },
+    {
+      "file": "sk_kmeans.joblib",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign-local",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.9,
+            "emulation": 460.4,
+            "total": 461.4
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: opcode walk failed: ValueError: at position 538, opcode b'\\x05' unknown",
+            "[static] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: unexpected_call: joblib.numpy_pickle.NumpyArrayWrapper.__new__",
+            "[emulation] SUSPICIOUS: unexpected_call: joblib.numpy_pickle.NumpyArrayWrapper.__setstate__"
+          ],
+          "seconds": 0.4613987759998963
+        },
+        "picklescan": {
+          "outcome": "error",
+          "exit_code": 2,
+          "seconds": 0.11569395500009705,
+          "output_tail": "ERROR: parsing pickle in sk_kmeans.joblib: at position 538, opcode b'\\x05' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 3\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.07071623699994234,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "unsupported",
+          "exit_code": 3,
+          "seconds": 0.17884303199980423,
+          "output_tail": "c5-1dfd-5c14-9ffd-58f7a82cba9f/scratchpad/benign-local/sk_kmeans.joblib using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89\n\n--- Errors --- \n\nError 1:\nThe following error was raised during a pickle scan: \nParsing error: at position 538, opcode b'\\x05' unknown"
+        }
+      }
+    },
+    {
+      "file": "sk_kmeans.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign-local",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 1.2,
+            "emulation": 454.2,
+            "total": 455.4
+          },
+          "reasons": [],
+          "seconds": 0.4554939409999861
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.0907487750000655,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 2\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.08527643100023852,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.2363539379998656,
+          "output_tail": "No settings file detected at /home/user/Sandbox/modelscan-settings.toml. Using defaults. \n\nScanning sk_kmeans.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
+        }
+      }
+    },
+    {
+      "file": "sk_linreg.joblib",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign-local",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 1.1,
+            "emulation": 552.6,
+            "total": 553.8
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: opcode walk failed: ValueError: at position 367, opcode b'\\x10' unknown",
+            "[static] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: unexpected_call: joblib.numpy_pickle.NumpyArrayWrapper.__new__",
+            "[emulation] SUSPICIOUS: unexpected_call: joblib.numpy_pickle.NumpyArrayWrapper.__setstate__"
+          ],
+          "seconds": 0.5538193720003619
+        },
+        "picklescan": {
+          "outcome": "error",
+          "exit_code": 2,
+          "seconds": 0.09093279399985477,
+          "output_tail": "ERROR: parsing pickle in sk_linreg.joblib: at position 367, opcode b'\\x10' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 2\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.07093706400019073,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "unsupported",
+          "exit_code": 3,
+          "seconds": 0.19711474599989742,
+          "output_tail": "c5-1dfd-5c14-9ffd-58f7a82cba9f/scratchpad/benign-local/sk_linreg.joblib using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89\n\n--- Errors --- \n\nError 1:\nThe following error was raised during a pickle scan: \nParsing error: at position 367, opcode b'\\x10' unknown"
+        }
+      }
+    },
+    {
+      "file": "sk_linreg.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign-local",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 1.3,
+            "emulation": 484.5,
+            "total": 485.9
+          },
+          "reasons": [],
+          "seconds": 0.4859783339998103
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.09885422599973026,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 2\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.07778330800010735,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.21368225000014718,
+          "output_tail": "No settings file detected at /home/user/Sandbox/modelscan-settings.toml. Using defaults. \n\nScanning sk_linreg.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
+        }
+      }
+    },
+    {
+      "file": "sk_logreg.joblib",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign-local",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 1.1,
+            "emulation": 455.3,
+            "total": 456.6
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: opcode walk failed: ValueError: at position 526, opcode b'\\x01' unknown",
+            "[static] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: unexpected_call: joblib.numpy_pickle.NumpyArrayWrapper.__new__",
+            "[emulation] SUSPICIOUS: unexpected_call: joblib.numpy_pickle.NumpyArrayWrapper.__setstate__"
+          ],
+          "seconds": 0.45661086300015086
+        },
+        "picklescan": {
+          "outcome": "error",
+          "exit_code": 2,
+          "seconds": 0.10425824799995098,
+          "output_tail": "ERROR: parsing pickle in sk_logreg.joblib: at position 526, opcode b'\\x01' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 2\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.07256769399964469,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "unsupported",
+          "exit_code": 3,
+          "seconds": 0.24066914799959704,
+          "output_tail": "c5-1dfd-5c14-9ffd-58f7a82cba9f/scratchpad/benign-local/sk_logreg.joblib using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89\n\n--- Errors --- \n\nError 1:\nThe following error was raised during a pickle scan: \nParsing error: at position 526, opcode b'\\x01' unknown"
+        }
+      }
+    },
+    {
+      "file": "sk_logreg.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign-local",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 2.0,
+            "emulation": 478.3,
+            "total": 480.4
+          },
+          "reasons": [],
+          "seconds": 0.48045381999963865
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.09062659300025189,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 1\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.07015555700036202,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.21035222999989855,
+          "output_tail": "No settings file detected at /home/user/Sandbox/modelscan-settings.toml. Using defaults. \n\nScanning sk_logreg.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
+        }
+      }
+    },
+    {
+      "file": "sk_pca.joblib",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign-local",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 1.2,
+            "emulation": 506.1,
+            "total": 507.5
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: opcode walk failed: ValueError: at position 480, opcode b'\\x0f' unknown",
+            "[static] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: unexpected_call: joblib.numpy_pickle.NumpyArrayWrapper.__new__",
+            "[emulation] SUSPICIOUS: unexpected_call: joblib.numpy_pickle.NumpyArrayWrapper.__setstate__"
+          ],
+          "seconds": 0.5075070019997838
+        },
+        "picklescan": {
+          "outcome": "error",
+          "exit_code": 2,
+          "seconds": 0.11275752299980013,
+          "output_tail": "ERROR: parsing pickle in sk_pca.joblib: at position 480, opcode b'\\x0f' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 2\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.08378261600000769,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "unsupported",
+          "exit_code": 3,
+          "seconds": 0.22688339300020743,
+          "output_tail": "66ac5-1dfd-5c14-9ffd-58f7a82cba9f/scratchpad/benign-local/sk_pca.joblib using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89\n\n--- Errors --- \n\nError 1:\nThe following error was raised during a pickle scan: \nParsing error: at position 480, opcode b'\\x0f' unknown"
+        }
+      }
+    },
+    {
+      "file": "sk_pca.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign-local",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 1.9,
+            "emulation": 508.7,
+            "total": 510.7
+          },
+          "reasons": [],
+          "seconds": 0.510760585999833
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.09257703799994488,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 2\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.0894017979999262,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.1786845690003247,
+          "output_tail": "No settings file detected at /home/user/Sandbox/modelscan-settings.toml. Using defaults. \n\nScanning sk_pca.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
+        }
+      }
+    },
+    {
+      "file": "sk_pipeline.joblib",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign-local",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 1.3,
+            "emulation": 459.8,
+            "total": 461.2
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: opcode walk failed: ValueError: at position 472, opcode b'\\x07' unknown",
+            "[static] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: unexpected_call: joblib.numpy_pickle.NumpyArrayWrapper.__new__",
+            "[emulation] SUSPICIOUS: unexpected_call: joblib.numpy_pickle.NumpyArrayWrapper.__setstate__"
+          ],
+          "seconds": 0.4612388949999513
+        },
+        "picklescan": {
+          "outcome": "error",
+          "exit_code": 2,
+          "seconds": 0.09040285300034157,
+          "output_tail": "ERROR: parsing pickle in sk_pipeline.joblib: at position 472, opcode b'\\x07' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 4\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.0913883589996658,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "unsupported",
+          "exit_code": 3,
+          "seconds": 0.1865514810001514,
+          "output_tail": "-1dfd-5c14-9ffd-58f7a82cba9f/scratchpad/benign-local/sk_pipeline.joblib using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89\n\n--- Errors --- \n\nError 1:\nThe following error was raised during a pickle scan: \nParsing error: at position 472, opcode b'\\x07' unknown"
+        }
+      }
+    },
+    {
+      "file": "sk_pipeline.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign-local",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 1.9,
+            "emulation": 481.1,
+            "total": 483.1
+          },
+          "reasons": [],
+          "seconds": 0.48314135600003283
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.09190430199987532,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 4\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.07825350199982495,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.20225787900017167,
+          "output_tail": " settings file detected at /home/user/Sandbox/modelscan-settings.toml. Using defaults. \n\nScanning sk_pipeline.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
+        }
+      }
+    },
+    {
+      "file": "sk_tree.joblib",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign-local",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.9,
+            "emulation": 461.9,
+            "total": 462.9
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: opcode walk failed: ValueError: at position 589, opcode b'\\x02' unknown",
+            "[static] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: unexpected_call: joblib.numpy_pickle.NumpyArrayWrapper.__new__",
+            "[emulation] SUSPICIOUS: unexpected_call: joblib.numpy_pickle.NumpyArrayWrapper.__setstate__"
+          ],
+          "seconds": 0.4629585229999975
+        },
+        "picklescan": {
+          "outcome": "error",
+          "exit_code": 2,
+          "seconds": 0.08286265900005674,
+          "output_tail": "ERROR: parsing pickle in sk_tree.joblib: at position 589, opcode b'\\x02' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 2\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.06793514599985429,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "unsupported",
+          "exit_code": 3,
+          "seconds": 0.16739569099991058,
+          "output_tail": "6ac5-1dfd-5c14-9ffd-58f7a82cba9f/scratchpad/benign-local/sk_tree.joblib using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89\n\n--- Errors --- \n\nError 1:\nThe following error was raised during a pickle scan: \nParsing error: at position 589, opcode b'\\x02' unknown"
+        }
+      }
+    },
+    {
+      "file": "sk_tree.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign-local",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 1.8,
+            "emulation": 558.0,
+            "total": 560.0
+          },
+          "reasons": [],
+          "seconds": 0.5600165549999474
+        },
+        "picklescan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.13215777599998546,
+          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 3\nDangerous globals: 0"
+        },
+        "fickling": {
+          "outcome": "flagged",
+          "exit_code": 1,
+          "seconds": 0.09694565999961924,
+          "output_tail": ""
+        },
+        "modelscan": {
+          "outcome": "clean",
+          "exit_code": 0,
+          "seconds": 0.1975779730000795,
+          "output_tail": "No settings file detected at /home/user/Sandbox/modelscan-settings.toml. Using defaults. \n\nScanning sk_tree.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
+        }
+      }
+    }
+  ]
+}

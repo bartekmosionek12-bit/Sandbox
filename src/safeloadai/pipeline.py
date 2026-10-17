@@ -37,7 +37,7 @@ def emulation_layer(data: bytes, parser_report: dict, extra_allowed: frozenset,
     if fmt == detect_mod.PICKLE:
         torch = _is_legacy_torch(parser_report)
         run = emulate_pickle([data], max_pickles=parser_report.get("pickle_count") or 1, limits=limits)
-        return behaviour.classify(run, torch=torch, extra_allowed=extra_allowed)
+        return behaviour.classify(run, torch=torch, extra_allowed=extra_allowed, framework=False)
     if fmt == detect_mod.TORCH:
         try:
             with SafeZip(data, max_member_bytes=MAX_PICKLE_MEMBER_BYTES) as zf:
@@ -51,7 +51,7 @@ def emulation_layer(data: bytes, parser_report: dict, extra_allowed: frozenset,
             layer.raise_to(Verdict.SUSPICIOUS, "torch archive without a pickle member")
             return layer
         run = emulate_pickle(streams, max_pickles=1, limits=limits)
-        return behaviour.classify(run, torch=True, extra_allowed=extra_allowed)
+        return behaviour.classify(run, torch=True, extra_allowed=extra_allowed, framework=False)
     if fmt == detect_mod.KERAS:
         lambdas = parser_report.get("lambdas") or []
         if not lambdas:

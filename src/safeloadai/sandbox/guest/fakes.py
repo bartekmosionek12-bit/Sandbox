@@ -130,8 +130,10 @@ class FakeMeta(type):
     """Metaclass for fake classes: pickle's NEWOBJ needs a real type object."""
 
     def __call__(cls, *args, **kwargs):
+        # Pickle REDUCE on a fake global: the result gets BUILD / SETITEMS next,
+        # so it must be a generic recording object, not a fake tensor.
         record_call(cls._fake_name, args, kwargs)
-        return _call_result(cls._fake_name, args, kwargs)
+        return FakeObject(cls._fake_name + "()")
 
     def __getattr__(cls, attr):
         if attr.startswith("__") and attr.endswith("__"):

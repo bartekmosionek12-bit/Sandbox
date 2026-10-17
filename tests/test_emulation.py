@@ -213,3 +213,13 @@ def test_sample_lambda_from_another_python_is_rejected_before_execution():
     assert run.completed
     assert any("layout invalid" in a for a in _anomalies(run))
     assert not any(e.get("category") == "lambda" for e in run.events)
+
+
+def test_reduce_result_accepts_tuple_state_like_numpy_arrays():
+    # REDUCE(numpy._core.multiarray._reconstruct, (numpy.ndarray, (0,), b'b')) then BUILD
+    # with a tuple state, as every numpy array pickle does.
+    data = (b"\x80\x02cnumpy._core.multiarray\n_reconstruct\ncnumpy\nndarray\nK\x00\x85C\x01b\x87R"
+            b"(K\x01K\x02\x86tb.")
+    run = emulate_pickle([data])
+    assert run.completed and _anomalies(run) == []
+    assert "numpy._core.multiarray._reconstruct().__setstate__" in _targets(run)

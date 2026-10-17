@@ -88,7 +88,7 @@ def _unquote(text: str) -> str:
     return text[1:-1] if len(text) >= 2 and text[0] == text[-1] and text[0] in "'\"" else text
 
 
-def _classify_call(event: dict, allowed_names: frozenset[str]) -> tuple[str, Verdict] | None:
+def _classify_call(event: dict, allowed_names: frozenset[str], framework: bool) -> tuple[str, Verdict] | None:
     target = str(event.get("target", ""))
     args = event.get("args") or []
     if target == "builtins.open":
@@ -102,7 +102,7 @@ def _classify_call(event: dict, allowed_names: frozenset[str]) -> tuple[str, Ver
     found = sink_for(target)
     if found:
         return found
-    if target.startswith(FRAMEWORK_PREFIXES):
+    if framework and target.startswith(FRAMEWORK_PREFIXES):
         return None
     if any(_matches(target, name) for name in allowed_names):
         return None
@@ -115,7 +115,9 @@ def allowed_names(extra_allowed: frozenset = frozenset(), torch: bool = False) -
 
 
 def classify(run: GuestRun, *, name: str = "emulation", torch: bool = False,
-             extra_allowed: frozenset = frozenset()) -> LayerResult:
+             extra_allowed: frozenset = frozenset(), framework: bool = True) -> LayerResult:
+    """``framework=False`` (pickle streams): only methods of allowlisted globals are
+    benign calls; a tensor-library name alone (``numpy.testing...``) is not."""
     layer = LayerResult(name=name, verdict=Verdict.CLEAN, timings_ms=dict(run.timings_ms),
                         details={"status": run.status, "completed": run.completed, "runtime": run.runtime,
                                  "problems": run.problems[:50]})
@@ -136,7 +138,7 @@ def classify(run: GuestRun, *, name: str = "emulation", torch: bool = False,
             layer.raise_to(S, f"anomaly: {event.get('what')}")
             _evidence(layer, event, "anomaly", S)
         elif kind == "call":
-            found = _classify_call(event, names)
+            found = _classify_call(event, names, framework)
             if found:
                 category, severity = found
                 layer.raise_to(severity, f"{category}: {event.get('target')}")

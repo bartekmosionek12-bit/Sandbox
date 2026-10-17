@@ -246,7 +246,10 @@ def parse_keras(data: bytes, file_name: str = "<memory>") -> dict:
         report["static_risk"] = "suspicious"
         return report
 
-    report["raw_disasm"] = json.dumps(config, indent=1)[:200_000]
+    try:
+        report["raw_disasm"] = json.dumps(config, indent=1)[:200_000]
+    except RecursionError:
+        report["raw_disasm"] = "<config nested too deeply to render>"
     try:
         _walk(config, report)
     except ValueError as exc:

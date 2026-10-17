@@ -230,10 +230,8 @@ def test_s7_zip_bomb_config_is_refused_without_decompressing():
 
 
 def test_s7_deeply_nested_config_does_not_escape():
-    node: dict = {"class_name": "Dense"}
-    for _ in range(2000):
-        node = {"a": [node]}
-    raw = json.dumps(node).encode()
+    # Built as text: json.dumps itself hits the recursion limit on Python 3.11.
+    raw = ('{"a": [' * 2000 + '{"class_name": "Dense"}' + "]}" * 2000).encode()
     report = parser_keras.parse_keras(_keras_zip(raw))
     assert report["static_risk"] != "clean"
 

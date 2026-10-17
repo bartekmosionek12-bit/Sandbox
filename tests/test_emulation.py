@@ -170,7 +170,9 @@ def test_lambda_garbage_bytecode_is_a_marshal_error():
 @pytest.mark.skipif(sys.version_info[:2] == (3, 12), reason="needs host bytecode from another Python version")
 def test_lambda_from_other_python_version_is_not_executed():
     # marshal.dumps of our own benign code object; nothing is unmarshalled on the host.
-    blob = marshal.dumps(compile("lambda x: x", "<lambda>", "eval").co_consts[0])
+    # A trivial body (RESUME, LOAD_FAST, RETURN_VALUE) is byte-identical between
+    # 3.11 and 3.12; a call is not, so use one.
+    blob = marshal.dumps(compile("lambda x: tf.nn.relu(x * 2.0)", "<lambda>", "eval").co_consts[0])
     run = emulate_keras_lambdas([{"path": "l", "code_b64": base64.b64encode(blob).decode(),
                                   "input_shape": [None, 4]}])
     assert _anomalies(run), "foreign bytecode must be an anomaly"

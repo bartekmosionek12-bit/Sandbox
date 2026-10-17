@@ -1,4 +1,5 @@
 from conftest import sandbox_report
+
 from safeloadai import api, pipeline
 
 CLEAN_PARSER = {"static_risk": "clean"}

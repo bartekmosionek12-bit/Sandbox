@@ -1,11 +1,13 @@
 import os
-from safeloadai import safe_load_model, SecurityException
+
+from safeloadai import SecurityException, safe_load_model
+
 
 def main():
     sample_path = os.path.join("poc", "samples", "clean_model.pkl")
     try:
         data = safe_load_model(sample_path)
-    except SecurityException as e:
+    except SecurityException:
         pass
 
 if __name__ == "__main__":

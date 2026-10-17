@@ -17,12 +17,12 @@ Opcjonalnie: --compare SCIEZKA_DO_STAREGO_parser.py
 from __future__ import annotations
 
 import argparse
-import warnings
 import collections
 import importlib.util
 import os
 import pickle
 import sys
+import warnings
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src"))
 
@@ -75,7 +75,12 @@ def holdout_corpus():
     benign_corpus, do którego listę dopasowano."""
     import numpy as np
     from scipy import sparse
-    from sklearn.ensemble import AdaBoostClassifier, ExtraTreesClassifier, HistGradientBoostingClassifier, IsolationForest
+    from sklearn.ensemble import (
+        AdaBoostClassifier,
+        ExtraTreesClassifier,
+        HistGradientBoostingClassifier,
+        IsolationForest,
+    )
     from sklearn.feature_extraction.text import TfidfVectorizer
     from sklearn.linear_model import Lasso, Ridge, SGDClassifier
     from sklearn.neural_network import MLPClassifier

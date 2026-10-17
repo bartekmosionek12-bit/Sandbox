@@ -1,8 +1,8 @@
 import pickle
 
 import pytest
-
 from conftest import SAMPLES
+
 from safeloadai import parser, parser_keras
 
 

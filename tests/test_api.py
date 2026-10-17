@@ -3,8 +3,8 @@ import pickle
 import shutil
 
 import pytest
-
 from conftest import SAMPLES, sandbox_report
+
 from safeloadai import SecurityException, api, safe_load_model
 
 
@@ -14,11 +14,15 @@ def _write(path, obj):
     return str(path)
 
 
+# Benign, host-built data. Marker goes away when the loader is restricted (audit S6).
+@pytest.mark.allow_host_unpickle
 def test_clean_file_loads(tmp_path, fake_detonation):
     path = _write(tmp_path / "m.pkl", {"w": [1, 2, 3]})
     assert safe_load_model(path, verbose=False) == {"w": [1, 2, 3]}
 
 
+# Benign, host-built data. Marker goes away when the loader is restricted (audit S6).
+@pytest.mark.allow_host_unpickle
 def test_pathlib_path_accepted(tmp_path, fake_detonation):
     path = tmp_path / "m.pkl"
     _write(path, [1])
@@ -35,6 +39,8 @@ def test_evil_file_blocked_before_load(tmp_path, fake_detonation, forbid_pickle_
     assert info.value.code == api.BLOCKED_VERDICT
 
 
+# Benign, host-built data. Marker goes away when the loader is restricted (audit S6).
+@pytest.mark.allow_host_unpickle
 def test_scan_then_swap_loads_scanned_copy(tmp_path, fake_detonation):
     # Okno TOCTOU: w trakcie skanu ktoś podmienia plik pod oryginalną ścieżką.
     original = tmp_path / "m.pkl"

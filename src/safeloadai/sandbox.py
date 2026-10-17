@@ -174,7 +174,7 @@ def ensure_image(force_rebuild: bool = False, profile: str = "pickle") -> None:
             probe = subprocess.run(
                 [
                     "docker", "image", "inspect",
-                    "--format", "{{ index .Config.Labels \"%s\" }}" % IMAGE_LABEL,
+                    "--format", f'{{{{ index .Config.Labels "{IMAGE_LABEL}" }}}}',
                     cfg["image_tag"],
                 ],
                 capture_output=True,

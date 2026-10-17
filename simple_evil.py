@@ -1,5 +1,7 @@
 import sys
-from safeloadai import safe_load_model, SecurityException
+
+from safeloadai import SecurityException, safe_load_model
+
 
 def main():
     try:

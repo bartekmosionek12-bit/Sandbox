@@ -19,7 +19,8 @@ import pickle
 import shutil
 import sys
 import tempfile
-from typing import Any, Callable, Iterator
+from collections.abc import Callable, Iterator
+from typing import Any
 
 from . import pipeline
 

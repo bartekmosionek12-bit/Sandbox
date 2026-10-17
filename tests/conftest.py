@@ -6,6 +6,10 @@ detonujemy poza kontenerem. Testy, które sprawdzają, że złośliwy plik NIE
 został wczytany, podmieniają pickle.load na funkcję, która oblewa test.
 """
 import os
+import pickle
+import posix
+import socket
+import subprocess
 import sys
 
 import pytest
@@ -69,3 +73,55 @@ def forbid_pickle_load(monkeypatch):
         raise AssertionError("pickle.load wywołany na pliku, który miał zostać zablokowany")
 
     monkeypatch.setattr(api.pickle, "load", boom)
+
+
+# --- host-execution guard (audit S13) ----------------------------------------
+#
+# Sample payloads must never run on the host. During every test, process
+# execution, non-loopback network connections and unrestricted unpickling are
+# replaced with functions that fail the test. A test that legitimately needs one
+# of them must say so with a marker, so the exception is visible in review.
+
+class HostExecutionError(AssertionError):
+    """Raised when a test tries to execute something on the host."""
+
+
+def _refuse(what):
+    def refuse(*args, **kwargs):
+        raise HostExecutionError(f"host execution attempted during tests: {what} {args[:1]!r}")
+
+    return refuse
+
+
+def pytest_configure(config):
+    config.addinivalue_line(
+        "markers", "allow_host_unpickle: test may call pickle.load/loads on host-built, benign data"
+    )
+    config.addinivalue_line(
+        "markers", "allow_host_subprocess: test may start a subprocess (sandbox runner only)"
+    )
+
+
+@pytest.fixture(autouse=True)
+def _host_execution_guard(request, monkeypatch):
+    for mod in (os, posix):
+        for name in ("system", "popen", "execv", "execve", "execvp", "execvpe", "execl",
+                     "execlp", "spawnv", "spawnve", "spawnl", "posix_spawn", "posix_spawnp",
+                     "fork", "forkpty"):
+            if hasattr(mod, name):
+                monkeypatch.setattr(mod, name, _refuse(f"{mod.__name__}.{name}"))
+    if request.node.get_closest_marker("allow_host_subprocess") is None:
+        monkeypatch.setattr(subprocess, "Popen", _refuse("subprocess.Popen"))
+    if request.node.get_closest_marker("allow_host_unpickle") is None:
+        monkeypatch.setattr(pickle, "load", _refuse("pickle.load"))
+        monkeypatch.setattr(pickle, "loads", _refuse("pickle.loads"))
+
+    real_connect = socket.socket.connect
+
+    def connect(self, address):
+        host = address[0] if isinstance(address, tuple) else address
+        if host not in ("127.0.0.1", "::1", "localhost"):
+            raise HostExecutionError(f"non-loopback connection attempted during tests: {address!r}")
+        return real_connect(self, address)
+
+    monkeypatch.setattr(socket.socket, "connect", connect)

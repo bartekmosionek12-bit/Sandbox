@@ -3,6 +3,7 @@ import pickle
 import shutil
 
 from conftest import SAMPLES, sandbox_report
+
 from safeloadai.__main__ import main
 
 

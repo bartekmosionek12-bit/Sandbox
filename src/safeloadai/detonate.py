@@ -221,7 +221,7 @@ def _install_patches() -> None:
     def traced_import(name, *a, **kw):  # noqa: ANN001, ANN002, ANN003
         if name in ("os", "posix", "subprocess", "socket", "shutil", "ctypes", "pty"):
             importer = _caller_module()
-            if not importer.split(".", 1)[0] in _TRUSTED_IMPORTERS:
+            if importer.split(".", 1)[0] not in _TRUSTED_IMPORTERS:
                 _emit("other", f"import {name} (z modułu {importer or '?'})")
         return real_import(name, *a, **kw)
 

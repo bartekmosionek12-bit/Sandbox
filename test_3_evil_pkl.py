@@ -1,18 +1,20 @@
 import os
-from safeloadai import safe_load_model, SecurityException
+
+from safeloadai import SecurityException, safe_load_model
+
 
 def print_security_report(e: SecurityException):
     report = e.report
     print("\n[!] SZCZEGÓŁOWY RAPORT BEZPIECZEŃSTWA [!]")
     print(f"Plik: {report.get('file_name')}")
     print(f"Werdykt: {report.get('final_verdict')} (Źródło: {report.get('verdict_source')})")
-    
+
     # Uzasadnienie od sędziego LLM
     judge = report.get('judge', {})
     if judge.get('available') and judge.get('reasoning'):
         print("\n--- Uzasadnienie Sędziego LLM ---")
         print(judge.get('reasoning'))
-        
+
     # Informacje z analizy statycznej
     parser = report.get('parser', {})
     if parser:
@@ -23,7 +25,7 @@ def print_security_report(e: SecurityException):
             print(f"Podejrzany opcode: {op.get('name')} (pozycja {op.get('pos')}) — {op.get('reason')}")
         for imp in parser.get('suspicious_imports') or []:
             print(f"Podejrzany import: {imp.get('module')}.{imp.get('symbol')} (pozycja {imp.get('pos')})")
-            
+
     # Informacje z detonacji w piaskownicy (Docker)
     sandbox = report.get('sandbox', {})
     if sandbox.get('detonated'):
@@ -42,7 +44,7 @@ def main():
     print("=== Test 3: Wczytywanie ZŁOŚLIWEGO pliku Pickle przez safe_load_model ===")
     sample_path = os.path.join("poc", "samples", "evil_os_system.pkl")
     print(f"Próba wczytania: {sample_path}")
-    
+
     try:
         # Zmienione na nową, uniwersalną metodę
         data = safe_load_model(sample_path)

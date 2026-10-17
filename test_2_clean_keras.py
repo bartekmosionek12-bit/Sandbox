@@ -1,5 +1,7 @@
 import os
-from safeloadai import safe_load_model, SecurityException
+
+from safeloadai import safe_load_model
+
 
 def main():
     sample_path = os.path.join("poc", "samples", "clean_model.keras")

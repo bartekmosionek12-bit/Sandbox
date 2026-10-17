@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "safeloadai"
+version = "0.3.0.dev0"
+authors = [
+  { name="Bartosz Mosionek" },
+]
+description = "SafeLoadAI: decide whether an ML model file is safe to load (static analysis + sandboxed emulation)."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+# The LLM judge is optional and off by default; the library works without it.
+judge = [
+    "anthropic>=0.125,<1.0",
+]
+# The dashboard (app/) is a report viewer, not part of the library.
+dashboard = [
+    "Flask>=3.0,<4.0",
+]
+dev = [
+    "pytest",
+    "ruff",
+]
+
+[project.scripts]
+safeloadai = "safeloadai.__main__:main"
+
+[project.urls]
+"Homepage" = "https://github.com/bartekmosionek12-bit/Sandbox"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["safeloadai*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "."]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["audit", "poc/samples"]

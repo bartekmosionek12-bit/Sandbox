@@ -107,6 +107,8 @@ def pytest_collection_modifyitems(config, items):
         runtime.locate()
         return
     except runtime.RuntimeUnavailable as exc:
+        if os.environ.get("SAFELOADAI_REQUIRE_WASI"):
+            raise pytest.UsageError(f"SAFELOADAI_REQUIRE_WASI is set but {exc}") from exc
         reason = f"WASI runtime unavailable: {exc}"
     for item in items:
         if item.get_closest_marker("wasi"):

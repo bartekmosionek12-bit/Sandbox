@@ -23,6 +23,24 @@ jobs:
         run: python -m pip install -e ".[dev]"
       - name: Lint
         run: ruff check .
+      # Owner decision: CI may download the pinned WASI runtime from GitHub
+      # Releases, verified against the sha256 pinned in safeloadai/sandbox/runtime.py.
+      - name: Cache WASI runtime
+        uses: actions/cache@v4
+        with:
+          path: ~/wasi-runtime
+          key: wasi-python-3.12.0-e5dc5a398b07b54ea8fdb503bf68fb583d533f10ec3f930963e02b9505f7a763
+      - name: Fetch pinned WASI runtime
+        run: |
+          mkdir -p ~/wasi-runtime
+          cd ~/wasi-runtime
+          if [ ! -f python-3.12.0.wasm ]; then
+            curl -fsSL -o python-3.12.0.wasm \
+              "https://github.com/vmware-labs/webassembly-language-runtimes/releases/download/python%2F3.12.0%2B20231211-040d5a6/python-3.12.0.wasm"
+          fi
+          echo "e5dc5a398b07b54ea8fdb503bf68fb583d533f10ec3f930963e02b9505f7a763  python-3.12.0.wasm" | sha256sum -c -
+          echo "SAFELOADAI_WASI_PYTHON=$HOME/wasi-runtime/python-3.12.0.wasm" >> "$GITHUB_ENV"
+          echo "SAFELOADAI_REQUIRE_WASI=1" >> "$GITHUB_ENV"
       # The host-execution guard in tests/conftest.py is autouse, so every test
       # runs with process execution, network and unrestricted unpickling refused.
       - name: Test

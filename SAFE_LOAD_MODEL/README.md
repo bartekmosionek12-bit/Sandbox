@@ -118,5 +118,67 @@ Następnie otwórz `http://127.0.0.1:5050`.
 
 ---
 
+## Wersja 0.2: co się zmieniło i jak tego używać
+
+Pełny opis zmian z uzasadnieniem: dokumentacja PDF w materiałach projektu.
+Krótko:
+
+**Bramka odmawia wczytania w pięciu sytuacjach** (każda ma stały kod w
+`SecurityException.code` i w `report["gate"]["code"]`):
+
+| kod | kiedy |
+|---|---|
+| `blocked_verdict` | werdykt końcowy inny niż `safe`/`clean` |
+| `no_detonation` | detonacja się nie odbyła (np. brak Dockera) |
+| `detonation_timeout` | kontener przekroczył limit czasu — ładunek mógł czekać dłużej |
+| `load_failed_in_sandbox` | w kontenerze samo wczytanie się nie powiodło |
+| `changed_after_scan` | plik zmienił się między skanem a wczytaniem |
+
+Trzy ostatnie powody wyłącza tylko jawne `require_detonation=False`.
+
+**Sędzia LLM nie może obniżyć twardych przesłanek.** Jeśli detonacja
+zarejestrowała wywołanie powłoki, proces albo próbę połączenia, werdykt jest
+`malicious` niezależnie od tego, co napisał sędzia. Jeśli parser ocenił plik
+jako `malicious` albo sędzia zgłosił próbę prompt injection, werdykt nie
+spada poniżej `suspicious`. Bez klucza API log detonacji też się liczy.
+
+**Skan i wczytanie dotyczą tej samej kopii pliku** (prywatny katalog
+tymczasowy), więc podmiana pliku w trakcie skanu nic nie daje.
+
+**Wiersz poleceń do CI:**
+
+```bash
+safeloadai scan models/ --report raport.json      # albo: python -m sandbox_rce scan ...
+```
+
+Kody wyjścia: `0` wszystko przeszło, `1` coś zablokowano, `2` błędne
+wywołanie, `3` nie dało się potwierdzić czystości. Przykład dla GitHub
+Actions: [`examples/github-actions.yml`](examples/github-actions.yml).
+
+**Cache po skrócie pliku** (domyślnie wyłączony):
+`safe_load_model(path, cache_dir="~/.cache/safeloadai")`, `--cache-dir`
+albo zmienna `SAFELOADAI_CACHE_DIR`. Zapisywane są tylko pełne skany, a klucz
+zawiera skrót pliku i odcisk silnika, więc zmiana kodu lub modelu sędziego
+unieważnia wpis. Kto może pisać do katalogu cache, ten może wpisać plikowi
+werdykt — katalog musi należeć tylko do użytkownika albo zadania CI.
+
+**Obraz detonera przebudowuje się sam**, gdy zmieni się jego kod
+(etykieta ze skrótem plików źródłowych). Obraz pickle zawiera teraz numpy
+i scikit-learn, żeby prawdziwe modele dało się w nim wczytać — wersje
+warto zrównać z projektem w `docker/requirements-pickle.txt`.
+
+**Testy bez Dockera:** `pip install -e .[dev]`, potem `python -m pytest tests`.
+Pomiar parsera na wygenerowanym korpusie: `python -m tools.eval_static`.
+
+**Granice, które zostają:** zwykły Docker dzieli jądro z hostem (silniejsza
+izolacja: `SANDBOX_RUNTIME=runsc`); po czystym werdykcie plik jest
+wczytywany na maszynie klienta poza kontenerem, a kod z warstw Lambda
+wykonuje się tam przy każdym wywołaniu modelu; detonacja to jedna
+obserwacja, więc ładunek świadomy środowiska zostawi pusty log; skan `.keras`
+trwa około minuty, bo startuje TensorFlow; nie ma ewaluacji na publicznym
+korpusie złośliwych modeli.
+
+---
+
 ## ⚖️ Oświadczenie o wykorzystaniu AI (HackYeah Rules)
 Zgodnie z regulaminem hackathonu pragnę w pełni i transparentnie poinformować o wykorzystaniu AI. Cały ten projekt, włączając w to kod źródłowy biblioteki Pythona, architekturę izolacji w środowisku Docker, skrypty testowe oraz niniejszą dokumentację, **został w 100% zaprojektowany i napisany przeze mnie we współpracy z asystentem LLM (Claude)**. Wewnętrzna heurystyka produktu opiera się na API Anthropic (model Claude Sonnet). Jako wyłączny twórca całkowicie rozumiem działanie wygenerowanego kodu, jestem w stanie obronić mechanizmy jego wdrożenia i ponoszę pełną odpowiedzialność techniczną za przygotowane rozwiązanie.

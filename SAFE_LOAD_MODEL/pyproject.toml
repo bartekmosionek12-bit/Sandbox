@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "safeloadai"
-version = "0.1.0"
+version = "0.2.0"
 authors = [
   { name="Bartosz Mosionek" },
 ]
@@ -12,14 +12,21 @@ description = "SafeLoadAI — warstwy detekcji RCE w plikach modeli ML (.pkl, .k
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "Flask>=3.0,<4.0",
     "anthropic>=0.125,<1.0"
 ]
 
 [project.optional-dependencies]
+# Dashboard (app/) to widok dowodowy, nie część biblioteki — Flask nie jest
+# potrzebny, żeby wpiąć safe_load_model w swój kod albo w CI.
+dashboard = [
+    "Flask>=3.0,<4.0",
+]
 dev = [
     "pytest",
 ]
+
+[project.scripts]
+safeloadai = "sandbox_rce.__main__:main"
 
 [project.urls]
 "Homepage" = "https://github.com/bartekmosionek12-bit/Sandbox"

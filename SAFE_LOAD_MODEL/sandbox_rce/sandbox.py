@@ -10,11 +10,13 @@ Output to kontrakt zgodny ze ``schemas/sandbox.schema.json``.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import shutil
 import subprocess
 import tempfile
+import uuid
 
 SCHEMA_VERSION = "1.0"
 IMAGE_TAG = "pickle-sandbox-detoner:latest"
@@ -35,9 +37,19 @@ _PROFILES = {
     "pickle": {
         "image_tag": IMAGE_TAG,
         "dockerfile": "Dockerfile",
+        # Pliki, które trafiają do obrazu. Ich skrót jest etykietą obrazu:
+        # zmiana detonera po pullu wymusza przebudowę sama, bez pamiętania
+        # o "docker build" (kod detonera jest zapieczony w obrazie).
+        "sources": [
+            "docker/Dockerfile",
+            "docker/requirements-pickle.txt",
+            "sandbox_rce/detonate.py",
+        ],
         "sample_name": "sample.pkl",
         "tmpfs": "/tmp:rw,noexec,nosuid,nodev,size=16m",
-        "memory": "256m",
+        # 512 MB, bo w obrazie jest teraz numpy i scikit-learn (import samego
+        # sklearn ze scipy to ~150 MB). Za niski limit = kod 137 i odmowa.
+        "memory": "512m",
         "pids": "128",
         "nofile": "256:256",
         "timeout_s": DEFAULT_TIMEOUT_S,
@@ -46,6 +58,12 @@ _PROFILES = {
     "keras": {
         "image_tag": "pickle-sandbox-detoner-keras:latest",
         "dockerfile": "Dockerfile.keras",
+        "sources": [
+            "docker/Dockerfile.keras",
+            "docker/requirements-keras.txt",
+            "sandbox_rce/detonate.py",
+            "sandbox_rce/detonate_keras.py",
+        ],
         "sample_name": "sample.keras",
         # TF zapisuje do /tmp przy starcie — 16 MB to za mało.
         "tmpfs": "/tmp:rw,noexec,nosuid,nodev,size=512m",
@@ -72,6 +90,7 @@ def _empty_report(file_name: str, reason: str) -> dict:
         "skipped_reason": reason,
         "load_succeeded": None,
         "duration_ms": None,
+        "timed_out": False,
         "events": [],
         "raw_log": "",
         "error": None,
@@ -111,38 +130,95 @@ def docker_status() -> tuple[bool, str]:
     return True, f"Docker {proc.stdout.strip()}"
 
 
+IMAGE_LABEL = "safeloadai.sources"
+
+
+def image_fingerprint(profile: str = "pickle") -> str:
+    """Skrót SHA-256 plików, z których budowany jest obraz danego profilu."""
+    digest = hashlib.sha256()
+    for relative in _PROFILES[profile]["sources"]:
+        full = os.path.join(_REPO_ROOT, relative)
+        digest.update(relative.encode())
+        with open(full, "rb") as fh:
+            digest.update(fh.read())
+    return digest.hexdigest()[:16]
+
+
 def ensure_image(force_rebuild: bool = False, profile: str = "pickle") -> None:
-    """Buduje obraz detonera dla danego profilu, jeśli jeszcze nie istnieje."""
+    """Buduje obraz detonera, jeśli go nie ma albo jest z innej wersji kodu.
+
+    Wersję rozpoznajemy po etykiecie ze skrótem plików źródłowych. Wcześniej
+    sprawdzaliśmy tylko, czy obraz o danej nazwie istnieje — po pullu, który
+    zmieniał detoner, kontener dalej uruchamiał STARY kod i trzeba było
+    pamiętać o ręcznym "docker build".
+    """
     cfg = _PROFILES[profile]
     available, message = docker_status()
     if not available:
         raise DockerUnavailable(message)
 
-    if not force_rebuild:
-        probe = subprocess.run(
-            ["docker", "image", "inspect", cfg["image_tag"]],
-            capture_output=True,
-            text=True,
+    missing = [
+        rel for rel in cfg["sources"]
+        if not os.path.isfile(os.path.join(_REPO_ROOT, rel))
+    ]
+    if missing:
+        raise DockerUnavailable(
+            "Brak plików potrzebnych do zbudowania obrazu detonera: "
+            f"{', '.join(missing)}. Biblioteka musi być zainstalowana z katalogu "
+            "repozytorium (pip install -e .), bo obraz buduje się z katalogu docker/."
         )
-        if probe.returncode == 0:
+    fingerprint = image_fingerprint(profile)
+
+    if not force_rebuild:
+        try:
+            probe = subprocess.run(
+                [
+                    "docker", "image", "inspect",
+                    "--format", "{{ index .Config.Labels \"%s\" }}" % IMAGE_LABEL,
+                    cfg["image_tag"],
+                ],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise DockerUnavailable("'docker image inspect' przekroczyło limit czasu.") from exc
+        if probe.returncode == 0 and probe.stdout.strip() == fingerprint:
             return
 
-    build = subprocess.run(
-        [
-            "docker", "build", "-q",
-            "-t", cfg["image_tag"],
-            "-f", os.path.join(_DOCKERFILE_DIR, cfg["dockerfile"]),
-            _REPO_ROOT,
-        ],
-        capture_output=True,
-        text=True,
-        timeout=cfg["build_timeout_s"],
-    )
+    try:
+        build = subprocess.run(
+            [
+                "docker", "build", "-q",
+                "--label", f"{IMAGE_LABEL}={fingerprint}",
+                "-t", cfg["image_tag"],
+                "-f", os.path.join(_DOCKERFILE_DIR, cfg["dockerfile"]),
+                _REPO_ROOT,
+            ],
+            capture_output=True,
+            text=True,
+            timeout=cfg["build_timeout_s"],
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise DockerUnavailable(
+            f"Budowa obrazu detonera ({profile}) przekroczyła "
+            f"{cfg['build_timeout_s']} s."
+        ) from exc
     if build.returncode != 0:
         raise DockerUnavailable(
             f"Budowa obrazu detonera ({profile}) nie powiodła się: "
             f"{build.stderr.strip()[:500]}"
         )
+
+
+def _kill_container(name: str) -> None:
+    """Zabija kontener po nazwie. Błąd (np. kontener już skończył) łykamy."""
+    try:
+        subprocess.run(
+            ["docker", "kill", name], capture_output=True, text=True, timeout=30
+        )
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def _parse_detoner_output(stdout: str) -> tuple[list[dict], dict | None]:
@@ -192,6 +268,7 @@ def detonate_in_docker(
 
     # Plik kopiujemy do katalogu tymczasowego i montujemy read-only pod
     # stałą nazwą, żeby nazwa pliku z uploadu nie trafiła do argv kontenera.
+    container_name = f"safeloadai-{uuid.uuid4().hex[:12]}"
     with tempfile.TemporaryDirectory() as staging:
         staged = os.path.join(staging, cfg["sample_name"])
         shutil.copyfile(path, staged)
@@ -199,6 +276,10 @@ def detonate_in_docker(
 
         cmd = [
             "docker", "run", "--rm",
+            # Nazwa, żeby po przekroczeniu limitu czasu dało się kontener
+            # zabić. Zabicie samego klienta "docker run" (to robi
+            # subprocess.run przy timeoucie) kontenera NIE zatrzymuje.
+            "--name", container_name,
             # --- odcięcie od sieci ---
             # Brak interfejsu poza loopbackiem — DNS i hosty są bezprzedmiotowe,
             # a Docker i tak odrzuca --dns/--add-host razem z network=none.
@@ -252,6 +333,7 @@ def detonate_in_docker(
             stderr = exc.stderr.decode() if isinstance(exc.stderr, bytes) else (exc.stderr or "")
             returncode = -1
             timed_out = True
+            _kill_container(container_name)
 
     events, result = _parse_detoner_output(stdout)
 
@@ -277,9 +359,11 @@ def detonate_in_docker(
 
     if timed_out:
         report["error"] = (
-            f"Detonacja przerwana po {timeout_s}s (limit czasu) — kontener zabity."
+            f"Detonacja przerwana po {timeout_s}s (limit czasu) — kontener zabity. "
+            "Ładunek mógł czekać dłużej niż limit, więc brak zdarzeń nic tu nie dowodzi."
         )
         report["detonated"] = True
+        report["timed_out"] = True
     elif not report["detonated"]:
         # Dwa kody wychodza tu czesto i oba znacza cos konkretnego. Bez nazwania
         # ich wprost raport mowi tylko "brak wyniku", czyli dokladnie to samo,

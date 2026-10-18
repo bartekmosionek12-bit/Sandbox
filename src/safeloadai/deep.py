@@ -17,7 +17,6 @@ only add findings: if it cannot run, the scan is SUSPICIOUS, never CLEAN.
 from __future__ import annotations
 
 import os
-import resource
 import shutil
 import signal
 import subprocess
@@ -25,6 +24,11 @@ import sys
 import tempfile
 
 from . import docker_sandbox
+
+try:
+    import resource
+except ImportError:  # Windows: no rlimits; the jail backends (bwrap, nsjail) are Linux-only anyway
+    resource = None
 
 BACKENDS = ("docker", "bwrap", "nsjail")
 DETONERS = {"pickle": "detonate.py", "keras": "detonate_keras.py"}
@@ -82,6 +86,8 @@ def nsjail_command(staging: str, detoner: str, timeout_s: int) -> list[str]:
 
 
 def _limits() -> None:  # runs in the child before exec
+    if resource is None:
+        raise OSError("rlimits are not available on this platform")
     resource.setrlimit(resource.RLIMIT_AS, (MEMORY_BYTES, MEMORY_BYTES))
     resource.setrlimit(resource.RLIMIT_NPROC, (64, 64))
     resource.setrlimit(resource.RLIMIT_FSIZE, (16 * 1024 * 1024, 16 * 1024 * 1024))

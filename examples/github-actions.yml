@@ -17,15 +17,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      # The runtime comes with the pinned safeloadai-runtime package: nothing to fetch.
       - name: Install safeloadai
-        run: |
-          git clone --depth 1 https://github.com/bartekmosionek12-bit/Sandbox safeloadai-src
-          pip install -e safeloadai-src
-      - name: Fetch the pinned WASI runtime
-        run: |
-          mkdir -p ~/.cache/safeloadai/runtime && cd ~/.cache/safeloadai/runtime
-          curl -fsSLO "https://github.com/vmware-labs/webassembly-language-runtimes/releases/download/python%2F3.12.0%2B20231211-040d5a6/python-3.12.0.wasm"
-          echo "e5dc5a398b07b54ea8fdb503bf68fb583d533f10ec3f930963e02b9505f7a763  python-3.12.0.wasm" | sha256sum -c -
+        run: pip install "safeloadai==0.3.0"
+      - name: Check the sandbox
+        run: safeloadai doctor
       - name: Scan
         # Exit 1 = MALICIOUS, 3 = SUSPICIOUS; both fail the job.
         run: safeloadai scan models/ --report safeloadai-report.json

@@ -263,6 +263,10 @@ the audit that started this rewrite is in [AUDIT.md](AUDIT.md). The report
 viewer runs with `flask --app app.server run --host 127.0.0.1`. It renders
 Report JSON and does not scan files.
 
+### Releasing
+
+`.github/workflows/publish.yml` uploads both packages with PyPI Trusted Publishing. It runs only when started by hand, and the target is testpypi or pypi. The runtime goes first, and a runtime version that is already published is skipped. The setup it needs is in the workflow's header comment. Changes are listed in [CHANGELOG.md](CHANGELOG.md), and reporting a bypass is described in [SECURITY.md](SECURITY.md).
+
 ## Statement on AI use
 
 This is the author's statement from the original project, translated. The

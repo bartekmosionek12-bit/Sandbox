@@ -37,6 +37,9 @@ from pathlib import Path
 from . import runtime
 
 GUEST_SOURCE = Path(__file__).with_name("guest")
+# Stdlib-only modules the host and the guest share (format layouts, readers).
+SHARED_SOURCE = Path(__file__).resolve().parent.parent / "shared"
+SHARED_MODULES = ("joblib_layout.py",)
 RUNNER_ARGV = [sys.executable, "-I", "-m", "safeloadai.sandbox.runner"]
 RECORD_MAGIC = b"SLAI1 "
 
@@ -142,6 +145,8 @@ def run_guest(task: dict, artefacts: dict[str, bytes], limits: Limits | None = N
         inbox = workdir / "in"
         guest_dir = inbox / ".guest"
         shutil.copytree(GUEST_SOURCE, guest_dir, ignore=shutil.ignore_patterns("__pycache__"))
+        for module in SHARED_MODULES:
+            shutil.copyfile(SHARED_SOURCE / module, guest_dir / module)
         (guest_dir / "task.json").write_text(json.dumps(task), encoding="utf-8")
         art_dir = inbox / "artefacts"
         art_dir.mkdir()

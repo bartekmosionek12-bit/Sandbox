@@ -156,6 +156,12 @@ def _host_execution_guard(request, monkeypatch):
     # Unrestricted unpickling is never allowed; loaders use RestrictedUnpickler.
     monkeypatch.setattr(pickle, "load", _refuse("pickle.load"))
     monkeypatch.setattr(pickle, "loads", _refuse("pickle.loads"))
+    # Framework loaders are never called on test files (fixtures are only written).
+    for module_name, attrs in (("joblib", ("load",)), ("joblib.numpy_pickle", ("load",))):
+        module = sys.modules.get(module_name)
+        for attr in attrs:
+            if module is not None and hasattr(module, attr):
+                monkeypatch.setattr(module, attr, _refuse(f"{module_name}.{attr}"))
 
     real_connect = socket.socket.connect
 

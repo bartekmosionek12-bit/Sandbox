@@ -7,10 +7,15 @@ import json
 from .host import GuestRun, Limits, run_guest
 
 
-def emulate_pickle(streams: list[bytes], *, max_pickles: int = 1, limits: Limits | None = None) -> GuestRun:
-    """Unpickle each stream inside the sandbox with recording ``find_class``."""
+def emulate_pickle(streams: list[bytes], *, max_pickles: int = 1, joblib: bool = False,
+                   limits: Limits | None = None) -> GuestRun:
+    """Unpickle each stream inside the sandbox with recording ``find_class``.
+
+    ``joblib=True`` uses joblib's reading (raw array bytes after each
+    NumpyArrayWrapper are skipped, object arrays read as nested pickles)."""
     artefacts = {f"stream{i}.pkl": data for i, data in enumerate(streams)}
-    task = {"kind": "pickle", "files": sorted(artefacts), "max_pickles": max(1, int(max_pickles))}
+    task = {"kind": "pickle", "files": sorted(artefacts), "max_pickles": max(1, int(max_pickles)),
+            "joblib": bool(joblib)}
     return run_guest(task, artefacts, limits)
 
 

@@ -48,6 +48,11 @@ PICKLE_GLOBALS: frozenset[tuple[str, str]] = frozenset(
         ("numpy.random._pickle", "__randomstate_ctor"),
         ("numpy.random.bit_generator", "SeedSequence"),
         ("numpy.random.bit_generator", "__pyx_unpickle_SeedSequence"),
+        # joblib's placeholder for an ndarray whose raw bytes follow it in the stream.
+        # A plain data holder (no __reduce__/__setstate__, no code on construction);
+        # the scanner reads its layout exactly (shared/joblib_layout.py) and the
+        # safe_load loader maps it to its own reader, never importing joblib.
+        ("joblib.numpy_pickle", "NumpyArrayWrapper"),
         # scikit-learn estimators and their internals (tuning corpus)
         ("sklearn._loss._loss", "CyHalfMultinomialLoss"),
         ("sklearn._loss._loss", "__pyx_unpickle_CyHalfMultinomialLoss"),

@@ -11,13 +11,14 @@ the host maps any anomaly to at least SUSPICIOUS.
 """
 import base64
 import dis
-import io
 import json
 import marshal
+import os
 import pickle
 import types
 
 import fakes
+import joblib_layout
 
 ARTEFACTS = "/in/artefacts/"
 
@@ -46,9 +47,10 @@ MAX_LAMBDAS = 64
 
 # --- pickle -----------------------------------------------------------------------
 
-class RecordingUnpickler(pickle.Unpickler):
-    def __init__(self, file, record):
-        super().__init__(file)
+class _Recording:
+    """find_class / persistent_load shared by the C and the pure-Python unpicklers."""
+
+    def _setup(self, record):
         self._record = record
 
     def find_class(self, module, name):
@@ -57,34 +59,142 @@ class RecordingUnpickler(pickle.Unpickler):
                      resolved="real" if real is not None else "fake")
         if real is not None:
             return real
+        stub = self._stubs().get((module, name))
+        if stub is not None:
+            return stub
         dotted = str(module) + "." + str(name)
         resolved = fakes._resolve(dotted)
         if type(resolved) is fakes.FakeObject:
             return fakes.fake_class(dotted)  # a type, so NEWOBJ and BUILD work on it
         return resolved
 
+    def _stubs(self):
+        return {}
+
     def persistent_load(self, pid):
         self._record("persistent_id", pid=fakes._short(pid))
         return fakes.FakeObject("persistent_id")
 
 
+class RecordingUnpickler(_Recording, pickle.Unpickler):
+    def __init__(self, file, record):
+        pickle.Unpickler.__init__(self, file)
+        self._setup(record)
+
+
+# --- joblib -------------------------------------------------------------------------
+
+class DTypeStub:
+    """Stands in for numpy.dtype: keeps the reconstruction arguments and state."""
+
+    def __init__(self, *args):
+        fakes.record_call("numpy.dtype", args)
+        self.args = args
+        self.state = None
+
+    def __setstate__(self, state):
+        fakes.record_call("numpy.dtype.__setstate__", (state,))
+        self.state = state
+
+    def __repr__(self):
+        return "<dtype %r>" % (self.args[:1],)
+
+
+class WrapperStub:
+    """Stands in for joblib.numpy_pickle.NumpyArrayWrapper (same constructor)."""
+
+    def __init__(self, subclass, shape, order, dtype, allow_mmap=False, numpy_array_alignment_bytes=16):
+        fakes.record_call("joblib.numpy_pickle.NumpyArrayWrapper", (subclass, shape, order, dtype))
+        self.subclass = subclass
+        self.shape = shape
+        self.order = order
+        self.dtype = dtype
+        self.allow_mmap = allow_mmap
+        self.numpy_array_alignment_bytes = numpy_array_alignment_bytes
+
+
+class FakeArray:
+    def __init__(self, plan):
+        self.shape = plan.shape
+
+    def __repr__(self):
+        return "<array shape=%r>" % (self.shape,)
+
+
+def _dtype_of(value):
+    if not isinstance(value, DTypeStub) or len(value.args) != 3 or value.args[1:] != (False, True):
+        raise joblib_layout.LayoutError("array dtype is not a numpy.dtype reconstruction")
+    return value.args[0], value.state
+
+
+class JoblibRecordingUnpickler(_Recording, pickle._Unpickler):
+    """joblib.numpy_pickle.NumpyUnpickler's reading, with recording globals."""
+
+    dispatch = pickle._Unpickler.dispatch.copy()
+
+    def __init__(self, file, record):
+        pickle._Unpickler.__init__(self, file)
+        self._setup(record)
+        self.file_handle = file
+        self.arrays = 0
+
+    def _stubs(self):
+        return {joblib_layout.WRAPPER: WrapperStub, joblib_layout.DTYPE: DTypeStub}
+
+    def load_build(self):
+        pickle._Unpickler.load_build(self)
+        wrapper = self.stack[-1]
+        if not isinstance(wrapper, WrapperStub):
+            return
+        frame = self._unframer.current_frame
+        if frame is not None and frame.tell() < len(frame.getbuffer()):
+            raise pickle.UnpicklingError("array data inside a pickle frame")
+        plan = joblib_layout.plan(wrapper.__dict__, _dtype_of, _dtype_of)
+        self.arrays += 1
+        if plan.hasobject:
+            # joblib: a fresh plain Unpickler on the same file, sharing find_class.
+            inner = pickle._Unpickler(self.file_handle)
+            inner.find_class = self.find_class
+            array = inner.load()
+        else:
+            handle = self.file_handle
+            if plan.padding:
+                pad = handle.read(1)
+                if len(pad) != 1:
+                    raise pickle.UnpicklingError("EOF: reading array padding")
+                if pad[0] and len(handle.read(pad[0])) != pad[0]:
+                    raise pickle.UnpicklingError("EOF: reading array padding")
+            start = handle.tell()
+            size = os.fstat(handle.fileno()).st_size
+            if start + plan.nbytes > size:
+                raise pickle.UnpicklingError("EOF: reading array data, expected %d bytes got %d"
+                                             % (plan.nbytes, size - start))
+            handle.seek(start + plan.nbytes)
+            array = FakeArray(plan)
+        self.stack[-1] = array
+
+    dispatch[pickle.BUILD[0]] = load_build
+
+
 def run_pickle(task, record):
     fakes.install_recorder(record)
+    joblib = bool(task.get("joblib"))
     for name in task["files"]:
         with open(ARTEFACTS + name, "rb") as fh:
-            data = fh.read()
-        stream = io.BytesIO(data)
-        limit = int(task.get("max_pickles") or 1)
-        loaded = 0
-        while loaded < limit and stream.tell() < len(data):
-            try:
-                RecordingUnpickler(stream, record).load()
-            except Exception as exc:  # noqa: BLE001
-                fakes.record_anomaly("unpickling raised", file=name, pickle_index=loaded,
-                                     error=type(exc).__name__, detail=str(exc)[:300])
-                break
-            loaded += 1
-        record("event", category="pickle", detail="loaded", file=name, pickles=loaded)
+            size = os.fstat(fh.fileno()).st_size
+            limit = int(task.get("max_pickles") or 1)
+            loaded = 0
+            while loaded < limit and fh.tell() < size:
+                unpickler = (JoblibRecordingUnpickler if joblib else RecordingUnpickler)(fh, record)
+                try:
+                    unpickler.load()
+                except Exception as exc:  # noqa: BLE001
+                    fakes.record_anomaly("unpickling raised", file=name, pickle_index=loaded,
+                                         error=type(exc).__name__, detail=str(exc)[:300])
+                    break
+                loaded += 1
+        record("event", category="pickle", detail="loaded", file=name, pickles=loaded,
+               arrays=getattr(unpickler, "arrays", 0) if loaded else 0)
 
 
 # --- keras Lambda -----------------------------------------------------------------

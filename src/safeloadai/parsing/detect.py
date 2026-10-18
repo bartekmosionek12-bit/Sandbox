@@ -8,20 +8,22 @@ from __future__ import annotations
 
 import os
 
+from . import decompress
 from .zipsafe import ZIP_MAGIC, SafeZip, ZipRefused
 
 HDF5_MAGIC = b"\x89HDF\r\n\x1a\n"
 
 PICKLE = "pickle"
+JOBLIB = "joblib"
 TORCH = "torch"
 KERAS = "keras"
 H5 = "h5"
 UNKNOWN = "unknown"
 
 EXTENSION_HINTS = {
-    ".pkl": {PICKLE},
-    ".pickle": {PICKLE},
-    ".joblib": {PICKLE},
+    ".pkl": {PICKLE, JOBLIB},
+    ".pickle": {PICKLE, JOBLIB},
+    ".joblib": {PICKLE, JOBLIB},
     ".pt": {TORCH, PICKLE},
     ".pth": {TORCH, PICKLE},
     ".bin": {TORCH, PICKLE},
@@ -40,7 +42,11 @@ def _looks_like_pickle(data: bytes) -> bool:
 
 
 def detect(data: bytes) -> str:
-    """Container format of the bytes: pickle, torch, keras, h5 or unknown."""
+    """Container format of the bytes: pickle, joblib (compressed), torch, keras, h5 or unknown.
+
+    An uncompressed joblib file is a pickle stream; the pickle walker reports it as
+    joblib once it meets joblib's array wrappers.
+    """
     if data.startswith(HDF5_MAGIC):
         return H5
     if data.startswith(ZIP_MAGIC) or b"PK\x05\x06" in data[-65_557:]:
@@ -54,6 +60,8 @@ def detect(data: bytes) -> str:
         if any(n == "data.pkl" or n.endswith("/data.pkl") for n in names):
             return TORCH
         return UNKNOWN
+    if decompress.detect(data) is not None:
+        return JOBLIB
     if _looks_like_pickle(data):
         return PICKLE
     return UNKNOWN

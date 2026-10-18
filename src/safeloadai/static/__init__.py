@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 
+from ..parsing import decompress
 from ..parsing import detect as detect_mod
 from .keras_static import parse_keras
 from .pickle_static import parse_pickle
@@ -20,6 +21,8 @@ def analyze_bytes(data: bytes, file_name: str = "<memory>", extra_allowed: froze
         report = parse_torch_zip(data, file_name, extra_allowed)
     elif fmt == detect_mod.PICKLE:
         report = parse_pickle(data, file_name, extra_allowed=extra_allowed)
+    elif fmt == detect_mod.JOBLIB:
+        report = _parse_compressed_joblib(data, file_name, extra_allowed)
     else:
         report = parse_pickle(b"", file_name, file_format=fmt)
         reason = (
@@ -35,6 +38,29 @@ def analyze_bytes(data: bytes, file_name: str = "<memory>", extra_allowed: froze
         report["reasons"].append(mismatch)
         if report["static_risk"] == "clean":
             report["static_risk"] = "suspicious"
+    return report
+
+
+def _parse_compressed_joblib(data: bytes, file_name: str, extra_allowed: frozenset) -> dict:
+    """Decompress within limits, then walk the pickle inside. The decompressed stream
+    is kept under ``_stream`` (dropped from the report) for the sandbox."""
+    try:
+        codec, inner = decompress.open_container(data)
+    except Exception as exc:  # noqa: BLE001 - a codec failure of any kind fails closed
+        if not isinstance(exc, decompress.DecompressionRefused):
+            exc = decompress.DecompressionRefused(f"decompression failed: {type(exc).__name__}: {exc}")
+        report = parse_pickle(b"", file_name, file_format=detect_mod.JOBLIB)
+        report["reasons"] = [str(exc)]
+        report["error"] = str(exc)
+        report["static_risk"] = "suspicious"
+        report["compression"] = decompress.detect(data)
+        return report
+    report = parse_pickle(inner, file_name, file_format=detect_mod.JOBLIB, extra_allowed=extra_allowed)
+    report["compression"] = codec
+    report["decompressed_size"] = len(inner)
+    report["_stream"] = inner
+    if codec == "compat":
+        report["notes"].append("legacy joblib ZF container (joblib < 0.10)")
     return report
 
 

@@ -25,6 +25,7 @@ import re
 from typing import Any
 
 from .allowlists import DANGEROUS_MODULES, DANGEROUS_SYMBOLS, PICKLE_GLOBALS, TORCH_GLOBALS
+from .pickle_vm import Machine, plain_reading_imports
 
 SCHEMA_VERSION = "1.1"
 
@@ -53,9 +54,6 @@ STRING_PUSH_OPCODES = frozenset({
     "SHORT_BINUNICODE", "BINUNICODE", "BINUNICODE8", "UNICODE", "SHORT_BINSTRING",
     "BINSTRING", "STRING", "BINBYTES", "SHORT_BINBYTES", "BINBYTES8",
 })
-_PUT_OPCODES = frozenset({"PUT", "BINPUT", "LONG_BINPUT"})
-_GET_OPCODES = frozenset({"GET", "BINGET", "LONG_BINGET"})
-_MARK = object()
 
 # Legacy torch.save writes this number as its first pickle.
 TORCH_LEGACY_MAGIC = 0x1950A86A20F9469CFC6C
@@ -119,120 +117,140 @@ def is_dangerous_import(module: str, name: str) -> bool:
     )
 
 
-def _apply_stack_effect(opcode, stack: list) -> None:
-    """Pop and push per the opcode's documented stack effect; values are unknown."""
-    before = opcode.stack_before
-    if pickletools.markobject in before:
-        while stack:
-            if stack.pop() is _MARK:
-                break
-        for _ in range(before.index(pickletools.markobject)):
-            if stack:
-                stack.pop()
-    else:
-        for _ in before:
-            if stack:
-                stack.pop()
-    for item in opcode.stack_after:
-        stack.append(_MARK if item is pickletools.markobject else None)
-
-
-def _walk_one(stream: io.BytesIO, report: dict, index: int) -> tuple[bool, Any]:
-    """Walk one pickle up to its STOP. Returns (reached_stop, first_int_value)."""
-    stack: list = []
-    memo: dict = {}
-    first_int = None
-    reached_stop = False
-    for opcode, arg, pos in pickletools.genops(stream):
+def _recorders(report: dict, index_ref: list):
+    def on_opcode(opcode, arg, pos):
         name = opcode.name
-        if len(report["opcodes"]) >= MAX_OPCODES:
-            raise ValueError(f"more than {MAX_OPCODES} opcodes")
         arg_str = _format_arg(arg)
-        entry = {"name": name, "arg": arg_str, "pos": pos, "pickle": index}
+        entry = {"name": name, "arg": arg_str, "pos": pos, "pickle": index_ref[0]}
         report["opcodes"].append(entry)
         if name in FLAGGED_OPCODES:
             report["flagged_opcodes"].append(dict(entry, reason=FLAGGED_OPCODES[name]))
-        if first_int is None and name in ("LONG1", "LONG4", "LONG", "INT", "BININT", "BININT1",
-                                          "BININT2"):
-            first_int = arg
         if name in STRING_PUSH_OPCODES and isinstance(arg, str) and _SUSPICIOUS_STRING.search(arg):
             report["suspicious_strings"].append({"value": arg[:200], "pos": pos})
 
-        module = qualname = None
-        resolved = True
-        if name in STRING_PUSH_OPCODES:
-            stack.append(arg if isinstance(arg, str) else None)
-        elif name == "MEMOIZE":
-            memo[len(memo)] = stack[-1] if stack else None
-        elif name in _PUT_OPCODES:
-            memo[arg] = stack[-1] if stack else None
-        elif name in _GET_OPCODES:
-            stack.append(memo.get(arg))
-        elif name == "STACK_GLOBAL":
-            qualname = stack.pop() if stack else None
-            module = stack.pop() if stack else None
-            stack.append(None)
-            if not (isinstance(module, str) and isinstance(qualname, str)):
-                resolved = False
-                module = qualname = None
-        else:
-            if name in ("GLOBAL", "INST") and arg_str:
-                parts = arg_str.replace("\n", " ").split()
-                if len(parts) == 2:
-                    module, qualname = parts
-                else:
-                    resolved = False
-            _apply_stack_effect(opcode, stack)
+    def on_import(module, qualname, pos, opcode, resolved):
+        report["imports"].append(
+            {"module": module, "symbol": qualname, "pos": pos, "opcode": opcode, "resolved": resolved}
+        )
 
-        if name in IMPORT_OPCODES:
-            report["imports"].append(
-                {"module": module, "symbol": qualname, "pos": pos, "opcode": name, "resolved": resolved}
-            )
-        if name == "STOP":
-            reached_stop = True
-    return reached_stop, first_int
+    return on_opcode, on_import
 
 
 def parse_pickle(data: bytes, file_name: str = "<memory>", *, torch: bool = False,
-                 file_format: str = "pickle", extra_allowed: frozenset = frozenset()) -> dict:
+                 file_format: str = "pickle", extra_allowed: frozenset = frozenset(),
+                 joblib: bool = True) -> dict:
     """Analyse pickle bytes and return the parser contract (dict).
 
     ``torch=True`` widens the allowlist with the globals a PyTorch checkpoint
     needs and accepts persistent ids (torch stores tensor data out of band).
+    ``joblib=True`` (the default) reads joblib's NumpyArrayWrapper layout: the raw
+    array bytes after each wrapper are skipped, object arrays are walked as nested
+    pickles, and the bytes joblib reads as array data are checked for what a plain
+    ``pickle.load`` would import from them (parser differential).
     """
     report = _empty_report(file_name, file_format)
     base = PICKLE_GLOBALS | frozenset(extra_allowed)
     allow = base | TORCH_GLOBALS if torch else base
-    stream = io.BytesIO(data)
+    index_ref = [0]
+    on_opcode, on_import = _recorders(report, index_ref)
+    machine = Machine(data, joblib=joblib, on_import=on_import, on_opcode=on_opcode, max_opcodes=MAX_OPCODES)
     try:
-        index = 0
         legacy_torch = False
-        while stream.tell() < len(data):
-            if index >= MAX_PICKLES:
+        while machine.stream.tell() < len(data):
+            if index_ref[0] >= MAX_PICKLES:
                 raise ValueError(f"more than {MAX_PICKLES} pickles in one file")
-            start = stream.tell()
-            _, first_int = _walk_one(stream, report, index)
-            if index == 0 and first_int == TORCH_LEGACY_MAGIC:
+            start = machine.stream.tell()
+            stopped, first_int = machine.run_one()
+            if index_ref[0] == 0 and first_int == TORCH_LEGACY_MAGIC:
                 legacy_torch = True
                 torch = True
                 allow = base | TORCH_GLOBALS
                 report["notes"].append("legacy PyTorch serialization (magic number found)")
-            index += 1
-            if legacy_torch and index == TORCH_LEGACY_PICKLES:
+            index_ref[0] += 1
+            if not stopped:
+                raise ValueError("pickle ends without STOP")
+            if legacy_torch and index_ref[0] == TORCH_LEGACY_PICKLES:
                 report["notes"].append(
-                    f"{len(data) - stream.tell()} bytes of raw tensor storage after the "
+                    f"{len(data) - machine.stream.tell()} bytes of raw tensor storage after the "
                     "legacy torch pickles (not analysed, never unpickled)"
                 )
                 break
-            if stream.tell() == start:
+            if machine.stream.tell() == start:
                 break
-        report["pickle_count"] = index
     except Exception as exc:  # noqa: BLE001 - any parse failure must surface
         report["error"] = f"opcode walk failed: {type(exc).__name__}: {exc}"
+    report["pickle_count"] = index_ref[0]
+    _joblib_findings(report, machine, data, allow)
 
     report["raw_disasm"] = _disasm(data)
     _score(report, allow, torch)
     return report
+
+
+# Top-level packages a model-loading environment commonly has, besides the
+# standard library and whatever is importable here.
+_COMMON_TOP_LEVEL = frozenset({
+    "numpy", "scipy", "sklearn", "joblib", "pandas", "torch", "tensorflow", "keras", "transformers",
+    "diffusers", "dill", "cloudpickle", "xgboost", "lightgbm", "catboost", "skops", "onnx", "requests",
+    "urllib3", "yaml", "pip", "setuptools", "IPython", "jax", "flax", "huggingface_hub", "safetensors",
+})
+
+
+def _importable_top_level(module: str) -> bool:
+    """Could ``import module`` succeed somewhere this file is loaded? Only the top-level
+    name is looked up (find_spec of a top-level name runs no package code)."""
+    import importlib.util
+    import sys
+
+    top = module.split(".", 1)[0]
+    if top in sys.stdlib_module_names or top in sys.builtin_module_names or top in _COMMON_TOP_LEVEL:
+        return True
+    try:
+        return importlib.util.find_spec(top) is not None
+    except (ImportError, ValueError):
+        return True  # cannot tell: assume it can
+
+
+def _joblib_findings(report: dict, machine: Machine, data: bytes, allow: frozenset) -> None:
+    if not (machine.arrays or machine.object_arrays or machine.legacy_wrappers):
+        return
+    if report["file_format"] == "pickle":
+        report["file_format"] = "joblib"
+    report["joblib"] = {"arrays": machine.arrays, "object_arrays": machine.object_arrays,
+                        "array_bytes": machine.array_bytes, "legacy_wrappers": machine.legacy_wrappers}
+    report["notes"].append(
+        f"joblib: {machine.arrays} raw arrays ({machine.array_bytes} bytes, skipped, never read as opcodes), "
+        f"{machine.object_arrays} object arrays walked as nested pickles"
+    )
+    if machine.legacy_wrappers:
+        report["reasons"].append(
+            "legacy joblib (< 0.10) multi-file format: the arrays live in side files (*.npy, *.z) that "
+            "joblib.load opens by name and reads with numpy.load(allow_pickle=True); they are not analysed"
+        )
+    if machine.first_region is None:
+        return
+    found, decided = plain_reading_imports(data, machine.first_region, MAX_OPCODES)
+    for module, name, pos, opcode in found:
+        if module is not None and not _importable_top_level(module):
+            break  # pickle.load raises ImportError here; nothing after it runs
+        if module is None:
+            report["reasons"].append(
+                f"parser differential: plain pickle.load would read the joblib array data as opcodes "
+                f"and reach {opcode} at {pos} (copyreg extension import)")
+        elif (module, name) not in allow:
+            # Scored like any other import (a known sink with call opcodes is MALICIOUS).
+            report["imports"].append({"module": module, "symbol": name, "pos": pos, "resolved": True,
+                                      "opcode": f"{opcode} (plain pickle.load reading of joblib array data)"})
+            report["reasons"].append(
+                f"parser differential: plain pickle.load would read the joblib array data as opcodes "
+                f"and import {module}.{name} ({opcode} at {pos})")
+    # The walk follows the plain reading in order and stops at the first import no
+    # environment can satisfy (such as a pair stitched together from the outer memo
+    # when nested pickle opcodes are read with the outer stack): pickle.load raises
+    # ImportError there, so nothing after it can run.
+    if not decided:
+        report["reasons"].append("parser differential check ran out of budget; plain pickle.load reading "
+                                 "of the joblib array data is undecided")
 
 
 def _disasm(data: bytes) -> str:

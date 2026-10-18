@@ -37,7 +37,7 @@ def lambdas_only(parser_report: dict) -> bool:
 
 def static_layer(parser_report: dict, *, defer_lambdas: bool = False) -> LayerResult:
     risk = parser_report.get("static_risk")
-    details = {k: v for k, v in parser_report.items() if k not in STATIC_DETAIL_DROP}
+    details = {k: v for k, v in parser_report.items() if k not in STATIC_DETAIL_DROP and not k.startswith("_")}
     layer = LayerResult(name="static", verdict=C, details=details)
     reasons = [str(r) for r in parser_report.get("reasons") or []]
     if risk == "suspicious" and defer_lambdas and lambdas_only(parser_report):

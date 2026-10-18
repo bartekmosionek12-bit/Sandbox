@@ -3,7 +3,8 @@
 safeloadai decides whether a machine-learning model file is safe to load. It
 does this before the file is loaded. It handles:
 
-- pickle (`.pkl`, `.pickle`, `.joblib`),
+- pickle (`.pkl`, `.pickle`),
+- joblib (`.joblib`, `.pkl`; uncompressed or zlib, gzip, bz2, lzma, xz, lz4),
 - PyTorch (`.pt`, `.pth`, `.bin`, zip and legacy formats),
 - Keras (`.keras`),
 - legacy HDF5 (`.h5`), which is always reported as SUSPICIOUS for now.
@@ -37,6 +38,14 @@ severe verdict of any layer, so no layer can lower what another one found.
      least SUSPICIOUS. A known sink together with a call opcode is MALICIOUS.
    - **Multi-pickle streams:** every pickle in the stream is walked, including
      legacy PyTorch files that put several pickles back to back.
+   - **joblib:** compressed files are recognised by content, the way joblib
+     does it, and decompressed in a streaming way with limits on output size
+     and compression ratio. The walker follows joblib's format: the raw bytes
+     joblib writes after each `NumpyArrayWrapper` are skipped by their exact
+     size from shape and dtype, never read as opcodes; object-dtype arrays are
+     nested pickles and are walked like any other. Because a plain
+     `pickle.load` would read those raw bytes as opcodes, the walker also
+     checks what that reading would import (parser differential).
    - **Keras:** `config.json` is walked. Exact module and class names are
      required, and Lambda bytecode is scanned for sink names. The bytecode is
      never unmarshalled on the host.
@@ -47,7 +56,8 @@ severe verdict of any layer, so no layer can lower what another one found.
      the process by the host.
    - **Isolation:** no network and no filesystem other than that directory.
    - **Inside the sandbox:** pickles are unpickled with a recording
-     `find_class`, and Lambda functions are called on fake tensors with fake
+     `find_class` (joblib streams with joblib's own reading of the array
+     data), and Lambda functions are called on fake tensors with fake
      `tf`/`keras`/`torch`/`numpy`/`os`/`subprocess`/`socket`/`builtins`
      modules.
    - **Evidence:** every call is written to a channel that only the host reads.
@@ -70,6 +80,8 @@ copy. It also enforces the policy itself:
 
 - pickle is read with a restricted unpickler that resolves only allowlisted
   pairs;
+- joblib is read by safeloadai's own joblib reader with the same restricted
+  `find_class` (numpy is needed, joblib is not);
 - PyTorch is loaded with `torch.load(weights_only=True)`;
 - Keras is loaded with `keras.saving.load_model(safe_mode=True)`.
 
@@ -163,7 +175,21 @@ How to read the table:
     pass them with `allow=[("module", "Qualname")]` or `--allow module:Qualname`.
   - **PyTorch:** the allowlist entries have not been checked against real
     checkpoints yet.
-  - **joblib, `.h5` and TorchScript** are always SUSPICIOUS.
+  - **`.h5` and TorchScript** are always SUSPICIOUS.
+- **joblib.** Supported: joblib 0.10 and newer, uncompressed or compressed with
+  one stream of zlib, gzip, bz2, lzma, xz or lz4 (lz4 needs
+  `pip install "safeloadai[lz4]"`).
+  - **SUSPICIOUS by design:** the legacy multi-file format of joblib < 0.10
+    (arrays in side files that joblib opens by name and reads with
+    `numpy.load(allow_pickle=True)`), structured dtypes that hold Python
+    objects, a wrapper built in any way other than joblib's own, array data
+    inside a pickle frame, and decompressed output above 1 GiB or a ratio
+    above 1000:1 (after the first MiB).
+  - **Parser differential:** the check of what a plain `pickle.load` would
+    import from joblib's array bytes stops at the first import whose
+    top-level module no environment could provide; a name made of a stdlib or
+    common package name and an attribute that does not exist is reported
+    anyway (SUSPICIOUS).
 - **CLEAN Lambda models do not load through `safe_load`,** because Keras safe
   mode refuses Lambda bytecode. Load them yourself if you accept that risk.
 - **Loading a CLEAN pickle imports allowlisted libraries on your machine,**

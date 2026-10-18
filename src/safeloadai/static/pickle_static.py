@@ -36,6 +36,8 @@ from .allowlists import (
     PICKLE_GLOBALS,
     TORCH_GLOBALS,
 )
+from .lookalike import imitates
+from .lookalike import reason as lookalike_reason
 from .pickle_vm import Global, Machine, Obj, plain_reading_imports
 
 SCHEMA_VERSION = "1.1"
@@ -411,6 +413,10 @@ def _score(report: dict, allow: frozenset, torch: bool) -> None:
             reason = f"import outside the allowlist: {imp['module']}.{imp['symbol']}"
             reasons.append(reason)
             if (imp["module"], imp["symbol"]) in KNOWN_GADGETS:
+                continue
+            ref = imitates(imp["module"])
+            if ref:
+                reasons.append(lookalike_reason(imp["module"], ref))
                 continue
             unverifiable[reason] = {"item": f"{imp['module']}.{imp['symbol']}",
                                     "pair": [imp["module"], imp["symbol"]],

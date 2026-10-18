@@ -21,6 +21,7 @@ from . import override
 from .report import Category, LayerResult, Verdict
 from .sandbox.host import GuestRun
 from .static.allowlists import KNOWN_GADGETS, PICKLE_GLOBALS, TORCH_GLOBALS
+from .static.lookalike import imitates
 from .static.pickle_static import is_dangerous_import
 
 M, S = Verdict.MALICIOUS, Verdict.SUSPICIOUS
@@ -143,7 +144,7 @@ def classify(run: GuestRun, *, name: str = "emulation", torch: bool = False,
         if event.get("kind") == "import":
             pair = (str(event.get("module")), str(event.get("name")))
             if (event.get("resolved") != "real" and pair not in allow_pairs and pair not in KNOWN_GADGETS
-                    and not is_dangerous_import(*pair)):
+                    and not is_dangerous_import(*pair) and not imitates(pair[0])):
                 unknown[f"{pair[0]}.{pair[1]}"] = pair
     for event in run.events:
         kind = event.get("kind")

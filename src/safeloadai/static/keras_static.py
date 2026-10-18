@@ -52,6 +52,8 @@ from .allowlists import (
     TF_DANGEROUS,
     TF_OP_ALLOWED,
 )
+from .lookalike import imitates
+from .lookalike import reason as lookalike_reason
 
 SCHEMA_VERSION = "1.1"
 CONFIG_CANDIDATES = ("config.json", "model.json")
@@ -441,6 +443,11 @@ def finalize(report: dict) -> dict:
     for imp in report["unknown_imports"]:
         reason = f"{imp.get('path')}: object outside the allowlist {imp['module']}.{imp['symbol']}"
         reasons.append(reason)
+        ref = imitates(imp["module"].split(">")[0] if imp.get("kind") == "registered"
+                       else imp["module"] if imp.get("kind") in ("class", "function") else None)
+        if ref:
+            reasons.append(f"{imp.get('path')}: {lookalike_reason(imp['module'], ref)}")
+            continue
         meta = _unverifiable(imp, report.get("file_format"))
         if meta:
             unverifiable[reason] = meta

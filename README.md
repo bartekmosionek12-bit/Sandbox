@@ -124,38 +124,22 @@ report says why; `safeloadai doctor` tells you how to fix it. Optional extras:
 
 ## Results
 
-These are the first measurements from `evaluation/run_eval.py`, made on
-2026-10-17. Setup and caveats are in
-[evaluation/results/README.md](evaluation/results/README.md).
+Latest local run, 2026-10-18. It covers 138 files: 53 harmless marker payloads, including rebuilds of public scanner bypasses and CVE-2024-3660, and 85 locally generated benign scikit-learn, numpy, `.keras` and `.h5` models. "Before" is the previous release line (origin/main). Setup, caveats and the full tables are in [evaluation/results/README.md](evaluation/results/README.md).
 
-- **Malicious files:** 38 harmless marker payloads from
-  `tests/corpus/build_corpus.py`.
-- **Benign files:** 35 files, made of the lab corpus controls, locally
-  generated numpy and scikit-learn models, and the two clean PoC samples.
-
-| tool | detected / malicious | false positives / benign | errors | unsupported | median s |
-|---|---|---|---|---|---|
-| safeloadai | 38 / 38 | 7 / 35 | 0 | 0 | 0.50 |
-| picklescan 1.0.5 | 22 / 38 | 0 / 35 | 8 | 0 | 0.10 |
-| fickling 0.1.12 | 24 / 38 | 25 / 35 | 22 | 0 | 0.08 |
-| modelscan 0.8.8 | 21 / 38 | 0 / 35 | 0 | 24 | 0.20 |
+| tool | detected / malicious | false positives / benign | median s |
+|---|---|---|---|
+| safeloadai before | 52 / 53 | 49 / 85 | 0.40 |
+| safeloadai after | 53 / 53 | 23 / 85 | 0.38 |
+| picklescan 1.0.5 | 32 / 53 | 0 / 85 | 0.09 |
+| fickling 0.1.12 | 36 / 53 | 61 / 85 | 0.06 |
+| modelscan 0.8.8 | 23 / 53 | 0 / 85 | 0.17 |
 
 How to read the table:
 
-- **Malicious files are lab payloads.** The marker payloads were written for
-  this project. They are not a public malware set.
-- **The benign numpy and scikit-learn files are not independent of the
-  allowlist,** which was tuned on similar models. A false-positive rate on
-  unseen models still needs the Hugging Face set:
-  `evaluation/fetch_benign_hf.py`, then `run_eval.py --benign DIR`.
-- **All 7 safeloadai false positives are `.joblib` files.**
-- **Format coverage explains some of the other tools' misses.**
-  - picklescan and fickling return "clean" for `.keras` files they do not
-    analyse.
-  - modelscan without its TensorFlow extra skips them.
-  - fickling 0.1.12 fails on common pickle opcodes such as FLOAT.
-- **Layer contribution on the 38 malicious files:** static and emulation both
-  flagged 33, static alone 4, emulation alone 1.
+- **The malicious files are lab rebuilds with harmless markers,** not a public malware set.
+- **The benign files are not independent of the allowlist,** and they are not Hugging Face models. A false-positive rate on unseen models still needs the Hub set: `evaluation/fetch_benign_hf.py`, then `run_eval.py --hf DIR`.
+- **The 23 remaining false positives are all SUSPICIOUS.** 16 are scikit-learn estimators missing from the allowlist. 7 are Keras files with `LayerScale`, `TFOpLambda` or Keras 3 op layers. [false-positives-20261018.md](evaluation/results/false-positives-20261018.md) lists each missing pair and whether adding it would be safe. None was added.
+- **Format coverage explains some of the other tools' misses.** picklescan and fickling return "clean" for `.keras` and `.h5` files they do not analyse. modelscan without its TensorFlow extra skips `.keras`, and the evaluation does not run it on `.h5`, because modelscan opens those with h5py on the host.
 
 ## LIMITATIONS
 
@@ -258,7 +242,7 @@ pip install -e ".[dev]"
 ruff check .
 python -m pytest -q        # SAFELOADAI_WASI_PYTHON=/path/to/python-3.12.0.wasm overrides the runtime (still verified)
 python -m tests.corpus.build_corpus /tmp/corpus
-python evaluation/run_eval.py --lab /tmp/corpus --benign /path/to/benign
+python evaluation/run_eval.py --lab /tmp/corpus --benign /path/to/benign   # --hf DIR for fetch_benign_hf.py output
 ```
 
 How the tests stay safe:

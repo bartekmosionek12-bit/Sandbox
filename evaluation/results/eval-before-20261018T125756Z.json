@@ -1,0 +1,4792 @@
+{
+  "label": "before",
+  "created": "20261018T125756Z",
+  "python": "3.13.16",
+  "safeloadai": "0.3.0.dev0",
+  "platform": "Linux x86_64",
+  "tools": [],
+  "summary": {
+    "safeloadai": {
+      "malicious": 53,
+      "benign": 85,
+      "detected": 52,
+      "detection_rate": 0.9811,
+      "false_positives": 49,
+      "fp_rate": 0.5765,
+      "errors": 0,
+      "unsupported": 0,
+      "skipped": 0,
+      "seconds_median": 0.4042,
+      "seconds_p95": 0.4909,
+      "seconds_max": 0.6331,
+      "per_format": {
+        "h5": {
+          "malicious": 4,
+          "benign": 16,
+          "detected": 4,
+          "detection_rate": 1.0,
+          "false_positives": 16,
+          "fp_rate": 1.0,
+          "errors": 0,
+          "unsupported": 0,
+          "skipped": 0,
+          "seconds_median": 0.0084,
+          "seconds_p95": 0.1682,
+          "seconds_max": 0.1682
+        },
+        "joblib": {
+          "malicious": 0,
+          "benign": 17,
+          "detected": 0,
+          "detection_rate": null,
+          "false_positives": 17,
+          "fp_rate": 1.0,
+          "errors": 0,
+          "unsupported": 0,
+          "skipped": 0,
+          "seconds_median": 0.4163,
+          "seconds_p95": 0.4883,
+          "seconds_max": 0.4883
+        },
+        "keras": {
+          "malicious": 13,
+          "benign": 19,
+          "detected": 13,
+          "detection_rate": 1.0,
+          "false_positives": 8,
+          "fp_rate": 0.4211,
+          "errors": 0,
+          "unsupported": 0,
+          "skipped": 0,
+          "seconds_median": 0.05,
+          "seconds_p95": 0.4392,
+          "seconds_max": 0.4596
+        },
+        "pickle": {
+          "malicious": 32,
+          "benign": 33,
+          "detected": 32,
+          "detection_rate": 1.0,
+          "false_positives": 8,
+          "fp_rate": 0.2424,
+          "errors": 0,
+          "unsupported": 0,
+          "skipped": 0,
+          "seconds_median": 0.4258,
+          "seconds_p95": 0.5211,
+          "seconds_max": 0.6331
+        },
+        "torch": {
+          "malicious": 4,
+          "benign": 0,
+          "detected": 3,
+          "detection_rate": 0.75,
+          "false_positives": 0,
+          "fp_rate": null,
+          "errors": 0,
+          "unsupported": 0,
+          "skipped": 0,
+          "seconds_median": 0.2088,
+          "seconds_p95": 0.4967,
+          "seconds_max": 0.4967
+        }
+      },
+      "layer_contribution": {
+        "static_only": 4,
+        "emulation_only": 1,
+        "both": 47,
+        "neither": 1
+      },
+      "reached_expected_severity": 50,
+      "per_category": {
+        "process": {
+          "total": 11,
+          "detected": 11
+        },
+        "code_exec": {
+          "total": 6,
+          "detected": 6
+        },
+        "file_write": {
+          "total": 4,
+          "detected": 4
+        },
+        "network": {
+          "total": 2,
+          "detected": 2
+        },
+        "native": {
+          "total": 1,
+          "detected": 1
+        },
+        "unknown_global": {
+          "total": 1,
+          "detected": 1
+        },
+        "multi_pickle": {
+          "total": 1,
+          "detected": 1
+        },
+        "evasion": {
+          "total": 6,
+          "detected": 6
+        },
+        "evidence_forgery": {
+          "total": 1,
+          "detected": 1
+        },
+        "torch_legacy": {
+          "total": 1,
+          "detected": 1
+        },
+        "torch_zip": {
+          "total": 1,
+          "detected": 1
+        },
+        "bypass": {
+          "total": 11,
+          "detected": 10
+        },
+        "custom_object": {
+          "total": 2,
+          "detected": 2
+        },
+        "module_prefix": {
+          "total": 1,
+          "detected": 1
+        },
+        "missing_stub": {
+          "total": 1,
+          "detected": 1
+        },
+        "h5_lambda": {
+          "total": 2,
+          "detected": 2
+        },
+        "h5_structure": {
+          "total": 1,
+          "detected": 1
+        }
+      }
+    }
+  },
+  "false_positives": {
+    "missing": {
+      "joblib.numpy_pickle.NumpyArrayWrapper": [
+        "sk_column_transformer.joblib",
+        "sk_forest.joblib",
+        "sk_gbr.joblib",
+        "sk_hgb.joblib",
+        "sk_kmeans.joblib",
+        "sk_knn.joblib",
+        "sk_label_encoder.joblib",
+        "sk_linreg.joblib",
+        "sk_logreg.joblib",
+        "sk_mlp.joblib",
+        "sk_pca.joblib",
+        "sk_pipeline.joblib",
+        "sk_ridge.joblib",
+        "sk_sgd.joblib",
+        "sk_svc.joblib",
+        "sk_tfidf.joblib",
+        "sk_tree.joblib"
+      ],
+      "None.__keras_tensor__": [
+        "k3_convnext_tiny.keras",
+        "k3_densenet121.keras",
+        "k3_efficientnet_b0.keras",
+        "k3_mobilenet_v2.keras",
+        "k3_mobilenet_v3_small.keras",
+        "k3_nasnet_mobile.keras"
+      ],
+      "numpy.float64": [
+        "sk_column_transformer.joblib",
+        "sk_column_transformer.pkl",
+        "sk_tfidf.joblib",
+        "sk_tfidf.pkl"
+      ],
+      "sklearn.linear_model._stochastic_gradient.SGDClassifier": [
+        "sk_column_transformer.pkl",
+        "sk_sgd.joblib",
+        "sk_sgd.pkl",
+        "sk_tfidf.pkl"
+      ],
+      "sklearn.preprocessing._label.LabelEncoder": [
+        "sk_hgb.joblib",
+        "sk_hgb.pkl",
+        "sk_label_encoder.joblib",
+        "sk_label_encoder.pkl"
+      ],
+      "sklearn.linear_model._sgd_fast.Hinge": [
+        "sk_column_transformer.pkl",
+        "sk_sgd.pkl",
+        "sk_tfidf.pkl"
+      ],
+      "sklearn.compose._column_transformer.ColumnTransformer": [
+        "sk_column_transformer.joblib",
+        "sk_column_transformer.pkl"
+      ],
+      "sklearn.preprocessing._encoders.OneHotEncoder": [
+        "sk_column_transformer.joblib",
+        "sk_column_transformer.pkl"
+      ],
+      "sklearn._loss._loss.CyHalfSquaredError": [
+        "sk_gbr.joblib",
+        "sk_gbr.pkl"
+      ],
+      "sklearn._loss.link.IdentityLink": [
+        "sk_gbr.joblib",
+        "sk_gbr.pkl"
+      ],
+      "sklearn._loss.loss.HalfSquaredError": [
+        "sk_gbr.joblib",
+        "sk_gbr.pkl"
+      ],
+      "sklearn.dummy.DummyRegressor": [
+        "sk_gbr.joblib",
+        "sk_gbr.pkl"
+      ],
+      "sklearn.ensemble._gb.GradientBoostingRegressor": [
+        "sk_gbr.joblib",
+        "sk_gbr.pkl"
+      ],
+      "sklearn.ensemble._hist_gradient_boosting.gradient_boosting.HistGradientBoostingClassifier": [
+        "sk_hgb.joblib",
+        "sk_hgb.pkl"
+      ],
+      "sklearn.neural_network._multilayer_perceptron.MLPClassifier": [
+        "sk_mlp.joblib",
+        "sk_mlp.pkl"
+      ],
+      "sklearn.preprocessing._label.LabelBinarizer": [
+        "sk_mlp.joblib",
+        "sk_mlp.pkl"
+      ],
+      "sklearn.linear_model._ridge.Ridge": [
+        "sk_ridge.joblib",
+        "sk_ridge.pkl"
+      ],
+      "sklearn.feature_extraction.text.TfidfTransformer": [
+        "sk_tfidf.joblib",
+        "sk_tfidf.pkl"
+      ],
+      "sklearn.feature_extraction.text.TfidfVectorizer": [
+        "sk_tfidf.joblib",
+        "sk_tfidf.pkl"
+      ],
+      "keras.src.applications.convnext.LayerScale": [
+        "k2_convnext_tiny.keras",
+        "k3_convnext_tiny.keras"
+      ],
+      "keras.src.layers.core.tf_op_layer.TFOpLambda": [
+        "k2_convnext_tiny.keras",
+        "k2_mobilenet_v3_small.keras"
+      ],
+      "keras.src.ops.numpy.Add": [
+        "k3_convnext_tiny.keras",
+        "k3_mobilenet_v3_small.keras"
+      ],
+      "numpy.random._pcg64.PCG64": [
+        "sk_hgb.pkl"
+      ],
+      "numpy.random._pickle.__generator_ctor": [
+        "sk_hgb.pkl"
+      ],
+      "sklearn._loss._loss.CyHalfBinomialLoss": [
+        "sk_hgb.pkl"
+      ],
+      "sklearn._loss.link.LogitLink": [
+        "sk_hgb.pkl"
+      ],
+      "sklearn._loss.loss.HalfBinomialLoss": [
+        "sk_hgb.pkl"
+      ],
+      "sklearn.ensemble._hist_gradient_boosting.binning._BinMapper": [
+        "sk_hgb.pkl"
+      ],
+      "sklearn.ensemble._hist_gradient_boosting.predictor.TreePredictor": [
+        "sk_hgb.pkl"
+      ],
+      "sklearn.neural_network._stochastic_optimizers.AdamOptimizer": [
+        "sk_mlp.pkl"
+      ],
+      "keras.src.ops.numpy.Multiply": [
+        "k3_mobilenet_v3_small.keras"
+      ]
+    },
+    "other_reasons": {
+      "[static] SUSPICIOUS: legacy HDF5 model: config is parsed inside the sandbox only (not available yet)": 16
+    }
+  },
+  "entries": [
+    {
+      "file": "p_os_system.pkl",
+      "label": "malicious",
+      "category": "process",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 593.6,
+            "total": 593.9
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: posix.system",
+            "[emulation] SUSPICIOUS: import outside the allowlist: posix.system",
+            "[emulation] MALICIOUS: process: posix.system"
+          ],
+          "seconds": 0.5938887319998685,
+          "missing": [
+            "posix.system"
+          ]
+        }
+      }
+    },
+    {
+      "file": "p_os_system_stack_global.pkl",
+      "label": "malicious",
+      "category": "process",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 385.4,
+            "total": 385.7
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: os.system",
+            "[emulation] SUSPICIOUS: import outside the allowlist: os.system",
+            "[emulation] MALICIOUS: process: os.system"
+          ],
+          "seconds": 0.38571777600009227,
+          "missing": [
+            "os.system"
+          ]
+        }
+      }
+    },
+    {
+      "file": "p_nt_system.pkl",
+      "label": "malicious",
+      "category": "process",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 408.5,
+            "total": 408.7
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: nt.system",
+            "[emulation] SUSPICIOUS: import outside the allowlist: nt.system",
+            "[emulation] MALICIOUS: process: nt.system"
+          ],
+          "seconds": 0.40876700900025753,
+          "missing": [
+            "nt.system"
+          ]
+        }
+      }
+    },
+    {
+      "file": "p_subprocess_getoutput.pkl",
+      "label": "malicious",
+      "category": "process",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 400.4,
+            "total": 400.6
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: subprocess.getoutput",
+            "[emulation] SUSPICIOUS: import outside the allowlist: subprocess.getoutput",
+            "[emulation] MALICIOUS: process: subprocess.getoutput"
+          ],
+          "seconds": 0.40061880799930805,
+          "missing": [
+            "subprocess.getoutput"
+          ]
+        }
+      }
+    },
+    {
+      "file": "p_inst_opcode.pkl",
+      "label": "malicious",
+      "category": "process",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.1,
+            "emulation": 428.4,
+            "total": 428.6
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: os.system",
+            "[emulation] SUSPICIOUS: import outside the allowlist: os.system",
+            "[emulation] MALICIOUS: process: os.system"
+          ],
+          "seconds": 0.42859283599955234,
+          "missing": [
+            "os.system"
+          ]
+        }
+      }
+    },
+    {
+      "file": "p_obj_opcode.pkl",
+      "label": "malicious",
+      "category": "process",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 402.7,
+            "total": 403.0
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: posix.system",
+            "[emulation] SUSPICIOUS: import outside the allowlist: posix.system",
+            "[emulation] MALICIOUS: process: posix.system"
+          ],
+          "seconds": 0.40298123600041436,
+          "missing": [
+            "posix.system"
+          ]
+        }
+      }
+    },
+    {
+      "file": "p_getattr_chain.pkl",
+      "label": "malicious",
+      "category": "process",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 440.5,
+            "total": 440.8
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: builtins.getattr",
+            "[static] MALICIOUS: import of a known sink: builtins.__import__",
+            "[emulation] SUSPICIOUS: import outside the allowlist: builtins.getattr",
+            "[emulation] SUSPICIOUS: import outside the allowlist: builtins.__import__",
+            "[emulation] SUSPICIOUS: import: builtins.__import__",
+            "[emulation] SUSPICIOUS: introspection: builtins.getattr",
+            "[emulation] MALICIOUS: process: os.system"
+          ],
+          "seconds": 0.4407919180002864,
+          "missing": [
+            "builtins.__import__",
+            "builtins.getattr"
+          ]
+        }
+      }
+    },
+    {
+      "file": "p_exec_nested.pkl",
+      "label": "malicious",
+      "category": "code_exec",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 414.6,
+            "total": 414.8
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: builtins.exec",
+            "[emulation] SUSPICIOUS: import outside the allowlist: builtins.exec",
+            "[emulation] MALICIOUS: code_exec: builtins.exec",
+            "[emulation] SUSPICIOUS: import: builtins.__import__",
+            "[emulation] MALICIOUS: process: os.system"
+          ],
+          "seconds": 0.41484839399981865,
+          "missing": [
+            "builtins.exec"
+          ]
+        }
+      }
+    },
+    {
+      "file": "p_eval.pkl",
+      "label": "malicious",
+      "category": "code_exec",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.1,
+            "emulation": 404.5,
+            "total": 404.7
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: builtins.eval",
+            "[emulation] SUSPICIOUS: import outside the allowlist: builtins.eval",
+            "[emulation] MALICIOUS: code_exec: builtins.eval",
+            "[emulation] SUSPICIOUS: import: builtins.__import__",
+            "[emulation] MALICIOUS: process: os.system"
+          ],
+          "seconds": 0.40467339000042557,
+          "missing": [
+            "builtins.eval"
+          ]
+        }
+      }
+    },
+    {
+      "file": "p_runpy.pkl",
+      "label": "malicious",
+      "category": "code_exec",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 438.9,
+            "total": 439.1
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: runpy.run_path",
+            "[emulation] SUSPICIOUS: import outside the allowlist: runpy.run_path",
+            "[emulation] MALICIOUS: code_exec: runpy.run_path"
+          ],
+          "seconds": 0.4391668700000082,
+          "missing": [
+            "runpy.run_path"
+          ]
+        }
+      }
+    },
+    {
+      "file": "p_importlib.pkl",
+      "label": "malicious",
+      "category": "code_exec",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 447.4,
+            "total": 447.7
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: importlib.import_module",
+            "[emulation] SUSPICIOUS: import outside the allowlist: importlib.import_module",
+            "[emulation] SUSPICIOUS: import: builtins.__import__"
+          ],
+          "seconds": 0.4477419570002894,
+          "missing": [
+            "importlib.import_module"
+          ]
+        }
+      }
+    },
+    {
+      "file": "p_open_write.pkl",
+      "label": "malicious",
+      "category": "file_write",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.1,
+            "emulation": 632.9,
+            "total": 633.1
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: builtins.open",
+            "[emulation] SUSPICIOUS: import outside the allowlist: builtins.open",
+            "[emulation] MALICIOUS: file_write: builtins.open"
+          ],
+          "seconds": 0.6331085490000987,
+          "missing": [
+            "builtins.open"
+          ]
+        }
+      }
+    },
+    {
+      "file": "p_shutil_rmtree.pkl",
+      "label": "malicious",
+      "category": "file_write",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 485.5,
+            "total": 485.7
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: shutil.rmtree",
+            "[emulation] SUSPICIOUS: import outside the allowlist: shutil.rmtree",
+            "[emulation] MALICIOUS: file_write: shutil.rmtree"
+          ],
+          "seconds": 0.4857631590002711,
+          "missing": [
+            "shutil.rmtree"
+          ]
+        }
+      }
+    },
+    {
+      "file": "p_socket_loopback.pkl",
+      "label": "malicious",
+      "category": "network",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.1,
+            "emulation": 451.4,
+            "total": 451.6
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: socket.create_connection",
+            "[emulation] SUSPICIOUS: import outside the allowlist: socket.create_connection",
+            "[emulation] MALICIOUS: network: socket.create_connection"
+          ],
+          "seconds": 0.4516533440000785,
+          "missing": [
+            "socket.create_connection"
+          ]
+        }
+      }
+    },
+    {
+      "file": "p_webbrowser.pkl",
+      "label": "malicious",
+      "category": "network",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 520.8,
+            "total": 521.1
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: webbrowser.open",
+            "[emulation] SUSPICIOUS: import outside the allowlist: webbrowser.open",
+            "[emulation] MALICIOUS: network: webbrowser.open"
+          ],
+          "seconds": 0.5211121659995115,
+          "missing": [
+            "webbrowser.open"
+          ]
+        }
+      }
+    },
+    {
+      "file": "p_ctypes.pkl",
+      "label": "malicious",
+      "category": "native",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 471.4,
+            "total": 471.7
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: ctypes.CDLL",
+            "[emulation] SUSPICIOUS: import outside the allowlist: ctypes.CDLL",
+            "[emulation] MALICIOUS: native: ctypes.CDLL"
+          ],
+          "seconds": 0.47167621799962944,
+          "missing": [
+            "ctypes.CDLL"
+          ]
+        }
+      }
+    },
+    {
+      "file": "p_numpy_runstring.pkl",
+      "label": "malicious",
+      "category": "code_exec",
+      "expected": "SUSPICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.3,
+            "emulation": 447.0,
+            "total": 447.5
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: import outside the allowlist: numpy.testing._private.utils.runstring",
+            "[emulation] SUSPICIOUS: import outside the allowlist: numpy.testing._private.utils.runstring",
+            "[emulation] SUSPICIOUS: unexpected_call: numpy.testing._private.utils.runstring"
+          ],
+          "seconds": 0.44748768099998415,
+          "missing": [
+            "numpy.testing._private.utils.runstring"
+          ]
+        }
+      }
+    },
+    {
+      "file": "p_unknown_global.pkl",
+      "label": "malicious",
+      "category": "unknown_global",
+      "expected": "SUSPICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 490.7,
+            "total": 490.9
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: import outside the allowlist: safeloadai_marker_pkg.Thing",
+            "[emulation] SUSPICIOUS: import outside the allowlist: safeloadai_marker_pkg.Thing"
+          ],
+          "seconds": 0.49092550200020924,
+          "missing": [
+            "safeloadai_marker_pkg.Thing"
+          ]
+        }
+      }
+    },
+    {
+      "file": "p_second_pickle.pkl",
+      "label": "malicious",
+      "category": "multi_pickle",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 449.2,
+            "total": 449.4
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: posix.system",
+            "[emulation] SUSPICIOUS: import outside the allowlist: posix.system",
+            "[emulation] MALICIOUS: process: posix.system"
+          ],
+          "seconds": 0.44944486699932895,
+          "missing": [
+            "posix.system"
+          ]
+        }
+      }
+    },
+    {
+      "file": "p_time_gated.pkl",
+      "label": "malicious",
+      "category": "evasion",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 487.3,
+            "total": 487.6
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: builtins.exec",
+            "[emulation] SUSPICIOUS: import outside the allowlist: builtins.exec",
+            "[emulation] MALICIOUS: code_exec: builtins.exec",
+            "[emulation] SUSPICIOUS: import: builtins.__import__",
+            "[emulation] SUSPICIOUS: unexpected_call: time.sleep",
+            "[emulation] SUSPICIOUS: import: builtins.__import__",
+            "[emulation] MALICIOUS: process: os.system"
+          ],
+          "seconds": 0.48762210499990033,
+          "missing": [
+            "builtins.exec"
+          ]
+        }
+      }
+    },
+    {
+      "file": "p_env_probe.pkl",
+      "label": "malicious",
+      "category": "evasion",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.4,
+            "emulation": 454.3,
+            "total": 454.8
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: builtins.exec",
+            "[emulation] SUSPICIOUS: import outside the allowlist: builtins.exec",
+            "[emulation] MALICIOUS: code_exec: builtins.exec",
+            "[emulation] SUSPICIOUS: import: builtins.__import__",
+            "[emulation] SUSPICIOUS: environment_probe: os.environ.get",
+            "[emulation] MALICIOUS: process: os.system"
+          ],
+          "seconds": 0.4548179240000536,
+          "missing": [
+            "builtins.exec"
+          ]
+        }
+      }
+    },
+    {
+      "file": "p_sandbox_probe.pkl",
+      "label": "malicious",
+      "category": "evasion",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 434.9,
+            "total": 435.2
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: builtins.exec",
+            "[emulation] SUSPICIOUS: import outside the allowlist: builtins.exec",
+            "[emulation] MALICIOUS: code_exec: builtins.exec",
+            "[emulation] SUSPICIOUS: import: builtins.__import__",
+            "[emulation] SUSPICIOUS: environment_probe: os.path.exists",
+            "[emulation] MALICIOUS: process: os.system"
+          ],
+          "seconds": 0.435218585000257,
+          "missing": [
+            "builtins.exec"
+          ]
+        }
+      }
+    },
+    {
+      "file": "p_forge_clean_log.pkl",
+      "label": "malicious",
+      "category": "evidence_forgery",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 517.6,
+            "total": 517.9
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: builtins.exec",
+            "[emulation] SUSPICIOUS: import outside the allowlist: builtins.exec",
+            "[emulation] MALICIOUS: code_exec: builtins.exec",
+            "[emulation] SUSPICIOUS: import: builtins.__import__",
+            "[emulation] MALICIOUS: file_write: os.write"
+          ],
+          "seconds": 0.5178951640000378,
+          "missing": [
+            "builtins.exec"
+          ]
+        }
+      }
+    },
+    {
+      "file": "p_torch_legacy.pkl",
+      "label": "malicious",
+      "category": "torch_legacy",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 419.4,
+            "total": 419.6
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: posix.system",
+            "[emulation] SUSPICIOUS: import outside the allowlist: posix.system",
+            "[emulation] MALICIOUS: process: posix.system"
+          ],
+          "seconds": 0.41965307500049676,
+          "missing": [
+            "posix.system"
+          ]
+        }
+      }
+    },
+    {
+      "file": "p_torch_zip.pt",
+      "label": "malicious",
+      "category": "torch_zip",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "torch",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "torch",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.8,
+            "emulation": 495.8,
+            "total": 496.7
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: posix.system",
+            "[emulation] SUSPICIOUS: import outside the allowlist: posix.system",
+            "[emulation] MALICIOUS: process: posix.system"
+          ],
+          "seconds": 0.496691720999479,
+          "missing": [
+            "posix.system"
+          ]
+        }
+      }
+    },
+    {
+      "file": "x_nullifai_broken_stream.pkl",
+      "label": "malicious",
+      "category": "bypass",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 414.3,
+            "total": 414.5
+          },
+          "reasons": [
+            "[static] MALICIOUS: opcode walk failed: ValueError: at position 36, opcode b'\\xff' unknown",
+            "[static] MALICIOUS: import of a known sink: posix.system",
+            "[emulation] SUSPICIOUS: import outside the allowlist: posix.system",
+            "[emulation] MALICIOUS: process: posix.system",
+            "[emulation] SUSPICIOUS: anomaly: unpickling raised"
+          ],
+          "seconds": 0.41456536799978494,
+          "missing": [
+            "posix.system"
+          ]
+        }
+      }
+    },
+    {
+      "file": "x_pip_main.pkl",
+      "label": "malicious",
+      "category": "bypass",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 393.5,
+            "total": 393.7
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: pip.main",
+            "[emulation] SUSPICIOUS: import outside the allowlist: pip.main",
+            "[emulation] SUSPICIOUS: unexpected_call: pip.main"
+          ],
+          "seconds": 0.3937499169996954,
+          "missing": [
+            "pip.main"
+          ]
+        }
+      }
+    },
+    {
+      "file": "x_osx_support_read_output.pkl",
+      "label": "malicious",
+      "category": "bypass",
+      "expected": "SUSPICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.1,
+            "emulation": 414.2,
+            "total": 414.4
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: import outside the allowlist: _osx_support._read_output",
+            "[emulation] SUSPICIOUS: import outside the allowlist: _osx_support._read_output",
+            "[emulation] SUSPICIOUS: unexpected_call: _osx_support._read_output"
+          ],
+          "seconds": 0.41439956600061123,
+          "missing": [
+            "_osx_support._read_output"
+          ]
+        }
+      }
+    },
+    {
+      "file": "x_pydoc_pipepager.pkl",
+      "label": "malicious",
+      "category": "bypass",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 408.7,
+            "total": 409.0
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: pydoc.pipepager",
+            "[emulation] SUSPICIOUS: import outside the allowlist: pydoc.pipepager",
+            "[emulation] SUSPICIOUS: unexpected_call: pydoc.pipepager"
+          ],
+          "seconds": 0.4090004500003488,
+          "missing": [
+            "pydoc.pipepager"
+          ]
+        }
+      }
+    },
+    {
+      "file": "x_timeit.pkl",
+      "label": "malicious",
+      "category": "bypass",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 389.5,
+            "total": 389.7
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: timeit.timeit",
+            "[emulation] SUSPICIOUS: import outside the allowlist: timeit.timeit",
+            "[emulation] SUSPICIOUS: unexpected_call: timeit.timeit"
+          ],
+          "seconds": 0.3897228329997233,
+          "missing": [
+            "timeit.timeit"
+          ]
+        }
+      }
+    },
+    {
+      "file": "x_cprofile_run.pkl",
+      "label": "malicious",
+      "category": "bypass",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 422.1,
+            "total": 422.3
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: cProfile.run",
+            "[emulation] SUSPICIOUS: import outside the allowlist: cProfile.run",
+            "[emulation] SUSPICIOUS: unexpected_call: cProfile.run"
+          ],
+          "seconds": 0.4223611260003963,
+          "missing": [
+            "cProfile.run"
+          ]
+        }
+      }
+    },
+    {
+      "file": "x_functools_partial.pkl",
+      "label": "malicious",
+      "category": "bypass",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 418.8,
+            "total": 419.1
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: posix.system",
+            "[static] MALICIOUS: import outside the allowlist: functools.partial",
+            "[emulation] SUSPICIOUS: import outside the allowlist: functools.partial",
+            "[emulation] SUSPICIOUS: import outside the allowlist: posix.system",
+            "[emulation] SUSPICIOUS: unexpected_call: functools.partial",
+            "[emulation] SUSPICIOUS: unexpected_call: functools.partial()"
+          ],
+          "seconds": 0.4190765029998147,
+          "missing": [
+            "functools.partial",
+            "posix.system"
+          ]
+        }
+      }
+    },
+    {
+      "file": "x_operator_methodcaller.pkl",
+      "label": "malicious",
+      "category": "bypass",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 438.1,
+            "total": 438.4
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: builtins.__import__",
+            "[static] MALICIOUS: import outside the allowlist: operator.methodcaller",
+            "[emulation] SUSPICIOUS: import outside the allowlist: operator.methodcaller",
+            "[emulation] SUSPICIOUS: unexpected_call: operator.methodcaller",
+            "[emulation] SUSPICIOUS: import outside the allowlist: builtins.__import__",
+            "[emulation] SUSPICIOUS: import: builtins.__import__",
+            "[emulation] SUSPICIOUS: unexpected_call: operator.methodcaller()"
+          ],
+          "seconds": 0.43837402000008296,
+          "missing": [
+            "builtins.__import__",
+            "operator.methodcaller"
+          ]
+        }
+      }
+    },
+    {
+      "file": "x_zip_name_mismatch.pt",
+      "label": "malicious",
+      "category": "bypass",
+      "expected": "SUSPICIOUS",
+      "source": "lab",
+      "format": "torch",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "torch",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 0.1,
+            "total": 0.5
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: member 'archive/data.pkl' cannot be read: File name in directory 'archive/data.pkl' and header b'archive/data.txt' differ.",
+            "[emulation] SUSPICIOUS: archive refused, nothing emulated: member 'archive/data.pkl' cannot be read: File name in directory 'archive/data.pkl' and header b'archive/data.txt' differ."
+          ],
+          "seconds": 0.0004756050002470147,
+          "missing": []
+        }
+      }
+    },
+    {
+      "file": "x_zip_flag_bits.pt",
+      "label": "malicious",
+      "category": "bypass",
+      "expected": "SUSPICIOUS",
+      "source": "lab",
+      "format": "torch",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "torch",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 0.1,
+            "total": 0.3
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: member 'archive/data.pkl' cannot be read: File <ZipInfo filename='archive/data.pkl' filemode='?rw-------' file_size=36> is encrypted, password required for extraction",
+            "[emulation] SUSPICIOUS: archive refused, nothing emulated: member 'archive/data.pkl' cannot be read: File <ZipInfo filename='archive/data.pkl' filemode='?rw-------' file_size=36> is encrypted, password required for extraction"
+          ],
+          "seconds": 0.00029534000077546807,
+          "missing": []
+        }
+      }
+    },
+    {
+      "file": "x_zip_hidden_pickle.pt",
+      "label": "malicious",
+      "category": "bypass",
+      "expected": "SUSPICIOUS",
+      "source": "lab",
+      "format": "torch",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "torch",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 417.0,
+            "total": 417.2
+          },
+          "reasons": [],
+          "seconds": 0.41721789599978365
+        }
+      }
+    },
+    {
+      "file": "b_builtins_p0.pkl",
+      "label": "benign",
+      "category": "benign",
+      "expected": "CLEAN",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.7,
+            "emulation": 396.4,
+            "total": 397.2
+          },
+          "reasons": [],
+          "seconds": 0.3972290619994965
+        }
+      }
+    },
+    {
+      "file": "b_builtins_p1.pkl",
+      "label": "benign",
+      "category": "benign",
+      "expected": "CLEAN",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.5,
+            "emulation": 402.9,
+            "total": 403.5
+          },
+          "reasons": [],
+          "seconds": 0.40348374399945897
+        }
+      }
+    },
+    {
+      "file": "b_builtins_p2.pkl",
+      "label": "benign",
+      "category": "benign",
+      "expected": "CLEAN",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.5,
+            "emulation": 401.6,
+            "total": 402.1
+          },
+          "reasons": [],
+          "seconds": 0.4020979739998438
+        }
+      }
+    },
+    {
+      "file": "b_builtins_p3.pkl",
+      "label": "benign",
+      "category": "benign",
+      "expected": "CLEAN",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.4,
+            "emulation": 443.2,
+            "total": 443.7
+          },
+          "reasons": [],
+          "seconds": 0.44368207400020765
+        }
+      }
+    },
+    {
+      "file": "b_builtins_p4.pkl",
+      "label": "benign",
+      "category": "benign",
+      "expected": "CLEAN",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.5,
+            "emulation": 434.7,
+            "total": 435.3
+          },
+          "reasons": [],
+          "seconds": 0.43532280099952914
+        }
+      }
+    },
+    {
+      "file": "b_builtins_p5.pkl",
+      "label": "benign",
+      "category": "benign",
+      "expected": "CLEAN",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.5,
+            "emulation": 428.5,
+            "total": 429.1
+          },
+          "reasons": [],
+          "seconds": 0.4291097429995716
+        }
+      }
+    },
+    {
+      "file": "b_two_pickles.pkl",
+      "label": "benign",
+      "category": "benign",
+      "expected": "CLEAN",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 403.9,
+            "total": 404.2
+          },
+          "reasons": [],
+          "seconds": 0.40422585499982233
+        }
+      }
+    },
+    {
+      "file": "b_keras_dense.keras",
+      "label": "benign",
+      "category": "benign",
+      "expected": "CLEAN",
+      "source": "lab",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "keras",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.3,
+            "emulation": 0.0,
+            "total": 0.4
+          },
+          "reasons": [],
+          "seconds": 0.00043209900013607694
+        }
+      }
+    },
+    {
+      "file": "k_custom_object.keras",
+      "label": "malicious",
+      "category": "custom_object",
+      "expected": "SUSPICIOUS",
+      "source": "lab",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "keras",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 0.0,
+            "total": 0.2
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: config.layers[1]: object outside the allowlist safeloadai_marker_pkg.layers.Backdoor",
+            "[static] SUSPICIOUS: config.layers[1]: object outside the allowlist Custom>Backdoor.registered_name"
+          ],
+          "seconds": 0.0002522079994378146,
+          "missing": [
+            "Custom>Backdoor.registered_name",
+            "safeloadai_marker_pkg.layers.Backdoor"
+          ]
+        }
+      }
+    },
+    {
+      "file": "k_function_os_system.keras",
+      "label": "malicious",
+      "category": "process",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "keras",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 0.0,
+            "total": 0.2
+          },
+          "reasons": [
+            "[static] MALICIOUS: config.layers[1].config.activation: known sink posix.system"
+          ],
+          "seconds": 0.00025680300041130977,
+          "missing": [
+            "posix.system"
+          ]
+        }
+      }
+    },
+    {
+      "file": "k_tfoplambda_write_file.keras",
+      "label": "malicious",
+      "category": "file_write",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "keras",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 0.0,
+            "total": 0.2
+          },
+          "reasons": [
+            "[static] MALICIOUS: config.layers[1]: known sink tf.io.write_file",
+            "[static] MALICIOUS: config.layers[1]: TFOpLambda layer carries executable Python"
+          ],
+          "seconds": 0.0002341700001124991,
+          "missing": [
+            "tf.io.write_file"
+          ]
+        }
+      }
+    },
+    {
+      "file": "k_prefix_module.keras",
+      "label": "malicious",
+      "category": "module_prefix",
+      "expected": "SUSPICIOUS",
+      "source": "lab",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "keras",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 0.0,
+            "total": 0.2
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: config.layers[1]: object outside the allowlist kerasx.layers.Dense"
+          ],
+          "seconds": 0.00020575300004566088,
+          "missing": [
+            "kerasx.layers.Dense"
+          ]
+        }
+      }
+    },
+    {
+      "file": "k_lambda_os_system.keras",
+      "label": "malicious",
+      "category": "process",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "keras",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.5,
+            "emulation": 429.9,
+            "total": 430.5
+          },
+          "reasons": [
+            "[static] MALICIOUS: config.layers[1]: Lambda layer with marshalled bytecode; sink names in bytecode: __import__, os, system",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.__import__",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.os",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.system",
+            "[emulation] SUSPICIOUS: anomaly: introspection names in Lambda",
+            "[emulation] SUSPICIOUS: import: builtins.__import__",
+            "[emulation] MALICIOUS: process: os.system"
+          ],
+          "seconds": 0.43049170300037076,
+          "missing": [
+            "keras.layers.Lambda.__import__",
+            "keras.layers.Lambda.os",
+            "keras.layers.Lambda.system"
+          ]
+        }
+      }
+    },
+    {
+      "file": "k_lambda_write_file.keras",
+      "label": "malicious",
+      "category": "file_write",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "keras",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.6,
+            "emulation": 417.9,
+            "total": 418.6
+          },
+          "reasons": [
+            "[static] MALICIOUS: config.layers[1]: Lambda layer with marshalled bytecode; sink names in bytecode: io, write_file",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.io",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.write_file",
+            "[emulation] MALICIOUS: file_write: tf.io.write_file"
+          ],
+          "seconds": 0.41858276200036926,
+          "missing": [
+            "keras.layers.Lambda.io",
+            "keras.layers.Lambda.write_file"
+          ]
+        }
+      }
+    },
+    {
+      "file": "k_lambda_py_function.keras",
+      "label": "malicious",
+      "category": "code_exec",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "keras",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.7,
+            "emulation": 385.5,
+            "total": 386.2
+          },
+          "reasons": [
+            "[static] MALICIOUS: config.layers[1]: Lambda layer with marshalled bytecode; sink names in bytecode: py_function",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.py_function",
+            "[emulation] MALICIOUS: code_exec: tf.py_function"
+          ],
+          "seconds": 0.3862636929998189,
+          "missing": [
+            "keras.layers.Lambda.py_function"
+          ]
+        }
+      }
+    },
+    {
+      "file": "k_lambda_getattr_strings.keras",
+      "label": "malicious",
+      "category": "process",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "keras",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.6,
+            "emulation": 404.6,
+            "total": 405.2
+          },
+          "reasons": [
+            "[static] MALICIOUS: config.layers[1]: Lambda layer with marshalled bytecode; sink names in bytecode: __import__, getattr, os, system",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.__import__",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.getattr",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.os",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.system",
+            "[emulation] SUSPICIOUS: anomaly: introspection names in Lambda",
+            "[emulation] SUSPICIOUS: import: builtins.__import__",
+            "[emulation] SUSPICIOUS: introspection: builtins.getattr"
+          ],
+          "seconds": 0.40521388799970737,
+          "missing": [
+            "keras.layers.Lambda.__import__",
+            "keras.layers.Lambda.getattr",
+            "keras.layers.Lambda.os",
+            "keras.layers.Lambda.system"
+          ]
+        }
+      }
+    },
+    {
+      "file": "k_lambda_env_probe.keras",
+      "label": "malicious",
+      "category": "evasion",
+      "expected": "SUSPICIOUS",
+      "source": "lab",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "keras",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.6,
+            "emulation": 438.5,
+            "total": 439.2
+          },
+          "reasons": [
+            "[static] MALICIOUS: config.layers[1]: Lambda layer with marshalled bytecode; sink names in bytecode: __import__, environ, os",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.__import__",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.environ",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.os",
+            "[emulation] SUSPICIOUS: anomaly: introspection names in Lambda",
+            "[emulation] SUSPICIOUS: import: builtins.__import__",
+            "[emulation] SUSPICIOUS: environment_probe: os.environ.get"
+          ],
+          "seconds": 0.4391870339995876,
+          "missing": [
+            "keras.layers.Lambda.__import__",
+            "keras.layers.Lambda.environ",
+            "keras.layers.Lambda.os"
+          ]
+        }
+      }
+    },
+    {
+      "file": "k_lambda_weight_gated.keras",
+      "label": "malicious",
+      "category": "evasion",
+      "expected": "SUSPICIOUS",
+      "source": "lab",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "keras",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.8,
+            "emulation": 419.3,
+            "total": 420.1
+          },
+          "reasons": [
+            "[static] MALICIOUS: config.layers[1]: Lambda layer with marshalled bytecode; sink names in bytecode: __import__, os, system",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.__import__",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.os",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.system",
+            "[emulation] SUSPICIOUS: anomaly: introspection names in Lambda",
+            "[emulation] SUSPICIOUS: anomaly: tensor value read"
+          ],
+          "seconds": 0.42016510699977516,
+          "missing": [
+            "keras.layers.Lambda.__import__",
+            "keras.layers.Lambda.os",
+            "keras.layers.Lambda.system"
+          ]
+        }
+      }
+    },
+    {
+      "file": "k_lambda_introspection.keras",
+      "label": "malicious",
+      "category": "evasion",
+      "expected": "SUSPICIOUS",
+      "source": "lab",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "keras",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.6,
+            "emulation": 402.0,
+            "total": 402.6
+          },
+          "reasons": [
+            "[static] MALICIOUS: config.layers[1]: Lambda layer with marshalled bytecode; sink names in bytecode: __subclasses__",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.__subclasses__",
+            "[emulation] SUSPICIOUS: anomaly: introspection names in Lambda"
+          ],
+          "seconds": 0.40266712900029233,
+          "missing": [
+            "keras.layers.Lambda.__subclasses__"
+          ]
+        }
+      }
+    },
+    {
+      "file": "k_lambda_unknown_global.keras",
+      "label": "malicious",
+      "category": "missing_stub",
+      "expected": "SUSPICIOUS",
+      "source": "lab",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "keras",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.6,
+            "emulation": 418.0,
+            "total": 418.7
+          },
+          "reasons": [
+            "[emulation] SUSPICIOUS: anomaly: missing stub for global",
+            "[emulation] SUSPICIOUS: unexpected_call: helper_not_defined"
+          ],
+          "seconds": 0.4186978360003195,
+          "missing": []
+        }
+      }
+    },
+    {
+      "file": "b_lambda_scale.keras",
+      "label": "benign",
+      "category": "benign",
+      "expected": "CLEAN",
+      "source": "lab",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "keras",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.6,
+            "emulation": 458.9,
+            "total": 459.5
+          },
+          "reasons": [],
+          "seconds": 0.45956739600023866
+        }
+      }
+    },
+    {
+      "file": "b_lambda_relu.keras",
+      "label": "benign",
+      "category": "benign",
+      "expected": "CLEAN",
+      "source": "lab",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "keras",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.7,
+            "emulation": 383.2,
+            "total": 384.1
+          },
+          "reasons": [],
+          "seconds": 0.38410177100013243
+        }
+      }
+    },
+    {
+      "file": "k_lambda_closure_cmd.keras",
+      "label": "malicious",
+      "category": "process",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "keras",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.6,
+            "emulation": 405.1,
+            "total": 405.8
+          },
+          "reasons": [
+            "[static] MALICIOUS: config.layers[1]: Lambda layer with marshalled bytecode; sink names in bytecode: __import__, os, system",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.__import__",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.os",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.system",
+            "[emulation] SUSPICIOUS: anomaly: introspection names in Lambda",
+            "[emulation] SUSPICIOUS: import: builtins.__import__",
+            "[emulation] MALICIOUS: process: os.system"
+          ],
+          "seconds": 0.40584655000020575,
+          "missing": [
+            "keras.layers.Lambda.__import__",
+            "keras.layers.Lambda.os",
+            "keras.layers.Lambda.system"
+          ]
+        }
+      }
+    },
+    {
+      "file": "k2_lambda_marker.h5",
+      "label": "malicious",
+      "category": "h5_lambda",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "h5",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "h5",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 0.0,
+            "total": 0.3
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: legacy HDF5 model: config is parsed inside the sandbox only (not available yet)",
+            "[emulation] SUSPICIOUS: no emulator for format 'h5'"
+          ],
+          "seconds": 0.00027944700013904367,
+          "missing": []
+        }
+      }
+    },
+    {
+      "file": "k2_lambda_os_system.h5",
+      "label": "malicious",
+      "category": "h5_lambda",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "h5",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "h5",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.0,
+            "emulation": 0.0,
+            "total": 0.1
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: legacy HDF5 model: config is parsed inside the sandbox only (not available yet)",
+            "[emulation] SUSPICIOUS: no emulator for format 'h5'"
+          ],
+          "seconds": 0.00012160599999333499,
+          "missing": []
+        }
+      }
+    },
+    {
+      "file": "k2_custom_objects.h5",
+      "label": "malicious",
+      "category": "custom_object",
+      "expected": "SUSPICIOUS",
+      "source": "lab",
+      "format": "h5",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "h5",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.0,
+            "emulation": 0.0,
+            "total": 0.1
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: legacy HDF5 model: config is parsed inside the sandbox only (not available yet)",
+            "[emulation] SUSPICIOUS: no emulator for format 'h5'"
+          ],
+          "seconds": 8.818000060273334e-05,
+          "missing": []
+        }
+      }
+    },
+    {
+      "file": "s_external_link.h5",
+      "label": "malicious",
+      "category": "h5_structure",
+      "expected": "SUSPICIOUS",
+      "source": "lab",
+      "format": "h5",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "h5",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.0,
+            "emulation": 0.0,
+            "total": 0.0
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: legacy HDF5 model: config is parsed inside the sandbox only (not available yet)",
+            "[emulation] SUSPICIOUS: no emulator for format 'h5'"
+          ],
+          "seconds": 5.6150000091292895e-05,
+          "missing": []
+        }
+      }
+    },
+    {
+      "file": "k2_sequential.h5",
+      "label": "benign",
+      "category": "benign",
+      "expected": "CLEAN",
+      "source": "lab",
+      "format": "h5",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "h5",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.0,
+            "emulation": 0.0,
+            "total": 0.0
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: legacy HDF5 model: config is parsed inside the sandbox only (not available yet)",
+            "[emulation] SUSPICIOUS: no emulator for format 'h5'"
+          ],
+          "seconds": 5.653000062011415e-05,
+          "missing": []
+        }
+      }
+    },
+    {
+      "file": "k2_functional_cnn.h5",
+      "label": "benign",
+      "category": "benign",
+      "expected": "CLEAN",
+      "source": "lab",
+      "format": "h5",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "h5",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.0,
+            "emulation": 0.0,
+            "total": 0.1
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: legacy HDF5 model: config is parsed inside the sandbox only (not available yet)",
+            "[emulation] SUSPICIOUS: no emulator for format 'h5'"
+          ],
+          "seconds": 7.772700064379023e-05,
+          "missing": []
+        }
+      }
+    },
+    {
+      "file": "np_array_f32_p2.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.6,
+            "emulation": 393.9,
+            "total": 394.6
+          },
+          "reasons": [],
+          "seconds": 0.39460289999988163
+        }
+      }
+    },
+    {
+      "file": "np_array_f32_p4.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.4,
+            "emulation": 388.5,
+            "total": 388.9
+          },
+          "reasons": [],
+          "seconds": 0.38892272700013564
+        }
+      }
+    },
+    {
+      "file": "np_array_f32_p5.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.3,
+            "emulation": 432.5,
+            "total": 432.9
+          },
+          "reasons": [],
+          "seconds": 0.43293847699987964
+        }
+      }
+    },
+    {
+      "file": "np_array_i64_p2.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.4,
+            "emulation": 390.5,
+            "total": 391.0
+          },
+          "reasons": [],
+          "seconds": 0.39100449699981255
+        }
+      }
+    },
+    {
+      "file": "np_array_i64_p4.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.3,
+            "emulation": 382.3,
+            "total": 382.6
+          },
+          "reasons": [],
+          "seconds": 0.3826543750001292
+        }
+      }
+    },
+    {
+      "file": "np_array_i64_p5.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.4,
+            "emulation": 393.2,
+            "total": 393.7
+          },
+          "reasons": [],
+          "seconds": 0.39371918799952255
+        }
+      }
+    },
+    {
+      "file": "np_dict_p2.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.6,
+            "emulation": 400.4,
+            "total": 401.1
+          },
+          "reasons": [],
+          "seconds": 0.40110990699940885
+        }
+      }
+    },
+    {
+      "file": "np_dict_p4.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.7,
+            "emulation": 395.9,
+            "total": 396.7
+          },
+          "reasons": [],
+          "seconds": 0.39669489600055385
+        }
+      }
+    },
+    {
+      "file": "np_dict_p5.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.6,
+            "emulation": 396.6,
+            "total": 397.3
+          },
+          "reasons": [],
+          "seconds": 0.39734687300006044
+        }
+      }
+    },
+    {
+      "file": "sk_column_transformer.joblib",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "joblib",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 2.3,
+            "emulation": 413.9,
+            "total": 416.3
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: opcode walk failed: ValueError: at position 1122, opcode b'\\r' unknown",
+            "[static] SUSPICIOUS: import outside the allowlist: sklearn.compose._column_transformer.ColumnTransformer",
+            "[static] SUSPICIOUS: import outside the allowlist: sklearn.preprocessing._encoders.OneHotEncoder",
+            "[static] SUSPICIOUS: import outside the allowlist: numpy.float64",
+            "[static] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: import outside the allowlist: sklearn.compose._column_transformer.ColumnTransformer",
+            "[emulation] SUSPICIOUS: unexpected_call: sklearn.compose._column_transformer.ColumnTransformer.__new__",
+            "[emulation] SUSPICIOUS: import outside the allowlist: sklearn.preprocessing._encoders.OneHotEncoder"
+          ],
+          "seconds": 0.41632221000054415,
+          "missing": [
+            "joblib.numpy_pickle.NumpyArrayWrapper",
+            "numpy.float64",
+            "sklearn.compose._column_transformer.ColumnTransformer",
+            "sklearn.preprocessing._encoders.OneHotEncoder"
+          ]
+        }
+      }
+    },
+    {
+      "file": "sk_column_transformer.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 3.9,
+            "emulation": 434.0,
+            "total": 438.0
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: import outside the allowlist: sklearn.compose._column_transformer.ColumnTransformer",
+            "[static] SUSPICIOUS: import outside the allowlist: sklearn.preprocessing._encoders.OneHotEncoder",
+            "[static] SUSPICIOUS: import outside the allowlist: numpy.float64",
+            "[static] SUSPICIOUS: import outside the allowlist: sklearn.linear_model._stochastic_gradient.SGDClassifier",
+            "[static] SUSPICIOUS: import outside the allowlist: sklearn.linear_model._sgd_fast.Hinge",
+            "[emulation] SUSPICIOUS: import outside the allowlist: sklearn.compose._column_transformer.ColumnTransformer",
+            "[emulation] SUSPICIOUS: unexpected_call: sklearn.compose._column_transformer.ColumnTransformer.__new__",
+            "[emulation] SUSPICIOUS: import outside the allowlist: sklearn.preprocessing._encoders.OneHotEncoder"
+          ],
+          "seconds": 0.43802130700078123,
+          "missing": [
+            "numpy.float64",
+            "sklearn.compose._column_transformer.ColumnTransformer",
+            "sklearn.linear_model._sgd_fast.Hinge",
+            "sklearn.linear_model._stochastic_gradient.SGDClassifier",
+            "sklearn.preprocessing._encoders.OneHotEncoder"
+          ]
+        }
+      }
+    },
+    {
+      "file": "sk_forest.joblib",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "joblib",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 1.0,
+            "emulation": 414.7,
+            "total": 415.7
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: opcode walk failed: ValueError: at position 913, opcode b'\\x0e' unknown",
+            "[static] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: unexpected_call: joblib.numpy_pickle.NumpyArrayWrapper.__new__",
+            "[emulation] SUSPICIOUS: unexpected_call: joblib.numpy_pickle.NumpyArrayWrapper.__setstate__",
+            "[emulation] SUSPICIOUS: anomaly: unpickling raised"
+          ],
+          "seconds": 0.4157097960005558,
+          "missing": [
+            "joblib.numpy_pickle.NumpyArrayWrapper"
+          ]
+        }
+      }
+    },
+    {
+      "file": "sk_forest.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 5.1,
+            "emulation": 424.0,
+            "total": 429.2
+          },
+          "reasons": [],
+          "seconds": 0.42924121000032756
+        }
+      }
+    },
+    {
+      "file": "sk_gbr.joblib",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "joblib",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 1.2,
+            "emulation": 428.5,
+            "total": 429.8
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: opcode walk failed: ValueError: at position 1284, opcode b'\\x0b' unknown",
+            "[static] SUSPICIOUS: import outside the allowlist: sklearn.ensemble._gb.GradientBoostingRegressor",
+            "[static] SUSPICIOUS: import outside the allowlist: sklearn._loss.loss.HalfSquaredError",
+            "[static] SUSPICIOUS: import outside the allowlist: sklearn._loss._loss.CyHalfSquaredError",
+            "[static] SUSPICIOUS: import outside the allowlist: sklearn._loss.link.IdentityLink",
+            "[static] SUSPICIOUS: import outside the allowlist: sklearn.dummy.DummyRegressor",
+            "[static] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: import outside the allowlist: sklearn.ensemble._gb.GradientBoostingRegressor"
+          ],
+          "seconds": 0.42983255200033454,
+          "missing": [
+            "joblib.numpy_pickle.NumpyArrayWrapper",
+            "sklearn._loss._loss.CyHalfSquaredError",
+            "sklearn._loss.link.IdentityLink",
+            "sklearn._loss.loss.HalfSquaredError",
+            "sklearn.dummy.DummyRegressor",
+            "sklearn.ensemble._gb.GradientBoostingRegressor"
+          ]
+        }
+      }
+    },
+    {
+      "file": "sk_gbr.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 5.6,
+            "emulation": 433.9,
+            "total": 439.6
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: import outside the allowlist: sklearn.ensemble._gb.GradientBoostingRegressor",
+            "[static] SUSPICIOUS: import outside the allowlist: sklearn._loss.loss.HalfSquaredError",
+            "[static] SUSPICIOUS: import outside the allowlist: sklearn._loss._loss.CyHalfSquaredError",
+            "[static] SUSPICIOUS: import outside the allowlist: sklearn._loss.link.IdentityLink",
+            "[static] SUSPICIOUS: import outside the allowlist: sklearn.dummy.DummyRegressor",
+            "[emulation] SUSPICIOUS: import outside the allowlist: sklearn.ensemble._gb.GradientBoostingRegressor",
+            "[emulation] SUSPICIOUS: unexpected_call: sklearn.ensemble._gb.GradientBoostingRegressor.__new__",
+            "[emulation] SUSPICIOUS: import outside the allowlist: sklearn._loss.loss.HalfSquaredError"
+          ],
+          "seconds": 0.43965663500057417,
+          "missing": [
+            "sklearn._loss._loss.CyHalfSquaredError",
+            "sklearn._loss.link.IdentityLink",
+            "sklearn._loss.loss.HalfSquaredError",
+            "sklearn.dummy.DummyRegressor",
+            "sklearn.ensemble._gb.GradientBoostingRegressor"
+          ]
+        }
+      }
+    },
+    {
+      "file": "sk_hgb.joblib",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "joblib",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.8,
+            "emulation": 411.2,
+            "total": 412.1
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: opcode walk failed: ValueError: at position 895, opcode b'\\x10' unknown",
+            "[static] SUSPICIOUS: import outside the allowlist: sklearn.ensemble._hist_gradient_boosting.gradient_boosting.HistGradientBoostingClassifier",
+            "[static] SUSPICIOUS: import outside the allowlist: sklearn.preprocessing._label.LabelEncoder",
+            "[static] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: import outside the allowlist: sklearn.ensemble._hist_gradient_boosting.gradient_boosting.HistGradientBoostingClassifier",
+            "[emulation] SUSPICIOUS: unexpected_call: sklearn.ensemble._hist_gradient_boosting.gradient_boosting.HistGradientBoostingClassifier.__new__",
+            "[emulation] SUSPICIOUS: import outside the allowlist: sklearn.preprocessing._label.LabelEncoder",
+            "[emulation] SUSPICIOUS: unexpected_call: sklearn.preprocessing._label.LabelEncoder.__new__"
+          ],
+          "seconds": 0.4121302049998121,
+          "missing": [
+            "joblib.numpy_pickle.NumpyArrayWrapper",
+            "sklearn.ensemble._hist_gradient_boosting.gradient_boosting.HistGradientBoostingClassifier",
+            "sklearn.preprocessing._label.LabelEncoder"
+          ]
+        }
+      }
+    },
+    {
+      "file": "sk_hgb.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 4.5,
+            "emulation": 421.2,
+            "total": 425.8
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: import outside the allowlist: sklearn.ensemble._hist_gradient_boosting.gradient_boosting.HistGradientBoostingClassifier",
+            "[static] SUSPICIOUS: import outside the allowlist: sklearn.preprocessing._label.LabelEncoder",
+            "[static] SUSPICIOUS: import outside the allowlist: numpy.random._pickle.__generator_ctor",
+            "[static] SUSPICIOUS: import outside the allowlist: numpy.random._pcg64.PCG64",
+            "[static] SUSPICIOUS: import outside the allowlist: sklearn._loss.loss.HalfBinomialLoss",
+            "[static] SUSPICIOUS: import outside the allowlist: sklearn._loss._loss.CyHalfBinomialLoss",
+            "[static] SUSPICIOUS: import outside the allowlist: sklearn._loss.link.LogitLink",
+            "[static] SUSPICIOUS: import outside the allowlist: sklearn.ensemble._hist_gradient_boosting.binning._BinMapper"
+          ],
+          "seconds": 0.425824152000132,
+          "missing": [
+            "numpy.random._pcg64.PCG64",
+            "numpy.random._pickle.__generator_ctor",
+            "sklearn._loss._loss.CyHalfBinomialLoss",
+            "sklearn._loss.link.LogitLink",
+            "sklearn._loss.loss.HalfBinomialLoss",
+            "sklearn.ensemble._hist_gradient_boosting.binning._BinMapper",
+            "sklearn.ensemble._hist_gradient_boosting.gradient_boosting.HistGradientBoostingClassifier",
+            "sklearn.ensemble._hist_gradient_boosting.predictor.TreePredictor",
+            "sklearn.preprocessing._label.LabelEncoder"
+          ]
+        }
+      }
+    },
+    {
+      "file": "sk_kmeans.joblib",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "joblib",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.7,
+            "emulation": 413.2,
+            "total": 414.0
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: opcode walk failed: ValueError: at position 538, opcode b'\\x05' unknown",
+            "[static] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: unexpected_call: joblib.numpy_pickle.NumpyArrayWrapper.__new__",
+            "[emulation] SUSPICIOUS: unexpected_call: joblib.numpy_pickle.NumpyArrayWrapper.__setstate__",
+            "[emulation] SUSPICIOUS: anomaly: unpickling raised"
+          ],
+          "seconds": 0.41397921799944015,
+          "missing": [
+            "joblib.numpy_pickle.NumpyArrayWrapper"
+          ]
+        }
+      }
+    },
+    {
+      "file": "sk_kmeans.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 1.0,
+            "emulation": 411.8,
+            "total": 412.9
+          },
+          "reasons": [],
+          "seconds": 0.4129520999995293
+        }
+      }
+    },
+    {
+      "file": "sk_knn.joblib",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "joblib",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 1.0,
+            "emulation": 388.7,
+            "total": 389.8
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: opcode walk failed: ValueError: at position 465, opcode b'\\x0e' unknown",
+            "[static] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: unexpected_call: joblib.numpy_pickle.NumpyArrayWrapper.__new__",
+            "[emulation] SUSPICIOUS: unexpected_call: joblib.numpy_pickle.NumpyArrayWrapper.__setstate__",
+            "[emulation] SUSPICIOUS: anomaly: unpickling raised"
+          ],
+          "seconds": 0.3898665120004807,
+          "missing": [
+            "joblib.numpy_pickle.NumpyArrayWrapper"
+          ]
+        }
+      }
+    },
+    {
+      "file": "sk_knn.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 1.7,
+            "emulation": 392.0,
+            "total": 393.7
+          },
+          "reasons": [],
+          "seconds": 0.3937703920000786
+        }
+      }
+    },
+    {
+      "file": "sk_label_encoder.joblib",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "joblib",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.5,
+            "emulation": 401.2,
+            "total": 401.8
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: opcode walk failed: ValueError: at position 279, opcode b'\\x08' unknown",
+            "[static] SUSPICIOUS: import outside the allowlist: sklearn.preprocessing._label.LabelEncoder",
+            "[static] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: import outside the allowlist: sklearn.preprocessing._label.LabelEncoder",
+            "[emulation] SUSPICIOUS: unexpected_call: sklearn.preprocessing._label.LabelEncoder.__new__",
+            "[emulation] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: unexpected_call: joblib.numpy_pickle.NumpyArrayWrapper.__new__",
+            "[emulation] SUSPICIOUS: unexpected_call: joblib.numpy_pickle.NumpyArrayWrapper.__setstate__"
+          ],
+          "seconds": 0.4018281479993675,
+          "missing": [
+            "joblib.numpy_pickle.NumpyArrayWrapper",
+            "sklearn.preprocessing._label.LabelEncoder"
+          ]
+        }
+      }
+    },
+    {
+      "file": "sk_label_encoder.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.5,
+            "emulation": 399.9,
+            "total": 400.5
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: import outside the allowlist: sklearn.preprocessing._label.LabelEncoder",
+            "[emulation] SUSPICIOUS: import outside the allowlist: sklearn.preprocessing._label.LabelEncoder",
+            "[emulation] SUSPICIOUS: unexpected_call: sklearn.preprocessing._label.LabelEncoder.__new__",
+            "[emulation] SUSPICIOUS: unexpected_call: sklearn.preprocessing._label.LabelEncoder.__setstate__"
+          ],
+          "seconds": 0.4005045789999713,
+          "missing": [
+            "sklearn.preprocessing._label.LabelEncoder"
+          ]
+        }
+      }
+    },
+    {
+      "file": "sk_linreg.joblib",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "joblib",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.7,
+            "emulation": 420.2,
+            "total": 420.9
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: opcode walk failed: ValueError: at position 367, opcode b'\\x10' unknown",
+            "[static] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: unexpected_call: joblib.numpy_pickle.NumpyArrayWrapper.__new__",
+            "[emulation] SUSPICIOUS: unexpected_call: joblib.numpy_pickle.NumpyArrayWrapper.__setstate__",
+            "[emulation] SUSPICIOUS: anomaly: unpickling raised"
+          ],
+          "seconds": 0.4209839609993651,
+          "missing": [
+            "joblib.numpy_pickle.NumpyArrayWrapper"
+          ]
+        }
+      }
+    },
+    {
+      "file": "sk_linreg.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.9,
+            "emulation": 452.8,
+            "total": 453.8
+          },
+          "reasons": [],
+          "seconds": 0.4538529079991349
+        }
+      }
+    },
+    {
+      "file": "sk_logreg.joblib",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "joblib",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.7,
+            "emulation": 471.9,
+            "total": 472.7
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: opcode walk failed: ValueError: at position 526, opcode b'\\x01' unknown",
+            "[static] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: unexpected_call: joblib.numpy_pickle.NumpyArrayWrapper.__new__",
+            "[emulation] SUSPICIOUS: unexpected_call: joblib.numpy_pickle.NumpyArrayWrapper.__setstate__",
+            "[emulation] SUSPICIOUS: anomaly: unpickling raised"
+          ],
+          "seconds": 0.47275157399963064,
+          "missing": [
+            "joblib.numpy_pickle.NumpyArrayWrapper"
+          ]
+        }
+      }
+    },
+    {
+      "file": "sk_logreg.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 1.2,
+            "emulation": 457.8,
+            "total": 459.1
+          },
+          "reasons": [],
+          "seconds": 0.4590891819998433
+        }
+      }
+    },
+    {
+      "file": "sk_mlp.joblib",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "joblib",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 1.3,
+            "emulation": 465.3,
+            "total": 466.7
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: opcode walk failed: ValueError: at position 930, opcode b'\\r' unknown",
+            "[static] SUSPICIOUS: import outside the allowlist: sklearn.neural_network._multilayer_perceptron.MLPClassifier",
+            "[static] SUSPICIOUS: import outside the allowlist: sklearn.preprocessing._label.LabelBinarizer",
+            "[static] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: import outside the allowlist: sklearn.neural_network._multilayer_perceptron.MLPClassifier",
+            "[emulation] SUSPICIOUS: unexpected_call: sklearn.neural_network._multilayer_perceptron.MLPClassifier.__new__",
+            "[emulation] SUSPICIOUS: import outside the allowlist: sklearn.preprocessing._label.LabelBinarizer",
+            "[emulation] SUSPICIOUS: unexpected_call: sklearn.preprocessing._label.LabelBinarizer.__new__"
+          ],
+          "seconds": 0.4667078960001163,
+          "missing": [
+            "joblib.numpy_pickle.NumpyArrayWrapper",
+            "sklearn.neural_network._multilayer_perceptron.MLPClassifier",
+            "sklearn.preprocessing._label.LabelBinarizer"
+          ]
+        }
+      }
+    },
+    {
+      "file": "sk_mlp.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 4.1,
+            "emulation": 461.8,
+            "total": 466.0
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: import outside the allowlist: sklearn.neural_network._multilayer_perceptron.MLPClassifier",
+            "[static] SUSPICIOUS: import outside the allowlist: sklearn.preprocessing._label.LabelBinarizer",
+            "[static] SUSPICIOUS: import outside the allowlist: sklearn.neural_network._stochastic_optimizers.AdamOptimizer",
+            "[emulation] SUSPICIOUS: import outside the allowlist: sklearn.neural_network._multilayer_perceptron.MLPClassifier",
+            "[emulation] SUSPICIOUS: unexpected_call: sklearn.neural_network._multilayer_perceptron.MLPClassifier.__new__",
+            "[emulation] SUSPICIOUS: import outside the allowlist: sklearn.preprocessing._label.LabelBinarizer",
+            "[emulation] SUSPICIOUS: unexpected_call: sklearn.preprocessing._label.LabelBinarizer.__new__",
+            "[emulation] SUSPICIOUS: unexpected_call: sklearn.preprocessing._label.LabelBinarizer.__setstate__"
+          ],
+          "seconds": 0.46601281499988545,
+          "missing": [
+            "sklearn.neural_network._multilayer_perceptron.MLPClassifier",
+            "sklearn.neural_network._stochastic_optimizers.AdamOptimizer",
+            "sklearn.preprocessing._label.LabelBinarizer"
+          ]
+        }
+      }
+    },
+    {
+      "file": "sk_pca.joblib",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "joblib",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.7,
+            "emulation": 445.9,
+            "total": 446.7
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: opcode walk failed: ValueError: at position 480, opcode b'\\x0f' unknown",
+            "[static] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: unexpected_call: joblib.numpy_pickle.NumpyArrayWrapper.__new__",
+            "[emulation] SUSPICIOUS: unexpected_call: joblib.numpy_pickle.NumpyArrayWrapper.__setstate__",
+            "[emulation] SUSPICIOUS: anomaly: unpickling raised"
+          ],
+          "seconds": 0.4466971020001438,
+          "missing": [
+            "joblib.numpy_pickle.NumpyArrayWrapper"
+          ]
+        }
+      }
+    },
+    {
+      "file": "sk_pca.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 1.2,
+            "emulation": 455.3,
+            "total": 456.6
+          },
+          "reasons": [],
+          "seconds": 0.4566267970003537
+        }
+      }
+    },
+    {
+      "file": "sk_pipeline.joblib",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "joblib",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.8,
+            "emulation": 447.3,
+            "total": 448.2
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: opcode walk failed: ValueError: at position 472, opcode b'\\x07' unknown",
+            "[static] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: unexpected_call: joblib.numpy_pickle.NumpyArrayWrapper.__new__",
+            "[emulation] SUSPICIOUS: unexpected_call: joblib.numpy_pickle.NumpyArrayWrapper.__setstate__",
+            "[emulation] SUSPICIOUS: anomaly: unpickling raised"
+          ],
+          "seconds": 0.44818251600008807,
+          "missing": [
+            "joblib.numpy_pickle.NumpyArrayWrapper"
+          ]
+        }
+      }
+    },
+    {
+      "file": "sk_pipeline.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 5.8,
+            "emulation": 519.9,
+            "total": 525.8
+          },
+          "reasons": [],
+          "seconds": 0.5257834880003429
+        }
+      }
+    },
+    {
+      "file": "sk_ridge.joblib",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "joblib",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.8,
+            "emulation": 487.5,
+            "total": 488.3
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: opcode walk failed: ValueError: at position 408, opcode b'\\x07' unknown",
+            "[static] SUSPICIOUS: import outside the allowlist: sklearn.linear_model._ridge.Ridge",
+            "[static] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: import outside the allowlist: sklearn.linear_model._ridge.Ridge",
+            "[emulation] SUSPICIOUS: unexpected_call: sklearn.linear_model._ridge.Ridge.__new__",
+            "[emulation] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: unexpected_call: joblib.numpy_pickle.NumpyArrayWrapper.__new__",
+            "[emulation] SUSPICIOUS: unexpected_call: joblib.numpy_pickle.NumpyArrayWrapper.__setstate__"
+          ],
+          "seconds": 0.4883408510004301,
+          "missing": [
+            "joblib.numpy_pickle.NumpyArrayWrapper",
+            "sklearn.linear_model._ridge.Ridge"
+          ]
+        }
+      }
+    },
+    {
+      "file": "sk_ridge.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.9,
+            "emulation": 488.0,
+            "total": 489.0
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: import outside the allowlist: sklearn.linear_model._ridge.Ridge",
+            "[emulation] SUSPICIOUS: import outside the allowlist: sklearn.linear_model._ridge.Ridge",
+            "[emulation] SUSPICIOUS: unexpected_call: sklearn.linear_model._ridge.Ridge.__new__",
+            "[emulation] SUSPICIOUS: unexpected_call: sklearn.linear_model._ridge.Ridge.__setstate__"
+          ],
+          "seconds": 0.4890369599997939,
+          "missing": [
+            "sklearn.linear_model._ridge.Ridge"
+          ]
+        }
+      }
+    },
+    {
+      "file": "sk_sgd.joblib",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "joblib",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.8,
+            "emulation": 406.9,
+            "total": 407.7
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: opcode walk failed: ValueError: at position 642, opcode b'\\r' unknown",
+            "[static] SUSPICIOUS: import outside the allowlist: sklearn.linear_model._stochastic_gradient.SGDClassifier",
+            "[static] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: import outside the allowlist: sklearn.linear_model._stochastic_gradient.SGDClassifier",
+            "[emulation] SUSPICIOUS: unexpected_call: sklearn.linear_model._stochastic_gradient.SGDClassifier.__new__",
+            "[emulation] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: unexpected_call: joblib.numpy_pickle.NumpyArrayWrapper.__new__",
+            "[emulation] SUSPICIOUS: unexpected_call: joblib.numpy_pickle.NumpyArrayWrapper.__setstate__"
+          ],
+          "seconds": 0.4077207009995618,
+          "missing": [
+            "joblib.numpy_pickle.NumpyArrayWrapper",
+            "sklearn.linear_model._stochastic_gradient.SGDClassifier"
+          ]
+        }
+      }
+    },
+    {
+      "file": "sk_sgd.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 1.4,
+            "emulation": 433.6,
+            "total": 435.0
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: import outside the allowlist: sklearn.linear_model._stochastic_gradient.SGDClassifier",
+            "[static] SUSPICIOUS: import outside the allowlist: sklearn.linear_model._sgd_fast.Hinge",
+            "[emulation] SUSPICIOUS: import outside the allowlist: sklearn.linear_model._stochastic_gradient.SGDClassifier",
+            "[emulation] SUSPICIOUS: unexpected_call: sklearn.linear_model._stochastic_gradient.SGDClassifier.__new__",
+            "[emulation] SUSPICIOUS: import outside the allowlist: sklearn.linear_model._sgd_fast.Hinge",
+            "[emulation] SUSPICIOUS: unexpected_call: sklearn.linear_model._sgd_fast.Hinge",
+            "[emulation] SUSPICIOUS: unexpected_call: sklearn.linear_model._stochastic_gradient.SGDClassifier.__setstate__"
+          ],
+          "seconds": 0.4350529519997508,
+          "missing": [
+            "sklearn.linear_model._sgd_fast.Hinge",
+            "sklearn.linear_model._stochastic_gradient.SGDClassifier"
+          ]
+        }
+      }
+    },
+    {
+      "file": "sk_svc.joblib",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "joblib",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.7,
+            "emulation": 407.0,
+            "total": 407.8
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: opcode walk failed: ValueError: at position 581, opcode b'\\n' unknown",
+            "[static] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: unexpected_call: joblib.numpy_pickle.NumpyArrayWrapper.__new__",
+            "[emulation] SUSPICIOUS: unexpected_call: joblib.numpy_pickle.NumpyArrayWrapper.__setstate__",
+            "[emulation] SUSPICIOUS: anomaly: unpickling raised"
+          ],
+          "seconds": 0.4078216750003776,
+          "missing": [
+            "joblib.numpy_pickle.NumpyArrayWrapper"
+          ]
+        }
+      }
+    },
+    {
+      "file": "sk_svc.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 3.2,
+            "emulation": 397.1,
+            "total": 400.4
+          },
+          "reasons": [],
+          "seconds": 0.4004138990003412
+        }
+      }
+    },
+    {
+      "file": "sk_tfidf.joblib",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "joblib",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.9,
+            "emulation": 409.9,
+            "total": 410.9
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: opcode walk failed: ValueError: at position 766, opcode b'\\x01' unknown",
+            "[static] SUSPICIOUS: import outside the allowlist: sklearn.feature_extraction.text.TfidfVectorizer",
+            "[static] SUSPICIOUS: import outside the allowlist: numpy.float64",
+            "[static] SUSPICIOUS: import outside the allowlist: sklearn.feature_extraction.text.TfidfTransformer",
+            "[static] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: import outside the allowlist: sklearn.feature_extraction.text.TfidfVectorizer",
+            "[emulation] SUSPICIOUS: unexpected_call: sklearn.feature_extraction.text.TfidfVectorizer.__new__",
+            "[emulation] SUSPICIOUS: import outside the allowlist: numpy.float64"
+          ],
+          "seconds": 0.41093375499985996,
+          "missing": [
+            "joblib.numpy_pickle.NumpyArrayWrapper",
+            "numpy.float64",
+            "sklearn.feature_extraction.text.TfidfTransformer",
+            "sklearn.feature_extraction.text.TfidfVectorizer"
+          ]
+        }
+      }
+    },
+    {
+      "file": "sk_tfidf.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 1.8,
+            "emulation": 402.3,
+            "total": 404.2
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: import outside the allowlist: sklearn.feature_extraction.text.TfidfVectorizer",
+            "[static] SUSPICIOUS: import outside the allowlist: numpy.float64",
+            "[static] SUSPICIOUS: import outside the allowlist: sklearn.feature_extraction.text.TfidfTransformer",
+            "[static] SUSPICIOUS: import outside the allowlist: sklearn.linear_model._stochastic_gradient.SGDClassifier",
+            "[static] SUSPICIOUS: import outside the allowlist: sklearn.linear_model._sgd_fast.Hinge",
+            "[emulation] SUSPICIOUS: import outside the allowlist: sklearn.feature_extraction.text.TfidfVectorizer",
+            "[emulation] SUSPICIOUS: unexpected_call: sklearn.feature_extraction.text.TfidfVectorizer.__new__",
+            "[emulation] SUSPICIOUS: import outside the allowlist: numpy.float64"
+          ],
+          "seconds": 0.4041934669994589,
+          "missing": [
+            "numpy.float64",
+            "sklearn.feature_extraction.text.TfidfTransformer",
+            "sklearn.feature_extraction.text.TfidfVectorizer",
+            "sklearn.linear_model._sgd_fast.Hinge",
+            "sklearn.linear_model._stochastic_gradient.SGDClassifier"
+          ]
+        }
+      }
+    },
+    {
+      "file": "sk_tree.joblib",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "joblib",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.7,
+            "emulation": 419.8,
+            "total": 420.6
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: opcode walk failed: ValueError: at position 589, opcode b'\\x02' unknown",
+            "[static] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: import outside the allowlist: joblib.numpy_pickle.NumpyArrayWrapper",
+            "[emulation] SUSPICIOUS: unexpected_call: joblib.numpy_pickle.NumpyArrayWrapper.__new__",
+            "[emulation] SUSPICIOUS: unexpected_call: joblib.numpy_pickle.NumpyArrayWrapper.__setstate__",
+            "[emulation] SUSPICIOUS: anomaly: unpickling raised"
+          ],
+          "seconds": 0.4206349370006137,
+          "missing": [
+            "joblib.numpy_pickle.NumpyArrayWrapper"
+          ]
+        }
+      }
+    },
+    {
+      "file": "sk_tree.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 1.8,
+            "emulation": 396.2,
+            "total": 398.1
+          },
+          "reasons": [],
+          "seconds": 0.3980984330000865
+        }
+      }
+    },
+    {
+      "file": "k2_convnext_tiny.h5",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k2",
+      "format": "h5",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "h5",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.1,
+            "emulation": 0.0,
+            "total": 164.2
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: legacy HDF5 model: config is parsed inside the sandbox only (not available yet)",
+            "[emulation] SUSPICIOUS: no emulator for format 'h5'"
+          ],
+          "seconds": 0.16819034199943417,
+          "missing": []
+        }
+      }
+    },
+    {
+      "file": "k2_convnext_tiny.keras",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k2",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "keras",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 4.0,
+            "emulation": 0.0,
+            "total": 154.3
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: config.layers[149]: object outside the allowlist keras.src.layers.core.tf_op_layer.TFOpLambda",
+            "[static] SUSPICIOUS: config.layers[147]: object outside the allowlist keras.src.applications.convnext.LayerScale",
+            "[static] SUSPICIOUS: config.layers[141]: object outside the allowlist keras.src.layers.core.tf_op_layer.TFOpLambda",
+            "[static] SUSPICIOUS: config.layers[139]: object outside the allowlist keras.src.applications.convnext.LayerScale",
+            "[static] SUSPICIOUS: config.layers[133]: object outside the allowlist keras.src.layers.core.tf_op_layer.TFOpLambda",
+            "[static] SUSPICIOUS: config.layers[131]: object outside the allowlist keras.src.applications.convnext.LayerScale",
+            "[static] SUSPICIOUS: config.layers[124]: object outside the allowlist keras.src.layers.core.tf_op_layer.TFOpLambda",
+            "[static] SUSPICIOUS: config.layers[122]: object outside the allowlist keras.src.applications.convnext.LayerScale"
+          ],
+          "seconds": 0.15795775999959005,
+          "missing": [
+            "keras.src.applications.convnext.LayerScale",
+            "keras.src.layers.core.tf_op_layer.TFOpLambda"
+          ]
+        }
+      }
+    },
+    {
+      "file": "k2_densenet121.h5",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k2",
+      "format": "h5",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "h5",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.1,
+            "emulation": 0.0,
+            "total": 41.5
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: legacy HDF5 model: config is parsed inside the sandbox only (not available yet)",
+            "[emulation] SUSPICIOUS: no emulator for format 'h5'"
+          ],
+          "seconds": 0.042753232999530155,
+          "missing": []
+        }
+      }
+    },
+    {
+      "file": "k2_densenet121.keras",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k2",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "keras",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 10.6,
+            "emulation": 0.0,
+            "total": 50.6
+          },
+          "reasons": [],
+          "seconds": 0.05185673300002236
+        }
+      }
+    },
+    {
+      "file": "k2_efficientnet_b0.h5",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k2",
+      "format": "h5",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "h5",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.1,
+            "emulation": 0.0,
+            "total": 26.2
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: legacy HDF5 model: config is parsed inside the sandbox only (not available yet)",
+            "[emulation] SUSPICIOUS: no emulator for format 'h5'"
+          ],
+          "seconds": 0.026221658999929787,
+          "missing": []
+        }
+      }
+    },
+    {
+      "file": "k2_efficientnet_b0.keras",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k2",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "keras",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 5.8,
+            "emulation": 0.0,
+            "total": 24.9
+          },
+          "reasons": [],
+          "seconds": 0.024956295999800204
+        }
+      }
+    },
+    {
+      "file": "k2_mobilenet_v2.h5",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k2",
+      "format": "h5",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "h5",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.1,
+            "emulation": 0.0,
+            "total": 6.7
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: legacy HDF5 model: config is parsed inside the sandbox only (not available yet)",
+            "[emulation] SUSPICIOUS: no emulator for format 'h5'"
+          ],
+          "seconds": 0.00676580900017143,
+          "missing": []
+        }
+      }
+    },
+    {
+      "file": "k2_mobilenet_v2.keras",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k2",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "keras",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 4.5,
+            "emulation": 0.0,
+            "total": 10.8
+          },
+          "reasons": [],
+          "seconds": 0.010821836999639345
+        }
+      }
+    },
+    {
+      "file": "k2_mobilenet_v3_small.h5",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k2",
+      "format": "h5",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "h5",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.1,
+            "emulation": 0.0,
+            "total": 10.0
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: legacy HDF5 model: config is parsed inside the sandbox only (not available yet)",
+            "[emulation] SUSPICIOUS: no emulator for format 'h5'"
+          ],
+          "seconds": 0.009992372999477084,
+          "missing": []
+        }
+      }
+    },
+    {
+      "file": "k2_mobilenet_v3_small.keras",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k2",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "keras",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 5.5,
+            "emulation": 0.0,
+            "total": 15.4
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: config.layers[233]: object outside the allowlist keras.src.layers.core.tf_op_layer.TFOpLambda",
+            "[static] SUSPICIOUS: config.layers[231]: object outside the allowlist keras.src.layers.core.tf_op_layer.TFOpLambda",
+            "[static] SUSPICIOUS: config.layers[227]: object outside the allowlist keras.src.layers.core.tf_op_layer.TFOpLambda",
+            "[static] SUSPICIOUS: config.layers[225]: object outside the allowlist keras.src.layers.core.tf_op_layer.TFOpLambda",
+            "[static] SUSPICIOUS: config.layers[218]: object outside the allowlist keras.src.layers.core.tf_op_layer.TFOpLambda",
+            "[static] SUSPICIOUS: config.layers[216]: object outside the allowlist keras.src.layers.core.tf_op_layer.TFOpLambda",
+            "[static] SUSPICIOUS: config.layers[210]: object outside the allowlist keras.src.layers.core.tf_op_layer.TFOpLambda",
+            "[static] SUSPICIOUS: config.layers[208]: object outside the allowlist keras.src.layers.core.tf_op_layer.TFOpLambda"
+          ],
+          "seconds": 0.015381521000563225,
+          "missing": [
+            "keras.src.layers.core.tf_op_layer.TFOpLambda"
+          ]
+        }
+      }
+    },
+    {
+      "file": "k2_nasnet_mobile.h5",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k2",
+      "format": "h5",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "h5",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.1,
+            "emulation": 0.0,
+            "total": 22.4
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: legacy HDF5 model: config is parsed inside the sandbox only (not available yet)",
+            "[emulation] SUSPICIOUS: no emulator for format 'h5'"
+          ],
+          "seconds": 0.022405409999919357,
+          "missing": []
+        }
+      }
+    },
+    {
+      "file": "k2_nasnet_mobile.keras",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k2",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "keras",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 25.4,
+            "emulation": 0.0,
+            "total": 48.0
+          },
+          "reasons": [],
+          "seconds": 0.04806675500003621
+        }
+      }
+    },
+    {
+      "file": "k2_text_gru.h5",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k2",
+      "format": "h5",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "h5",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.0,
+            "emulation": 0.0,
+            "total": 0.2
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: legacy HDF5 model: config is parsed inside the sandbox only (not available yet)",
+            "[emulation] SUSPICIOUS: no emulator for format 'h5'"
+          ],
+          "seconds": 0.0002552619998823502,
+          "missing": []
+        }
+      }
+    },
+    {
+      "file": "k2_text_gru.keras",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k2",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "keras",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.4,
+            "emulation": 0.0,
+            "total": 0.5
+          },
+          "reasons": [],
+          "seconds": 0.0004952740000589984
+        }
+      }
+    },
+    {
+      "file": "keras_dense.keras",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k2",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "keras",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 0.0,
+            "total": 0.2
+          },
+          "reasons": [],
+          "seconds": 0.00025833400013652863
+        }
+      }
+    },
+    {
+      "file": "k3_convnext_tiny.h5",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k3",
+      "format": "h5",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "h5",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.1,
+            "emulation": 0.0,
+            "total": 141.9
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: legacy HDF5 model: config is parsed inside the sandbox only (not available yet)",
+            "[emulation] SUSPICIOUS: no emulator for format 'h5'"
+          ],
+          "seconds": 0.14515732200015918,
+          "missing": []
+        }
+      }
+    },
+    {
+      "file": "k3_convnext_tiny.keras",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k3",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "keras",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 5.4,
+            "emulation": 0.0,
+            "total": 144.1
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: config.layers[152].inbound_nodes[0].args[0]: object outside the allowlist None.__keras_tensor__",
+            "[static] SUSPICIOUS: config.layers[151].inbound_nodes[0].args[0]: object outside the allowlist None.__keras_tensor__",
+            "[static] SUSPICIOUS: config.layers[150].inbound_nodes[0].args[0]: object outside the allowlist None.__keras_tensor__",
+            "[static] SUSPICIOUS: config.layers[149]: object outside the allowlist keras.src.ops.numpy.Add",
+            "[static] SUSPICIOUS: config.layers[149].inbound_nodes[0].args[1]: object outside the allowlist None.__keras_tensor__",
+            "[static] SUSPICIOUS: config.layers[149].inbound_nodes[0].args[0]: object outside the allowlist None.__keras_tensor__",
+            "[static] SUSPICIOUS: config.layers[148].inbound_nodes[0].args[0]: object outside the allowlist None.__keras_tensor__",
+            "[static] SUSPICIOUS: config.layers[147]: object outside the allowlist keras.src.applications.convnext.LayerScale"
+          ],
+          "seconds": 0.14963376700052322,
+          "missing": [
+            "None.__keras_tensor__",
+            "keras.src.applications.convnext.LayerScale",
+            "keras.src.ops.numpy.Add"
+          ]
+        }
+      }
+    },
+    {
+      "file": "k3_densenet121.h5",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k3",
+      "format": "h5",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "h5",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.1,
+            "emulation": 0.0,
+            "total": 42.8
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: legacy HDF5 model: config is parsed inside the sandbox only (not available yet)",
+            "[emulation] SUSPICIOUS: no emulator for format 'h5'"
+          ],
+          "seconds": 0.04404711499955738,
+          "missing": []
+        }
+      }
+    },
+    {
+      "file": "k3_densenet121.keras",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k3",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "keras",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 17.7,
+            "emulation": 0.0,
+            "total": 61.6
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: config.layers[428].inbound_nodes[0].args[0]: object outside the allowlist None.__keras_tensor__",
+            "[static] SUSPICIOUS: config.layers[427].inbound_nodes[0].args[0]: object outside the allowlist None.__keras_tensor__",
+            "[static] SUSPICIOUS: config.layers[426].inbound_nodes[0].args[0]: object outside the allowlist None.__keras_tensor__",
+            "[static] SUSPICIOUS: config.layers[425].inbound_nodes[0].args[0]: object outside the allowlist None.__keras_tensor__",
+            "[static] SUSPICIOUS: config.layers[424].inbound_nodes[0].args[0][1]: object outside the allowlist None.__keras_tensor__",
+            "[static] SUSPICIOUS: config.layers[424].inbound_nodes[0].args[0][0]: object outside the allowlist None.__keras_tensor__",
+            "[static] SUSPICIOUS: config.layers[423].inbound_nodes[0].args[0]: object outside the allowlist None.__keras_tensor__",
+            "[static] SUSPICIOUS: config.layers[422].inbound_nodes[0].args[0]: object outside the allowlist None.__keras_tensor__"
+          ],
+          "seconds": 0.06285997000031784,
+          "missing": [
+            "None.__keras_tensor__"
+          ]
+        }
+      }
+    },
+    {
+      "file": "k3_efficientnet_b0.h5",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k3",
+      "format": "h5",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "h5",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.1,
+            "emulation": 0.0,
+            "total": 21.3
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: legacy HDF5 model: config is parsed inside the sandbox only (not available yet)",
+            "[emulation] SUSPICIOUS: no emulator for format 'h5'"
+          ],
+          "seconds": 0.021313867000571918,
+          "missing": []
+        }
+      }
+    },
+    {
+      "file": "k3_efficientnet_b0.keras",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k3",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "keras",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 9.5,
+            "emulation": 0.0,
+            "total": 30.0
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: config.layers[239].inbound_nodes[0].args[0]: object outside the allowlist None.__keras_tensor__",
+            "[static] SUSPICIOUS: config.layers[238].inbound_nodes[0].args[0]: object outside the allowlist None.__keras_tensor__",
+            "[static] SUSPICIOUS: config.layers[237].inbound_nodes[0].args[0]: object outside the allowlist None.__keras_tensor__",
+            "[static] SUSPICIOUS: config.layers[236].inbound_nodes[0].args[0]: object outside the allowlist None.__keras_tensor__",
+            "[static] SUSPICIOUS: config.layers[235].inbound_nodes[0].args[0]: object outside the allowlist None.__keras_tensor__",
+            "[static] SUSPICIOUS: config.layers[234].inbound_nodes[0].args[0]: object outside the allowlist None.__keras_tensor__",
+            "[static] SUSPICIOUS: config.layers[233].inbound_nodes[0].args[0]: object outside the allowlist None.__keras_tensor__",
+            "[static] SUSPICIOUS: config.layers[232].inbound_nodes[0].args[0]: object outside the allowlist None.__keras_tensor__"
+          ],
+          "seconds": 0.02999385099974461,
+          "missing": [
+            "None.__keras_tensor__"
+          ]
+        }
+      }
+    },
+    {
+      "file": "k3_mobilenet_v2.h5",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k3",
+      "format": "h5",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "h5",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.1,
+            "emulation": 0.0,
+            "total": 6.7
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: legacy HDF5 model: config is parsed inside the sandbox only (not available yet)",
+            "[emulation] SUSPICIOUS: no emulator for format 'h5'"
+          ],
+          "seconds": 0.0066788069998438004,
+          "missing": []
+        }
+      }
+    },
+    {
+      "file": "k3_mobilenet_v2.keras",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k3",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "keras",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 6.7,
+            "emulation": 0.0,
+            "total": 13.8
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: config.layers[155].inbound_nodes[0].args[0]: object outside the allowlist None.__keras_tensor__",
+            "[static] SUSPICIOUS: config.layers[154].inbound_nodes[0].args[0]: object outside the allowlist None.__keras_tensor__",
+            "[static] SUSPICIOUS: config.layers[153].inbound_nodes[0].args[0]: object outside the allowlist None.__keras_tensor__",
+            "[static] SUSPICIOUS: config.layers[152].inbound_nodes[0].args[0]: object outside the allowlist None.__keras_tensor__",
+            "[static] SUSPICIOUS: config.layers[151].inbound_nodes[0].args[0]: object outside the allowlist None.__keras_tensor__",
+            "[static] SUSPICIOUS: config.layers[150].inbound_nodes[0].args[0]: object outside the allowlist None.__keras_tensor__",
+            "[static] SUSPICIOUS: config.layers[149].inbound_nodes[0].args[0]: object outside the allowlist None.__keras_tensor__",
+            "[static] SUSPICIOUS: config.layers[148].inbound_nodes[0].args[0]: object outside the allowlist None.__keras_tensor__"
+          ],
+          "seconds": 0.013819415999932971,
+          "missing": [
+            "None.__keras_tensor__"
+          ]
+        }
+      }
+    },
+    {
+      "file": "k3_mobilenet_v3_small.h5",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k3",
+      "format": "h5",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "h5",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.1,
+            "emulation": 0.0,
+            "total": 9.9
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: legacy HDF5 model: config is parsed inside the sandbox only (not available yet)",
+            "[emulation] SUSPICIOUS: no emulator for format 'h5'"
+          ],
+          "seconds": 0.009972316000130377,
+          "missing": []
+        }
+      }
+    },
+    {
+      "file": "k3_mobilenet_v3_small.keras",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k3",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "keras",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 7.3,
+            "emulation": 0.0,
+            "total": 18.2
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: config.layers[181].inbound_nodes[0].args[0]: object outside the allowlist None.__keras_tensor__",
+            "[static] SUSPICIOUS: config.layers[180].inbound_nodes[0].args[0]: object outside the allowlist None.__keras_tensor__",
+            "[static] SUSPICIOUS: config.layers[179].inbound_nodes[0].args[0]: object outside the allowlist None.__keras_tensor__",
+            "[static] SUSPICIOUS: config.layers[178].inbound_nodes[0].args[0]: object outside the allowlist None.__keras_tensor__",
+            "[static] SUSPICIOUS: config.layers[177].inbound_nodes[0].args[0]: object outside the allowlist None.__keras_tensor__",
+            "[static] SUSPICIOUS: config.layers[176].inbound_nodes[0].args[0]: object outside the allowlist None.__keras_tensor__",
+            "[static] SUSPICIOUS: config.layers[175].inbound_nodes[0].args[0]: object outside the allowlist None.__keras_tensor__",
+            "[static] SUSPICIOUS: config.layers[174].inbound_nodes[0].args[0]: object outside the allowlist None.__keras_tensor__"
+          ],
+          "seconds": 0.0181830749997971,
+          "missing": [
+            "None.__keras_tensor__",
+            "keras.src.ops.numpy.Add",
+            "keras.src.ops.numpy.Multiply"
+          ]
+        }
+      }
+    },
+    {
+      "file": "k3_nasnet_mobile.h5",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k3",
+      "format": "h5",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "h5",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.1,
+            "emulation": 0.0,
+            "total": 32.6
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: legacy HDF5 model: config is parsed inside the sandbox only (not available yet)",
+            "[emulation] SUSPICIOUS: no emulator for format 'h5'"
+          ],
+          "seconds": 0.032633179999720596,
+          "missing": []
+        }
+      }
+    },
+    {
+      "file": "k3_nasnet_mobile.keras",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k3",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "keras",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 32.2,
+            "emulation": 0.0,
+            "total": 54.9
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: config.layers[770].inbound_nodes[0].args[0]: object outside the allowlist None.__keras_tensor__",
+            "[static] SUSPICIOUS: config.layers[769].inbound_nodes[0].args[0]: object outside the allowlist None.__keras_tensor__",
+            "[static] SUSPICIOUS: config.layers[768].inbound_nodes[0].args[0]: object outside the allowlist None.__keras_tensor__",
+            "[static] SUSPICIOUS: config.layers[767].inbound_nodes[0].args[0][5]: object outside the allowlist None.__keras_tensor__",
+            "[static] SUSPICIOUS: config.layers[767].inbound_nodes[0].args[0][4]: object outside the allowlist None.__keras_tensor__",
+            "[static] SUSPICIOUS: config.layers[767].inbound_nodes[0].args[0][3]: object outside the allowlist None.__keras_tensor__",
+            "[static] SUSPICIOUS: config.layers[767].inbound_nodes[0].args[0][2]: object outside the allowlist None.__keras_tensor__",
+            "[static] SUSPICIOUS: config.layers[767].inbound_nodes[0].args[0][1]: object outside the allowlist None.__keras_tensor__"
+          ],
+          "seconds": 0.05489168799977051,
+          "missing": [
+            "None.__keras_tensor__"
+          ]
+        }
+      }
+    },
+    {
+      "file": "k3_text_gru.h5",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k3",
+      "format": "h5",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "h5",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.0,
+            "emulation": 0.0,
+            "total": 0.2
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: legacy HDF5 model: config is parsed inside the sandbox only (not available yet)",
+            "[emulation] SUSPICIOUS: no emulator for format 'h5'"
+          ],
+          "seconds": 0.0002542949996495736,
+          "missing": []
+        }
+      }
+    },
+    {
+      "file": "k3_text_gru.keras",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k3",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "keras",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.6,
+            "emulation": 0.0,
+            "total": 0.7
+          },
+          "reasons": [],
+          "seconds": 0.0007365309993474511
+        }
+      }
+    },
+    {
+      "file": "keras_dense.keras",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k3",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "keras",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.3,
+            "emulation": 0.0,
+            "total": 0.3
+          },
+          "reasons": [],
+          "seconds": 0.00034790100016834913
+        }
+      }
+    }
+  ]
+}

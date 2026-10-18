@@ -7,3 +7,6 @@
 __pycache__/
 app/uploads/
 venv/
+
+# Untrusted model downloads (evaluation/fetch_benign_hf.py); never commit them
+hf_corpus/

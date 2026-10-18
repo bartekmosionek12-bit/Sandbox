@@ -96,9 +96,10 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $venvPy = "$env:BIN\python.exe"
-          $basePy = & $venvPy -c "import sys; print(sys._base_executable)"
-          foreach ($exe in @($venvPy, $basePy)) {
+          # The firewall wants a plain Windows path ($env:BIN mixes / and \).
+          $venvPy = [System.IO.Path]::GetFullPath((Join-Path $env:BIN "python.exe"))
+          $basePy = [System.IO.Path]::GetFullPath((& $venvPy -c "import sys; print(sys._base_executable)").Trim())
+          foreach ($exe in @($venvPy, $basePy) | Sort-Object -Unique) {
             New-NetFirewallRule -DisplayName "safeloadai-offline $exe" -Direction Outbound -Program $exe -Action Block | Out-Null
           }
           & $venvPy tools/assert_offline.py

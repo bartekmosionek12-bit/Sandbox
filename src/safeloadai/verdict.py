@@ -23,7 +23,7 @@ def lambdas_only(parser_report: dict) -> bool:
     anomaly or dangerous behaviour, so the static layer defers to emulation.
     """
     lambdas = parser_report.get("lambdas") or []
-    if parser_report.get("file_format") != "keras" or not lambdas or parser_report.get("error"):
+    if parser_report.get("file_format") not in ("keras", "h5") or not lambdas or parser_report.get("error"):
         return False
     if parser_report.get("suspicious_imports") or parser_report.get("unknown_imports"):
         return False

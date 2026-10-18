@@ -7,7 +7,8 @@ does this before the file is loaded. It handles:
 - joblib (`.joblib`, `.pkl`; uncompressed or zlib, gzip, bz2, lzma, xz, lz4),
 - PyTorch (`.pt`, `.pth`, `.bin`, zip and legacy formats),
 - Keras (`.keras`),
-- legacy HDF5 (`.h5`), which is always reported as SUSPICIOUS for now.
+- legacy Keras HDF5 (`.h5`, written by tf.keras 2.x or by Keras 3 `model.save("x.h5")`),
+  read without h5py or libhdf5.
 
 ```python
 from safeloadai import scan, safe_load, UnsafeModelError
@@ -49,6 +50,17 @@ severe verdict of any layer, so no layer can lower what another one found.
    - **Keras:** `config.json` is walked. Exact module and class names are
      required, and Lambda bytecode is scanned for sink names. The bytecode is
      never unmarshalled on the host.
+   - **Legacy HDF5:** the host does not parse HDF5 at all. A small
+     standard-library HDF5 reader runs inside the WASI sandbox and returns the
+     root attributes `model_config`, `training_config`, `keras_version` and
+     `backend`, plus the file's structure. It walks every group and dataset
+     header but never reads dataset contents, and it reports external links,
+     external or virtual datasets, dense storage, duplicate or non-string
+     attributes and every limit it hits. The config then goes through the
+     Keras checks with tf.keras 2.x rules (objects without a `module` must use
+     an exact built-in class name, Lambda layers may also name a function in a
+     module or carry code in `output_shape`, activations must be built-in), and
+     `training_config` must use built-in losses, metrics and optimizers.
 3. **Fake-API emulation in a WASI sandbox.** The file goes, read-only, to
    CPython 3.12 compiled to WebAssembly and running under wasmtime in a child
    process.
@@ -83,7 +95,9 @@ copy. It also enforces the policy itself:
 - joblib is read by safeloadai's own joblib reader with the same restricted
   `find_class` (numpy is needed, joblib is not);
 - PyTorch is loaded with `torch.load(weights_only=True)`;
-- Keras is loaded with `keras.saving.load_model(safe_mode=True)`.
+- Keras is loaded with `keras.saving.load_model(safe_mode=True)`;
+- legacy `.h5` is not loaded by `safe_load` (it raises `UnsafeModelError`
+  "no loader"); `scan` it and load it yourself.
 
 ## Install
 
@@ -175,7 +189,7 @@ How to read the table:
     pass them with `allow=[("module", "Qualname")]` or `--allow module:Qualname`.
   - **PyTorch:** the allowlist entries have not been checked against real
     checkpoints yet.
-  - **`.h5` and TorchScript** are always SUSPICIOUS.
+  - **TorchScript** is always SUSPICIOUS.
 - **joblib.** Supported: joblib 0.10 and newer, uncompressed or compressed with
   one stream of zlib, gzip, bz2, lzma, xz or lz4 (lz4 needs
   `pip install "safeloadai[lz4]"`).
@@ -190,6 +204,24 @@ How to read the table:
     top-level module no environment could provide; a name made of a stdlib or
     common package name and an attribute that does not exist is reported
     anyway (SUSPICIOUS).
+- **Legacy HDF5.** Supported: superblock versions 0 to 3, old-style groups
+  (symbol tables) and new-style compact groups, fixed and variable-length
+  string attributes. Weight datasets are never read, so bugs in a loader's
+  weight parsing (libhdf5, h5py, filters) are out of scope: safeloadai cannot
+  find them and does not try.
+  - **SUSPICIOUS by design:** external links, external data files, virtual
+    datasets, superblock driver info (multi-file drivers), a user block,
+    dense (fractal heap) storage of the root attributes or of any group's
+    links, shared root attributes, a root attribute that is not a scalar
+    string, contains NUL bytes or appears twice, an attribute above 16 MiB,
+    more than 100,000 objects, and any structure the reader cannot parse.
+  - **Keras 2 Lambda layers** are rarely CLEAN: the configs carry no input
+    shape for the emulator, and their bytecode usually comes from another
+    Python version, so emulation reports an anomaly.
+  - **Dense storage** is what h5py writes for a group with more than 8 links
+    when the file was created with `libver="latest"`; Keras itself uses the
+    default (old-style groups), so such files should be rare. Part of the
+    false-positive measurement.
 - **CLEAN Lambda models do not load through `safe_load`,** because Keras safe
   mode refuses Lambda bytecode. Load them yourself if you accept that risk.
 - **Loading a CLEAN pickle imports allowlisted libraries on your machine,**

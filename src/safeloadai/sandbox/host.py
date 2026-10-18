@@ -39,7 +39,7 @@ from . import runtime
 GUEST_SOURCE = Path(__file__).with_name("guest")
 # Stdlib-only modules the host and the guest share (format layouts, readers).
 SHARED_SOURCE = Path(__file__).resolve().parent.parent / "shared"
-SHARED_MODULES = ("joblib_layout.py",)
+SHARED_MODULES = ("joblib_layout.py", "hdf5_meta.py")
 RUNNER_ARGV = [sys.executable, "-I", "-m", "safeloadai.sandbox.runner"]
 RECORD_MAGIC = b"SLAI1 "
 

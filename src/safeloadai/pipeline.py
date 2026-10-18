@@ -61,7 +61,11 @@ def emulation_layer(data: bytes, parser_report: dict, extra_allowed: frozenset,
             return layer
         run = emulate_pickle(streams, max_pickles=1, limits=limits)
         return behaviour.classify(run, torch=True, extra_allowed=extra_allowed, framework=False)
-    if fmt == detect_mod.KERAS:
+    if fmt in (detect_mod.KERAS, detect_mod.H5):
+        if parser_report.get("error") and fmt == detect_mod.H5:
+            layer = LayerResult(name="emulation", verdict=Verdict.CLEAN, ran=False)
+            layer.raise_to(Verdict.SUSPICIOUS, "HDF5 metadata could not be read; nothing emulated")
+            return layer
         lambdas = parser_report.get("lambdas") or []
         if not lambdas:
             return LayerResult(name="emulation", verdict=Verdict.CLEAN, ran=False,

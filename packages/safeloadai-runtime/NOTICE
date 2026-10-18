@@ -1,0 +1,46 @@
+safeloadai-runtime 0.1.0
+========================
+
+This package redistributes one unmodified third-party binary as package data:
+
+  File:     safeloadai_runtime/python-3.12.0.wasm
+  What:     CPython 3.12.0 compiled to WebAssembly (WASI preview 1)
+  Built by: VMware Wasm Labs, webassembly-language-runtimes,
+            release python/3.12.0+20231211-040d5a6
+  Source:   https://github.com/vmware-labs/webassembly-language-runtimes/releases/download/python%2F3.12.0%2B20231211-040d5a6/python-3.12.0.wasm
+  Size:     26267204 bytes
+  SHA-256:  e5dc5a398b07b54ea8fdb503bf68fb583d533f10ec3f930963e02b9505f7a763
+
+The file is downloaded only when the package is built (fetch_runtime.py) and is
+checked against the size and SHA-256 above; the build fails on any mismatch.
+
+Licences
+--------
+
+* CPython 3.12.0: Python Software Foundation License Version 2 and the
+  historical licences that come with it. Full text:
+  LICENSES/CPython-PSF-2.0.txt (the LICENSE file of CPython tag v3.12.0).
+* The WASI build (build scripts and packaging by VMware, Inc.): Apache
+  License 2.0. Full text: LICENSES/webassembly-language-runtimes-Apache-2.0.txt;
+  VMware's NOTICE: LICENSES/webassembly-language-runtimes-NOTICE.txt.
+
+Statically linked components
+----------------------------
+
+Importing their modules inside the runtime shows that the binary contains the
+following libraries (zlib, bz2, _sqlite3, _decimal, pyexpat). They are covered by
+their own licences, which the CPython licence file does not reproduce:
+
+* zlib (zlib License)
+* bzip2 / libbzip2 (bzip2 licence, BSD-style)
+* SQLite (public domain)
+* libmpdec (BSD 2-Clause), used by _decimal
+* Expat (MIT), used by pyexpat
+* wasi-libc (Apache-2.0 WITH LLVM-exception, plus MIT and other permissive
+  licences for parts derived from musl and others)
+
+VMware's NOTICE states that such subcomponents keep their own licence terms.
+Before publishing, check this list against the build's own records.
+
+The Python code in this package (safeloadai_runtime/__init__.py and the build
+helpers) is part of the safeloadai project.

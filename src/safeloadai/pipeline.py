@@ -34,6 +34,15 @@ def _is_legacy_torch(parser_report: dict) -> bool:
 def emulation_layer(data: bytes, parser_report: dict, extra_allowed: frozenset,
                     limits: Limits | None = None) -> LayerResult:
     fmt = parser_report.get("file_format")
+    if fmt == detect_mod.JOBLIB:
+        stream = parser_report.get("_stream", data if not parser_report.get("compression") else None)
+        if stream is None:
+            layer = LayerResult(name="emulation", verdict=Verdict.CLEAN, ran=False)
+            layer.raise_to(Verdict.SUSPICIOUS, "compressed joblib file could not be decompressed; nothing emulated")
+            return layer
+        run = emulate_pickle([stream], max_pickles=parser_report.get("pickle_count") or 1, joblib=True,
+                             limits=limits)
+        return behaviour.classify(run, extra_allowed=extra_allowed, framework=False)
     if fmt == detect_mod.PICKLE:
         torch = _is_legacy_torch(parser_report)
         run = emulate_pickle([data], max_pickles=parser_report.get("pickle_count") or 1, limits=limits)
@@ -52,7 +61,11 @@ def emulation_layer(data: bytes, parser_report: dict, extra_allowed: frozenset,
             return layer
         run = emulate_pickle(streams, max_pickles=1, limits=limits)
         return behaviour.classify(run, torch=True, extra_allowed=extra_allowed, framework=False)
-    if fmt == detect_mod.KERAS:
+    if fmt in (detect_mod.KERAS, detect_mod.H5):
+        if parser_report.get("error") and fmt == detect_mod.H5:
+            layer = LayerResult(name="emulation", verdict=Verdict.CLEAN, ran=False)
+            layer.raise_to(Verdict.SUSPICIOUS, "HDF5 metadata could not be read; nothing emulated")
+            return layer
         lambdas = parser_report.get("lambdas") or []
         if not lambdas:
             return LayerResult(name="emulation", verdict=Verdict.CLEAN, ran=False,

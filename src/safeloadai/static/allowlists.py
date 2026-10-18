@@ -48,6 +48,11 @@ PICKLE_GLOBALS: frozenset[tuple[str, str]] = frozenset(
         ("numpy.random._pickle", "__randomstate_ctor"),
         ("numpy.random.bit_generator", "SeedSequence"),
         ("numpy.random.bit_generator", "__pyx_unpickle_SeedSequence"),
+        # joblib's placeholder for an ndarray whose raw bytes follow it in the stream.
+        # A plain data holder (no __reduce__/__setstate__, no code on construction);
+        # the scanner reads its layout exactly (shared/joblib_layout.py) and the
+        # safe_load loader maps it to its own reader, never importing joblib.
+        ("joblib.numpy_pickle", "NumpyArrayWrapper"),
         # scikit-learn estimators and their internals (tuning corpus)
         ("sklearn._loss._loss", "CyHalfMultinomialLoss"),
         ("sklearn._loss._loss", "__pyx_unpickle_CyHalfMultinomialLoss"),
@@ -144,6 +149,11 @@ KERAS_MODULES = frozenset({
 KERAS_CLASSES = frozenset({
     # containers
     "Functional", "Sequential", "Model", "InputLayer",
+    # Keras 3 functional graphs mark a layer input with {"class_name": "__keras_tensor__",
+    # "config": {"shape", "dtype", "keras_history"}}; functional.py turns it into a
+    # reference to another layer's output and imports nothing
+    # (tests/fixtures/h5/k3_lambda_benign.h5).
+    "__keras_tensor__",
     # core / dense
     "Dense", "EinsumDense", "Activation", "Embedding", "Masking", "Identity",
     # convolution
@@ -222,4 +232,53 @@ TF_DANGEROUS = frozenset({
     "__subclasses__", "__globals__", "__code__", "marshal", "pickle", "environ",
     "getenv", "listdir", "walk", "makedirs", "mkdir", "chmod", "connect", "send",
     "requests", "urllib", "http", "os", "sys", "posix", "nt", "shutil", "pty",
+})
+
+# --- legacy Keras HDF5 (.h5) -------------------------------------------------
+# tf.keras 2.x writes objects as {"class_name": ..., "config": ...} with no
+# "module" key. Such an object is accepted only if its class_name is in this exact
+# set: every Keras 3 class above, plus Keras 2 built-ins that Keras 3 renamed or
+# dropped. Source: tf.keras 2.15 keras/layers, keras/initializers, keras/optimizers
+# __init__ exports; "Custom>Adam" etc. are how tf.keras 2.11-2.15 registers its own
+# optimizers (seen in tests/fixtures/h5/k2_sequential.h5). No prefix rule: the
+# "Custom>" names are listed one by one. Unverified beyond the fixtures until the
+# Hugging Face measurement (Part D).
+_KERAS2_OPTIMIZERS = ("Adam", "AdamW", "SGD", "RMSprop", "Adagrad", "Adadelta", "Adamax", "Nadam", "Ftrl",
+                      "Lion", "Adafactor")
+KERAS2_CLASSES = KERAS_CLASSES | frozenset(
+    {
+        "Model", "Functional", "Sequential", "InputLayer", "Wrapper",
+        "ThresholdedReLU", "LocallyConnected1D", "LocallyConnected2D", "CuDNNLSTM", "CuDNNGRU",
+        "StackedRNNCells", "PeepholeLSTMCell", "SpatialDropout1D",
+        "PolynomialDecay", "InverseTimeDecay", "CosineDecayRestarts",
+        "RootMeanSquaredError", "MeanIoU", "TopKCategoricalAccuracy",
+        "SparseTopKCategoricalAccuracy", "MeanAbsolutePercentageError", "MeanSquaredLogarithmicError",
+        "Hinge", "SquaredHinge", "CategoricalHinge", "LogCosh", "KLDivergence", "Poisson",
+        "CosineSimilarity", "BinaryFocalCrossentropy",
+    }
+    | {f"Custom>{name}" for name in _KERAS2_OPTIMIZERS}
+)
+
+# Activation names a layer's "activation" / "recurrent_activation" string may use
+# (keras.activations functions in tf.keras 2.x and Keras 3). A name outside the set
+# is a custom activation the loader would look up elsewhere.
+KERAS_ACTIVATION_NAMES = frozenset(name for _, name in KERAS_FUNCTIONS) | frozenset({
+    "hard_silu", "hard_swish", "celu", "glu", "sparsemax", "squareplus", "tanh_shrink",
+    "threshold", "soft_shrink", "hard_shrink", "hard_tanh", "log_sigmoid", "sparse_plus",
+})
+
+# Loss and metric names a training_config may give as strings (and as a
+# MeanMetricWrapper's "fn"): tf.keras 2.x keras.losses / keras.metrics functions
+# and their aliases.
+KERAS_LOSS_NAMES = frozenset({
+    "mean_squared_error", "mse", "MSE", "mean_absolute_error", "mae", "MAE",
+    "mean_absolute_percentage_error", "mape", "MAPE", "mean_squared_logarithmic_error", "msle", "MSLE",
+    "squared_hinge", "hinge", "categorical_hinge", "log_cosh", "logcosh", "huber", "huber_loss",
+    "categorical_crossentropy", "sparse_categorical_crossentropy", "binary_crossentropy",
+    "binary_focal_crossentropy", "categorical_focal_crossentropy", "kl_divergence", "kld", "KLD",
+    "kullback_leibler_divergence", "poisson", "cosine_similarity",
+})
+KERAS_METRIC_NAMES = KERAS_LOSS_NAMES | frozenset({
+    "accuracy", "acc", "binary_accuracy", "categorical_accuracy", "sparse_categorical_accuracy",
+    "top_k_categorical_accuracy", "sparse_top_k_categorical_accuracy", "crossentropy", "ce",
 })

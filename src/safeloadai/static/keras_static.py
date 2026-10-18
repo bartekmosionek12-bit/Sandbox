@@ -17,6 +17,12 @@ Lambda bytecode is never unmarshalled on the host. The base64 payload is decoded
 to bytes and scanned for marshal string tokens naming known sinks; that is a
 byte search, not deserialization. Behaviour of the code is the sandbox's job.
 
+Legacy HDF5 files (``keras2=True``, see ``h5_static``) use tf.keras 2.x
+serialization: objects carry no ``module``, so their ``class_name`` must be in the
+explicit ``KERAS2_CLASSES`` set; Lambda layers may also name a function to look up
+in a module's globals (``function_type == "function"``) or carry marshalled code
+in ``output_shape``; activation strings must name a built-in activation.
+
 Scoring: a sink token in Lambda bytecode or a dangerous function / TF op ->
 MALICIOUS. Any other finding (Lambda present, unknown object, custom object,
 archive problem, parse error, depth limit) -> SUSPICIOUS. Otherwise CLEAN.
@@ -30,9 +36,14 @@ import os
 
 from ..parsing.zipsafe import SafeZip, ZipRefused
 from .allowlists import (
+    DANGEROUS_MODULES,
+    DANGEROUS_SYMBOLS,
+    KERAS2_CLASSES,
+    KERAS_ACTIVATION_NAMES,
     KERAS_CLASSES,
     KERAS_CODE_LAYERS,
     KERAS_FUNCTIONS,
+    KERAS_METRIC_NAMES,
     KERAS_MODULES,
     TF_DANGEROUS,
     TF_OP_ALLOWED,
@@ -120,15 +131,77 @@ def _lambda_context(node: dict, config: dict) -> dict:
         "arguments": arguments if isinstance(arguments, dict) else {},
         "defaults": inner.get("defaults"),
         "closure": inner.get("closure"),
-        "input_shape": build.get("input_shape"),
+        "input_shape": build.get("input_shape") or _inbound_shape(node),
     }
 
 
-def _check_object(node: dict, path: str, report: dict) -> None:
+def _inbound_shape(node: dict):
+    """Input shape from a Keras 3 functional node (``__keras_tensor__`` argument), used
+    when there is no build_config (legacy HDF5 written by Keras 3)."""
+    nodes = node.get("inbound_nodes")
+    if not (isinstance(nodes, list) and nodes and isinstance(nodes[0], dict)):
+        return None
+    args = nodes[0].get("args")
+    first = args[0] if isinstance(args, list) and args else None
+    if isinstance(first, dict) and first.get("class_name") == "__keras_tensor__":
+        config = first.get("config")
+        return config.get("shape") if isinstance(config, dict) else None
+    return None
+
+
+def _entry(module, symbol, path: str) -> dict:
+    return {"module": str(module), "symbol": str(symbol), "pos": None, "path": path}
+
+
+def _is_dangerous(module, name) -> bool:
+    top = str(module).split(".")[0]
+    return top in DANGEROUS_MODULES or str(name) in TF_DANGEROUS or str(name) in DANGEROUS_SYMBOLS
+
+
+def _keras2_lambda(config: dict, path: str, report: dict) -> None:
+    """tf.keras 2.x Lambda fields that resolve code outside the marshalled bytecode."""
+    module = config.get("module")
+    function = config.get("function")
+    if config.get("function_type") == "function":
+        # Keras 2 looks the name up in the globals of sys.modules[module] and calls it.
+        target = report["suspicious_imports"] if _is_dangerous(module, function) else report["unknown_imports"]
+        target.append(_entry(module, function, path + ".config.function"))
+    elif module not in (None, "__main__"):
+        # The Lambda's globals are that module's namespace.
+        target = report["suspicious_imports"] if _is_dangerous(module, "") else report["unknown_imports"]
+        target.append(_entry(module, "<Lambda globals>", path + ".config.module"))
+    shape_type = config.get("output_shape_type")
+    if shape_type == "lambda":
+        shape = config.get("output_shape")
+        code = _lambda_code({"function": shape}) if isinstance(shape, (list, str)) else None
+        tokens = marshal_sink_tokens(code) if code else []
+        for token in tokens:
+            report["suspicious_imports"].append(_entry("keras.layers.Lambda.output_shape", token, path))
+        report["unknown_imports"].append(_entry("keras.layers.Lambda", "output_shape code", path))
+    elif shape_type == "function":
+        shape_module = config.get("output_shape_module")
+        shape = config.get("output_shape")
+        target = report["suspicious_imports"] if _is_dangerous(shape_module, shape) else report["unknown_imports"]
+        target.append(_entry(shape_module, shape, path + ".config.output_shape"))
+
+
+def _check_activations(node: dict, path: str, report: dict) -> None:
+    config = node.get("config")
+    if not isinstance(config, dict):
+        return
+    for key in ("activation", "recurrent_activation"):
+        value = config.get(key)
+        if isinstance(value, str) and value not in KERAS_ACTIVATION_NAMES:
+            report["unknown_imports"].append(_entry("activation", value, f"{path}.config.{key}"))
+
+
+def _check_object(node: dict, path: str, report: dict, keras2: bool = False) -> None:
     class_name = node.get("class_name")
     module = node.get("module")
     registered = node.get("registered_name")
     report["opcodes"].append({"name": class_name, "arg": path, "pos": 0})
+    if keras2:
+        _check_activations(node, path, report)
 
     if class_name == "__lambda__":
         # The marshalled function inside a Lambda layer's config, already captured
@@ -153,10 +226,14 @@ def _check_object(node: dict, path: str, report: dict) -> None:
         return
 
     if class_name in KERAS_CODE_LAYERS:
-        reason = f"{path}: {class_name} layer carries executable Python"
+        what = ("calls a TensorFlow function by name" if class_name == "TFOpLambda"
+                else "carries executable Python")
+        reason = f"{path}: {class_name} layer {what}"
         report["flagged_opcodes"].append({"name": class_name, "arg": path, "pos": 0, "reason": reason})
         config = node.get("config") if isinstance(node.get("config"), dict) else {}
-        if class_name == "Lambda":
+        if class_name == "Lambda" and keras2:
+            _keras2_lambda(config, path, report)
+        if class_name == "Lambda" and not (keras2 and config.get("function_type") == "function"):
             code = _lambda_code(config)
             tokens = marshal_sink_tokens(code) if code else []
             report["lambdas"].append({
@@ -184,8 +261,11 @@ def _check_object(node: dict, path: str, report: dict) -> None:
                                               "path": path})
         return
 
-    known_class = class_name in KERAS_CLASSES
-    known_module = module is None or module in KERAS_MODULES
+    if keras2 and "module" not in node:
+        known_class, known_module = class_name in KERAS2_CLASSES, True
+    else:
+        known_class = class_name in KERAS_CLASSES
+        known_module = module is None or module in KERAS_MODULES
     if not (known_class and known_module):
         report["unknown_imports"].append(
             {"module": str(module), "symbol": str(class_name), "pos": None, "path": path}
@@ -196,8 +276,8 @@ def _check_object(node: dict, path: str, report: dict) -> None:
         )
 
 
-def _walk(config, report: dict) -> None:
-    stack = [(config, "", 0)]
+def _walk(config, report: dict, keras2: bool = False, prefix: str = "") -> None:
+    stack = [(config, prefix, 0)]
     nodes = 0
     while stack:
         node, path, depth = stack.pop()
@@ -211,7 +291,7 @@ def _walk(config, report: dict) -> None:
                 stack.append((item, f"{path}[{i}]", depth + 1))
         elif isinstance(node, dict):
             if isinstance(node.get("class_name"), str):
-                _check_object(node, path, report)
+                _check_object(node, path, report, keras2)
             for key, value in node.items():
                 stack.append((value, f"{path}.{key}" if path else str(key), depth + 1))
 
@@ -255,7 +335,59 @@ def parse_keras(data: bytes, file_name: str = "<memory>") -> dict:
     except ValueError as exc:
         report["error"] = str(exc)
         reasons.append(str(exc))
+    return finalize(report)
 
+
+def walk_config(config, report: dict, *, keras2: bool = False, prefix: str = "") -> None:
+    """Check one decoded config (``keras2`` for legacy HDF5); limit errors go to the report."""
+    try:
+        _walk(config, report, keras2, prefix)
+    except ValueError as exc:
+        report["error"] = str(exc)
+        report["reasons"].append(str(exc))
+
+
+def _loss_metric_names(value, path: str, report: dict, depth: int = 0) -> None:
+    if depth > 20:
+        raise ValueError(f"{path}: nested too deeply")
+    if isinstance(value, str):
+        if value not in KERAS_METRIC_NAMES:
+            report["unknown_imports"].append(_entry("loss/metric", value, path))
+    elif isinstance(value, list):
+        for i, item in enumerate(value):
+            _loss_metric_names(item, f"{path}[{i}]", report, depth + 1)
+    elif isinstance(value, dict):
+        if isinstance(value.get("class_name"), str):
+            config = value.get("config")
+            fn = config.get("fn") if isinstance(config, dict) else None
+            if fn is not None:
+                _loss_metric_names(fn, f"{path}.config.fn", report, depth + 1)
+            return  # the class itself is checked by the config walk
+        for key, item in value.items():
+            _loss_metric_names(item, f"{path}.{key}", report, depth + 1)
+
+
+def check_training_config(config, report: dict) -> None:
+    """Losses, metrics and the optimizer a Keras 2 ``compile`` would rebuild. Names
+    that are not built-in need ``custom_objects``: SUSPICIOUS."""
+    if not isinstance(config, dict):
+        report["reasons"].append("training_config is not a JSON object")
+        return
+    walk_config(config, report, keras2=True, prefix="training_config")
+    try:
+        for key in ("loss", "metrics", "weighted_metrics"):
+            if config.get(key) is not None:
+                _loss_metric_names(config[key], f"training_config.{key}", report)
+    except ValueError as exc:
+        report["reasons"].append(str(exc))
+    optimizer = config.get("optimizer_config")
+    if optimizer is not None and not (isinstance(optimizer, dict) and isinstance(optimizer.get("class_name"), str)):
+        report["unknown_imports"].append(_entry("optimizer", type(optimizer).__name__, "training_config"))
+
+
+def finalize(report: dict) -> dict:
+    """Turn the collected findings into reasons and the static risk."""
+    reasons: list[str] = report["reasons"]
     for lam in report["lambdas"]:
         reasons.append(
             f"{lam['path']}: Lambda layer"

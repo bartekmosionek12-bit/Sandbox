@@ -3,10 +3,12 @@
 safeloadai decides whether a machine-learning model file is safe to load. It
 does this before the file is loaded. It handles:
 
-- pickle (`.pkl`, `.pickle`, `.joblib`),
+- pickle (`.pkl`, `.pickle`),
+- joblib (`.joblib`, `.pkl`; uncompressed or zlib, gzip, bz2, lzma, xz, lz4),
 - PyTorch (`.pt`, `.pth`, `.bin`, zip and legacy formats),
 - Keras (`.keras`),
-- legacy HDF5 (`.h5`), which is always reported as SUSPICIOUS for now.
+- legacy Keras HDF5 (`.h5`, written by tf.keras 2.x or by Keras 3 `model.save("x.h5")`),
+  read without h5py or libhdf5.
 
 ```python
 from safeloadai import scan, safe_load, UnsafeModelError
@@ -37,9 +39,28 @@ severe verdict of any layer, so no layer can lower what another one found.
      least SUSPICIOUS. A known sink together with a call opcode is MALICIOUS.
    - **Multi-pickle streams:** every pickle in the stream is walked, including
      legacy PyTorch files that put several pickles back to back.
+   - **joblib:** compressed files are recognised by content, the way joblib
+     does it, and decompressed in a streaming way with limits on output size
+     and compression ratio. The walker follows joblib's format: the raw bytes
+     joblib writes after each `NumpyArrayWrapper` are skipped by their exact
+     size from shape and dtype, never read as opcodes; object-dtype arrays are
+     nested pickles and are walked like any other. Because a plain
+     `pickle.load` would read those raw bytes as opcodes, the walker also
+     checks what that reading would import (parser differential).
    - **Keras:** `config.json` is walked. Exact module and class names are
      required, and Lambda bytecode is scanned for sink names. The bytecode is
      never unmarshalled on the host.
+   - **Legacy HDF5:** the host does not parse HDF5 at all. A small
+     standard-library HDF5 reader runs inside the WASI sandbox and returns the
+     root attributes `model_config`, `training_config`, `keras_version` and
+     `backend`, plus the file's structure. It walks every group and dataset
+     header but never reads dataset contents, and it reports external links,
+     external or virtual datasets, dense storage, duplicate or non-string
+     attributes and every limit it hits. The config then goes through the
+     Keras checks with tf.keras 2.x rules (objects without a `module` must use
+     an exact built-in class name, Lambda layers may also name a function in a
+     module or carry code in `output_shape`, activations must be built-in), and
+     `training_config` must use built-in losses, metrics and optimizers.
 3. **Fake-API emulation in a WASI sandbox.** The file goes, read-only, to
    CPython 3.12 compiled to WebAssembly and running under wasmtime in a child
    process.
@@ -47,7 +68,8 @@ severe verdict of any layer, so no layer can lower what another one found.
      the process by the host.
    - **Isolation:** no network and no filesystem other than that directory.
    - **Inside the sandbox:** pickles are unpickled with a recording
-     `find_class`, and Lambda functions are called on fake tensors with fake
+     `find_class` (joblib streams with joblib's own reading of the array
+     data), and Lambda functions are called on fake tensors with fake
      `tf`/`keras`/`torch`/`numpy`/`os`/`subprocess`/`socket`/`builtins`
      modules.
    - **Evidence:** every call is written to a channel that only the host reads.
@@ -70,60 +92,54 @@ copy. It also enforces the policy itself:
 
 - pickle is read with a restricted unpickler that resolves only allowlisted
   pairs;
+- joblib is read by safeloadai's own joblib reader with the same restricted
+  `find_class` (numpy is needed, joblib is not);
 - PyTorch is loaded with `torch.load(weights_only=True)`;
-- Keras is loaded with `keras.saving.load_model(safe_mode=True)`.
+- Keras is loaded with `keras.saving.load_model(safe_mode=True)`;
+- legacy `.h5` is not loaded by `safe_load` (it raises `UnsafeModelError`
+  "no loader"); `scan` it and load it yourself.
 
 ## Install
 
 ```bash
-pip install -e ".[dev]"          # add [judge] for the LLM judge, [dashboard] for the viewer
+pip install safeloadai
 ```
 
-You need Python 3.11 or newer. The library never downloads anything. Put the
-pinned WASI runtime in place yourself, or point `SAFELOADAI_WASI_PYTHON` at it:
+That is all: Python 3.11 or newer on Linux, macOS or Windows. The sandbox runtime
+(CPython 3.12 compiled to WebAssembly) comes with the `safeloadai-runtime` package,
+which `safeloadai` pins to an exact version, and `wasmtime` ships wheels for all three
+systems. Nothing is downloaded at install time or at run time: the runtime file is
+fetched once, when `safeloadai-runtime` is built, and its SHA-256 is checked again by
+safeloadai, against its own pinned value, every time it is loaded. A runtime that
+fails that check stops the scan with `RuntimeIntegrityError` (CLI exit code 4); it
+never turns into a verdict.
 
 ```bash
-mkdir -p ~/.cache/safeloadai/runtime && cd ~/.cache/safeloadai/runtime
-curl -fsSLO "https://github.com/vmware-labs/webassembly-language-runtimes/releases/download/python%2F3.12.0%2B20231211-040d5a6/python-3.12.0.wasm"
-echo "e5dc5a398b07b54ea8fdb503bf68fb583d533f10ec3f930963e02b9505f7a763  python-3.12.0.wasm" | sha256sum -c -
+safeloadai doctor        # checks wasmtime, the runtime and its hash, and runs the sandbox once
 ```
 
-Without the runtime every pickle, PyTorch file and Lambda model is SUSPICIOUS.
+If the runtime is missing, every file that needs emulation is SUSPICIOUS and the
+report says why; `safeloadai doctor` tells you how to fix it. Optional extras:
+`[judge]` for the LLM judge, `[dashboard]` for the report viewer.
 
 ## Results
 
-These are the first measurements from `evaluation/run_eval.py`, made on
-2026-10-17. Setup and caveats are in
-[evaluation/results/README.md](evaluation/results/README.md).
+Latest local run, 2026-10-18. It covers 138 files: 53 harmless marker payloads, including rebuilds of public scanner bypasses and CVE-2024-3660, and 85 locally generated benign scikit-learn, numpy, `.keras` and `.h5` models. "Before" is the previous release line (origin/main). Setup, caveats and the full tables are in [evaluation/results/README.md](evaluation/results/README.md).
 
-- **Malicious files:** 38 harmless marker payloads from
-  `tests/corpus/build_corpus.py`.
-- **Benign files:** 35 files, made of the lab corpus controls, locally
-  generated numpy and scikit-learn models, and the two clean PoC samples.
-
-| tool | detected / malicious | false positives / benign | errors | unsupported | median s |
-|---|---|---|---|---|---|
-| safeloadai | 38 / 38 | 7 / 35 | 0 | 0 | 0.50 |
-| picklescan 1.0.5 | 22 / 38 | 0 / 35 | 8 | 0 | 0.10 |
-| fickling 0.1.12 | 24 / 38 | 25 / 35 | 22 | 0 | 0.08 |
-| modelscan 0.8.8 | 21 / 38 | 0 / 35 | 0 | 24 | 0.20 |
+| tool | detected / malicious | false positives / benign | median s |
+|---|---|---|---|
+| safeloadai before | 52 / 53 | 49 / 85 | 0.40 |
+| safeloadai after | 53 / 53 | 23 / 85 | 0.38 |
+| picklescan 1.0.5 | 32 / 53 | 0 / 85 | 0.09 |
+| fickling 0.1.12 | 36 / 53 | 61 / 85 | 0.06 |
+| modelscan 0.8.8 | 23 / 53 | 0 / 85 | 0.17 |
 
 How to read the table:
 
-- **Malicious files are lab payloads.** The marker payloads were written for
-  this project. They are not a public malware set.
-- **The benign numpy and scikit-learn files are not independent of the
-  allowlist,** which was tuned on similar models. A false-positive rate on
-  unseen models still needs the Hugging Face set:
-  `evaluation/fetch_benign_hf.py`, then `run_eval.py --benign DIR`.
-- **All 7 safeloadai false positives are `.joblib` files.**
-- **Format coverage explains some of the other tools' misses.**
-  - picklescan and fickling return "clean" for `.keras` files they do not
-    analyse.
-  - modelscan without its TensorFlow extra skips them.
-  - fickling 0.1.12 fails on common pickle opcodes such as FLOAT.
-- **Layer contribution on the 38 malicious files:** static and emulation both
-  flagged 33, static alone 4, emulation alone 1.
+- **The malicious files are lab rebuilds with harmless markers,** not a public malware set.
+- **The benign files are not independent of the allowlist,** and they are not Hugging Face models. A false-positive rate on unseen models still needs the Hub set: `evaluation/fetch_benign_hf.py`, then `run_eval.py --hf DIR`.
+- **The 23 remaining false positives are all SUSPICIOUS.** 16 are scikit-learn estimators missing from the allowlist. 7 are Keras files with `LayerScale`, `TFOpLambda` or Keras 3 op layers. [false-positives-20261018.md](evaluation/results/false-positives-20261018.md) lists each missing pair and whether adding it would be safe. None was added.
+- **Format coverage explains some of the other tools' misses.** picklescan and fickling return "clean" for `.keras` and `.h5` files they do not analyse. modelscan without its TensorFlow extra skips `.keras`, and the evaluation does not run it on `.h5`, because modelscan opens those with h5py on the host.
 
 ## LIMITATIONS
 
@@ -157,7 +173,39 @@ How to read the table:
     pass them with `allow=[("module", "Qualname")]` or `--allow module:Qualname`.
   - **PyTorch:** the allowlist entries have not been checked against real
     checkpoints yet.
-  - **joblib, `.h5` and TorchScript** are always SUSPICIOUS.
+  - **TorchScript** is always SUSPICIOUS.
+- **joblib.** Supported: joblib 0.10 and newer, uncompressed or compressed with
+  one stream of zlib, gzip, bz2, lzma, xz or lz4 (lz4 needs
+  `pip install "safeloadai[lz4]"`).
+  - **SUSPICIOUS by design:** the legacy multi-file format of joblib < 0.10
+    (arrays in side files that joblib opens by name and reads with
+    `numpy.load(allow_pickle=True)`), structured dtypes that hold Python
+    objects, a wrapper built in any way other than joblib's own, array data
+    inside a pickle frame, and decompressed output above 1 GiB or a ratio
+    above 1000:1 (after the first MiB).
+  - **Parser differential:** the check of what a plain `pickle.load` would
+    import from joblib's array bytes stops at the first import whose
+    top-level module no environment could provide; a name made of a stdlib or
+    common package name and an attribute that does not exist is reported
+    anyway (SUSPICIOUS).
+- **Legacy HDF5.** Supported: superblock versions 0 to 3, old-style groups
+  (symbol tables) and new-style compact groups, fixed and variable-length
+  string attributes. Weight datasets are never read, so bugs in a loader's
+  weight parsing (libhdf5, h5py, filters) are out of scope: safeloadai cannot
+  find them and does not try.
+  - **SUSPICIOUS by design:** external links, external data files, virtual
+    datasets, superblock driver info (multi-file drivers), a user block,
+    dense (fractal heap) storage of the root attributes or of any group's
+    links, shared root attributes, a root attribute that is not a scalar
+    string, contains NUL bytes or appears twice, an attribute above 16 MiB,
+    more than 100,000 objects, and any structure the reader cannot parse.
+  - **Keras 2 Lambda layers** are rarely CLEAN: the configs carry no input
+    shape for the emulator, and their bytecode usually comes from another
+    Python version, so emulation reports an anomaly.
+  - **Dense storage** is what h5py writes for a group with more than 8 links
+    when the file was created with `libver="latest"`; Keras itself uses the
+    default (old-style groups), so such files should be rare. Part of the
+    false-positive measurement.
 - **CLEAN Lambda models do not load through `safe_load`,** because Keras safe
   mode refuses Lambda bytecode. Load them yourself if you accept that risk.
 - **Loading a CLEAN pickle imports allowlisted libraries on your machine,**
@@ -175,16 +223,26 @@ How to read the table:
   shares stdout with the payload: events are merged and a second result line
   counts as tampering, but a payload can still print fake events, which can
   only raise the verdict.
+- **The runtime package is trusted at install time.** safeloadai checks the
+  `.wasm` hash before every use, but pip runs whatever a package does when it
+  is installed. Install `safeloadai-runtime` only from PyPI under that exact
+  name and version (or from a wheel you built with `fetch_runtime.py`).
+- **Deep mode's Docker backend needs a source checkout,** because it builds
+  its image from `docker/`. Installed from a wheel it reports itself
+  unavailable, which makes the deep layer SUSPICIOUS.
 - **The judge only adds cost and escalation.** It sees no free text, so it
   cannot reason about content the other layers did not structure.
 
 ## Development
 
 ```bash
+python packages/safeloadai-runtime/fetch_runtime.py   # once: download + verify the pinned runtime
+pip install ./packages/safeloadai-runtime
+pip install -e ".[dev]"
 ruff check .
-python -m pytest -q        # set SAFELOADAI_WASI_PYTHON to run the sandbox tests
+python -m pytest -q        # SAFELOADAI_WASI_PYTHON=/path/to/python-3.12.0.wasm overrides the runtime (still verified)
 python -m tests.corpus.build_corpus /tmp/corpus
-python evaluation/run_eval.py --lab /tmp/corpus --benign /path/to/benign
+python evaluation/run_eval.py --lab /tmp/corpus --benign /path/to/benign   # --hf DIR for fetch_benign_hf.py output
 ```
 
 How the tests stay safe:
@@ -194,13 +252,20 @@ How the tests stay safe:
   unpickling.
 - **Harmless payloads:** sample payloads are markers only (`echo MARKER`,
   `/tmp/safeloadai_marker`, 127.0.0.1) and only ever run inside the sandbox.
-- **CI:** downloads the pinned runtime, checks its sha256 and fails if the
-  sandbox tests would be skipped.
+- **CI:** builds both wheels (the runtime download happens only in that build
+  step and is checked against the pinned sha256), installs them into a clean
+  venv, blocks the network, and runs the whole suite against the installed
+  wheels on Linux, macOS and Windows with Python 3.11 to 3.13. A skipped sandbox
+  test is an error there.
 
 Design decisions and their reasons are in [DECISIONS.md](DECISIONS.md), and
 the audit that started this rewrite is in [AUDIT.md](AUDIT.md). The report
 viewer runs with `flask --app app.server run --host 127.0.0.1`. It renders
 Report JSON and does not scan files.
+
+### Releasing
+
+`.github/workflows/publish.yml` uploads both packages with PyPI Trusted Publishing. It runs only when started by hand, and the target is testpypi or pypi. The runtime goes first, and a runtime version that is already published is skipped. The setup it needs is in the workflow's header comment. Changes are listed in [CHANGELOG.md](CHANGELOG.md), and reporting a bypass is described in [SECURITY.md](SECURITY.md).
 
 ## Statement on AI use
 

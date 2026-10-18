@@ -7,7 +7,7 @@ został wczytany, podmieniają pickle.load na funkcję, która oblewa test.
 """
 import os
 import pickle
-import posix
+import platform
 import socket
 import subprocess
 import sys
@@ -16,7 +16,6 @@ import pytest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
-sys.path.insert(0, os.path.join(ROOT, "src"))
 
 SAMPLES = os.path.join(ROOT, "poc", "samples")
 
@@ -113,11 +112,19 @@ def pytest_configure(config):
 
 
 def pytest_collection_modifyitems(config, items):
+    import safeloadai
     from safeloadai.sandbox import runtime
 
+    if os.environ.get("SAFELOADAI_EXPECT_INSTALLED"):
+        # CI runs the suite against the built wheels: refuse to test the source tree.
+        source_tree = os.path.join(ROOT, "src")
+        if os.path.abspath(safeloadai.__file__).startswith(source_tree + os.sep):
+            raise pytest.UsageError(f"testing {safeloadai.__file__}, not the installed wheel")
     try:
         runtime.locate()
         return
+    except runtime.RuntimeIntegrityError as exc:
+        raise pytest.UsageError(f"WASI runtime failed its integrity check: {exc}") from exc
     except runtime.RuntimeUnavailable as exc:
         if os.environ.get("SAFELOADAI_REQUIRE_WASI"):
             raise pytest.UsageError(f"SAFELOADAI_REQUIRE_WASI is set but {exc}") from exc
@@ -127,9 +134,15 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(pytest.mark.skip(reason=reason))
 
 
+# platform caches uname(); on Windows, Python 3.11 fills it by running "ver" the first
+# time (wasmtime and scikit-learn ask on import). Fill it before the guard is active.
+platform.uname()
+
+
 @pytest.fixture(autouse=True)
 def _host_execution_guard(request, monkeypatch):
-    for mod in (os, posix):
+    native = sys.modules.get("posix") or sys.modules.get("nt")
+    for mod in (os, native):
         for name in ("system", "popen", "execv", "execve", "execvp", "execvpe", "execl",
                      "execlp", "spawnv", "spawnve", "spawnl", "posix_spawn", "posix_spawnp",
                      "fork", "forkpty"):
@@ -149,6 +162,12 @@ def _host_execution_guard(request, monkeypatch):
     # Unrestricted unpickling is never allowed; loaders use RestrictedUnpickler.
     monkeypatch.setattr(pickle, "load", _refuse("pickle.load"))
     monkeypatch.setattr(pickle, "loads", _refuse("pickle.loads"))
+    # Framework loaders are never called on test files (fixtures are only written).
+    for module_name, attrs in (("joblib", ("load",)), ("joblib.numpy_pickle", ("load",))):
+        module = sys.modules.get(module_name)
+        for attr in attrs:
+            if module is not None and hasattr(module, attr):
+                monkeypatch.setattr(module, attr, _refuse(f"{module_name}.{attr}"))
 
     real_connect = socket.socket.connect
 

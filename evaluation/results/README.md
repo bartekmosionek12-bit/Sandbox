@@ -15,3 +15,43 @@
 - **The local benign files are NOT independent of the pickle allowlist.** The allowlist was built from a scikit-learn and numpy tuning corpus (DECISIONS C5), so their CLEAN results show the emulator does not break on them. They are not a false-positive rate for unseen models.
 - **All 7 false positives are `.joblib` files.** joblib writes raw array bytes after the pickle and uses `joblib.numpy_pickle.NumpyArrayWrapper`, so the static layer refuses them by design.
 - **The false-positive number that matters is still missing.** It needs the Hugging Face set (`evaluation/fetch_benign_hf.py`), which has not been run: the Hub is not reachable from the container that produced this run.
+
+## Before / after run, 2026-10-18
+
+Files:
+- `eval-before-20261018T125756Z.{json,md}`: origin/main, installed into its own venv.
+- `eval-after-20261018T125942Z.{json,md}`: this branch.
+- `compare-20261018.md`: the before/after table, produced by `compare_eval.py`.
+- `false-positives-20261018.md`: every remaining false positive, the allowlist pair it is missing, and whether adding that pair would be safe. Nothing has been added.
+
+Corpus: 138 files, 53 malicious and 85 benign.
+- **Malicious files:** `tests/corpus/build_corpus.py`, now 65 files. It adds marker rebuilds of public scanner bypasses: nullifAI broken streams, CVE-2025-1716 `pip.main`, CVE-2025-1944/1945 zip tricks, CVE-2025-1889 hidden pickle, `_osx_support`, `pydoc.pipepager`, `timeit`, `cProfile.run`, `functools.partial` and `operator.methodcaller`. It also adds the CVE-2024-3660 Lambda `.h5` and `.keras` rebuilds and `.h5` fixtures. Every payload is a harmless marker.
+- **Benign files:** `make_local_benign.py`, which now covers more scikit-learn estimators and keras.applications models saved with `weights=None`, as both `.keras` and `.h5`.
+- Both runs used the evaluation guard (`guard.py`).
+
+| | before | after |
+|---|---|---|
+| detection | 52/53 | 53/53 |
+| false positives overall | 49/85 | 23/85 |
+| false positives, .h5 | 16/16 | 3/16 |
+| false positives, .joblib | 17/17 | 8/17 |
+| false positives, .keras | 8/19 | 4/19 |
+| false positives, pickle | 8/33 | 8/33 |
+| median s | 0.40 | 0.38 |
+
+On the same 138 files:
+
+| tool | detected | false positives | notes |
+|---|---|---|---|
+| picklescan | 32/53 | 0 | 19 errors |
+| Fickling | 36/53 | 61 | 40 errors |
+| modelscan | 23/53 | 0 | 52 files unsupported; skipped on 20 `.h5` files because it opens them with h5py on the host |
+
+**Still not an independent false-positive rate.** These benign files were generated locally. The Hugging Face set (about 310 files: PyTorch, scikit-learn/joblib, `.keras`, `.h5`) has to be fetched on a machine that can reach huggingface.co. The container blocks it.
+
+```
+pip install huggingface_hub
+python evaluation/fetch_benign_hf.py --out /tmp/hf_corpus
+python -m tests.corpus.build_corpus /tmp/lab
+python evaluation/run_eval.py --lab /tmp/lab --hf /tmp/hf_corpus --tool-bin <venv with the other scanners>/bin --label hf
+```

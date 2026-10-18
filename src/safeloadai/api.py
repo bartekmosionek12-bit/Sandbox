@@ -6,6 +6,9 @@ their own, so a wrong verdict does not turn into code execution by itself:
 
 * pickle: an Unpickler whose ``find_class`` resolves only exact allowlisted
   ``(module, qualname)`` pairs and raises for anything else;
+* joblib: the same restricted ``find_class`` in a reader that follows joblib's
+  array layout itself (shared/joblib_layout.py, numpy only; joblib is never
+  imported), with the same decompression limits as the scan;
 * PyTorch: ``torch.load(..., weights_only=True)``;
 * Keras: ``keras.saving.load_model(..., safe_mode=True)``, which refuses Lambda
   bytecode even when the scan found it harmless.
@@ -21,9 +24,11 @@ import tempfile
 from collections.abc import Iterable, Iterator
 from typing import Any
 
+from .parsing import decompress
 from .parsing import detect as detect_mod
 from .pipeline import scan
 from .report import Report
+from .shared import joblib_layout
 from .static.allowlists import PICKLE_GLOBALS
 
 
@@ -82,6 +87,95 @@ def load_pickle(path: str, allowed: frozenset[tuple[str, str]], **kwargs) -> Any
     return objects[0] if len(objects) == 1 else objects
 
 
+class _ArrayWrapper:
+    """What the restricted joblib reader builds for joblib.numpy_pickle.NumpyArrayWrapper."""
+
+
+def _real_dtype(value):
+    import numpy as np
+
+    if not isinstance(value, np.dtype):
+        raise joblib_layout.LayoutError("array dtype is not a numpy.dtype")
+    _cls, args, state = value.__reduce__()
+    return args[0], state
+
+
+class _RestrictedPlainUnpickler(pickle._Unpickler):
+    """Pure-Python unpickler with the exact-pair find_class (joblib's nested reader)."""
+
+    def __init__(self, file, allowed: frozenset[tuple[str, str]]):
+        super().__init__(file)
+        self._allowed = allowed
+
+    def find_class(self, module: str, name: str):
+        if (module, name) not in self._allowed:
+            raise UnsafeModelError(f"global {module}.{name} is not on the allowlist")
+        if (module, name) == joblib_layout.WRAPPER:
+            return _ArrayWrapper
+        return super().find_class(module, name)
+
+
+class RestrictedJoblibUnpickler(_RestrictedPlainUnpickler):
+    """joblib's NumpyUnpickler reading, with the exact-pair find_class."""
+
+    dispatch = pickle._Unpickler.dispatch.copy()
+
+    def __init__(self, file, allowed: frozenset[tuple[str, str]]):
+        super().__init__(file, allowed)
+        self.file_handle = file
+
+    def load_build(self):
+        import numpy as np
+
+        pickle._Unpickler.load_build(self)
+        wrapper = self.stack[-1]
+        if not isinstance(wrapper, _ArrayWrapper):
+            return
+        frame = self._unframer.current_frame
+        if frame is not None and frame.tell() < len(frame.getbuffer()):
+            raise UnsafeModelError("joblib array data inside a pickle frame")
+        attrs = wrapper.__dict__
+        try:
+            plan = joblib_layout.plan(attrs, _real_dtype, _real_dtype)
+        except joblib_layout.LayoutError as exc:
+            raise UnsafeModelError(f"joblib array: {exc}") from exc
+        if plan.hasobject:
+            array = _RestrictedPlainUnpickler(self.file_handle, self._allowed).load()
+            if not isinstance(array, np.ndarray):
+                raise UnsafeModelError("joblib object array did not unpickle to an ndarray")
+        else:
+            dtype = attrs["dtype"]
+            if dtype.itemsize != plan.itemsize:
+                raise UnsafeModelError("joblib array dtype size differs from the scanned layout")
+            if plan.padding:
+                pad = self.file_handle.read(1)
+                if len(pad) != 1 or len(self.file_handle.read(pad[0])) != pad[0]:
+                    raise UnsafeModelError("joblib array padding is truncated")
+            data = self.file_handle.read(plan.nbytes)
+            if len(data) != plan.nbytes:
+                raise UnsafeModelError("joblib array data is truncated")
+            array = np.frombuffer(data, dtype=dtype).copy()
+            array = array.reshape(plan.shape[::-1]).T if plan.order == "F" else array.reshape(plan.shape)
+            if not array.dtype.isnative:
+                array = array.byteswap().view(array.dtype.newbyteorder("="))
+        self.stack[-1] = array
+
+    dispatch[pickle.BUILD[0]] = load_build
+
+
+def load_joblib(path: str, allowed: frozenset[tuple[str, str]]) -> Any:
+    """Read a joblib file (compressed or not) with the restricted joblib reader."""
+    import io
+
+    with open(path, "rb") as fh:
+        data = fh.read()
+    try:
+        _codec, inner = decompress.open_container(data)
+    except decompress.DecompressionRefused as exc:
+        raise UnsafeModelError(str(exc)) from exc
+    return RestrictedJoblibUnpickler(io.BytesIO(inner), allowed).load()
+
+
 def load_torch(path: str, **kwargs) -> Any:
     try:
         import torch
@@ -115,6 +209,8 @@ def safe_load(path: str | os.PathLike, *, judge: bool = False, deep: bool = Fals
         if _sha256(staged) != report.sha256:
             raise UnsafeModelError("file changed between scan and load", report)
         fmt = report.file_format
+        if fmt == detect_mod.JOBLIB:
+            return load_joblib(staged, PICKLE_GLOBALS | frozenset(allow))
         if fmt == detect_mod.PICKLE:
             allowed = PICKLE_GLOBALS | frozenset(allow)
             if any("legacy PyTorch" in str(n) for n in report.layer("static").details.get("notes", [])):
@@ -127,5 +223,6 @@ def safe_load(path: str | os.PathLike, *, judge: bool = False, deep: bool = Fals
         raise UnsafeModelError(f"no loader for format {fmt!r}", report)
 
 
-__all__ = ["RestrictedUnpickler", "UnsafeModelError", "load_keras", "load_pickle", "load_torch",
+__all__ = ["RestrictedJoblibUnpickler", "RestrictedUnpickler", "UnsafeModelError", "load_joblib", "load_keras",
+           "load_pickle", "load_torch",
            "safe_load", "scan"]

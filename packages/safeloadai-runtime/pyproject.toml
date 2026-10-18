@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=77.0"]
+build-backend = "_build_backend"
+backend-path = ["."]
+
+[project]
+name = "safeloadai-runtime"
+version = "0.1.0"
+description = "Pinned CPython 3.12 for WASI, the sandbox runtime used by safeloadai (package data only)."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+  { name="Bartosz Mosionek" },
+]
+# The package ships a third-party binary: CPython (PSF-2.0) built for WASI by
+# VMware Wasm Labs (Apache-2.0). Statically linked components: see NOTICE.
+license = "PSF-2.0 AND Apache-2.0"
+license-files = ["LICENSES/*", "NOTICE"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/bartekmosionek12-bit/Sandbox"
+"Runtime source" = "https://github.com/vmware-labs/webassembly-language-runtimes/releases/tag/python%2F3.12.0%2B20231211-040d5a6"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+safeloadai_runtime = ["python-3.12.0.wasm", "py.typed"]

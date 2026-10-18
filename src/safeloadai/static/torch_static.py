@@ -2,9 +2,15 @@
 
 A ``torch.save`` zip holds ``<root>/data.pkl`` (the object graph) plus raw tensor
 storages under ``<root>/data/``. Every ``.pkl`` member is analysed with the pickle
-walker and the torch allowlist; storages are never read. A TorchScript archive
+walker and the torch allowlist; storages are not analysed. A TorchScript archive
 (``code/`` or ``constants.pkl``) ships Python source that ``torch.jit.load`` runs,
 so it is always SUSPICIOUS: analysing TorchScript code is out of scope.
+
+Members without a ``.pkl`` name are only looked at when they start like a pickle
+(PROTO 2-5): one that is a complete pickle importing anything is reported, since a
+loader can be told to unpickle it by name (CVE-2025-1889, the picklescan bypass that
+relied on file extensions). Raw storages that merely start with those two bytes do
+not parse as a complete pickle with imports.
 """
 from __future__ import annotations
 
@@ -24,6 +30,13 @@ def parse_torch_zip(data: bytes, file_name: str = "<memory>", extra_allowed: fro
             names = zf.names
             pickles = [n for n in names if n.endswith(".pkl")]
             members = {n: zf.read(n) for n in pickles}
+            hidden = {}
+            for n in names:
+                if n.endswith(".pkl") or n.endswith("/") or zf.size(n) > MAX_PICKLE_MEMBER_BYTES:
+                    continue
+                head = zf.head(n, 2)
+                if len(head) == 2 and head[0] == 0x80 and 2 <= head[1] <= 5:
+                    hidden[n] = zf.read(n)
     except ZipRefused as exc:
         report = parse_pickle(b"", file_name, torch=True, file_format="torch")
         report["error"] = str(exc)
@@ -52,6 +65,20 @@ def parse_torch_zip(data: bytes, file_name: str = "<memory>", extra_allowed: fro
     if combined is None:
         combined = parse_pickle(b"", file_name, torch=True, file_format="torch")
         combined["members"] = []
+    for member, raw in hidden.items():
+        part = parse_pickle(raw, f"{file_name}:{member}", torch=True, file_format="torch",
+                            extra_allowed=extra_allowed)
+        if part["error"] or not part["imports"]:
+            continue  # tensor bytes that happen to start like a pickle
+        imported = ", ".join(sorted({f"{i['module']}.{i['symbol']}" for i in part["imports"]}))
+        combined["reasons"].append(f"member {member!r} is a pickle outside the .pkl members "
+                                   f"(imports {imported[:300]})")
+        for key in ("suspicious_imports", "unknown_imports", "reasons"):
+            combined[key].extend(part[key])
+        combined["members"].append({"name": member, "static_risk": part["static_risk"], "hidden": True})
+        risk = part["static_risk"] if part["static_risk"] != "clean" else "suspicious"
+        if _SEVERITY[risk] > _SEVERITY[combined["static_risk"]]:
+            combined["static_risk"] = risk
     is_torchscript = any(n.split("/")[1:2] == ["code"] or n.endswith("/constants.pkl") for n in names)
     extra = [f"archive: {p}" for p in problems]
     if is_torchscript:

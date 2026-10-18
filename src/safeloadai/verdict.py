@@ -23,7 +23,7 @@ def lambdas_only(parser_report: dict) -> bool:
     anomaly or dangerous behaviour, so the static layer defers to emulation.
     """
     lambdas = parser_report.get("lambdas") or []
-    if parser_report.get("file_format") != "keras" or not lambdas or parser_report.get("error"):
+    if parser_report.get("file_format") not in ("keras", "h5") or not lambdas or parser_report.get("error"):
         return False
     if parser_report.get("suspicious_imports") or parser_report.get("unknown_imports"):
         return False
@@ -37,7 +37,7 @@ def lambdas_only(parser_report: dict) -> bool:
 
 def static_layer(parser_report: dict, *, defer_lambdas: bool = False) -> LayerResult:
     risk = parser_report.get("static_risk")
-    details = {k: v for k, v in parser_report.items() if k not in STATIC_DETAIL_DROP}
+    details = {k: v for k, v in parser_report.items() if k not in STATIC_DETAIL_DROP and not k.startswith("_")}
     layer = LayerResult(name="static", verdict=C, details=details)
     reasons = [str(r) for r in parser_report.get("reasons") or []]
     if risk == "suspicious" and defer_lambdas and lambdas_only(parser_report):

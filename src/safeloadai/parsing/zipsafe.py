@@ -104,6 +104,23 @@ class SafeZip:
     def names(self) -> list[str]:
         return self.inventory.names
 
+    def size(self, name: str) -> int:
+        info = self._infos.get(name)
+        if info is None:
+            raise ZipRefused(f"member not found: {name!r}")
+        return info.file_size
+
+    def head(self, name: str, n: int) -> bytes:
+        """The first ``n`` bytes of one member (no size limit applies to a head read)."""
+        info = self._infos.get(name)
+        if info is None:
+            raise ZipRefused(f"member not found: {name!r}")
+        try:
+            with self._zf.open(info) as fh:
+                return fh.read(n)
+        except (zipfile.BadZipFile, OSError, EOFError, NotImplementedError, RuntimeError) as exc:
+            raise ZipRefused(f"member {name!r} cannot be read: {exc}") from exc
+
     def read(self, name: str) -> bytes:
         """Bytes of one member, refused if it is too large or too compressed."""
         info = self._infos.get(name)

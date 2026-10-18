@@ -22,12 +22,11 @@ def test_runtime_hash_mismatch_is_refused(tmp_path, monkeypatch):
     fake = tmp_path / "python.wasm"
     fake.write_bytes(b"\0asm not the pinned runtime")
     monkeypatch.setenv(runtime.RUNTIME_ENV, str(fake))
-    with pytest.raises(runtime.RuntimeUnavailable, match="sha256"):
+    with pytest.raises(runtime.RuntimeIntegrityError, match="bytes, expected"):
         runtime.locate()
 
 
 def test_missing_runtime_is_reported_not_faked(tmp_path, monkeypatch):
-    monkeypatch.delenv(runtime.RUNTIME_ENV, raising=False)
-    monkeypatch.setenv(runtime.HOME_ENV, str(tmp_path))
+    monkeypatch.setenv(runtime.RUNTIME_ENV, str(tmp_path / "absent.wasm"))
     run = run_guest({"kind": "selftest"}, {})
     assert run.status == "unavailable" and not run.completed

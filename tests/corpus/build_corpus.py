@@ -106,15 +106,89 @@ def pickle_payloads() -> list[tuple[str, str, str, bytes]]:
     ]
 
 
+def bypass_payloads() -> list[tuple[str, str, str, bytes]]:
+    """Public scanner-bypass techniques, rebuilt with marker payloads (assembled here,
+    never taken from a live sample). Sources are named per entry."""
+    evil = P2 + call(g("posix", "system"), s(MARKER_CMD)) + STOP
+    cmd_code = f"__import__('os').system('{MARKER_CMD}')"
+    return [
+        # nullifAI (ReversingLabs, Feb 2025): payload first, then a stream that breaks
+        # before STOP, so scanners that need a complete pickle give up.
+        ("x_nullifai_broken_stream.pkl", "bypass", MALICIOUS,
+         P2 + call(g("posix", "system"), s(MARKER_CMD)) + b"0\xff\xfe\xfd"),
+        # CVE-2025-1716 (picklescan): pip.main is not on its blocklist.
+        ("x_pip_main.pkl", "bypass", MALICIOUS, P2 + call(g("pip", "main"), b"(" + s("--version") + b"l") + STOP),
+        # Stdlib helpers that run a command and are missing from blocklists.
+        ("x_osx_support_read_output.pkl", "bypass", SUSPICIOUS,
+         P2 + call(g("_osx_support", "_read_output"), s(MARKER_CMD)) + STOP),
+        ("x_pydoc_pipepager.pkl", "bypass", MALICIOUS,
+         P2 + call(g("pydoc", "pipepager"), s("MARKER"), s(MARKER_CMD)) + STOP),
+        ("x_timeit.pkl", "bypass", MALICIOUS, P2 + call(g("timeit", "timeit"), s(cmd_code), s("pass"), b"N",
+                                                         b"K\x01") + STOP),
+        ("x_cprofile_run.pkl", "bypass", MALICIOUS, P2 + call(g("cProfile", "run"), s(cmd_code)) + STOP),
+        # Indirect calls: functools.partial and operator.methodcaller around a sink.
+        ("x_functools_partial.pkl", "bypass", MALICIOUS,
+         P2 + call(call(g("functools", "partial"), g("posix", "system"), s(MARKER_CMD))) + STOP),
+        ("x_operator_methodcaller.pkl", "bypass", MALICIOUS,
+         P2 + call(call(g("operator", "methodcaller"), s("system"), s(MARKER_CMD)),
+                   call(g("builtins", "__import__"), s("os"))) + STOP),
+        # CVE-2025-1944 (picklescan): local header and central directory disagree on the name.
+        ("x_zip_name_mismatch.pt", "bypass", SUSPICIOUS, _zip_name_mismatch(_torch_zip(evil))),
+        # CVE-2025-1945 (picklescan): general-purpose flag bits set on the pickle member.
+        ("x_zip_flag_bits.pt", "bypass", SUSPICIOUS, _zip_flag_bits(_torch_zip(evil))),
+        # CVE-2025-1889 (picklescan): a pickle hidden in a member without a .pkl name.
+        ("x_zip_hidden_pickle.pt", "bypass", SUSPICIOUS, _torch_zip(P2 + b"}" + STOP, extra={"archive/data/0": evil})),
+    ]
+
+
+def _zip_name_mismatch(data: bytes) -> bytes:
+    raw = bytearray(data)
+    at = raw.index(b"PK\x03\x04")
+    name_len = struct.unpack_from("<H", raw, at + 26)[0]
+    name = raw[at + 30:at + 30 + name_len]
+    raw[at + 30:at + 30 + name_len] = name[:-3] + b"txt"  # local header only
+    return bytes(raw)
+
+
+def _zip_flag_bits(data: bytes) -> bytes:
+    raw = bytearray(data)
+    for sig, offset in ((b"PK\x03\x04", 6), (b"PK\x01\x02", 8)):
+        at = raw.index(sig)
+        flags = struct.unpack_from("<H", raw, at + offset)[0]
+        struct.pack_into("<H", raw, at + offset, flags | 0x0001)  # "encrypted"
+    return bytes(raw)
+
+
+def h5_entries() -> list[tuple[str, str, str, bytes]]:
+    """Legacy Keras HDF5 rebuilds, from the committed fixtures (written by tf.keras 2.15)."""
+    fixtures = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "fixtures", "h5")
+    picks = [
+        # CVE-2024-3660: Lambda bytecode that runs a marker command.
+        ("k2_lambda_marker.h5", "h5_lambda", MALICIOUS),
+        ("k2_lambda_os_system.h5", "h5_lambda", MALICIOUS),
+        ("k2_custom_objects.h5", "custom_object", SUSPICIOUS),
+        ("s_external_link.h5", "h5_structure", SUSPICIOUS),
+        ("k2_sequential.h5", "benign", CLEAN),
+        ("k2_functional_cnn.h5", "benign", CLEAN),
+    ]
+    out = []
+    for name, category, expected in picks:
+        with open(os.path.join(fixtures, name), "rb") as fh:
+            out.append((name, category, expected, fh.read()))
+    return out
+
+
 def _torch_legacy(evil: bytes) -> bytes:
     magic = P2 + b"\x8a\x0a" + TORCH_LEGACY_MAGIC.to_bytes(10, "little") + STOP
     return magic + P2 + b"M\xe9\x03." + P2 + b"}." + evil + P2 + b"]." + b"\x00" * 16
 
 
-def _torch_zip(data_pkl: bytes) -> bytes:
+def _torch_zip(data_pkl: bytes, extra: dict[str, bytes] | None = None) -> bytes:
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w") as zf:
         zf.writestr("archive/data.pkl", data_pkl)
+        for name, data in (extra or {}).items():
+            zf.writestr(name, data)
         zf.writestr("archive/version", b"3\n")
     return buf.getvalue()
 
@@ -221,7 +295,8 @@ def keras_entries(with_lambdas: bool) -> list[tuple[str, str, str, bytes]]:
 def build(out_dir: str, *, with_lambdas: bool = True) -> list[dict]:
     os.makedirs(out_dir, exist_ok=True)
     manifest = []
-    for name, category, expected, data in pickle_payloads() + pickle_benign() + keras_entries(with_lambdas):
+    entries = pickle_payloads() + bypass_payloads() + pickle_benign() + keras_entries(with_lambdas) + h5_entries()
+    for name, category, expected, data in entries:
         with open(os.path.join(out_dir, name), "wb") as fh:
             fh.write(data)
         manifest.append({"file": name, "label": "benign" if expected == CLEAN else "malicious",

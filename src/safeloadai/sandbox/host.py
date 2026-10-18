@@ -37,6 +37,9 @@ from pathlib import Path
 from . import runtime
 
 GUEST_SOURCE = Path(__file__).with_name("guest")
+# Stdlib-only modules the host and the guest share (format layouts, readers).
+SHARED_SOURCE = Path(__file__).resolve().parent.parent / "shared"
+SHARED_MODULES = ("joblib_layout.py", "hdf5_meta.py")
 RUNNER_ARGV = [sys.executable, "-I", "-m", "safeloadai.sandbox.runner"]
 RECORD_MAGIC = b"SLAI1 "
 
@@ -79,8 +82,10 @@ def _make_readonly(root: Path) -> None:
 
 
 def _make_writable(root: Path) -> None:
-    for dirpath, _dirnames, _filenames in os.walk(root):
+    for dirpath, _dirnames, filenames in os.walk(root):
         os.chmod(dirpath, stat.S_IRWXU)
+        for name in filenames:  # Windows cannot delete read-only files
+            os.chmod(os.path.join(dirpath, name), stat.S_IRUSR | stat.S_IWUSR)
 
 
 def validate_records(raw_records: list[bytes], nonce: str) -> tuple[list[dict], list[str], bool, bool]:
@@ -123,7 +128,11 @@ def validate_records(raw_records: list[bytes], nonce: str) -> tuple[list[dict], 
 
 
 def run_guest(task: dict, artefacts: dict[str, bytes], limits: Limits | None = None) -> GuestRun:
-    """Run ``task`` in a fresh sandbox with ``artefacts`` under ``/in/artefacts``."""
+    """Run ``task`` in a fresh sandbox with ``artefacts`` under ``/in/artefacts``.
+
+    A missing runtime gives ``status="unavailable"`` (callers fail closed); a runtime
+    that does not match the pinned hash raises RuntimeIntegrityError.
+    """
     limits = limits or Limits()
     try:
         wasm = runtime.locate()
@@ -136,6 +145,8 @@ def run_guest(task: dict, artefacts: dict[str, bytes], limits: Limits | None = N
         inbox = workdir / "in"
         guest_dir = inbox / ".guest"
         shutil.copytree(GUEST_SOURCE, guest_dir, ignore=shutil.ignore_patterns("__pycache__"))
+        for module in SHARED_MODULES:
+            shutil.copyfile(SHARED_SOURCE / module, guest_dir / module)
         (guest_dir / "task.json").write_text(json.dumps(task), encoding="utf-8")
         art_dir = inbox / "artefacts"
         art_dir.mkdir()
@@ -149,6 +160,7 @@ def run_guest(task: dict, artefacts: dict[str, bytes], limits: Limits | None = N
         cache = runtime.compiled_cache_dir()
         job = {
             "wasm_path": str(wasm),
+            "wasm_sha256": runtime.PINNED.sha256,
             "compiled_cache_dir": str(cache) if cache else None,
             "workdir": str(inbox),
             "argv": ["python", "-I", "-S", "/in/.guest/bootstrap.py"],
@@ -189,6 +201,8 @@ def run_guest(task: dict, artefacts: dict[str, bytes], limits: Limits | None = N
         return GuestRun(status="runner_error", problems=[
             f"runner produced no result (exit {proc.returncode}): {err.decode('utf-8', 'replace')[-500:]}"
         ], runtime=_runtime_info(wasm))
+    if result.get("status") == "integrity_error":
+        raise runtime.RuntimeIntegrityError(str(result.get("error")))
     if result.get("status") == "runner_error":
         return GuestRun(status="runner_error", problems=[result.get("error", "runner error")],
                         runtime=_runtime_info(wasm))

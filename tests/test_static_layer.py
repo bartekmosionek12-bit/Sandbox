@@ -141,7 +141,7 @@ def test_legacy_torch_stream_accepts_raw_storage_tail():
 # --- torch zip -------------------------------------------------------------------
 
 TORCH_TENSOR_PKL = (
-    b"\x80\x02ctorch._utils\n_rebuild_tensor_v2\n"
+    b"\x80\x02ctorch._utils\n_rebuild_tensor_v2\n("
     b"(X\x07\x00\x00\x00storage" b"ctorch\nFloatStorage\n" b"X\x01\x00\x00\x000X\x03\x00\x00\x00cpu"
     b"K\x04tQK\x00K\x04\x85K\x01\x85\x89ccollections\nOrderedDict\n)Rtq\x00R."
 )

@@ -1,0 +1,87 @@
+# Publish safeloadai-runtime and safeloadai to PyPI with Trusted Publishing (OIDC, no API
+# tokens). Runs only when started by hand from the Actions tab; it has never been run.
+#
+# One-time setup by the project owner, before the first run:
+#   1. On pypi.org (and test.pypi.org for a dry run), add a "pending publisher" for BOTH
+#      projects, safeloadai-runtime and safeloadai: owner bartekmosionek12-bit, repository
+#      Sandbox, workflow publish.yml, environment "pypi" (or "testpypi").
+#   2. In the repository settings, create the environments "pypi" and "testpypi"; adding
+#      a required reviewer to "pypi" makes every real upload wait for approval.
+#
+# Order: the runtime first (safeloadai pins it exactly). An already published runtime
+# version is skipped, so a safeloadai-only release re-uses safeloadai-runtime 0.1.0.
+name: publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Index to upload to"
+        type: choice
+        options: [testpypi, pypi]
+        default: testpypi
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # The only download of the runtime, verified against the pinned sha256.
+      - name: Fetch and verify the pinned runtime
+        run: python packages/safeloadai-runtime/fetch_runtime.py
+      - name: Build both packages
+        run: |
+          python -m pip install build twine
+          python -m build packages/safeloadai-runtime --outdir dist/runtime
+          python -m build . --outdir dist/safeloadai
+          python -m twine check --strict dist/runtime/* dist/safeloadai/*
+          ls -l dist/*
+      - name: Refuse development versions
+        run: |
+          if ls dist/*/* | grep -E '[0-9]\.?(dev|a|b|rc)[0-9]+'; then
+            echo "a pre-release or development version would be published"; exit 1
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  publish-runtime:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.target }}
+    permissions:
+      id-token: write   # Trusted Publishing
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/runtime
+          repository-url: ${{ inputs.target == 'testpypi' && 'https://test.pypi.org/legacy/' || 'https://upload.pypi.org/legacy/' }}
+          skip-existing: true
+
+  publish-safeloadai:
+    needs: publish-runtime
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.target }}
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/safeloadai
+          repository-url: ${{ inputs.target == 'testpypi' && 'https://test.pypi.org/legacy/' || 'https://upload.pypi.org/legacy/' }}

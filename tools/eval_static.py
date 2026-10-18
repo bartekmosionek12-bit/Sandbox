@@ -19,14 +19,10 @@ from __future__ import annotations
 import argparse
 import collections
 import importlib.util
-import os
 import pickle
-import sys
 import warnings
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src"))
-
-from safeloadai.static import pickle_static as parser  # noqa: E402
+from safeloadai.static import pickle_static as parser
 
 PROTOCOLS = (2, 4, 5)
 

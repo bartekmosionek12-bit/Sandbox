@@ -1,10 +1,16 @@
-"""Command line: ``safeloadai scan <file|dir>... [--json] [--judge] [--deep]``.
+"""Command line.
 
-Exit codes (stable, for CI):
+    safeloadai scan <file|dir>... [--json] [--judge] [--deep]
+    safeloadai doctor [--json]
+
+Exit codes of ``scan`` (stable, for CI):
     0  every file is CLEAN
     1  at least one file is MALICIOUS
     2  usage error, or no file to scan
     3  at least one file is SUSPICIOUS and none is MALICIOUS
+    4  the WASI runtime failed its integrity check; nothing was scanned
+
+``doctor`` exits 0 when every check passes and 1 otherwise.
 """
 from __future__ import annotations
 
@@ -16,8 +22,9 @@ import sys
 from .parsing.detect import EXTENSION_HINTS
 from .pipeline import scan
 from .report import Report, Verdict
+from .sandbox.runtime import RuntimeIntegrityError
 
-EXIT_CLEAN, EXIT_MALICIOUS, EXIT_USAGE, EXIT_SUSPICIOUS = 0, 1, 2, 3
+EXIT_CLEAN, EXIT_MALICIOUS, EXIT_USAGE, EXIT_SUSPICIOUS, EXIT_INTEGRITY = 0, 1, 2, 3, 4
 SUPPORTED = tuple(EXTENSION_HINTS)
 
 
@@ -54,6 +61,8 @@ def _build_parser() -> argparse.ArgumentParser:
                    help="extra exact pickle global to allow (repeatable)")
     s.add_argument("--report", metavar="FILE", help="also write the Report JSON to FILE")
     s.add_argument("-q", "--quiet", action="store_true", help="no per-file text output")
+    d = sub.add_parser("doctor", help="check the sandbox runtime and explain how to fix problems")
+    d.add_argument("--json", action="store_true", help="print the checks as JSON")
     return parser
 
 
@@ -69,6 +78,10 @@ def main(argv: list[str] | None = None) -> int:
         args = parser.parse_args(argv)
     except SystemExit as exc:
         return EXIT_USAGE if exc.code else EXIT_CLEAN
+    if args.command == "doctor":
+        from . import doctor
+
+        return doctor.main(as_json=args.json)
     files, missing = _collect(args.paths)
     for path in missing:
         print(f"safeloadai: no such file or directory: {path}", file=sys.stderr)
@@ -77,7 +90,11 @@ def main(argv: list[str] | None = None) -> int:
             print("safeloadai: nothing to scan", file=sys.stderr)
         return EXIT_USAGE
 
-    reports = [scan(f, judge=args.judge, deep=args.deep, allow=args.allow) for f in files]
+    try:
+        reports = [scan(f, judge=args.judge, deep=args.deep, allow=args.allow) for f in files]
+    except RuntimeIntegrityError as exc:
+        print(f"safeloadai: {exc}", file=sys.stderr)
+        return EXIT_INTEGRITY
     payload = [r.to_dict() for r in reports]
     document = payload[0] if len(payload) == 1 else payload
     if args.json:

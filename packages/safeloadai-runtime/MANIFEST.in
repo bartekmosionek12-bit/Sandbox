@@ -1,0 +1,3 @@
+include fetch_runtime.py _build_backend.py NOTICE README.md
+recursive-include LICENSES *
+include src/safeloadai_runtime/python-3.12.0.wasm

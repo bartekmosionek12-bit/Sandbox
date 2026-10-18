@@ -1,9 +1,22 @@
-"""Locating and pinning the CPython-on-WASI runtime used by the sandbox.
+"""Locating and verifying the CPython-on-WASI runtime used by the sandbox.
 
-The library never downloads anything by itself. The runtime is looked up at
-``$SAFELOADAI_WASI_PYTHON`` or in the user cache directory, and is used only if
-its SHA-256 matches the pinned value below. Distribution of the runtime is an
-open owner decision (DECISIONS.md, D3).
+The runtime ships as the separate package ``safeloadai-runtime`` (installed as a
+pinned dependency of safeloadai). The library never downloads anything.
+
+Resolution order:
+
+1. ``$SAFELOADAI_WASI_PYTHON`` (development override). When it is set it is the
+   only candidate: a missing file there is not silently replaced by another one.
+2. ``safeloadai_runtime.path()``.
+
+Every time the runtime is loaded its SHA-256 is checked against ``PINNED`` below,
+which is safeloadai's own copy of the hash (not the runtime package's). A mismatch
+raises :class:`RuntimeIntegrityError` and the scan is refused; it never degrades to
+a verdict. A missing runtime raises :class:`RuntimeUnavailable`, which the sandbox
+turns into a SUSPICIOUS emulation layer. The verified hash is cached per process,
+keyed by (path, size, mtime, inode), so repeated scans do not rehash 26 MB. The
+runner child process hashes the bytes it actually compiles once more, which closes
+the window between this check and the read.
 
 Compiled modules are cached because compiling the 26 MB runtime takes seconds
 (AUDIT.md section 5). A compiled module is native code that wasmtime loads
@@ -15,11 +28,14 @@ from __future__ import annotations
 import hashlib
 import os
 import stat
+import threading
 from dataclasses import dataclass
 from pathlib import Path
 
 RUNTIME_ENV = "SAFELOADAI_WASI_PYTHON"
 HOME_ENV = "SAFELOADAI_HOME"
+RUNTIME_PACKAGE = "safeloadai-runtime"
+RUNTIME_MODULE = "safeloadai_runtime"
 
 
 @dataclass(frozen=True)
@@ -30,10 +46,9 @@ class RuntimeSpec:
     sha256: str
     size: int
     source_url: str
+    package_version: str
 
 
-# Measured in the audit (AUDIT.md section 5). Used for development and tests until
-# D3 settles how a pinned build ships.
 PINNED = RuntimeSpec(
     name="CPython 3.12.0 for WASI (VMware Wasm Labs build 20231211-040d5a6)",
     python_version="3.12.0",
@@ -44,11 +59,20 @@ PINNED = RuntimeSpec(
         "https://github.com/vmware-labs/webassembly-language-runtimes/releases/download/"
         "python%2F3.12.0%2B20231211-040d5a6/python-3.12.0.wasm"
     ),
+    package_version="0.1.0",
 )
 
 
 class RuntimeUnavailable(RuntimeError):
-    """No verified runtime is available, so the dynamic layer cannot run."""
+    """No runtime is installed, so the dynamic layer cannot run (scans fail closed)."""
+
+
+class RuntimeIntegrityError(RuntimeError):
+    """The runtime file does not match the pinned SHA-256. Scanning is refused."""
+
+
+_verified: dict[tuple, str] = {}
+_lock = threading.Lock()
 
 
 def home_dir() -> Path:
@@ -67,25 +91,68 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def candidate() -> tuple[Path, str]:
+    """(path, source) of the runtime to use; source is "env" or "package"."""
+    override = os.environ.get(RUNTIME_ENV)
+    if override:
+        return Path(override).expanduser(), "env"
+    try:
+        import safeloadai_runtime
+    except ImportError as exc:
+        raise RuntimeUnavailable(
+            f"the {RUNTIME_PACKAGE} package is not installed ({exc}); "
+            f"run `safeloadai doctor` for how to fix it"
+        ) from exc
+    return Path(safeloadai_runtime.path()), "package"
+
+
+def _cache_key(path: Path, st: os.stat_result) -> tuple:
+    return (str(path), st.st_size, st.st_mtime_ns, st.st_ino, st.st_dev)
+
+
+def verify(path: Path, spec: RuntimeSpec = PINNED, *, source: str = "file") -> None:
+    """Raise RuntimeIntegrityError unless ``path`` has the pinned size and SHA-256."""
+    path = Path(path)
+    st = path.stat()
+    key = _cache_key(path, st)
+    with _lock:
+        if _verified.get(key) == spec.sha256:
+            return
+    if st.st_size != spec.size:
+        raise RuntimeIntegrityError(
+            f"WASI runtime at {path} ({source}) is {st.st_size} bytes, expected {spec.size}; "
+            "refusing to scan with an unverified runtime (run `safeloadai doctor`)"
+        )
+    actual = sha256_file(path)
+    if actual != spec.sha256:
+        raise RuntimeIntegrityError(
+            f"WASI runtime at {path} ({source}) has sha256 {actual}, expected {spec.sha256}; "
+            "refusing to scan with an unverified runtime (run `safeloadai doctor`)"
+        )
+    with _lock:
+        _verified[key] = actual
+
+
 def locate(spec: RuntimeSpec = PINNED) -> Path:
-    """Path to a runtime whose hash matches ``spec``, or RuntimeUnavailable."""
-    candidates = []
-    if os.environ.get(RUNTIME_ENV):
-        candidates.append(Path(os.environ[RUNTIME_ENV]).expanduser())
-    candidates.append(home_dir() / "runtime" / spec.file_name)
-    for path in candidates:
-        if not path.is_file():
-            continue
-        actual = sha256_file(path)
-        if actual != spec.sha256:
-            raise RuntimeUnavailable(
-                f"WASI runtime at {path} has sha256 {actual}, expected {spec.sha256}"
-            )
-        return path
-    raise RuntimeUnavailable(
-        f"no WASI runtime found (set {RUNTIME_ENV} or place {spec.file_name} in "
-        f"{home_dir() / 'runtime'}); expected sha256 {spec.sha256}"
-    )
+    """Path to the verified runtime.
+
+    Raises RuntimeUnavailable when there is none and RuntimeIntegrityError when the
+    file exists but is not the pinned one.
+    """
+    path, source = candidate()
+    if not path.is_file():
+        where = f"${RUNTIME_ENV}" if source == "env" else f"the {RUNTIME_PACKAGE} package"
+        raise RuntimeUnavailable(
+            f"no WASI runtime at {path} (from {where}); run `safeloadai doctor` for how to fix it"
+        )
+    verify(path, spec, source=source)
+    return path
+
+
+def clear_cache() -> None:
+    """Forget verified hashes (tests, or after replacing the runtime in-process)."""
+    with _lock:
+        _verified.clear()
 
 
 def private_dir(path: Path) -> bool:
@@ -96,6 +163,10 @@ def private_dir(path: Path) -> bool:
         return False
     if not stat.S_ISDIR(st.st_mode):
         return False
+    if os.name == "nt":
+        # Windows permissions are ACLs that os.stat does not report; the cache lives
+        # in the user's profile, which is private to that user by default.
+        return True
     if hasattr(os, "getuid") and st.st_uid != os.getuid():
         return False
     return not st.st_mode & (stat.S_IWGRP | stat.S_IWOTH)

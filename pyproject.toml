@@ -11,9 +11,12 @@ authors = [
 description = "SafeLoadAI: decide whether an ML model file is safe to load (static analysis + sandboxed emulation)."
 readme = "README.md"
 requires-python = ">=3.11"
-# wasmtime is pinned exactly: the sandbox boundary is only as good as the runtime.
+# The sandbox boundary is only as good as its runtime: the CPython-on-WASI build is
+# pinned exactly (and its sha256 is checked again at run time), wasmtime to the
+# major version the test suite runs against.
 dependencies = [
-    "wasmtime==49.0.0",
+    "safeloadai-runtime==0.1.0",
+    "wasmtime>=49.0.0,<50",
 ]
 
 [project.optional-dependencies]
@@ -25,10 +28,15 @@ judge = [
 dashboard = [
     "Flask>=3.0,<4.0",
 ]
-dev = [
+# What the test suite needs on top of the library (CI installs the wheel with it).
+test = [
     "pytest",
-    "ruff",
     "Flask>=3.0,<4.0",
+]
+dev = [
+    "safeloadai[test]",
+    "ruff",
+    "build",
 ]
 
 [project.scripts]
@@ -46,12 +54,14 @@ include = ["safeloadai*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src", "."]
+# Only the repo root (for tests.*, tools.*): safeloadai itself must come from an
+# installed package (editable for development, the built wheel in CI).
+pythonpath = ["."]
 
 [tool.ruff]
 line-length = 120
 target-version = "py311"
-extend-exclude = ["audit", "poc/samples"]
+extend-exclude = ["audit", "poc/samples", "packages/safeloadai-runtime/build"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP"]

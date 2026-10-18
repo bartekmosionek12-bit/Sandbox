@@ -59,11 +59,19 @@ def _wasmtime_version() -> str:
         return "unknown"
 
 
-def _load_module(wt, engine, wasm_path: str, cache_dir: str | None, config_tag: str):
+class IntegrityError(Exception):
+    """The bytes read here are not the runtime the parent verified."""
+
+
+def _load_module(wt, engine, wasm_path: str, expected_sha256: str, cache_dir: str | None, config_tag: str):
     data = Path(wasm_path).read_bytes()
+    actual = hashlib.sha256(data).hexdigest()
+    if actual != expected_sha256:
+        # The parent checked the file; this re-check covers a swap in between.
+        raise IntegrityError(f"runtime {wasm_path} has sha256 {actual}, expected {expected_sha256}")
     if cache_dir:
         version = _wasmtime_version()
-        key = hashlib.sha256(data + config_tag.encode() + version.encode()).hexdigest()[:32]
+        key = hashlib.sha256((actual + config_tag + version).encode()).hexdigest()[:32]
         cached = Path(cache_dir) / f"{key}.cwasm"
         if cached.is_file():
             try:
@@ -88,7 +96,8 @@ def run(job: dict) -> dict:
     cfg = wt.Config()
     cfg.consume_fuel = True
     engine = wt.Engine(cfg)
-    module, how = _load_module(wt, engine, job["wasm_path"], job.get("compiled_cache_dir"), "fuel")
+    module, how = _load_module(wt, engine, job["wasm_path"], job["wasm_sha256"], job.get("compiled_cache_dir"),
+                               "fuel")
     loaded = time.perf_counter()
 
     max_records = int(job["max_records"])
@@ -182,6 +191,8 @@ def main() -> int:
     job = json.loads(sys.stdin.read())
     try:
         result = run(job)
+    except IntegrityError as exc:
+        result = {"status": "integrity_error", "error": str(exc)}
     except Exception as exc:  # noqa: BLE001 - reported to the parent, which fails closed
         result = {"status": "runner_error", "error": f"{type(exc).__name__}: {exc}"}
     sys.stdout.write(json.dumps(result))

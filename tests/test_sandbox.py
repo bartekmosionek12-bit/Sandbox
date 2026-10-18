@@ -1,6 +1,19 @@
+import os
 import subprocess
 
+import pytest
+
 from safeloadai import docker_sandbox as sandbox
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+@pytest.fixture(autouse=True)
+def _source_checkout(monkeypatch):
+    # The Docker image is built from docker/ in a source checkout; the installed
+    # wheel (as tested in CI) does not ship it.
+    monkeypatch.setattr(sandbox, "_REPO_ROOT", ROOT)
+    monkeypatch.setattr(sandbox, "_DOCKERFILE_DIR", os.path.join(ROOT, "docker"))
 
 
 class Proc:

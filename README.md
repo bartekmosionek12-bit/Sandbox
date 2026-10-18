@@ -76,19 +76,25 @@ copy. It also enforces the policy itself:
 ## Install
 
 ```bash
-pip install -e ".[dev]"          # add [judge] for the LLM judge, [dashboard] for the viewer
+pip install safeloadai
 ```
 
-You need Python 3.11 or newer. The library never downloads anything. Put the
-pinned WASI runtime in place yourself, or point `SAFELOADAI_WASI_PYTHON` at it:
+That is all: Python 3.11 or newer on Linux, macOS or Windows. The sandbox runtime
+(CPython 3.12 compiled to WebAssembly) comes with the `safeloadai-runtime` package,
+which `safeloadai` pins to an exact version, and `wasmtime` ships wheels for all three
+systems. Nothing is downloaded at install time or at run time: the runtime file is
+fetched once, when `safeloadai-runtime` is built, and its SHA-256 is checked again by
+safeloadai, against its own pinned value, every time it is loaded. A runtime that
+fails that check stops the scan with `RuntimeIntegrityError` (CLI exit code 4); it
+never turns into a verdict.
 
 ```bash
-mkdir -p ~/.cache/safeloadai/runtime && cd ~/.cache/safeloadai/runtime
-curl -fsSLO "https://github.com/vmware-labs/webassembly-language-runtimes/releases/download/python%2F3.12.0%2B20231211-040d5a6/python-3.12.0.wasm"
-echo "e5dc5a398b07b54ea8fdb503bf68fb583d533f10ec3f930963e02b9505f7a763  python-3.12.0.wasm" | sha256sum -c -
+safeloadai doctor        # checks wasmtime, the runtime and its hash, and runs the sandbox once
 ```
 
-Without the runtime every pickle, PyTorch file and Lambda model is SUSPICIOUS.
+If the runtime is missing, every file that needs emulation is SUSPICIOUS and the
+report says why; `safeloadai doctor` tells you how to fix it. Optional extras:
+`[judge]` for the LLM judge, `[dashboard]` for the report viewer.
 
 ## Results
 
@@ -175,14 +181,24 @@ How to read the table:
   shares stdout with the payload: events are merged and a second result line
   counts as tampering, but a payload can still print fake events, which can
   only raise the verdict.
+- **The runtime package is trusted at install time.** safeloadai checks the
+  `.wasm` hash before every use, but pip runs whatever a package does when it
+  is installed. Install `safeloadai-runtime` only from PyPI under that exact
+  name and version (or from a wheel you built with `fetch_runtime.py`).
+- **Deep mode's Docker backend needs a source checkout,** because it builds
+  its image from `docker/`. Installed from a wheel it reports itself
+  unavailable, which makes the deep layer SUSPICIOUS.
 - **The judge only adds cost and escalation.** It sees no free text, so it
   cannot reason about content the other layers did not structure.
 
 ## Development
 
 ```bash
+python packages/safeloadai-runtime/fetch_runtime.py   # once: download + verify the pinned runtime
+pip install ./packages/safeloadai-runtime
+pip install -e ".[dev]"
 ruff check .
-python -m pytest -q        # set SAFELOADAI_WASI_PYTHON to run the sandbox tests
+python -m pytest -q        # SAFELOADAI_WASI_PYTHON=/path/to/python-3.12.0.wasm overrides the runtime (still verified)
 python -m tests.corpus.build_corpus /tmp/corpus
 python evaluation/run_eval.py --lab /tmp/corpus --benign /path/to/benign
 ```
@@ -194,8 +210,11 @@ How the tests stay safe:
   unpickling.
 - **Harmless payloads:** sample payloads are markers only (`echo MARKER`,
   `/tmp/safeloadai_marker`, 127.0.0.1) and only ever run inside the sandbox.
-- **CI:** downloads the pinned runtime, checks its sha256 and fails if the
-  sandbox tests would be skipped.
+- **CI:** builds both wheels (the runtime download happens only in that build
+  step and is checked against the pinned sha256), installs them into a clean
+  venv, blocks the network, and runs the whole suite against the installed
+  wheels on Linux, macOS and Windows with Python 3.11 to 3.13. A skipped sandbox
+  test is an error there.
 
 Design decisions and their reasons are in [DECISIONS.md](DECISIONS.md), and
 the audit that started this rewrite is in [AUDIT.md](AUDIT.md). The report

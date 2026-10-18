@@ -1,6 +1,7 @@
 """Layer 3 runtime: CPython on WASI under wasmtime, run in a child process."""
 from .emulate import emulate_keras_lambdas, emulate_pickle
 from .host import GuestRun, Limits, run_guest
-from .runtime import RuntimeUnavailable
+from .runtime import RuntimeIntegrityError, RuntimeUnavailable
 
-__all__ = ["GuestRun", "Limits", "RuntimeUnavailable", "emulate_keras_lambdas", "emulate_pickle", "run_guest"]
+__all__ = ["GuestRun", "Limits", "RuntimeIntegrityError", "RuntimeUnavailable", "emulate_keras_lambdas",
+           "emulate_pickle", "run_guest"]

@@ -25,11 +25,10 @@ import tempfile
 import time
 from datetime import UTC, datetime
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(ROOT, "src"))
+from safeloadai import scan
+from safeloadai.parsing.detect import EXTENSION_HINTS
 
-from safeloadai import scan  # noqa: E402
-from safeloadai.parsing.detect import EXTENSION_HINTS  # noqa: E402
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 MODEL_EXTENSIONS = tuple(EXTENSION_HINTS)
 TOOL_TIMEOUT_S = 300

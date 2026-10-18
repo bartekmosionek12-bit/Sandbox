@@ -49,3 +49,19 @@ point open. Defaults follow the rule "most conservative, fail-closed option".
 | C27 | The judge prompt is English, the model comes from `SAFELOADAI_JUDGE_MODEL` (default `claude-sonnet-5-5`), and an unrecognised judge answer is ignored. | Escalate-only is enforced by `report.combine`; the judge never sees free text (C19). |
 | C28 | The dashboard is a Report-JSON viewer only (paste or upload); it never receives or scans model files. Flask is in the `dev` extra so CI runs its test. | Owner spec; removes the upload-and-scan path from the web process. |
 | C29 | Owner approved on 2026-10-17 (decision cards): deleted the root demo scripts and `test_clean.pkl`, `requirements.txt`, `src/safeloadai/cache.py` and the v1 `schemas/`; after PR #5 is merged the owner switches the default branch from `claude/pkl-rce-sandbox-pcdsri` to `main` in GitHub settings. | Owner decisions; git history keeps the deleted files. |
+
+## 0.3.0: bundled runtime, joblib, legacy HDF5
+
+Owner request of 2026-10-18 (`pip install safeloadai` must be enough; joblib and legacy
+Keras `.h5` supported; false positives re-measured). Defaults picked by Claude:
+
+| ID | Default | Rationale |
+|---|---|---|
+| R1 | The runtime ships as its own package, `safeloadai-runtime` 0.1.0, holding the unmodified `python-3.12.0.wasm` as package data. `fetch_runtime.py` is the only code that downloads it; it checks size and sha256 and fails on a mismatch. The in-tree build backend refuses to build an sdist or wheel without a verified file and never downloads, so pip never fetches anything at install time (the sdist carries the `.wasm`). Supersedes C9. | Owner spec; one 26 MB pure-Python wheel works on every platform. |
+| R2 | Resolution: `$SAFELOADAI_WASI_PYTHON` if set (and then nothing else, so a typo is not silently replaced), else `safeloadai_runtime.path()`. The hash is compared with safeloadai's own pinned copy, not the runtime package's constant. The runner child hashes the bytes it compiles once more and refuses on a mismatch. | A swapped or tampered runtime package cannot vouch for itself; the second hash closes the window between check and read at no extra cost (the runner already hashed the bytes for the compile-cache key). |
+| R3 | Verified hashes are cached per process, keyed by (path, size, mtime_ns, inode, device). | Spec: keep scans fast; any rewrite of the file changes the key. |
+| R4 | Integrity failure raises `RuntimeIntegrityError` out of `scan`/`safe_load`; the CLI prints it and exits 4. A missing runtime stays a SUSPICIOUS emulation layer with the reason and a pointer to `safeloadai doctor`. | Owner spec: never fall back to a verdict on a tampered runtime. |
+| R5 | `wasmtime>=49.0.0,<50` (was `==49.0.0`): the major version the suite runs against; `doctor` flags anything outside it. | Patch releases of the tested major; a new major needs a test run first. |
+| R6 | CI builds both wheels once, installs them into a fresh venv per job (the runtime only from the build artefact, `--no-index`), then blocks the network for the test process (Linux: network namespace; macOS: `sandbox-exec`; Windows: outbound firewall rule for the venv and base interpreters), proves the block with `tools/assert_offline.py`, and runs the suite with `SAFELOADAI_EXPECT_INSTALLED=1`, under which `conftest.py` refuses to test the source tree. `src/` is no longer on the pytest path. | Owner spec: test what users install, offline. |
+| R7 | On Windows the compiled-module cache directory is trusted without a permission check. | Windows permissions are ACLs that `os.stat` does not report; the cache is under the user's profile, private by default. Without it every scan recompiles the runtime. |
+| R8 | The deep-mode Docker backend still needs a source checkout (it builds its image from `docker/`); installed from a wheel it reports itself unavailable, which is SUSPICIOUS. | Unchanged behaviour, now stated; deep mode is opt-in. |

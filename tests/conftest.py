@@ -7,6 +7,7 @@ został wczytany, podmieniają pickle.load na funkcję, która oblewa test.
 """
 import os
 import pickle
+import platform
 import socket
 import subprocess
 import sys
@@ -131,6 +132,11 @@ def pytest_collection_modifyitems(config, items):
     for item in items:
         if item.get_closest_marker("wasi"):
             item.add_marker(pytest.mark.skip(reason=reason))
+
+
+# platform caches uname(); on Windows, Python 3.11 fills it by running "ver" the first
+# time (wasmtime and scikit-learn ask on import). Fill it before the guard is active.
+platform.uname()
 
 
 @pytest.fixture(autouse=True)

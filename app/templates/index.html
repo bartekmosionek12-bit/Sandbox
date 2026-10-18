@@ -37,7 +37,9 @@
 <section>
   <h2><span class="verdict {{ r.verdict }}">{{ r.verdict }}</span> {{ r.file_name }}</h2>
   <p class="muted">format {{ r.file_format }} · sha256 <code>{{ r.sha256 }}</code> · {{ r.timings_ms.total }} ms · safeloadai {{ r.version }}</p>
-  {% if r.reasons %}<ul>{% for reason in r.reasons %}<li><code>{{ reason }}</code></li>{% endfor %}</ul>{% endif %}
+  {% if r.findings %}<ul>{% for f in r.findings %}<li><b>{{ f.category }}</b> <code>{{ f.text }}</code>{% if f.explanation %}<br><span class="muted">{{ f.explanation }}</span>{% endif %}</li>{% endfor %}</ul>
+  {% elif r.reasons %}<ul>{% for reason in r.reasons %}<li><code>{{ reason }}</code></li>{% endfor %}</ul>{% endif %}
+  {% if r.override %}<p class="muted">override {{ "accepted" if r.override.accepted else "refused" }} ({{ r.override.how }}, {{ r.override.time }}): {{ (r.override.items or r.override.requested)|join(", ") }}{% if r.override.refused_because %}; {{ r.override.refused_because }}{% endif %}</p>{% endif %}
   <table>
     <tr><th>layer</th><th>verdict</th><th>ran</th><th>reasons</th></tr>
     {% for layer in r.layers %}

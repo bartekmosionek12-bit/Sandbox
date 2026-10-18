@@ -36,6 +36,7 @@ import binascii
 import json
 import os
 
+from .. import override
 from ..parsing.zipsafe import SafeZip, ZipRefused
 from .allowlists import (
     DANGEROUS_MODULES,
@@ -78,6 +79,8 @@ def _empty_report(file_name: str) -> dict:
         "reasons": [],
         "notes": [],
         "error": None,
+        # reason text -> {"item", "explanation"} for the reasons that are UNVERIFIABLE
+        "unverifiable": {},
     }
 
 
@@ -195,7 +198,7 @@ def _check_activations(node: dict, path: str, report: dict) -> None:
     for key in ("activation", "recurrent_activation"):
         value = config.get(key)
         if isinstance(value, str) and value not in KERAS_ACTIVATION_NAMES:
-            report["unknown_imports"].append(_entry("activation", value, f"{path}.config.{key}"))
+            report["unknown_imports"].append(dict(_entry("activation", value, f"{path}.config.{key}"), kind="named"))
 
 
 def _check_object(node: dict, path: str, report: dict, keras2: bool = False) -> None:
@@ -225,7 +228,7 @@ def _check_object(node: dict, path: str, report: dict, keras2: bool = False) -> 
                                       ("os", "posix", "subprocess", "builtins", "socket")):
             report["suspicious_imports"].append(entry)
         else:
-            report["unknown_imports"].append(entry)
+            report["unknown_imports"].append(dict(entry, kind="function") if isinstance(name, str) else entry)
         return
 
     if class_name in KERAS_CODE_LAYERS:
@@ -281,7 +284,8 @@ def _check_object(node: dict, path: str, report: dict, keras2: bool = False) -> 
         known_module = module is None or module in KERAS_MODULES
     if not (known_class and known_module):
         report["unknown_imports"].append(
-            {"module": str(module), "symbol": str(class_name), "pos": None, "path": path}
+            {"module": str(module), "symbol": str(class_name), "pos": None, "path": path,
+             "kind": "bare_class" if module is None else "class"}
         )
     _check_registered(registered, class_name, path, report)
 
@@ -289,7 +293,8 @@ def _check_object(node: dict, path: str, report: dict, keras2: bool = False) -> 
 def _check_registered(registered, class_name, path: str, report: dict) -> None:
     if registered is not None and registered != class_name and registered not in KERAS_CONTAINERS:
         report["unknown_imports"].append(
-            {"module": str(registered), "symbol": "registered_name", "pos": None, "path": path}
+            {"module": str(registered), "symbol": "registered_name", "pos": None, "path": path,
+             "kind": "registered"}
         )
 
 
@@ -369,7 +374,7 @@ def _loss_metric_names(value, path: str, report: dict, depth: int = 0) -> None:
         raise ValueError(f"{path}: nested too deeply")
     if isinstance(value, str):
         if value not in KERAS_METRIC_NAMES:
-            report["unknown_imports"].append(_entry("loss/metric", value, path))
+            report["unknown_imports"].append(dict(_entry("loss/metric", value, path), kind="named"))
     elif isinstance(value, list):
         for i, item in enumerate(value):
             _loss_metric_names(item, f"{path}[{i}]", report, depth + 1)
@@ -402,6 +407,25 @@ def check_training_config(config, report: dict) -> None:
         report["unknown_imports"].append(_entry("optimizer", type(optimizer).__name__, "training_config"))
 
 
+def _unverifiable(imp: dict, file_format) -> dict | None:
+    """Item and explanation for an unknown object the scanner cannot verify. Code-carrying
+    layers, TF ops and Lambda lookups have no kind: they stay RISKY."""
+    kind, module, symbol = imp.get("kind"), imp["module"], imp["symbol"]
+    if kind == "bare_class":
+        explanation = (override.bare_keras_class(symbol) if file_format == "h5"
+                       else override.keras_named("class", symbol))
+        return {"item": symbol, "explanation": explanation}
+    if kind == "class":
+        return {"item": f"{module}.{symbol}", "explanation": override.keras_class(module, symbol)}
+    if kind == "registered":
+        return {"item": module, "explanation": override.keras_registered(module)}
+    if kind == "named":
+        return {"item": symbol, "explanation": override.keras_named(module, symbol)}
+    if kind == "function":
+        return {"item": f"{module}.{symbol}", "explanation": override.keras_function(module, symbol)}
+    return None
+
+
 def finalize(report: dict) -> dict:
     """Turn the collected findings into reasons and the static risk."""
     reasons: list[str] = report["reasons"]
@@ -413,8 +437,13 @@ def finalize(report: dict) -> dict:
         )
     for imp in report["suspicious_imports"]:
         reasons.append(f"{imp.get('path')}: known sink {imp['module']}.{imp['symbol']}")
+    unverifiable = report.setdefault("unverifiable", {})
     for imp in report["unknown_imports"]:
-        reasons.append(f"{imp.get('path')}: object outside the allowlist {imp['module']}.{imp['symbol']}")
+        reason = f"{imp.get('path')}: object outside the allowlist {imp['module']}.{imp['symbol']}"
+        reasons.append(reason)
+        meta = _unverifiable(imp, report.get("file_format"))
+        if meta:
+            unverifiable[reason] = meta
     for flag in report["flagged_opcodes"]:
         if flag["name"] != "Lambda":
             reasons.append(flag["reason"])

@@ -176,6 +176,20 @@ DANGEROUS_MODULES = frozenset({
     "http", "ftplib", "smtplib", "telnetlib", "requests", "antigravity", "tempfile",
     "io", "_io", "pathlib", "glob", "signal", "threading", "_thread",
 })
+# Globals outside the two sets above that public scanner bypasses use to run code or to
+# call an argument (tests/corpus/build_corpus.py:bypass_payloads). They do not change the
+# verdict; they only keep the reason RISKY instead of UNVERIFIABLE, because the scanner
+# does know what they do, so no override can accept them.
+KNOWN_GADGETS = frozenset({
+    ("numpy.testing._private.utils", "runstring"),  # exec() of a string
+    ("_osx_support", "_read_output"),  # runs a shell command
+    ("_osx_support", "_find_build_tool"),  # runs a shell command
+    ("functools", "partial"),  # calls its first argument
+    ("functools", "reduce"),  # calls its first argument
+    ("operator", "methodcaller"),  # calls a method by name
+    ("operator", "attrgetter"),  # attribute access by name
+})
+
 DANGEROUS_SYMBOLS = frozenset({
     "system", "popen", "spawn", "spawnl", "spawnv", "exec", "execv", "execve",
     "execfile", "eval", "compile", "Popen", "call", "check_call", "check_output",

@@ -171,3 +171,23 @@ def test_compare_lists_verdict_changes():
     assert "## Verdict changes (2)" in text
     assert "| b.h5 | benign | SUSPICIOUS | CLEAN |" in text
     assert "| h5 |" in text
+
+
+def test_unverifiable_false_positives_are_their_own_column():
+    run_eval = _load("run_eval")
+    compare = _load("compare_eval")
+    entries = [_entry("m.keras", "malicious", "keras", "SUSPICIOUS"),
+               _entry("b1.h5", "benign", "h5", "SUSPICIOUS"),
+               _entry("b2.h5", "benign", "h5", "SUSPICIOUS")]
+    entries[0]["results"]["safeloadai"]["unverifiable_only"] = True
+    entries[1]["results"]["safeloadai"]["unverifiable_only"] = True
+    summary = run_eval.summarise(entries, [])
+    s = summary["safeloadai"]
+    # still counted as false positives; the UNVERIFIABLE count is a column next to them
+    assert (s["false_positives"], s["unverifiable_fp"], s["unverifiable_detected"]) == (2, 1, 1)
+    assert s["per_format"]["h5"]["unverifiable_fp"] == 1
+    text = run_eval.markdown(summary, run_eval.false_positives(entries), entries, [],
+                             {"label": "x", "created": "t", "safeloadai": "v", "python": "p", "platform": "q"})
+    assert "of which UNVERIFIABLE" in text and "| safeloadai | 1 / 1 | 2 / 2 | 1 |" in text
+    run = {"label": "x", "summary": summary, "entries": entries}
+    assert "FP UNVERIFIABLE after" in compare.compare(run, run)

@@ -24,10 +24,12 @@ import pickletools
 import re
 from typing import Any
 
+from .. import override
 from .allowlists import (
     DANGEROUS_MODULES,
     DANGEROUS_SYMBOLS,
     GUARDED_CALLS,
+    KNOWN_GADGETS,
     NUMPY_BIT_GENERATOR_CLASSES,
     NUMPY_BIT_GENERATOR_CTOR,
     NUMPY_BIT_GENERATOR_NAMES,
@@ -109,6 +111,8 @@ def _empty_report(file_name: str, file_format: str) -> dict:
         "notes": [],
         "error": None,
         "pickle_count": 0,
+        # reason text -> {"item", "pair", "explanation"} for the reasons that are UNVERIFIABLE
+        "unverifiable": {},
     }
 
 
@@ -401,9 +405,16 @@ def _score(report: dict, allow: frozenset, torch: bool) -> None:
 
     for imp in report["suspicious_imports"]:
         reasons.append(f"import of a known sink: {imp['module']}.{imp['symbol']}")
+    unverifiable = report.setdefault("unverifiable", {})
     for imp in report["unknown_imports"]:
         if imp["module"] is not None:
-            reasons.append(f"import outside the allowlist: {imp['module']}.{imp['symbol']}")
+            reason = f"import outside the allowlist: {imp['module']}.{imp['symbol']}"
+            reasons.append(reason)
+            if (imp["module"], imp["symbol"]) in KNOWN_GADGETS:
+                continue
+            unverifiable[reason] = {"item": f"{imp['module']}.{imp['symbol']}",
+                                    "pair": [imp["module"], imp["symbol"]],
+                                    "explanation": override.pickle_global(imp["module"], imp["symbol"])}
 
     if report["suspicious_imports"] and has_call:
         report["static_risk"] = "malicious"

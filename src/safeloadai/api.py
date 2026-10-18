@@ -12,6 +12,11 @@ their own, so a wrong verdict does not turn into code execution by itself:
 * PyTorch: ``torch.load(..., weights_only=True)``;
 * Keras: ``keras.saving.load_model(..., safe_mode=True)``, which refuses Lambda
   bytecode even when the scan found it harmless.
+
+``accept_unverified`` is the informed override (see ``override.py``): it names the
+exact UNVERIFIABLE items accepted for this one file, and works only when every
+reason on the file is UNVERIFIABLE. Accepted pickle globals are added, as exact
+pairs, to the restricted unpickler for this load only.
 """
 from __future__ import annotations
 
@@ -21,9 +26,10 @@ import os
 import pickle
 import shutil
 import tempfile
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterable, Iterator, Mapping
 from typing import Any
 
+from . import override
 from .parsing import decompress
 from .parsing import detect as detect_mod
 from .pipeline import scan
@@ -195,19 +201,34 @@ def load_keras(path: str, **kwargs) -> Any:
 
 
 def safe_load(path: str | os.PathLike, *, judge: bool = False, deep: bool = False,
-              allow: Iterable[tuple[str, str]] = (), **loader_kwargs) -> Any:
-    """Load ``path`` only if ``scan`` says CLEAN; otherwise raise UnsafeModelError."""
+              allow: Iterable[tuple[str, str]] = (),
+              accept_unverified: Iterable[str] | Mapping[str, Iterable[str]] | None = None,
+              **loader_kwargs) -> Any:
+    """Load ``path`` only if ``scan`` says CLEAN, or SUSPICIOUS with only UNVERIFIABLE
+    reasons that ``accept_unverified`` names one by one; otherwise raise UnsafeModelError.
+
+    ``accept_unverified`` is a list of items (it applies to this file) or a mapping
+    ``{sha256: [items]}`` (only the entry for this file's sha256 applies). There is no
+    switch that accepts everything.
+    """
     allow = tuple((str(m), str(n)) for m, n in allow)
+    name = os.path.basename(os.fspath(path))
     with _private_copy(path) as staged:
         report = scan(staged, judge=judge, deep=deep, allow=allow)
         if not report.clean:
-            raise UnsafeModelError(
-                f"{os.path.basename(os.fspath(path))}: {report.verdict.value}; "
-                + "; ".join(report.reasons[:5]),
-                report,
-            )
+            items = override.items_for(report, accept_unverified)
+            if items is not None:
+                override.apply(report, items, how="api")
+            if not report.accepted:
+                refused = (report.override or {}).get("refused_because")
+                raise UnsafeModelError(
+                    f"{name}: {report.verdict.value}; " + "; ".join(report.reasons[:5])
+                    + (f" (override refused: {refused})" if refused else ""),
+                    report,
+                )
         if _sha256(staged) != report.sha256:
             raise UnsafeModelError("file changed between scan and load", report)
+        allow = allow + tuple(override.accepted_pickle_pairs(report))
         fmt = report.file_format
         if fmt == detect_mod.JOBLIB:
             return load_joblib(staged, PICKLE_GLOBALS | frozenset(allow))

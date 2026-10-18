@@ -11,7 +11,9 @@ allowlists:
 * ``registered_name``: absent, equal to the class name, or a Keras container.
   ``package>Name`` means a custom object the loader would have to supply.
 * functions (``class_name == "function"``): exact ``(module, name)`` pair.
-* code-carrying layers (``Lambda``, ``TFOpLambda``, ``SlicingOpLambda``).
+* ``(module, class_name)`` pairs in ``KERAS_CLASS_PAIRS`` (exact, not a module grant).
+* code-carrying layers (``Lambda``, ``TFOpLambda``, ``SlicingOpLambda``). A
+  ``TFOpLambda`` whose op is on ``TF_OP_ALLOWED`` is not a finding.
 
 Lambda bytecode is never unmarshalled on the host. The base64 payload is decoded
 to bytes and scanned for marshal string tokens naming known sinks; that is a
@@ -40,6 +42,7 @@ from .allowlists import (
     DANGEROUS_SYMBOLS,
     KERAS2_CLASSES,
     KERAS_ACTIVATION_NAMES,
+    KERAS_CLASS_PAIRS,
     KERAS_CLASSES,
     KERAS_CODE_LAYERS,
     KERAS_FUNCTIONS,
@@ -226,11 +229,20 @@ def _check_object(node: dict, path: str, report: dict, keras2: bool = False) -> 
         return
 
     if class_name in KERAS_CODE_LAYERS:
+        config = node.get("config") if isinstance(node.get("config"), dict) else {}
+        op = config.get("function")
+        if class_name == "TFOpLambda" and isinstance(op, str) and op in TF_OP_ALLOWED:
+            # A TensorFlow function on the exact per-op list: no finding. The class's
+            # module must still be known.
+            report["notes"].append(f"{path}: TFOpLambda calls tf.{op} (on the allowed op list)")
+            if module is not None and module not in KERAS_MODULES and (module, class_name) not in KERAS_CLASS_PAIRS:
+                report["unknown_imports"].append(_entry(module, class_name, path))
+            _check_registered(registered, class_name, path, report)
+            return
         what = ("calls a TensorFlow function by name" if class_name == "TFOpLambda"
                 else "carries executable Python")
         reason = f"{path}: {class_name} layer {what}"
         report["flagged_opcodes"].append({"name": class_name, "arg": path, "pos": 0, "reason": reason})
-        config = node.get("config") if isinstance(node.get("config"), dict) else {}
         if class_name == "Lambda" and keras2:
             _keras2_lambda(config, path, report)
         if class_name == "Lambda" and not (keras2 and config.get("function_type") == "function"):
@@ -248,7 +260,6 @@ def _check_object(node: dict, path: str, report: dict, keras2: bool = False) -> 
                     {"module": "keras.layers.Lambda", "symbol": token, "pos": None, "path": path}
                 )
         else:
-            op = config.get("function")
             if isinstance(op, str) and op not in TF_OP_ALLOWED:
                 entry = {"module": "tf", "symbol": op, "pos": None, "path": path}
                 parts = set(op.replace("__", ".").split("."))
@@ -263,6 +274,8 @@ def _check_object(node: dict, path: str, report: dict, keras2: bool = False) -> 
 
     if keras2 and "module" not in node:
         known_class, known_module = class_name in KERAS2_CLASSES, True
+    elif (module, class_name) in KERAS_CLASS_PAIRS:
+        known_class = known_module = True
     else:
         known_class = class_name in KERAS_CLASSES
         known_module = module is None or module in KERAS_MODULES
@@ -270,6 +283,10 @@ def _check_object(node: dict, path: str, report: dict, keras2: bool = False) -> 
         report["unknown_imports"].append(
             {"module": str(module), "symbol": str(class_name), "pos": None, "path": path}
         )
+    _check_registered(registered, class_name, path, report)
+
+
+def _check_registered(registered, class_name, path: str, report: dict) -> None:
     if registered is not None and registered != class_name and registered not in KERAS_CONTAINERS:
         report["unknown_imports"].append(
             {"module": str(registered), "symbol": "registered_name", "pos": None, "path": path}

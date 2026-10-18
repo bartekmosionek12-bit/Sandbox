@@ -1,0 +1,17 @@
+# Weekly update PRs for Python dependencies (pyproject.toml; safeloadai-runtime has none)
+# and GitHub Actions. Dependabot PRs are
+# ordinary reviewed PRs: none is merged automatically, and Dependabot never touches
+# the allowlists (DECISIONS.md, U2). GitHub Actions are pinned by commit SHA; Dependabot
+# updates the SHA and the version comment together.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5

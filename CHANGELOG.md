@@ -5,6 +5,31 @@ This file follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Vers
 - `safeloadai` (the scanner);
 - `safeloadai-runtime` (the pinned sandbox runtime). It has its own version and changes only when the runtime does.
 
+## safeloadai 0.4.0
+
+### Added
+- **Reason categories.** Every reason in a Report has a category, `MALICIOUS`, `RISKY` or `UNVERIFIABLE`, in `Report.findings`, with the worst one in `Report.category`. The verdict does not change.
+  - An UNVERIFIABLE reason names the exact item, such as a class named without its module in a Keras 2 `.h5`, an unknown Keras class or custom object, or a pickle global outside the allowlist that is not a sink.
+  - Each one has a plain-language explanation of what was found, why it cannot be verified and what to do.
+- **Informed override for UNVERIFIABLE-only files.**
+  - API: `safe_load(..., accept_unverified=[...])`, or `{sha256: [...]}`.
+  - CLI: `safeloadai scan --accept-unverified [SHA256:]ITEM`, plus an interactive prompt on a terminal (default No) and `--no-input`.
+  - It works only when every reason is UNVERIFIABLE and every item is named. It applies to one file and is recorded in `Report.override` (items, sha256, time, how). A file with an accepted override exits 0.
+- **Update monitoring that never auto-trusts:**
+  - `.github/dependabot.yml` (pip and GitHub Actions, weekly);
+  - the `upstream-drift` workflow (latest scikit-learn, numpy, keras, wasmtime, optional tensorflow-cpu; benign models scanned and the suite run; one issue on drift);
+  - the `runtime-watch` workflow (newer WASI CPython build or wasmtime major; one issue);
+  - `tools/drift_check.py`, `tools/runtime_watch.py` and `docs/UPDATING_RUNTIME.md`.
+- The evaluation reports UNVERIFIABLE-only false positives as their own column, and counts malicious files that are UNVERIFIABLE only.
+- The report viewer shows categories, explanations and overrides.
+
+### Changed
+- **Allowlist grown from the reviewed false-positive list** (`evaluation/results/false-positives-20261018.md`). It adds 25 scikit-learn and numpy pairs (including the checked `__generator_ctor`), Keras `LayerScale` and the `keras.src.ops.numpy` `Add` and `Multiply` ops, and TFOpLambda from `keras.src.layers.core.tf_op_layer`, all as exact pairs. False positives on the local benign set dropped from 23/85 to 2/85, and detection stays 53/53.
+- **A TFOpLambda whose op is on `TF_OP_ALLOWED` is no longer a finding.** Any other op is still flagged, and file-writing ops such as `io.write_file` are MALICIOUS.
+- **`numpy.random._pickle.__generator_ctor` is allowed only with numpy's own arguments.** The already allowed `__randomstate_ctor` and `__bit_generator_ctor` now get the same check, because they call an argument too.
+- **Report schema 2.1** adds `findings`, `category` and `override`.
+- **Every GitHub Action is pinned by commit SHA.**
+
 ## safeloadai 0.3.0 / safeloadai-runtime 0.1.0
 
 ### Added

@@ -1,5 +1,7 @@
 # Remaining false positives (after run, 2026-10-18)
 
+> **Status, 0.4.0:** every pair marked "safe" below has been added in a reviewed change, along with the `__generator_ctor` argument check and the TFOpLambda-per-op rule. Each has a regression test (`tests/test_allowlist_growth.py`). The bare `.h5` `LayerScale` stays SUSPICIOUS and is now reported as UNVERIFIABLE. The numbers after the change are in `eval-after-20261018T204757Z.md`. The text below is the analysis as it was written before the change.
+
 Source: `eval-after-20261018T125942Z.json`. The run found 23 false positives among 85 benign files: 16 scikit-learn files (8 `.joblib`, 8 `.pkl`), 3 `.h5` and 4 `.keras`. Every one is SUSPICIOUS and none is MALICIOUS. The benign files come from `make_local_benign.py`, not from the Hub, so the rates below are a floor until the Hugging Face set has been run.
 
 **Nothing listed here has been added to an allowlist.** Each entry gives the pair a file is missing and a recommendation. Adding a pair is a separate, reviewed change, with a regression test that keeps the matching malicious variant flagged.

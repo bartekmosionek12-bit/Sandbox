@@ -55,3 +55,25 @@ python evaluation/fetch_benign_hf.py --out /tmp/hf_corpus
 python -m tests.corpus.build_corpus /tmp/lab
 python evaluation/run_eval.py --lab /tmp/lab --hf /tmp/hf_corpus --tool-bin <venv with the other scanners>/bin --label hf
 ```
+
+## 0.4.0 run, 2026-10-18 (allowlist growth and UNVERIFIABLE)
+
+Files:
+- `eval-before-20261018T203358Z.{json,md}`: origin/main at 0.3.0.
+- `eval-after-20261018T204757Z.{json,md}`: this branch. It reports itself as 0.3.0 because the version was bumped to 0.4.0 after the run; the code is the same.
+- `compare-0.4.0-20261018.md`: the before/after table from `compare_eval.py`.
+
+The corpus is the same 138 files as above, regenerated: 65 lab files from `build_corpus.py`, and benign files from `make_local_benign.py` run three times. The scikit-learn and numpy files come from scikit-learn 1.9.1 and numpy 2.5.4, the `k2_*` files from tf.keras 2.15.1 (Python 3.11) and the `k3_*` files from Keras 3 on JAX. Only safeloadai was run, under the evaluation guard.
+
+| format | FP before | FP after | of which UNVERIFIABLE | detection before | detection after |
+|---|---|---|---|---|---|
+| pickle | 8/33 | 0/33 | 0 | 32/32 | 32/32 |
+| joblib | 8/17 | 0/17 | 0 | - | - |
+| .keras | 4/19 | 0/19 | 0 | 13/13 | 13/13 |
+| .h5 | 3/16 | 2/16 | 2 | 4/4 | 4/4 |
+| torch | - | - | - | 4/4 | 4/4 |
+| **all** | **23/85** | **2/85** | **2** | **53/53** | **53/53** |
+
+- **The 2 remaining false positives** are `k2_convnext_tiny.h5` and `k3_convnext_tiny.h5`: `LayerScale` without its module. They are UNVERIFIABLE only, so a user can accept `LayerScale` for that file. Re-saving as `.keras` is CLEAN.
+- **4 malicious lab files are UNVERIFIABLE only:** `p_unknown_global.pkl`, `k_custom_object.keras`, `k_prefix_module.keras` and `k2_custom_objects.h5`. Their payloads are names the scanner cannot resolve. An override would let them through, which is why it must name every item for one file and is recorded.
+- **`p_numpy_runstring.pkl` and `x_osx_support_read_output.pkl` stay RISKY** (known gadgets), so no override can accept them.

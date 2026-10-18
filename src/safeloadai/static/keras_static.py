@@ -226,7 +226,9 @@ def _check_object(node: dict, path: str, report: dict, keras2: bool = False) -> 
         return
 
     if class_name in KERAS_CODE_LAYERS:
-        reason = f"{path}: {class_name} layer carries executable Python"
+        what = ("calls a TensorFlow function by name" if class_name == "TFOpLambda"
+                else "carries executable Python")
+        reason = f"{path}: {class_name} layer {what}"
         report["flagged_opcodes"].append({"name": class_name, "arg": path, "pos": 0, "reason": reason})
         config = node.get("config") if isinstance(node.get("config"), dict) else {}
         if class_name == "Lambda" and keras2:

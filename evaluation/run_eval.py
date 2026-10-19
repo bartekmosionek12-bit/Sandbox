@@ -182,7 +182,7 @@ def run_safeloadai(path: str) -> dict:
         result["unverifiable_items"] = report.unverifiable_items if report.unverifiable_only else []
     # The opt-in run: the same report with every UNVERIFIABLE item accepted, as a user who
     # passes --accept-unverified for each of them would (refused on any RISKY or MALICIOUS reason).
-    accepted = override.apply(report, report.unverifiable_items, how="argument") if not report.clean else False
+    accepted = override.apply(report, report.unverifiable_items, how="api") if not report.clean else False
     result["opt_in"] = {"outcome": "clean" if report.clean or accepted else "flagged",
                         "verdict": "CLEAN (accepted)" if accepted else report.verdict.value,
                         "category": report.category, "seconds": result["seconds"]}

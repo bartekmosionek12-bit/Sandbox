@@ -194,3 +194,10 @@ class IterableSimpleNamespace(SimpleNamespace):
 - `__iter__`/`__str__` are not triggered by unpickling.
 
 **(b) Verdict:** YES. `IterableSimpleNamespace.__getattr__` raises AttributeError for `'__setstate__'` (and for any name) in both 8.4.182 and 8.0.50. BUILD therefore takes the default `__dict__.update` path, and setattr is used only if the state is a `(dict, slotstate)` tuple. Neither path triggers code beyond plain attribute storage.
+
+## 4. Hub files checked against these forms (scan only, nothing loaded)
+
+Both files were read only through safeloadai's own opcode walker under `evaluation/guard.py`.
+
+- **a-01a/dogs-vs-cats-svm `svm_vgg16_cats_dogs.pkl`** (commit `db8b50a7`, sha256 `ddf2b257…`), an uncompressed joblib dict holding an SVC, a StandardScaler, a PCA and a Keras model. The Keras model is exactly the KerasSaveable form: STACK_GLOBAL `builtins getattr`, STACK_GLOBAL `keras.src.models.functional Functional`, `'_unpickle_model'`, TUPLE2, REDUCE (at 3887195); STACK_GLOBAL `_io BytesIO`, EMPTY_TUPLE, NEWOBJ, BINBYTES of 58,933,757 bytes starting `PK\x03\x04` (a `.keras` zip with `metadata.json` first), BININT 58933757, NONE, TUPLE3, BUILD, TUPLE1, REDUCE (at 62821001). No memo GET reaches any of these objects. With rule K1 the file is RISKY: the embedded archive is a plain Keras config without Lambdas (CLEAN on its own).
+- **Bingsu/yolo-world-mirror `yolov8s-world.pt`** (commit `414d0eef`) uses one dill helper only, `dill._dill._load_type('set')`, called with an empty list for each module's `_non_persistent_buffers_set`. It carries no `_create_code` or `_create_function`. It was MALICIOUS because the emulator scored every `dill.*` call as code execution; with rule D1 it is RISKY ("pickle written by dill"). `yolov8s-worldv2.pt` from the same repo has no dill at all.

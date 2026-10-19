@@ -41,7 +41,29 @@ This file follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Vers
   - 3 xgboost scikit-learn wrappers.
 
   `torchvision` `InterpolationMode` was added as an enum lookup. `xgboost.core.Booster`
-  stays out. Details are in `evaluation/results/source-review-20261019.md`.
+  stays out; it is UNVERIFIABLE with its own explanation (libxgboost parses its raw
+  bytes), and docs/OPTIONS.md names the safer `save_model("model.json")` format.
+  Details are in `evaluation/results/source-review-20261019.md`.
+- **Passing a getattr result to any call is a use.** A method handed to a call or a
+  controlled slot (a `defaultdict` factory, numpy's `__generator_ctor`, another
+  getattr) is MALICIOUS, like calling it. An allowlisted class is allowed only as
+  getattr's first argument.
+- **Zero-arg call rule** for reviewed `SimpleNamespace` subclasses (Ultralytics'
+  `IterableSimpleNamespace`): an empty argument tuple, a dict BUILD state, and the
+  instance is never called or passed to a call.
+- **Keras models inside pickles.** Keras 3 pickles a model as an embedded `.keras`
+  archive (`getattr(<model class>, "_unpickle_model")(BytesIO(...))`). The scanner now
+  recognises that form, analyses the embedded archive as a Keras file of its own
+  (static layer and Lambda emulation) and takes its verdict. The pickle keeps a RISKY
+  reason, which cannot be overridden, because the loader runs with `safe_mode=False`.
+- **dill.** A function dill pickles with its bytecode (`_create_code`) is judged like
+  a Keras Lambda: RISKY ("file carries executable Python code"), MALICIOUS when its
+  names or constants name a sink, and rebuilt and called on fakes in the WASI sandbox.
+  Any dill pickle is RISKY. dill's helpers that import, eval or call an argument are
+  known sinks. `_load_type`, a lookup in a fixed type table, is no longer scored as
+  code execution by the emulator.
+- **Evaluation:** an opt-in run (every UNVERIFIABLE item accepted) is reported next to
+  the default run.
 - **Report schema 2.2** adds `options`.
 
 ### Security

@@ -56,6 +56,14 @@ def keras_function(module: str, name: str) -> str:
             f"Accept '{module}.{name}' for this file only if you know and trust that exact module.")
 
 
+def keras_custom_builtin(name: str) -> str:
+    return (f"The config names the function '{name}' under the module 'builtins'. That is how Keras saves a "
+            "loss, metric or activation the model's author wrote. Keras does not take it from Python's "
+            "builtins: it looks the name up among its own functions and the custom_objects your loading code "
+            "passes, and loading fails if neither has it. The scanner cannot see that code. Accept "
+            f"'builtins.{name}' for this file only if you know the exact function your code passes.")
+
+
 def pickle_global(module: str, name: str) -> str:
     return (f"The pickle imports {module}.{name}, which is not on the allowlist and is not a known sink. "
             f"Unpickling imports {module} and calls {name}, and the scanner cannot see that code. If you "

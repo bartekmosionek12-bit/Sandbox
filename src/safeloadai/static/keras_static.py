@@ -428,7 +428,9 @@ def _unverifiable(imp: dict, file_format) -> dict | None:
     if kind == "named":
         return {"item": symbol, "explanation": override.keras_named(module, symbol)}
     if kind == "function":
-        return {"item": f"{module}.{symbol}", "explanation": override.keras_function(module, symbol)}
+        explanation = (override.keras_custom_builtin(symbol) if _custom_builtins_function(module, symbol)
+                       else override.keras_function(module, symbol))
+        return {"item": f"{module}.{symbol}", "explanation": explanation}
     return None
 
 

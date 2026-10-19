@@ -77,6 +77,53 @@ def emulation_layer(data: bytes, parser_report: dict, extra_allowed: frozenset,
     return layer
 
 
+MAX_EMBEDDED = 16
+MAX_EMBEDDED_DEPTH = 4
+
+
+def _reading_layers(label: str, data: bytes, report: dict, extra_allowed: frozenset,
+                    limits: Limits | None) -> list[LayerResult]:
+    static = verdict.static_layer(report, defer_lambdas=True)
+    emulation = emulation_layer(data, report, extra_allowed, limits)
+    static.name, emulation.name = f"static[{label}]", f"emulation[{label}]"
+    for layer in (static, emulation):
+        for finding in layer.findings:
+            finding["layer"] = layer.name
+    return [static, emulation]
+
+
+def _embedded(parser_report: dict, extra_views: list, extra_allowed: frozenset):
+    """(label, bytes, static report) for every embedded model, its own readings and the
+    models embedded in those, breadth first, at most MAX_EMBEDDED in all. A Keras loader
+    reads the bytes, so anything that is not a Keras archive is RISKY."""
+    todo = [(item, "", 0) for rep in [parser_report] + [r for _v, r in extra_views]
+            for item in rep.get("_embedded") or []]
+    count = 0
+    while todo:
+        item, parent, depth = todo.pop(0)
+        label = f"{parent}{item['label']}"
+        if count >= MAX_EMBEDDED or depth >= MAX_EMBEDDED_DEPTH:
+            layer = LayerResult(name=f"static[{label}]", verdict=Verdict.CLEAN, ran=False)
+            layer.raise_to(Verdict.SUSPICIOUS, f"more than {MAX_EMBEDDED} embedded models or nesting deeper "
+                                               f"than {MAX_EMBEDDED_DEPTH}; {label} is not analysed")
+            parser_report.setdefault("_embedded_skipped", []).append(layer)
+            continue
+        count += 1
+        blob = item["data"]
+        report = static_mod.analyze_bytes(blob, f"{label}.keras", extra_allowed)
+        if report.get("file_format") != detect_mod.KERAS:
+            report["reasons"].append(f"the embedded bytes the Keras loader reads are not a Keras archive "
+                                     f"(detected {report.get('file_format')})")
+            if report["static_risk"] == "clean":
+                report["static_risk"] = "suspicious"
+        view = report.get("_view")
+        yield label, view.slice(blob) if view else blob, report
+        for other, rep in report.get("_extra_views") or []:
+            yield f"{label}/{other.label}", other.slice(blob), rep
+        for rep in [report] + [r for _v, r in report.get("_extra_views") or []]:
+            todo += [(sub, f"{label}/", depth + 1) for sub in rep.get("_embedded") or []]
+
+
 def _deep_layer(path: str, file_format: str) -> LayerResult:
     from . import deep
 
@@ -145,13 +192,14 @@ def scan(path: str | os.PathLike, *, judge: bool = False, deep: bool = False,
     # Every other reading of a polyglot file gets its own static and emulation layers.
     for view, report in extra_views:
         step(f"other reading: {view.fmt} at offset {view.start}")
-        extra_static = verdict.static_layer(report, defer_lambdas=True)
-        extra_emulation = emulation_layer(view.slice(data), report, extra_allowed, limits)
-        extra_static.name, extra_emulation.name = f"static[{view.label}]", f"emulation[{view.label}]"
-        for layer in (extra_static, extra_emulation):
-            for finding in layer.findings:
-                finding["layer"] = layer.name
-        layers += [extra_static, extra_emulation]
+        layers += _reading_layers(view.label, view.slice(data), report, extra_allowed, limits)
+    # A model a pickle carries as bytes for a loader it calls (Keras 3 pickles a model as an
+    # embedded .keras archive) is analysed as a file of its own.
+    for label, part, report in _embedded(parser_report, extra_views, extra_allowed):
+        step(f"embedded model: {label}")
+        layers += _reading_layers(label, part, report, extra_allowed, limits)
+
+    layers += parser_report.pop("_embedded_skipped", [])
 
     if deep:
         step("deep detonation")

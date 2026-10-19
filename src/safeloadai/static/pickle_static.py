@@ -50,7 +50,7 @@ from .allowlists import (
 )
 from .lookalike import imitates
 from .lookalike import reason as lookalike_reason
-from .pickle_vm import Global, Machine, Obj, class_of, plain_reading_imports
+from .pickle_vm import Global, Machine, Obj, class_of, identifier_path, plain_reading_imports
 
 SCHEMA_VERSION = "1.1"
 
@@ -131,6 +131,8 @@ def _empty_report(file_name: str, file_format: str) -> dict:
         "getattr_malicious": [],
         # bytes after the reading's last STOP: {"start", "length", "looks_like_pickle"}
         "trailing": None,
+        # Keras models pickled as an embedded .keras archive (_embedded_keras)
+        "embedded_keras": [],
     }
 
 
@@ -225,8 +227,9 @@ def parse_pickle(data: bytes, file_name: str = "<memory>", *, torch: bool = Fals
         _trailing(report, data, machine.stream.tell(), trailing, depth,
                   dict(torch=torch, file_format=file_format, extra_allowed=extra_allowed, joblib=joblib))
     _joblib_findings(report, machine, data, allow)
+    handled = _embedded_keras(report, calls, machine.refs)
     report["reasons"].extend(_check_guarded_calls(calls))
-    report["getattr_malicious"], risky = _check_getattr(calls, allow, _imports_getattr(report))
+    report["getattr_malicious"], risky = _check_getattr(calls, allow, _imports_getattr(report), handled)
     report["reasons"].extend(risky)
 
     report["raw_disasm"] = _disasm(data)
@@ -259,6 +262,8 @@ def _trailing(report: dict, data: bytes, start: int, mode: str, depth: int, opti
     report["unverifiable"].update({prefix + k: v for k, v in sub["unverifiable"].items()})
     report["suspicious_strings"].extend(sub["suspicious_strings"])
     report["notes"].extend(prefix + n for n in sub["notes"])
+    report["embedded_keras"].extend(sub["embedded_keras"])
+    report.setdefault("_embedded", []).extend(sub.get("_embedded") or [])
     report["trailing"]["report"] = {"static_risk": sub["static_risk"], "pickle_count": sub["pickle_count"]}
     if sub["static_risk"] == "malicious":
         report["trailing_malicious"] = True
@@ -518,6 +523,106 @@ def _check_guarded_calls(calls: list[tuple]) -> list[str]:
     return reasons
 
 
+# --- Keras 3 models pickled as an embedded .keras archive --------------------------
+
+# keras/src/saving/keras_saveable.py (Keras 3.3.3 to 3.15.1, source review 2 of 2026-10-19):
+# KerasSaveable.__reduce__ returns (self._unpickle_model, (BytesIO(<.keras archive>),)), and
+# _unpickle_model hands the bytes to saving_lib._load_model_from_fileobj(..., safe_mode=False).
+# In opcodes: REDUCE of builtins.getattr(<keras class>, "_unpickle_model") on an _io.BytesIO
+# rebuilt by NEWOBJ () + BUILD (value, position, dict-or-None); at protocol 2 the value is
+# _codecs.encode(<latin-1 text>, "latin1").
+KERAS_UNPICKLE = "_unpickle_model"
+BYTES_IO = frozenset({("_io", "BytesIO"), ("io", "BytesIO")})
+CODECS_ENCODE = ("_codecs", "encode")
+
+
+def _embedded_blob(value) -> bytes | None:
+    if isinstance(value, (bytes, bytearray)):
+        return bytes(value)
+    if isinstance(value, Obj) and value.how == "reduce" and isinstance(value.func, Global) \
+            and value.func.pair == CODECS_ENCODE and isinstance(value.args, tuple) and len(value.args) == 2 \
+            and isinstance(value.args[0], str) and value.args[1] in ("latin1", "latin-1"):
+        try:
+            return value.args[0].encode("latin-1")
+        except UnicodeEncodeError:
+            return None
+    return None
+
+
+def _keras_class(value) -> bool:
+    return isinstance(value, Global) and identifier_path(value.module) and identifier_path(value.name) \
+        and value.module.split(".", 1)[0] == "keras" and not value.name.startswith("_")
+
+
+def _match_embedded_keras(func, args):
+    """(keras class, getattr result, BytesIO instance, bytes) when a REDUCE is exactly the
+    Keras embedded-model form, else None."""
+    if not (_is_getattr_result(func) and func.how == "reduce" and isinstance(func.args, tuple)
+            and len(func.args) == 2 and _keras_class(func.args[0]) and func.args[1] == KERAS_UNPICKLE):
+        return None
+    if not (isinstance(args, tuple) and len(args) == 1):
+        return None
+    bio = args[0]
+    if not (isinstance(bio, Obj) and bio.how == "newobj" and isinstance(bio.func, Global)
+            and bio.func.pair in BYTES_IO and bio.args == ()):
+        return None
+    state = bio.state
+    if not (isinstance(state, tuple) and len(state) == 3 and isinstance(state[1], int)
+            and not isinstance(state[1], bool) and (state[2] is None or state[2] == {})):
+        return None
+    blob = _embedded_blob(state[0])
+    return None if blob is None else (func.args[0], func, bio, blob)
+
+
+def _embedded_keras(report: dict, calls: list[tuple], refs: dict) -> frozenset:
+    """Recognise Keras models pickled as an embedded .keras archive (owner's decision of
+    2026-10-19: the form is not evidence of an attack by itself).
+
+    Each match keeps a RISKY reason (the pickle runs the Keras loader with
+    safe_mode=False on the bytes, which is never overridable) and hands the bytes to the
+    pipeline under ``_embedded``, which analyses them as a Keras file of their own (static
+    analysis and Lambda emulation) and takes that verdict. The keras class and the
+    BytesIO import are not counted as findings when every use of them is in a match;
+    otherwise they are judged as before. Returns the ids of the argument tuples of the
+    calls a match accounts for (for _check_getattr)."""
+    matches = []
+    for how, func, args, pos in calls:
+        if how == "reduce":
+            found = _match_embedded_keras(func, args)
+            if found:
+                matches.append((pos, args, *found))
+    if not matches:
+        return frozenset()
+    handled: set[int] = set()
+    uses: dict[int, list] = {}  # id of a keras class or BytesIO Global -> [Global, uses in matches]
+    all_single = True
+    for pos, args, cls, result, bio, blob in matches:
+        for value in (cls, bio.func):
+            uses.setdefault(id(value), [value, 0])[1] += 1
+        if refs.get(id(result), 0) == 0 and refs.get(id(bio), 0) == 0:
+            handled.update({id(args), id(result.args)})
+        else:
+            all_single = False  # the method or the BytesIO is used again elsewhere
+        name = f"{cls.module}.{cls.name}.{KERAS_UNPICKLE}"
+        report["reasons"].append(
+            f"pickle invokes the Keras loader on embedded bytes ({name} at {pos} reads a {len(blob)}-byte "
+            "archive with safe_mode=False); the embedded model is analysed as a Keras file of its own")
+        report["embedded_keras"].append({"pos": pos, "class": f"{cls.module}.{cls.name}", "length": len(blob)})
+        report.setdefault("_embedded", []).append({"pos": pos, "label": f"embedded keras@{pos}", "data": blob})
+    # A pair's imports are accounted for when each of its Globals is used only in matches.
+    counts: dict[tuple, int] = {}
+    for imp in report["imports"]:
+        if imp["opcode"] in IMPORT_OPCODES and imp["resolved"]:
+            pair = (imp["module"], imp["symbol"])
+            counts[pair] = counts.get(pair, 0) + 1
+    by_pair: dict[tuple, list[bool]] = {}
+    for value, n in uses.values():
+        by_pair.setdefault(value.pair, []).append(1 + refs.get(id(value), 0) == n)
+    report["_consumed_imports"] = frozenset(
+        pair for pair, ok in by_pair.items() if all_single and all(ok) and counts.get(pair) == len(ok))
+    return frozenset(handled)
+
+
 # --- builtins.getattr: how pickle writes a bound method -----------------------------
 
 def _imports_getattr(report: dict) -> bool:
@@ -570,7 +675,8 @@ def _getattr_results(value, walk: dict, match=None) -> list[Obj]:
     return found
 
 
-def _check_getattr(calls: list[tuple], allow: frozenset, imported: bool) -> tuple[list[str], list[str]]:
+def _check_getattr(calls: list[tuple], allow: frozenset, imported: bool,
+                   handled: frozenset = frozenset()) -> tuple[list[str], list[str]]:
     """(MALICIOUS reasons, RISKY reasons) for every use of builtins.getattr.
 
     ``getattr(obj, "name")`` is how pickle writes a bound method. It is accepted only
@@ -579,12 +685,16 @@ def _check_getattr(calls: list[tuple], allow: frozenset, imported: bool) -> tupl
     it or passing it, at any depth, as an argument of any call (a defaultdict factory,
     a numpy ctor helper, another getattr, ...); only storing it in a BUILD state is not a
     use. A used result, a dunder name or a sink name is evidence (MALICIOUS); every other
-    use is RISKY.
+    use is RISKY. Calls in ``handled`` (ids of their argument tuples) belong to a Keras
+    embedded-model pattern and are judged by _embedded_keras instead.
     """
     malicious, risky = [], []
     used = False
     walk = {"seen": set(), "steps": 0}
     for how, func, args, pos in calls:
+        if id(args) in handled:
+            used = used or (isinstance(func, Global) and func.pair in GETATTR)
+            continue
         if _is_getattr_result(func):
             malicious.append(f"the result of builtins.getattr({_short(func.args)[1:-1]}) is called "
                              f"({how.upper()} at {pos})")
@@ -657,6 +767,8 @@ def _score(report: dict, allow: frozenset, torch: bool) -> None:
             continue
         if (module, qualname) in GETATTR and imp["opcode"] in IMPORT_OPCODES:
             continue  # judged use by use in _check_getattr
+        if (module, qualname) in report.get("_consumed_imports", ()) and imp["opcode"] in IMPORT_OPCODES:
+            continue  # only used to load an embedded Keras model (_embedded_keras)
         if is_dangerous_import(module, qualname):
             report["suspicious_imports"].append({"module": module, "symbol": qualname, "pos": imp["pos"]})
         else:

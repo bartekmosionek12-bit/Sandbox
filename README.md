@@ -179,26 +179,33 @@ report says why; `safeloadai doctor` tells you how to fix it. Optional extras:
 
 ## Results
 
-Latest local run, 2026-10-18 (0.4.0). It covers 138 files: 53 harmless marker payloads, including rebuilds of public scanner bypasses and CVE-2024-3660, and 85 locally generated benign scikit-learn, numpy, `.keras` and `.h5` models. Setup, caveats and the full tables are in [evaluation/results/README.md](evaluation/results/README.md).
+Runs of 2026-10-19, safeloadai 0.5.0, in a disposable cloud container with `evaluation/guard.py` on and no `--deep`. Full tables: [eval-hub-1k](evaluation/results/eval-hub-1k-20261019T143515Z.md), [review](evaluation/results/review-hf-1k-20261019.md), [allowlist review](evaluation/results/allowlist-review-20261019.md).
 
-| tool | detected / malicious | false positives / benign | of which UNVERIFIABLE | median s |
+**Detection.** "Detected" means any verdict other than CLEAN; safeloadai's verdict was MALICIOUS on every one of these.
+
+| set | safeloadai | picklescan 1.0.5 | fickling 0.1.12 | modelscan 0.8.8 |
 |---|---|---|---|---|
-| safeloadai 0.2 | 52 / 53 | 49 / 85 | - | 0.40 |
-| safeloadai 0.3.0 | 53 / 53 | 23 / 85 | - | 0.41 |
-| safeloadai 0.4.0 | 53 / 53 | 2 / 85 | 2 | 0.40 |
-| picklescan 1.0.5 | 32 / 53 | 0 / 85 | - | 0.09 |
-| fickling 0.1.12 | 36 / 53 | 61 / 85 | - | 0.06 |
-| modelscan 0.8.8 | 23 / 53 | 0 / 85 | - | 0.17 |
+| lab marker payloads (incl. 8 polyglots) | 59 / 59 | 35 / 59 | 40 / 59 | 24 / 59 |
+| mutations (`tests/corpus/mutate.py`) | 774 / 774 | 678 / 774 | 654 / 774 | 618 / 774 |
+| real Hub files flagged by the Hub's scanners, labelled malicious from that evidence | 49 / 49 | 31 / 49 | 32 / 49 | 29 / 49 |
 
-The other scanners were measured on the same 138 files in the 0.3.0 run and were not re-run for 0.4.0.
+**False positives on real Hugging Face files.** The 943-file benign corpus is split by repo into a tune half (the allowlist review looked only at it) and a held-out half.
 
-How to read the table:
+| set | files | safeloadai FP | of which UNVERIFIABLE only | RISKY | MALICIOUS |
+|---|---|---|---|---|---|
+| 0.4.0 on the first 310-file Hub set (corrected) | 306 | 120 (39 %) | 82 | 32 | 6 |
+| 0.5.0 on the same 306 files | 306 | 76 (25 %) | 44 | 31 | 1 |
+| 0.5.0 held-out half (headline) | 502 | 175 (35 %) | 125 | 45 | 5 |
 
-- **The malicious files are lab rebuilds with harmless markers,** not a public malware set.
-- **The benign files are not independent of the allowlist,** and they are not Hugging Face models. A false-positive rate on unseen models still needs the Hub set: `evaluation/fetch_benign_hf.py`, then `run_eval.py --hf DIR`.
-- **The 2 remaining false positives are SUSPICIOUS and UNVERIFIABLE only:** ConvNeXt saved as legacy `.h5` names `LayerScale` without its module, so the scanner cannot know which class the loading code passes. The pairs that [false-positives-20261018.md](evaluation/results/false-positives-20261018.md) marked safe were added in 0.4.0, each with a justification and a regression test that keeps the malicious variant flagged.
-- **3 malicious lab files are UNVERIFIABLE only** (an unknown pickle global and Keras custom objects). An override would let them through, which is why it has to name every item, for one file, and is recorded. The fourth, a `kerasx` look-alike module, is RISKY and cannot be overridden.
-- **Format coverage explains some of the other tools' misses.** picklescan and fickling return "clean" for `.keras` and `.h5` files they do not analyse. modelscan without its TensorFlow extra skips `.keras`, and the evaluation does not run it on `.h5`, because modelscan opens those with h5py on the host.
+Held-out by format: `.h5` 10/85 (12 %), `.keras` 26/72 (36 %), `.joblib` 21/38 (55 %), `.pkl` 26/54 (48 %), torch 92/253 (36 %). picklescan and modelscan flag 4 of the 502 held-out files, fickling 184.
+
+How to read these numbers:
+
+- **UNVERIFIABLE is not RISKY.** UNVERIFIABLE means the file names something the scanner cannot check, such as a class from a library outside the allowlist, a custom Keras layer or the author's own loss. Nothing in it is known to be dangerous, and a user can accept those exact items for that one file. RISKY means the scanner knows the construct can be abused (a polyglot, an argument-checked global used another way, an unreadable format, a bad CRC), so no override accepts it. 125 of the 175 held-out false positives are UNVERIFIABLE only: Ultralytics checkpoints, xgboost and other third-party estimators, and `training_args.bin` files that need `accelerate.state.PartialState`.
+- **The 5 held-out MALICIOUS false positives are all Ultralytics checkpoints**, and the Hub's own scanner marks 4 of them unsafe. Four import `getattr`, which reaches any attribute; the fifth (YOLO-World) is pickled with `dill`, and the emulation layer calls it MALICIOUS. MALICIOUS stays MALICIOUS and cannot be overridden.
+- **The held-out rate is higher than the 310-file rate** because the new corpus is stratified: every Ultralytics checkpoint (33/33) and most xgboost files are flagged, and they now make up a fixed share of the sample.
+- **The malicious Hub files are a convenience sample**: test payloads and proofs of concept, mostly simple pickles. They show that what the Hub's scanners flag is caught, not how safeloadai does against a targeted attacker. 25 more flagged files had evidence too weak to label and count in no rate.
+- **The lab and mutation payloads are marker rebuilds**, and the mutation generator was written with knowledge of the scanner. It found one real gap (pickles with no PROTO header, now fixed).
 
 ## LIMITATIONS
 

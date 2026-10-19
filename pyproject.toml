@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "safeloadai"
-version = "0.3.0"
+version = "0.4.0"
 authors = [
   { name="Bartosz Mosionek" },
 ]
@@ -71,7 +71,7 @@ pythonpath = ["."]
 [tool.ruff]
 line-length = 120
 target-version = "py311"
-extend-exclude = ["audit", "poc/samples", "packages/safeloadai-runtime/build"]
+extend-exclude = ["audit", "packages/safeloadai-runtime/build"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP"]

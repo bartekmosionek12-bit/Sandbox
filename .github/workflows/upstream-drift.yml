@@ -1,0 +1,118 @@
+# Weekly check that safeloadai still works with the LATEST upstream libraries.
+#
+# A clean venv gets the newest scikit-learn, numpy, keras, wasmtime and (if it installs)
+# tensorflow-cpu, past safeloadai's own pins on purpose. evaluation/make_local_benign.py
+# writes benign models with them, tools/drift_check.py scans them, and the full test
+# suite runs. If a benign file is no longer CLEAN (a class was added, renamed or moved
+# upstream) or a test fails, one issue is opened, or updated if it is already open,
+# with the names, the library versions and the diff.
+#
+# Detect, never auto-trust: this workflow has no write access to the repository's
+# contents or pull requests. It never edits an allowlist and never opens a PR; adding a
+# name stays a reviewed human change (DECISIONS.md, U2).
+name: upstream-drift
+
+on:
+  schedule:
+    - cron: "17 5 * * 1"   # Mondays 05:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write   # the drift issue, nothing else
+    env:
+      SAFELOADAI_REQUIRE_WASI: "1"
+      PYTHONIOENCODING: utf-8
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+      - name: Fetch and verify the pinned runtime
+        run: python packages/safeloadai-runtime/fetch_runtime.py
+      - name: Clean venv with the latest upstream libraries
+        id: install
+        run: |
+          python -m venv "$RUNNER_TEMP/venv"
+          BIN="$RUNNER_TEMP/venv/bin"
+          echo "BIN=$BIN" >> "$GITHUB_ENV"
+          "$BIN/python" -m pip install --upgrade pip
+          "$BIN/python" -m pip install ./packages/safeloadai-runtime ".[test]"
+          # The newest releases, beyond safeloadai's own pins: that is the point of the check.
+          "$BIN/python" -m pip install --upgrade scikit-learn numpy joblib keras h5py wasmtime
+          # tensorflow-cpu is optional: without it, Keras 3 runs on JAX and only tf.keras files are missing.
+          if "$BIN/python" -m pip install --upgrade tensorflow-cpu; then
+            echo "tensorflow=installed" >> "$GITHUB_OUTPUT"
+          else
+            echo "tensorflow=unavailable" >> "$GITHUB_OUTPUT"
+            echo "KERAS_BACKEND=jax" >> "$GITHUB_ENV"
+            "$BIN/python" -m pip install --upgrade jax
+          fi
+          "$BIN/python" -m pip freeze | tee "$RUNNER_TEMP/freeze.txt"
+      - name: Write benign models with them
+        id: generate
+        continue-on-error: true
+        run: |
+          "$BIN/python" evaluation/make_local_benign.py "$RUNNER_TEMP/benign" 2>&1 | tee "$RUNNER_TEMP/generate.txt"
+          exit "${PIPESTATUS[0]}"
+      - name: Full test suite
+        id: tests
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          "$BIN/python" -m pytest -q -p no:cacheprovider 2>&1 | tee "$RUNNER_TEMP/pytest.txt"
+      - name: Scan the benign models
+        id: scan
+        continue-on-error: true
+        run: |
+          {
+            echo "## Run"
+            echo
+            echo "- tensorflow-cpu: ${{ steps.install.outputs.tensorflow }}"
+            echo "- model generation: ${{ steps.generate.outcome }}"
+            echo "- test suite: ${{ steps.tests.outcome }}"
+            echo "- workflow run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            echo
+            echo "## Test suite (last lines)"
+            echo
+            echo '```'
+            tail -n 40 "$RUNNER_TEMP/pytest.txt" 2>/dev/null || echo "(no output)"
+            echo '```'
+          } > "$RUNNER_TEMP/run.md"
+          "$BIN/python" tools/drift_check.py "$RUNNER_TEMP/benign" --freeze "$RUNNER_TEMP/freeze.txt" \
+            --extra "$RUNNER_TEMP/run.md" --out "$RUNNER_TEMP/drift.md"
+      - name: Open or update the drift issue
+        if: steps.scan.outcome == 'failure' || steps.tests.outcome == 'failure' || steps.generate.outcome == 'failure'
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          REPORT: ${{ runner.temp }}/drift.md
+        with:
+          script: |
+            const fs = require("fs");
+            const title = "Upstream drift: benign models or tests changed with the latest libraries";
+            let body = fs.existsSync(process.env.REPORT) ? fs.readFileSync(process.env.REPORT, "utf8")
+              : "The drift report was not written; see the workflow run.";
+            body = body.slice(0, 60000);
+            const { owner, repo } = context.repo;
+            const open = await github.paginate(github.rest.issues.listForRepo, { owner, repo, state: "open", per_page: 100 });
+            const existing = open.find((i) => !i.pull_request && i.title === title);
+            if (existing) {
+              await github.rest.issues.update({ owner, repo, issue_number: existing.number, body });
+              await github.rest.issues.createComment({ owner, repo, issue_number: existing.number,
+                body: `Still drifting in ${process.env.GITHUB_SERVER_URL}/${owner}/${repo}/actions/runs/${process.env.GITHUB_RUN_ID}; the description now holds this run's report.` });
+            } else {
+              await github.rest.issues.create({ owner, repo, title, body });
+            }
+      - name: Fail the run when drift was found
+        if: steps.scan.outcome == 'failure' || steps.tests.outcome == 'failure' || steps.generate.outcome == 'failure'
+        run: |
+          echo "upstream drift: generation ${{ steps.generate.outcome }}, tests ${{ steps.tests.outcome }}, scan ${{ steps.scan.outcome }}"
+          exit 1

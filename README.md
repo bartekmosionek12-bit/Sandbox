@@ -24,6 +24,51 @@ model = safe_load("model.pkl")       # loads only if CLEAN, else raises UnsafeMo
 safeloadai scan models/ --json       # exit 0 CLEAN, 1 MALICIOUS, 3 SUSPICIOUS, 2 usage error
 ```
 
+## Reason categories and the informed override
+
+Every reason in a Report has a category. It never changes the verdict:
+
+- **MALICIOUS:** evidence of a known sink (process, network, file write, code
+  execution) or of tampering with the sandbox's evidence.
+- **RISKY:** behaviour or structure the scanner refuses, such as code-carrying
+  layers, anomalies in emulation, parse errors, limits, archive tricks,
+  known gadgets, or a module name that imitates an allowlisted one (`kerasx`,
+  `keras_x`, `tf_evil_pkg`, `sklearn2`, `numpy_`, `nunpy`, `kеras` with a Cyrillic
+  `е`): a prefix or suffix of an allowlisted top-level package, an edit
+  distance of at most 2, or a homoglyph spelling.
+- **UNVERIFIABLE:** a named object whose code the scanner cannot see. Examples
+  are a class named without its module in a Keras 2 `.h5` (`LayerScale`), a
+  Keras class or custom object outside the known list, or a pickle global
+  outside the allowlist that is not a known sink. Each such reason says what
+  was found, why it cannot be verified and what you can do. You can re-save the
+  model as `.keras`, which records the module, name the exact pickle pair with
+  `allow=`, or accept the item.
+
+A file whose **every** reason is UNVERIFIABLE can be accepted, item by item,
+for that one file. It stays SUSPICIOUS, and the acceptance is recorded in the
+Report (`override`: items, sha256, time, how). One MALICIOUS or RISKY reason
+makes an override impossible, and there is no switch that accepts everything.
+
+```python
+report = scan("convnext.h5")
+report.category, report.unverifiable_items     # ('UNVERIFIABLE', ['LayerScale'])
+
+model = safe_load("model.pkl", accept_unverified=["mypkg.models.Thing"])       # this file only
+model = safe_load("model.pkl", accept_unverified={report.sha256: ["mypkg.models.Thing"]})  # pinned to a sha256
+```
+
+```bash
+safeloadai scan convnext.h5                               # on a terminal: asks, default No
+safeloadai scan convnext.h5 --accept-unverified LayerScale  # CI and scripts: name every item
+safeloadai scan models/ --accept-unverified <sha256>:LayerScale   # several files: scope by sha256
+```
+
+The CLI prompts only when stdin and stdout are both a terminal (and never with
+`--json` or `--no-input`). Anywhere else it refuses unless
+`--accept-unverified` names every item. A file with an accepted override counts
+as exit 0. A legacy `.h5` is still not loaded by `safe_load` after an override
+(no loader), so re-save it as `.keras`.
+
 ## How it works
 
 A file is CLEAN only if no layer finds anything. The final verdict is the most
@@ -124,21 +169,25 @@ report says why; `safeloadai doctor` tells you how to fix it. Optional extras:
 
 ## Results
 
-Latest local run, 2026-10-18. It covers 138 files: 53 harmless marker payloads, including rebuilds of public scanner bypasses and CVE-2024-3660, and 85 locally generated benign scikit-learn, numpy, `.keras` and `.h5` models. "Before" is the previous release line (origin/main). Setup, caveats and the full tables are in [evaluation/results/README.md](evaluation/results/README.md).
+Latest local run, 2026-10-18 (0.4.0). It covers 138 files: 53 harmless marker payloads, including rebuilds of public scanner bypasses and CVE-2024-3660, and 85 locally generated benign scikit-learn, numpy, `.keras` and `.h5` models. Setup, caveats and the full tables are in [evaluation/results/README.md](evaluation/results/README.md).
 
-| tool | detected / malicious | false positives / benign | median s |
-|---|---|---|---|
-| safeloadai before | 52 / 53 | 49 / 85 | 0.40 |
-| safeloadai after | 53 / 53 | 23 / 85 | 0.38 |
-| picklescan 1.0.5 | 32 / 53 | 0 / 85 | 0.09 |
-| fickling 0.1.12 | 36 / 53 | 61 / 85 | 0.06 |
-| modelscan 0.8.8 | 23 / 53 | 0 / 85 | 0.17 |
+| tool | detected / malicious | false positives / benign | of which UNVERIFIABLE | median s |
+|---|---|---|---|---|
+| safeloadai 0.2 | 52 / 53 | 49 / 85 | - | 0.40 |
+| safeloadai 0.3.0 | 53 / 53 | 23 / 85 | - | 0.41 |
+| safeloadai 0.4.0 | 53 / 53 | 2 / 85 | 2 | 0.40 |
+| picklescan 1.0.5 | 32 / 53 | 0 / 85 | - | 0.09 |
+| fickling 0.1.12 | 36 / 53 | 61 / 85 | - | 0.06 |
+| modelscan 0.8.8 | 23 / 53 | 0 / 85 | - | 0.17 |
+
+The other scanners were measured on the same 138 files in the 0.3.0 run and were not re-run for 0.4.0.
 
 How to read the table:
 
 - **The malicious files are lab rebuilds with harmless markers,** not a public malware set.
 - **The benign files are not independent of the allowlist,** and they are not Hugging Face models. A false-positive rate on unseen models still needs the Hub set: `evaluation/fetch_benign_hf.py`, then `run_eval.py --hf DIR`.
-- **The 23 remaining false positives are all SUSPICIOUS.** 16 are scikit-learn estimators missing from the allowlist. 7 are Keras files with `LayerScale`, `TFOpLambda` or Keras 3 op layers. [false-positives-20261018.md](evaluation/results/false-positives-20261018.md) lists each missing pair and whether adding it would be safe. None was added.
+- **The 2 remaining false positives are SUSPICIOUS and UNVERIFIABLE only:** ConvNeXt saved as legacy `.h5` names `LayerScale` without its module, so the scanner cannot know which class the loading code passes. The pairs that [false-positives-20261018.md](evaluation/results/false-positives-20261018.md) marked safe were added in 0.4.0, each with a justification and a regression test that keeps the malicious variant flagged.
+- **3 malicious lab files are UNVERIFIABLE only** (an unknown pickle global and Keras custom objects). An override would let them through, which is why it has to name every item, for one file, and is recorded. The fourth, a `kerasx` look-alike module, is RISKY and cannot be overridden.
 - **Format coverage explains some of the other tools' misses.** picklescan and fickling return "clean" for `.keras` and `.h5` files they do not analyse. modelscan without its TensorFlow extra skips `.keras`, and the evaluation does not run it on `.h5`, because modelscan opens those with h5py on the host.
 
 ## LIMITATIONS
@@ -167,10 +216,23 @@ How to read the table:
   its own. It cannot remove records the host has already received, so it can
   add noise but cannot turn a recorded alarm into a clean log. Writes without
   the nonce count as tampering and are MALICIOUS.
+- **An override on UNVERIFIABLE means trusting that class's code.** The scanner
+  cannot see the code of an UNVERIFIABLE item, which is what the category
+  says. Accepting it tells `safe_load` to import and run whatever the named
+  module or the class your loading code passes does, with your privileges.
+  The scanner checked everything else in the file, not that code. Accept only
+  items whose source you know and trust, for the file you checked. Look-alike
+  names of allowlisted modules are RISKY instead, so they cannot be accepted,
+  but a name that is merely unfamiliar (`mycompany.layers.Foo`) can be, and
+  so can a payload hidden behind it.
 - **Allowlist false positives.** The pickle allowlist holds only the exact
-  pairs that the tuning corpus needed.
-  - **Pickle:** benign models that use other classes are SUSPICIOUS until you
-    pass them with `allow=[("module", "Qualname")]` or `--allow module:Qualname`.
+  pairs that the tuning corpus and the reviewed false-positive list needed.
+  - **Pickle:** benign models that use other classes are SUSPICIOUS (UNVERIFIABLE)
+    until you pass them with `allow=[("module", "Qualname")]` or
+    `--allow module:Qualname`, or accept them for one file with an override.
+  - **numpy random state:** `__generator_ctor`, `__randomstate_ctor` and
+    `__bit_generator_ctor` call one of their arguments, so they are accepted
+    only with the exact arguments numpy itself writes.
   - **PyTorch:** the allowlist entries have not been checked against real
     checkpoints yet.
   - **TorchScript** is always SUSPICIOUS.
@@ -257,6 +319,18 @@ How the tests stay safe:
   venv, blocks the network, and runs the whole suite against the installed
   wheels on Linux, macOS and Windows with Python 3.11 to 3.13. A skipped sandbox
   test is an error there.
+
+Update monitoring detects and never auto-trusts:
+
+- **Dependabot** opens weekly PRs for pip dependencies and GitHub Actions, which
+  are pinned by commit SHA.
+- **`upstream-drift`** (weekly, or by hand) installs the latest scikit-learn,
+  numpy, keras, wasmtime and, if it installs, tensorflow-cpu. It writes benign
+  models, scans them and runs the suite, and opens one issue if anything drifts.
+  It never edits an allowlist or opens a PR.
+- **`runtime-watch`** (weekly) opens an issue when a newer WASI CPython build or
+  wasmtime major exists. The manual update procedure is
+  [docs/UPDATING_RUNTIME.md](docs/UPDATING_RUNTIME.md).
 
 Design decisions and their reasons are in [DECISIONS.md](DECISIONS.md), and
 the audit that started this rewrite is in [AUDIT.md](AUDIT.md). The report

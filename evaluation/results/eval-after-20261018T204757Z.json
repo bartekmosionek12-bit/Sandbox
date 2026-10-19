@@ -1,0 +1,4571 @@
+{
+  "label": "after",
+  "created": "20261018T204757Z",
+  "python": "3.13.16",
+  "safeloadai": "0.3.0",
+  "platform": "Linux x86_64",
+  "tools": [],
+  "summary": {
+    "safeloadai": {
+      "malicious": 53,
+      "benign": 85,
+      "detected": 53,
+      "detection_rate": 1.0,
+      "false_positives": 2,
+      "fp_rate": 0.0235,
+      "unverifiable_fp": 2,
+      "unverifiable_detected": 4,
+      "errors": 0,
+      "unsupported": 0,
+      "skipped": 0,
+      "seconds_median": 0.391,
+      "seconds_p95": 0.751,
+      "seconds_max": 1.6154,
+      "per_format": {
+        "h5": {
+          "malicious": 4,
+          "benign": 16,
+          "detected": 4,
+          "detection_rate": 1.0,
+          "false_positives": 2,
+          "fp_rate": 0.125,
+          "unverifiable_fp": 2,
+          "unverifiable_detected": 1,
+          "errors": 0,
+          "unsupported": 0,
+          "skipped": 0,
+          "seconds_median": 0.6188,
+          "seconds_p95": 1.6154,
+          "seconds_max": 1.6154
+        },
+        "joblib": {
+          "malicious": 0,
+          "benign": 17,
+          "detected": 0,
+          "detection_rate": null,
+          "false_positives": 0,
+          "fp_rate": 0.0,
+          "unverifiable_fp": 0,
+          "unverifiable_detected": 0,
+          "errors": 0,
+          "unsupported": 0,
+          "skipped": 0,
+          "seconds_median": 0.4018,
+          "seconds_p95": 0.4811,
+          "seconds_max": 0.4811
+        },
+        "keras": {
+          "malicious": 13,
+          "benign": 19,
+          "detected": 13,
+          "detection_rate": 1.0,
+          "false_positives": 0,
+          "fp_rate": 0.0,
+          "unverifiable_fp": 0,
+          "unverifiable_detected": 2,
+          "errors": 0,
+          "unsupported": 0,
+          "skipped": 0,
+          "seconds_median": 0.056,
+          "seconds_p95": 0.4166,
+          "seconds_max": 0.4563
+        },
+        "pickle": {
+          "malicious": 32,
+          "benign": 33,
+          "detected": 32,
+          "detection_rate": 1.0,
+          "false_positives": 0,
+          "fp_rate": 0.0,
+          "unverifiable_fp": 0,
+          "unverifiable_detected": 1,
+          "errors": 0,
+          "unsupported": 0,
+          "skipped": 0,
+          "seconds_median": 0.4009,
+          "seconds_p95": 0.4482,
+          "seconds_max": 0.4703
+        },
+        "torch": {
+          "malicious": 4,
+          "benign": 0,
+          "detected": 4,
+          "detection_rate": 1.0,
+          "false_positives": 0,
+          "fp_rate": null,
+          "unverifiable_fp": 0,
+          "unverifiable_detected": 0,
+          "errors": 0,
+          "unsupported": 0,
+          "skipped": 0,
+          "seconds_median": 0.1883,
+          "seconds_p95": 0.5079,
+          "seconds_max": 0.5079
+        }
+      },
+      "layer_contribution": {
+        "static_only": 8,
+        "emulation_only": 1,
+        "both": 44,
+        "neither": 0
+      },
+      "reached_expected_severity": 53,
+      "per_category": {
+        "process": {
+          "total": 11,
+          "detected": 11
+        },
+        "code_exec": {
+          "total": 6,
+          "detected": 6
+        },
+        "file_write": {
+          "total": 4,
+          "detected": 4
+        },
+        "network": {
+          "total": 2,
+          "detected": 2
+        },
+        "native": {
+          "total": 1,
+          "detected": 1
+        },
+        "unknown_global": {
+          "total": 1,
+          "detected": 1
+        },
+        "multi_pickle": {
+          "total": 1,
+          "detected": 1
+        },
+        "evasion": {
+          "total": 6,
+          "detected": 6
+        },
+        "evidence_forgery": {
+          "total": 1,
+          "detected": 1
+        },
+        "torch_legacy": {
+          "total": 1,
+          "detected": 1
+        },
+        "torch_zip": {
+          "total": 1,
+          "detected": 1
+        },
+        "bypass": {
+          "total": 11,
+          "detected": 11
+        },
+        "custom_object": {
+          "total": 2,
+          "detected": 2
+        },
+        "module_prefix": {
+          "total": 1,
+          "detected": 1
+        },
+        "missing_stub": {
+          "total": 1,
+          "detected": 1
+        },
+        "h5_lambda": {
+          "total": 2,
+          "detected": 2
+        },
+        "h5_structure": {
+          "total": 1,
+          "detected": 1
+        }
+      }
+    }
+  },
+  "false_positives": {
+    "missing": {
+      "None.LayerScale": [
+        "k2_convnext_tiny.h5",
+        "k3_convnext_tiny.h5"
+      ]
+    },
+    "other_reasons": {}
+  },
+  "entries": [
+    {
+      "file": "p_os_system.pkl",
+      "label": "malicious",
+      "category": "process",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 436.8,
+            "total": 437.1
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: posix.system",
+            "[emulation] SUSPICIOUS: import outside the allowlist: posix.system",
+            "[emulation] MALICIOUS: process: posix.system"
+          ],
+          "seconds": 0.43717274799973893,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "posix.system"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "p_os_system_stack_global.pkl",
+      "label": "malicious",
+      "category": "process",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 373.7,
+            "total": 374.0
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: os.system",
+            "[emulation] SUSPICIOUS: import outside the allowlist: os.system",
+            "[emulation] MALICIOUS: process: os.system"
+          ],
+          "seconds": 0.37406846300018515,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "os.system"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "p_nt_system.pkl",
+      "label": "malicious",
+      "category": "process",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.3,
+            "emulation": 403.0,
+            "total": 403.4
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: nt.system",
+            "[emulation] SUSPICIOUS: import outside the allowlist: nt.system",
+            "[emulation] MALICIOUS: process: nt.system"
+          ],
+          "seconds": 0.4034461559999727,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "nt.system"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "p_subprocess_getoutput.pkl",
+      "label": "malicious",
+      "category": "process",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 437.3,
+            "total": 437.6
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: subprocess.getoutput",
+            "[emulation] SUSPICIOUS: import outside the allowlist: subprocess.getoutput",
+            "[emulation] MALICIOUS: process: subprocess.getoutput"
+          ],
+          "seconds": 0.437630184000227,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "subprocess.getoutput"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "p_inst_opcode.pkl",
+      "label": "malicious",
+      "category": "process",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 447.9,
+            "total": 448.2
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: os.system",
+            "[emulation] SUSPICIOUS: import outside the allowlist: os.system",
+            "[emulation] MALICIOUS: process: os.system"
+          ],
+          "seconds": 0.4481870629997502,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "os.system"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "p_obj_opcode.pkl",
+      "label": "malicious",
+      "category": "process",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 459.7,
+            "total": 460.0
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: posix.system",
+            "[emulation] SUSPICIOUS: import outside the allowlist: posix.system",
+            "[emulation] MALICIOUS: process: posix.system"
+          ],
+          "seconds": 0.46005611900000076,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "posix.system"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "p_getattr_chain.pkl",
+      "label": "malicious",
+      "category": "process",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.4,
+            "emulation": 388.1,
+            "total": 388.6
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: builtins.getattr",
+            "[static] MALICIOUS: import of a known sink: builtins.__import__",
+            "[emulation] SUSPICIOUS: import outside the allowlist: builtins.getattr",
+            "[emulation] SUSPICIOUS: import outside the allowlist: builtins.__import__",
+            "[emulation] SUSPICIOUS: import: builtins.__import__",
+            "[emulation] SUSPICIOUS: introspection: builtins.getattr",
+            "[emulation] MALICIOUS: process: os.system"
+          ],
+          "seconds": 0.3885780280002109,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "builtins.__import__",
+            "builtins.getattr"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "p_exec_nested.pkl",
+      "label": "malicious",
+      "category": "code_exec",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.3,
+            "emulation": 403.9,
+            "total": 404.2
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: builtins.exec",
+            "[emulation] SUSPICIOUS: import outside the allowlist: builtins.exec",
+            "[emulation] MALICIOUS: code_exec: builtins.exec",
+            "[emulation] SUSPICIOUS: import: builtins.__import__",
+            "[emulation] MALICIOUS: process: os.system"
+          ],
+          "seconds": 0.4042667829999118,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "builtins.exec"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "p_eval.pkl",
+      "label": "malicious",
+      "category": "code_exec",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 417.3,
+            "total": 417.5
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: builtins.eval",
+            "[emulation] SUSPICIOUS: import outside the allowlist: builtins.eval",
+            "[emulation] MALICIOUS: code_exec: builtins.eval",
+            "[emulation] SUSPICIOUS: import: builtins.__import__",
+            "[emulation] MALICIOUS: process: os.system"
+          ],
+          "seconds": 0.4175514789999397,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "builtins.eval"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "p_runpy.pkl",
+      "label": "malicious",
+      "category": "code_exec",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 359.7,
+            "total": 360.0
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: runpy.run_path",
+            "[emulation] SUSPICIOUS: import outside the allowlist: runpy.run_path",
+            "[emulation] MALICIOUS: code_exec: runpy.run_path"
+          ],
+          "seconds": 0.36007402699988234,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "runpy.run_path"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "p_importlib.pkl",
+      "label": "malicious",
+      "category": "code_exec",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.3,
+            "emulation": 426.3,
+            "total": 426.7
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: importlib.import_module",
+            "[emulation] SUSPICIOUS: import outside the allowlist: importlib.import_module",
+            "[emulation] SUSPICIOUS: import: builtins.__import__"
+          ],
+          "seconds": 0.4267405709997547,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "importlib.import_module"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "p_open_write.pkl",
+      "label": "malicious",
+      "category": "file_write",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.3,
+            "emulation": 375.9,
+            "total": 376.2
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: builtins.open",
+            "[emulation] SUSPICIOUS: import outside the allowlist: builtins.open",
+            "[emulation] MALICIOUS: file_write: builtins.open"
+          ],
+          "seconds": 0.37624549299971477,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "builtins.open"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "p_shutil_rmtree.pkl",
+      "label": "malicious",
+      "category": "file_write",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 379.2,
+            "total": 379.5
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: shutil.rmtree",
+            "[emulation] SUSPICIOUS: import outside the allowlist: shutil.rmtree",
+            "[emulation] MALICIOUS: file_write: shutil.rmtree"
+          ],
+          "seconds": 0.37954060999982175,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "shutil.rmtree"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "p_socket_loopback.pkl",
+      "label": "malicious",
+      "category": "network",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 406.8,
+            "total": 407.1
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: socket.create_connection",
+            "[emulation] SUSPICIOUS: import outside the allowlist: socket.create_connection",
+            "[emulation] MALICIOUS: network: socket.create_connection"
+          ],
+          "seconds": 0.4071036870000171,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "socket.create_connection"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "p_webbrowser.pkl",
+      "label": "malicious",
+      "category": "network",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 370.8,
+            "total": 371.0
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: webbrowser.open",
+            "[emulation] SUSPICIOUS: import outside the allowlist: webbrowser.open",
+            "[emulation] MALICIOUS: network: webbrowser.open"
+          ],
+          "seconds": 0.3710603549998268,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "webbrowser.open"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "p_ctypes.pkl",
+      "label": "malicious",
+      "category": "native",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 375.2,
+            "total": 375.5
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: ctypes.CDLL",
+            "[emulation] SUSPICIOUS: import outside the allowlist: ctypes.CDLL",
+            "[emulation] MALICIOUS: native: ctypes.CDLL"
+          ],
+          "seconds": 0.37551742799996646,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "ctypes.CDLL"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "p_numpy_runstring.pkl",
+      "label": "malicious",
+      "category": "code_exec",
+      "expected": "SUSPICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.3,
+            "emulation": 373.1,
+            "total": 373.5
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: import outside the allowlist: numpy.testing._private.utils.runstring",
+            "[emulation] SUSPICIOUS: import outside the allowlist: numpy.testing._private.utils.runstring",
+            "[emulation] SUSPICIOUS: unexpected_call: numpy.testing._private.utils.runstring"
+          ],
+          "seconds": 0.37349745800020173,
+          "category": "RISKY",
+          "unverifiable_only": false,
+          "missing": [
+            "numpy.testing._private.utils.runstring"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "p_unknown_global.pkl",
+      "label": "malicious",
+      "category": "unknown_global",
+      "expected": "SUSPICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 379.4,
+            "total": 379.6
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: import outside the allowlist: safeloadai_marker_pkg.Thing",
+            "[emulation] SUSPICIOUS: import outside the allowlist: safeloadai_marker_pkg.Thing"
+          ],
+          "seconds": 0.3796426009998868,
+          "category": "UNVERIFIABLE",
+          "unverifiable_only": true,
+          "missing": [
+            "safeloadai_marker_pkg.Thing"
+          ],
+          "unverifiable_items": [
+            "safeloadai_marker_pkg.Thing"
+          ]
+        }
+      }
+    },
+    {
+      "file": "p_second_pickle.pkl",
+      "label": "malicious",
+      "category": "multi_pickle",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 412.6,
+            "total": 412.9
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: posix.system",
+            "[emulation] SUSPICIOUS: import outside the allowlist: posix.system",
+            "[emulation] MALICIOUS: process: posix.system"
+          ],
+          "seconds": 0.41290816600030666,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "posix.system"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "p_time_gated.pkl",
+      "label": "malicious",
+      "category": "evasion",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 389.4,
+            "total": 389.7
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: builtins.exec",
+            "[emulation] SUSPICIOUS: import outside the allowlist: builtins.exec",
+            "[emulation] MALICIOUS: code_exec: builtins.exec",
+            "[emulation] SUSPICIOUS: import: builtins.__import__",
+            "[emulation] SUSPICIOUS: unexpected_call: time.sleep",
+            "[emulation] SUSPICIOUS: import: builtins.__import__",
+            "[emulation] MALICIOUS: process: os.system"
+          ],
+          "seconds": 0.38968486400017355,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "builtins.exec"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "p_env_probe.pkl",
+      "label": "malicious",
+      "category": "evasion",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.3,
+            "emulation": 374.9,
+            "total": 375.2
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: builtins.exec",
+            "[emulation] SUSPICIOUS: import outside the allowlist: builtins.exec",
+            "[emulation] MALICIOUS: code_exec: builtins.exec",
+            "[emulation] SUSPICIOUS: import: builtins.__import__",
+            "[emulation] SUSPICIOUS: environment_probe: os.environ.get",
+            "[emulation] MALICIOUS: process: os.system"
+          ],
+          "seconds": 0.37527695800008587,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "builtins.exec"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "p_sandbox_probe.pkl",
+      "label": "malicious",
+      "category": "evasion",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.4,
+            "emulation": 370.4,
+            "total": 370.9
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: builtins.exec",
+            "[emulation] SUSPICIOUS: import outside the allowlist: builtins.exec",
+            "[emulation] MALICIOUS: code_exec: builtins.exec",
+            "[emulation] SUSPICIOUS: import: builtins.__import__",
+            "[emulation] SUSPICIOUS: environment_probe: os.path.exists",
+            "[emulation] MALICIOUS: process: os.system"
+          ],
+          "seconds": 0.37092808999977933,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "builtins.exec"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "p_forge_clean_log.pkl",
+      "label": "malicious",
+      "category": "evidence_forgery",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 377.6,
+            "total": 377.8
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: builtins.exec",
+            "[emulation] SUSPICIOUS: import outside the allowlist: builtins.exec",
+            "[emulation] MALICIOUS: code_exec: builtins.exec",
+            "[emulation] SUSPICIOUS: import: builtins.__import__",
+            "[emulation] MALICIOUS: file_write: os.write"
+          ],
+          "seconds": 0.37786907700001393,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "builtins.exec"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "p_torch_legacy.pkl",
+      "label": "malicious",
+      "category": "torch_legacy",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.3,
+            "emulation": 401.3,
+            "total": 401.7
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: posix.system",
+            "[emulation] SUSPICIOUS: import outside the allowlist: posix.system",
+            "[emulation] MALICIOUS: process: posix.system"
+          ],
+          "seconds": 0.4017091430000619,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "posix.system"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "p_torch_zip.pt",
+      "label": "malicious",
+      "category": "torch_zip",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "torch",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "torch",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.8,
+            "emulation": 375.3,
+            "total": 376.2
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: posix.system",
+            "[emulation] SUSPICIOUS: import outside the allowlist: posix.system",
+            "[emulation] MALICIOUS: process: posix.system"
+          ],
+          "seconds": 0.376175627000066,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "posix.system"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "x_nullifai_broken_stream.pkl",
+      "label": "malicious",
+      "category": "bypass",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 442.3,
+            "total": 442.6
+          },
+          "reasons": [
+            "[static] MALICIOUS: opcode walk failed: ValueError: at position 36, opcode b'\\xff' unknown",
+            "[static] MALICIOUS: import of a known sink: posix.system",
+            "[emulation] SUSPICIOUS: import outside the allowlist: posix.system",
+            "[emulation] MALICIOUS: process: posix.system",
+            "[emulation] SUSPICIOUS: anomaly: unpickling raised"
+          ],
+          "seconds": 0.4426192809996792,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "posix.system"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "x_pip_main.pkl",
+      "label": "malicious",
+      "category": "bypass",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 432.1,
+            "total": 432.4
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: pip.main",
+            "[emulation] SUSPICIOUS: import outside the allowlist: pip.main",
+            "[emulation] SUSPICIOUS: unexpected_call: pip.main"
+          ],
+          "seconds": 0.4324559560000125,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "pip.main"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "x_osx_support_read_output.pkl",
+      "label": "malicious",
+      "category": "bypass",
+      "expected": "SUSPICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.3,
+            "emulation": 431.9,
+            "total": 432.3
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: import outside the allowlist: _osx_support._read_output",
+            "[emulation] SUSPICIOUS: import outside the allowlist: _osx_support._read_output",
+            "[emulation] SUSPICIOUS: unexpected_call: _osx_support._read_output"
+          ],
+          "seconds": 0.4323781179996331,
+          "category": "RISKY",
+          "unverifiable_only": false,
+          "missing": [
+            "_osx_support._read_output"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "x_pydoc_pipepager.pkl",
+      "label": "malicious",
+      "category": "bypass",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 426.8,
+            "total": 427.1
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: pydoc.pipepager",
+            "[emulation] SUSPICIOUS: import outside the allowlist: pydoc.pipepager",
+            "[emulation] SUSPICIOUS: unexpected_call: pydoc.pipepager"
+          ],
+          "seconds": 0.4270843189997322,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "pydoc.pipepager"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "x_timeit.pkl",
+      "label": "malicious",
+      "category": "bypass",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.3,
+            "emulation": 421.2,
+            "total": 421.6
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: timeit.timeit",
+            "[emulation] SUSPICIOUS: import outside the allowlist: timeit.timeit",
+            "[emulation] SUSPICIOUS: unexpected_call: timeit.timeit"
+          ],
+          "seconds": 0.4216385100003208,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "timeit.timeit"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "x_cprofile_run.pkl",
+      "label": "malicious",
+      "category": "bypass",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.3,
+            "emulation": 379.8,
+            "total": 380.2
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: cProfile.run",
+            "[emulation] SUSPICIOUS: import outside the allowlist: cProfile.run",
+            "[emulation] SUSPICIOUS: unexpected_call: cProfile.run"
+          ],
+          "seconds": 0.38018678899970837,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "cProfile.run"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "x_functools_partial.pkl",
+      "label": "malicious",
+      "category": "bypass",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.3,
+            "emulation": 365.4,
+            "total": 365.7
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: posix.system",
+            "[static] MALICIOUS: import outside the allowlist: functools.partial",
+            "[emulation] SUSPICIOUS: import outside the allowlist: functools.partial",
+            "[emulation] SUSPICIOUS: import outside the allowlist: posix.system",
+            "[emulation] SUSPICIOUS: unexpected_call: functools.partial",
+            "[emulation] SUSPICIOUS: unexpected_call: functools.partial()"
+          ],
+          "seconds": 0.3657459099999869,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "functools.partial",
+            "posix.system"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "x_operator_methodcaller.pkl",
+      "label": "malicious",
+      "category": "bypass",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "pickle",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 406.9,
+            "total": 407.3
+          },
+          "reasons": [
+            "[static] MALICIOUS: import of a known sink: builtins.__import__",
+            "[static] MALICIOUS: import outside the allowlist: operator.methodcaller",
+            "[emulation] SUSPICIOUS: import outside the allowlist: operator.methodcaller",
+            "[emulation] SUSPICIOUS: unexpected_call: operator.methodcaller",
+            "[emulation] SUSPICIOUS: import outside the allowlist: builtins.__import__",
+            "[emulation] SUSPICIOUS: import: builtins.__import__",
+            "[emulation] SUSPICIOUS: unexpected_call: operator.methodcaller()"
+          ],
+          "seconds": 0.40728146799983733,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "builtins.__import__",
+            "operator.methodcaller"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "x_zip_name_mismatch.pt",
+      "label": "malicious",
+      "category": "bypass",
+      "expected": "SUSPICIOUS",
+      "source": "lab",
+      "format": "torch",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "torch",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 0.1,
+            "total": 0.3
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: member 'archive/data.pkl' cannot be read: File name in directory 'archive/data.pkl' and header b'archive/data.txt' differ.",
+            "[emulation] SUSPICIOUS: archive refused, nothing emulated: member 'archive/data.pkl' cannot be read: File name in directory 'archive/data.pkl' and header b'archive/data.txt' differ."
+          ],
+          "seconds": 0.0003347849997226149,
+          "category": "RISKY",
+          "unverifiable_only": false,
+          "missing": [],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "x_zip_flag_bits.pt",
+      "label": "malicious",
+      "category": "bypass",
+      "expected": "SUSPICIOUS",
+      "source": "lab",
+      "format": "torch",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "torch",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.1,
+            "emulation": 0.1,
+            "total": 0.2
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: member 'archive/data.pkl' cannot be read: File <ZipInfo filename='archive/data.pkl' filemode='?rw-------' file_size=36> is encrypted, password required for extraction",
+            "[emulation] SUSPICIOUS: archive refused, nothing emulated: member 'archive/data.pkl' cannot be read: File <ZipInfo filename='archive/data.pkl' filemode='?rw-------' file_size=36> is encrypted, password required for extraction"
+          ],
+          "seconds": 0.00025396099999852595,
+          "category": "RISKY",
+          "unverifiable_only": false,
+          "missing": [],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "x_zip_hidden_pickle.pt",
+      "label": "malicious",
+      "category": "bypass",
+      "expected": "SUSPICIOUS",
+      "source": "lab",
+      "format": "torch",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "torch",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.5,
+            "emulation": 507.3,
+            "total": 507.9
+          },
+          "reasons": [
+            "[static] MALICIOUS: member 'archive/data/0' is a pickle outside the .pkl members (imports posix.system)",
+            "[static] MALICIOUS: import of a known sink: posix.system"
+          ],
+          "seconds": 0.507888186999935,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "posix.system"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "b_builtins_p0.pkl",
+      "label": "benign",
+      "category": "benign",
+      "expected": "CLEAN",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 1.0,
+            "emulation": 389.3,
+            "total": 390.4
+          },
+          "reasons": [],
+          "seconds": 0.39041899499989086,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "b_builtins_p1.pkl",
+      "label": "benign",
+      "category": "benign",
+      "expected": "CLEAN",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.5,
+            "emulation": 408.9,
+            "total": 409.5
+          },
+          "reasons": [],
+          "seconds": 0.409530913999788,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "b_builtins_p2.pkl",
+      "label": "benign",
+      "category": "benign",
+      "expected": "CLEAN",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.6,
+            "emulation": 379.2,
+            "total": 379.9
+          },
+          "reasons": [],
+          "seconds": 0.379887196999789,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "b_builtins_p3.pkl",
+      "label": "benign",
+      "category": "benign",
+      "expected": "CLEAN",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.6,
+            "emulation": 406.6,
+            "total": 407.3
+          },
+          "reasons": [],
+          "seconds": 0.40729244599970116,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "b_builtins_p4.pkl",
+      "label": "benign",
+      "category": "benign",
+      "expected": "CLEAN",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.5,
+            "emulation": 364.1,
+            "total": 364.7
+          },
+          "reasons": [],
+          "seconds": 0.364709622999726,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "b_builtins_p5.pkl",
+      "label": "benign",
+      "category": "benign",
+      "expected": "CLEAN",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.4,
+            "emulation": 370.6,
+            "total": 371.1
+          },
+          "reasons": [],
+          "seconds": 0.37114875999986907,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "b_two_pickles.pkl",
+      "label": "benign",
+      "category": "benign",
+      "expected": "CLEAN",
+      "source": "lab",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 380.4,
+            "total": 380.7
+          },
+          "reasons": [],
+          "seconds": 0.38067776699972455,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "b_keras_dense.keras",
+      "label": "benign",
+      "category": "benign",
+      "expected": "CLEAN",
+      "source": "lab",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "keras",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.4,
+            "emulation": 0.0,
+            "total": 0.5
+          },
+          "reasons": [],
+          "seconds": 0.00047399000004588743,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "k_custom_object.keras",
+      "label": "malicious",
+      "category": "custom_object",
+      "expected": "SUSPICIOUS",
+      "source": "lab",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "keras",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.3,
+            "emulation": 0.0,
+            "total": 0.4
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: config.layers[1]: object outside the allowlist safeloadai_marker_pkg.layers.Backdoor",
+            "[static] SUSPICIOUS: config.layers[1]: object outside the allowlist Custom>Backdoor.registered_name"
+          ],
+          "seconds": 0.00037396399966382887,
+          "category": "UNVERIFIABLE",
+          "unverifiable_only": true,
+          "missing": [
+            "Custom>Backdoor.registered_name",
+            "safeloadai_marker_pkg.layers.Backdoor"
+          ],
+          "unverifiable_items": [
+            "Custom>Backdoor",
+            "safeloadai_marker_pkg.layers.Backdoor"
+          ]
+        }
+      }
+    },
+    {
+      "file": "k_function_os_system.keras",
+      "label": "malicious",
+      "category": "process",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "keras",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 0.0,
+            "total": 0.3
+          },
+          "reasons": [
+            "[static] MALICIOUS: config.layers[1].config.activation: known sink posix.system"
+          ],
+          "seconds": 0.00028119299986428814,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "posix.system"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "k_tfoplambda_write_file.keras",
+      "label": "malicious",
+      "category": "file_write",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "keras",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.2,
+            "emulation": 0.0,
+            "total": 0.3
+          },
+          "reasons": [
+            "[static] MALICIOUS: config.layers[1]: known sink tf.io.write_file",
+            "[static] MALICIOUS: config.layers[1]: TFOpLambda layer calls a TensorFlow function by name"
+          ],
+          "seconds": 0.0002958709997074038,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "tf.io.write_file"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "k_prefix_module.keras",
+      "label": "malicious",
+      "category": "module_prefix",
+      "expected": "SUSPICIOUS",
+      "source": "lab",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "keras",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.3,
+            "emulation": 0.0,
+            "total": 0.3
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: config.layers[1]: object outside the allowlist kerasx.layers.Dense"
+          ],
+          "seconds": 0.0003549990001374681,
+          "category": "UNVERIFIABLE",
+          "unverifiable_only": true,
+          "missing": [
+            "kerasx.layers.Dense"
+          ],
+          "unverifiable_items": [
+            "kerasx.layers.Dense"
+          ]
+        }
+      }
+    },
+    {
+      "file": "k_lambda_os_system.keras",
+      "label": "malicious",
+      "category": "process",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "keras",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.5,
+            "emulation": 390.9,
+            "total": 391.6
+          },
+          "reasons": [
+            "[static] MALICIOUS: config.layers[1]: Lambda layer with marshalled bytecode; sink names in bytecode: __import__, os, system",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.__import__",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.os",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.system",
+            "[emulation] SUSPICIOUS: anomaly: introspection names in Lambda",
+            "[emulation] SUSPICIOUS: import: builtins.__import__",
+            "[emulation] MALICIOUS: process: os.system"
+          ],
+          "seconds": 0.3915691060001336,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "keras.layers.Lambda.__import__",
+            "keras.layers.Lambda.os",
+            "keras.layers.Lambda.system"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "k_lambda_write_file.keras",
+      "label": "malicious",
+      "category": "file_write",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "keras",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.6,
+            "emulation": 415.8,
+            "total": 416.5
+          },
+          "reasons": [
+            "[static] MALICIOUS: config.layers[1]: Lambda layer with marshalled bytecode; sink names in bytecode: io, write_file",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.io",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.write_file",
+            "[emulation] MALICIOUS: file_write: tf.io.write_file"
+          ],
+          "seconds": 0.4165504699999474,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "keras.layers.Lambda.io",
+            "keras.layers.Lambda.write_file"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "k_lambda_py_function.keras",
+      "label": "malicious",
+      "category": "code_exec",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "keras",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.8,
+            "emulation": 455.5,
+            "total": 456.3
+          },
+          "reasons": [
+            "[static] MALICIOUS: config.layers[1]: Lambda layer with marshalled bytecode; sink names in bytecode: py_function",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.py_function",
+            "[emulation] MALICIOUS: code_exec: tf.py_function"
+          ],
+          "seconds": 0.4563433250000344,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "keras.layers.Lambda.py_function"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "k_lambda_getattr_strings.keras",
+      "label": "malicious",
+      "category": "process",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "keras",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.8,
+            "emulation": 370.7,
+            "total": 371.5
+          },
+          "reasons": [
+            "[static] MALICIOUS: config.layers[1]: Lambda layer with marshalled bytecode; sink names in bytecode: __import__, getattr, os, system",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.__import__",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.getattr",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.os",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.system",
+            "[emulation] SUSPICIOUS: anomaly: introspection names in Lambda",
+            "[emulation] SUSPICIOUS: import: builtins.__import__",
+            "[emulation] SUSPICIOUS: introspection: builtins.getattr"
+          ],
+          "seconds": 0.3715400219998628,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "keras.layers.Lambda.__import__",
+            "keras.layers.Lambda.getattr",
+            "keras.layers.Lambda.os",
+            "keras.layers.Lambda.system"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "k_lambda_env_probe.keras",
+      "label": "malicious",
+      "category": "evasion",
+      "expected": "SUSPICIOUS",
+      "source": "lab",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "keras",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.8,
+            "emulation": 370.1,
+            "total": 371.0
+          },
+          "reasons": [
+            "[static] MALICIOUS: config.layers[1]: Lambda layer with marshalled bytecode; sink names in bytecode: __import__, environ, os",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.__import__",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.environ",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.os",
+            "[emulation] SUSPICIOUS: anomaly: introspection names in Lambda",
+            "[emulation] SUSPICIOUS: import: builtins.__import__",
+            "[emulation] SUSPICIOUS: environment_probe: os.environ.get"
+          ],
+          "seconds": 0.37101226799995857,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "keras.layers.Lambda.__import__",
+            "keras.layers.Lambda.environ",
+            "keras.layers.Lambda.os"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "k_lambda_weight_gated.keras",
+      "label": "malicious",
+      "category": "evasion",
+      "expected": "SUSPICIOUS",
+      "source": "lab",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "keras",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.8,
+            "emulation": 360.1,
+            "total": 361.0
+          },
+          "reasons": [
+            "[static] MALICIOUS: config.layers[1]: Lambda layer with marshalled bytecode; sink names in bytecode: __import__, os, system",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.__import__",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.os",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.system",
+            "[emulation] SUSPICIOUS: anomaly: introspection names in Lambda",
+            "[emulation] SUSPICIOUS: anomaly: tensor value read"
+          ],
+          "seconds": 0.36101772300025914,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "keras.layers.Lambda.__import__",
+            "keras.layers.Lambda.os",
+            "keras.layers.Lambda.system"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "k_lambda_introspection.keras",
+      "label": "malicious",
+      "category": "evasion",
+      "expected": "SUSPICIOUS",
+      "source": "lab",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "keras",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.6,
+            "emulation": 353.2,
+            "total": 353.9
+          },
+          "reasons": [
+            "[static] MALICIOUS: config.layers[1]: Lambda layer with marshalled bytecode; sink names in bytecode: __subclasses__",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.__subclasses__",
+            "[emulation] SUSPICIOUS: anomaly: introspection names in Lambda"
+          ],
+          "seconds": 0.35394946799988247,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "keras.layers.Lambda.__subclasses__"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "k_lambda_unknown_global.keras",
+      "label": "malicious",
+      "category": "missing_stub",
+      "expected": "SUSPICIOUS",
+      "source": "lab",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "keras",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.6,
+            "emulation": 358.6,
+            "total": 359.3
+          },
+          "reasons": [
+            "[emulation] SUSPICIOUS: anomaly: missing stub for global",
+            "[emulation] SUSPICIOUS: unexpected_call: helper_not_defined"
+          ],
+          "seconds": 0.3592890269997042,
+          "category": "RISKY",
+          "unverifiable_only": false,
+          "missing": [],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "b_lambda_scale.keras",
+      "label": "benign",
+      "category": "benign",
+      "expected": "CLEAN",
+      "source": "lab",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "keras",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.7,
+            "emulation": 347.4,
+            "total": 348.1
+          },
+          "reasons": [],
+          "seconds": 0.3481538300002285,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "b_lambda_relu.keras",
+      "label": "benign",
+      "category": "benign",
+      "expected": "CLEAN",
+      "source": "lab",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "keras",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.6,
+            "emulation": 354.8,
+            "total": 355.5
+          },
+          "reasons": [],
+          "seconds": 0.35555375300009473,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "k_lambda_closure_cmd.keras",
+      "label": "malicious",
+      "category": "process",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "keras",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "MALICIOUS"
+          },
+          "timings_ms": {
+            "static": 0.7,
+            "emulation": 369.1,
+            "total": 369.8
+          },
+          "reasons": [
+            "[static] MALICIOUS: config.layers[1]: Lambda layer with marshalled bytecode; sink names in bytecode: __import__, os, system",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.__import__",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.os",
+            "[static] MALICIOUS: config.layers[1]: known sink keras.layers.Lambda.system",
+            "[emulation] SUSPICIOUS: anomaly: introspection names in Lambda",
+            "[emulation] SUSPICIOUS: import: builtins.__import__",
+            "[emulation] MALICIOUS: process: os.system"
+          ],
+          "seconds": 0.3698624190001283,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "keras.layers.Lambda.__import__",
+            "keras.layers.Lambda.os",
+            "keras.layers.Lambda.system"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "k2_lambda_marker.h5",
+      "label": "malicious",
+      "category": "h5_lambda",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "h5",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "h5",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "SUSPICIOUS"
+          },
+          "timings_ms": {
+            "static": 351.3,
+            "emulation": 390.2,
+            "total": 741.7
+          },
+          "reasons": [
+            "[static] MALICIOUS: config.layers[2]: Lambda layer with marshalled bytecode; sink names in bytecode: __import__, subprocess",
+            "[static] MALICIOUS: config.layers[2]: known sink keras.layers.Lambda.__import__",
+            "[static] MALICIOUS: config.layers[2]: known sink keras.layers.Lambda.subprocess",
+            "[emulation] SUSPICIOUS: anomaly: bytecode layout invalid for this interpreter (other Python version?)"
+          ],
+          "seconds": 0.741719163000198,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "keras.layers.Lambda.__import__",
+            "keras.layers.Lambda.subprocess"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "k2_lambda_os_system.h5",
+      "label": "malicious",
+      "category": "h5_lambda",
+      "expected": "MALICIOUS",
+      "source": "lab",
+      "format": "h5",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "MALICIOUS",
+          "file_format": "h5",
+          "layers": {
+            "static": "MALICIOUS",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 365.4,
+            "emulation": 0.0,
+            "total": 365.5
+          },
+          "reasons": [
+            "[static] MALICIOUS: config.layers[2].config.function: known sink os.system",
+            "[static] MALICIOUS: config.layers[2]: known sink tf.system"
+          ],
+          "seconds": 0.36556369799973254,
+          "category": "MALICIOUS",
+          "unverifiable_only": false,
+          "missing": [
+            "os.system",
+            "tf.system"
+          ],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "k2_custom_objects.h5",
+      "label": "malicious",
+      "category": "custom_object",
+      "expected": "SUSPICIOUS",
+      "source": "lab",
+      "format": "h5",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "h5",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 364.4,
+            "emulation": 0.0,
+            "total": 364.6
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: config.layers[1]: object outside the allowlist None.MyDense",
+            "[static] SUSPICIOUS: training_config.loss: object outside the allowlist loss/metric.my_custom_loss"
+          ],
+          "seconds": 0.36459796100007225,
+          "category": "UNVERIFIABLE",
+          "unverifiable_only": true,
+          "missing": [
+            "None.MyDense",
+            "loss/metric.my_custom_loss"
+          ],
+          "unverifiable_items": [
+            "MyDense",
+            "my_custom_loss"
+          ]
+        }
+      }
+    },
+    {
+      "file": "s_external_link.h5",
+      "label": "malicious",
+      "category": "h5_structure",
+      "expected": "SUSPICIOUS",
+      "source": "lab",
+      "format": "h5",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "h5",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 436.7,
+            "emulation": 0.0,
+            "total": 436.8
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: HDF5: /model_weights/elsewhere: external link (points outside this file)"
+          ],
+          "seconds": 0.4368336409997937,
+          "category": "RISKY",
+          "unverifiable_only": false,
+          "missing": [],
+          "unverifiable_items": []
+        }
+      }
+    },
+    {
+      "file": "k2_sequential.h5",
+      "label": "benign",
+      "category": "benign",
+      "expected": "CLEAN",
+      "source": "lab",
+      "format": "h5",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "h5",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 353.8,
+            "emulation": 0.0,
+            "total": 353.9
+          },
+          "reasons": [],
+          "seconds": 0.35390751700015244,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "k2_functional_cnn.h5",
+      "label": "benign",
+      "category": "benign",
+      "expected": "CLEAN",
+      "source": "lab",
+      "format": "h5",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "h5",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 416.8,
+            "emulation": 0.0,
+            "total": 416.9
+          },
+          "reasons": [],
+          "seconds": 0.4169041720001587,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "np_array_f32_p2.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.9,
+            "emulation": 403.4,
+            "total": 404.4
+          },
+          "reasons": [],
+          "seconds": 0.40444178000007014,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "np_array_f32_p4.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.7,
+            "emulation": 400.0,
+            "total": 400.9
+          },
+          "reasons": [],
+          "seconds": 0.40092019600024287,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "np_array_f32_p5.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.5,
+            "emulation": 389.9,
+            "total": 390.4
+          },
+          "reasons": [],
+          "seconds": 0.39043880799999897,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "np_array_i64_p2.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.6,
+            "emulation": 397.8,
+            "total": 398.5
+          },
+          "reasons": [],
+          "seconds": 0.3985676969996348,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "np_array_i64_p4.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.5,
+            "emulation": 417.0,
+            "total": 417.6
+          },
+          "reasons": [],
+          "seconds": 0.41761026899985154,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "np_array_i64_p5.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.4,
+            "emulation": 423.9,
+            "total": 424.4
+          },
+          "reasons": [],
+          "seconds": 0.4243817990000025,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "np_dict_p2.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.7,
+            "emulation": 443.1,
+            "total": 443.9
+          },
+          "reasons": [],
+          "seconds": 0.4439300959998036,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "np_dict_p4.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.7,
+            "emulation": 458.9,
+            "total": 459.7
+          },
+          "reasons": [],
+          "seconds": 0.4596964770003069,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "np_dict_p5.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.5,
+            "emulation": 380.4,
+            "total": 381.0
+          },
+          "reasons": [],
+          "seconds": 0.3809934430000794,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "sk_column_transformer.joblib",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "joblib",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "joblib",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 3.5,
+            "emulation": 398.2,
+            "total": 401.8
+          },
+          "reasons": [],
+          "seconds": 0.4018234029999803,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "sk_column_transformer.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 7.1,
+            "emulation": 389.3,
+            "total": 396.5
+          },
+          "reasons": [],
+          "seconds": 0.39651089000017237,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "sk_forest.joblib",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "joblib",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "joblib",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 4.4,
+            "emulation": 476.6,
+            "total": 481.1
+          },
+          "reasons": [],
+          "seconds": 0.4811389239998789,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "sk_forest.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 9.0,
+            "emulation": 389.0,
+            "total": 398.1
+          },
+          "reasons": [],
+          "seconds": 0.39814379900008134,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "sk_gbr.joblib",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "joblib",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "joblib",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 7.6,
+            "emulation": 396.7,
+            "total": 404.5
+          },
+          "reasons": [],
+          "seconds": 0.4045059680001941,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "sk_gbr.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 7.2,
+            "emulation": 409.9,
+            "total": 417.2
+          },
+          "reasons": [],
+          "seconds": 0.4172377149998283,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "sk_hgb.joblib",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "joblib",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "joblib",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 4.8,
+            "emulation": 399.6,
+            "total": 404.5
+          },
+          "reasons": [],
+          "seconds": 0.4045537370002421,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "sk_hgb.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 7.1,
+            "emulation": 417.3,
+            "total": 424.5
+          },
+          "reasons": [],
+          "seconds": 0.4245216790000086,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "sk_kmeans.joblib",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "joblib",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "joblib",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 1.3,
+            "emulation": 378.0,
+            "total": 379.4
+          },
+          "reasons": [],
+          "seconds": 0.3794324189998406,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "sk_kmeans.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 1.1,
+            "emulation": 388.3,
+            "total": 389.5
+          },
+          "reasons": [],
+          "seconds": 0.38948599600007583,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "sk_knn.joblib",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "joblib",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "joblib",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 1.7,
+            "emulation": 420.8,
+            "total": 422.6
+          },
+          "reasons": [],
+          "seconds": 0.4226423939999222,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "sk_knn.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 2.4,
+            "emulation": 439.7,
+            "total": 442.2
+          },
+          "reasons": [],
+          "seconds": 0.44219041199994535,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "sk_label_encoder.joblib",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "joblib",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "joblib",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.7,
+            "emulation": 415.6,
+            "total": 416.3
+          },
+          "reasons": [],
+          "seconds": 0.41636661600023217,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "sk_label_encoder.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.6,
+            "emulation": 399.4,
+            "total": 400.1
+          },
+          "reasons": [],
+          "seconds": 0.4001775479996468,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "sk_linreg.joblib",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "joblib",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "joblib",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 1.1,
+            "emulation": 406.3,
+            "total": 407.4
+          },
+          "reasons": [],
+          "seconds": 0.40746493100004955,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "sk_linreg.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 1.6,
+            "emulation": 468.6,
+            "total": 470.3
+          },
+          "reasons": [],
+          "seconds": 0.4703007630000684,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "sk_logreg.joblib",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "joblib",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "joblib",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 1.3,
+            "emulation": 367.0,
+            "total": 368.3
+          },
+          "reasons": [],
+          "seconds": 0.3683771899995918,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "sk_logreg.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 1.4,
+            "emulation": 366.2,
+            "total": 367.7
+          },
+          "reasons": [],
+          "seconds": 0.36771390800004156,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "sk_mlp.joblib",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "joblib",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "joblib",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 3.7,
+            "emulation": 391.4,
+            "total": 395.2
+          },
+          "reasons": [],
+          "seconds": 0.39519818899998427,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "sk_mlp.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 5.4,
+            "emulation": 393.2,
+            "total": 398.6
+          },
+          "reasons": [],
+          "seconds": 0.39864277400010906,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "sk_pca.joblib",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "joblib",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "joblib",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 1.2,
+            "emulation": 403.1,
+            "total": 404.5
+          },
+          "reasons": [],
+          "seconds": 0.40448396600004344,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "sk_pca.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 1.4,
+            "emulation": 363.5,
+            "total": 365.0
+          },
+          "reasons": [],
+          "seconds": 0.3650289289998909,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "sk_pipeline.joblib",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "joblib",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "joblib",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 1.8,
+            "emulation": 375.9,
+            "total": 377.8
+          },
+          "reasons": [],
+          "seconds": 0.37780009500011147,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "sk_pipeline.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 2.3,
+            "emulation": 408.6,
+            "total": 410.9
+          },
+          "reasons": [],
+          "seconds": 0.41095133299995723,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "sk_ridge.joblib",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "joblib",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "joblib",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 1.0,
+            "emulation": 373.3,
+            "total": 374.4
+          },
+          "reasons": [],
+          "seconds": 0.37443914999994377,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "sk_ridge.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 1.0,
+            "emulation": 412.5,
+            "total": 413.5
+          },
+          "reasons": [],
+          "seconds": 0.4135344759997679,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "sk_sgd.joblib",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "joblib",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "joblib",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 2.1,
+            "emulation": 423.6,
+            "total": 425.8
+          },
+          "reasons": [],
+          "seconds": 0.4258368410000912,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "sk_sgd.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 1.7,
+            "emulation": 414.3,
+            "total": 416.1
+          },
+          "reasons": [],
+          "seconds": 0.4160896670000511,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "sk_svc.joblib",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "joblib",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "joblib",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 2.1,
+            "emulation": 389.8,
+            "total": 392.0
+          },
+          "reasons": [],
+          "seconds": 0.39198859399994035,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "sk_svc.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 2.5,
+            "emulation": 370.8,
+            "total": 373.3
+          },
+          "reasons": [],
+          "seconds": 0.3733704780001972,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "sk_tfidf.joblib",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "joblib",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "joblib",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 3.3,
+            "emulation": 377.8,
+            "total": 381.1
+          },
+          "reasons": [],
+          "seconds": 0.38113456500013854,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "sk_tfidf.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 2.7,
+            "emulation": 394.0,
+            "total": 396.8
+          },
+          "reasons": [],
+          "seconds": 0.39685443500002293,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "sk_tree.joblib",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "joblib",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "joblib",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 1.7,
+            "emulation": 381.5,
+            "total": 383.3
+          },
+          "reasons": [],
+          "seconds": 0.3833171119999861,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "sk_tree.pkl",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_sk",
+      "format": "pickle",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "pickle",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 2.1,
+            "emulation": 425.9,
+            "total": 428.1
+          },
+          "reasons": [],
+          "seconds": 0.42814370799987955,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "k2_convnext_tiny.h5",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k2",
+      "format": "h5",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "h5",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 1083.3,
+            "emulation": 0.0,
+            "total": 1253.6
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: config.layers[147]: object outside the allowlist None.LayerScale",
+            "[static] SUSPICIOUS: config.layers[139]: object outside the allowlist None.LayerScale",
+            "[static] SUSPICIOUS: config.layers[131]: object outside the allowlist None.LayerScale",
+            "[static] SUSPICIOUS: config.layers[122]: object outside the allowlist None.LayerScale",
+            "[static] SUSPICIOUS: config.layers[114]: object outside the allowlist None.LayerScale",
+            "[static] SUSPICIOUS: config.layers[106]: object outside the allowlist None.LayerScale",
+            "[static] SUSPICIOUS: config.layers[98]: object outside the allowlist None.LayerScale",
+            "[static] SUSPICIOUS: config.layers[90]: object outside the allowlist None.LayerScale"
+          ],
+          "seconds": 1.2621977999997398,
+          "category": "UNVERIFIABLE",
+          "unverifiable_only": true,
+          "missing": [
+            "None.LayerScale"
+          ],
+          "unverifiable_items": [
+            "LayerScale"
+          ]
+        }
+      }
+    },
+    {
+      "file": "k2_convnext_tiny.keras",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k2",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "keras",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 4.3,
+            "emulation": 0.0,
+            "total": 175.0
+          },
+          "reasons": [],
+          "seconds": 0.1802710440001647,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "k2_densenet121.h5",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k2",
+      "format": "h5",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "h5",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 936.3,
+            "emulation": 0.0,
+            "total": 986.9
+          },
+          "reasons": [],
+          "seconds": 0.9900072529999306,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "k2_densenet121.keras",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k2",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "keras",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 20.1,
+            "emulation": 0.0,
+            "total": 70.6
+          },
+          "reasons": [],
+          "seconds": 0.07301513900029022,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "k2_efficientnet_b0.h5",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k2",
+      "format": "h5",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "h5",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 722.1,
+            "emulation": 0.0,
+            "total": 751.0
+          },
+          "reasons": [],
+          "seconds": 0.7509973549999813,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "k2_efficientnet_b0.keras",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k2",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "keras",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 29.6,
+            "emulation": 0.0,
+            "total": 57.2
+          },
+          "reasons": [],
+          "seconds": 0.057211241999993945,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "k2_mobilenet_v2.h5",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k2",
+      "format": "h5",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "h5",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 581.8,
+            "emulation": 0.0,
+            "total": 589.6
+          },
+          "reasons": [],
+          "seconds": 0.589667972999905,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "k2_mobilenet_v2.keras",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k2",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "keras",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 5.8,
+            "emulation": 0.0,
+            "total": 13.5
+          },
+          "reasons": [],
+          "seconds": 0.013521240000045509,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "k2_mobilenet_v3_small.h5",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k2",
+      "format": "h5",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "h5",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 636.3,
+            "emulation": 0.0,
+            "total": 647.8
+          },
+          "reasons": [],
+          "seconds": 0.6478335800002242,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "k2_mobilenet_v3_small.keras",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k2",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "keras",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 8.5,
+            "emulation": 0.0,
+            "total": 19.5
+          },
+          "reasons": [],
+          "seconds": 0.019532825999704073,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "k2_nasnet_mobile.h5",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k2",
+      "format": "h5",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "h5",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 1251.8,
+            "emulation": 0.0,
+            "total": 1275.0
+          },
+          "reasons": [],
+          "seconds": 1.2750715569995918,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "k2_nasnet_mobile.keras",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k2",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "keras",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 22.7,
+            "emulation": 0.0,
+            "total": 46.5
+          },
+          "reasons": [],
+          "seconds": 0.04652288799979942,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "k2_text_gru.h5",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k2",
+      "format": "h5",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "h5",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 353.7,
+            "emulation": 0.0,
+            "total": 353.9
+          },
+          "reasons": [],
+          "seconds": 0.35394779399985055,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "k2_text_gru.keras",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k2",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "keras",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.4,
+            "emulation": 0.0,
+            "total": 0.6
+          },
+          "reasons": [],
+          "seconds": 0.0005890309998903831,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "keras_dense.keras",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k2",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "keras",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.6,
+            "emulation": 0.0,
+            "total": 0.7
+          },
+          "reasons": [],
+          "seconds": 0.0006922600000507373,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "k3_convnext_tiny.h5",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k3",
+      "format": "h5",
+      "results": {
+        "safeloadai": {
+          "outcome": "flagged",
+          "verdict": "SUSPICIOUS",
+          "file_format": "h5",
+          "layers": {
+            "static": "SUSPICIOUS",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 936.8,
+            "emulation": 0.0,
+            "total": 1100.1
+          },
+          "reasons": [
+            "[static] SUSPICIOUS: config.layers[147]: object outside the allowlist None.LayerScale",
+            "[static] SUSPICIOUS: config.layers[139]: object outside the allowlist None.LayerScale",
+            "[static] SUSPICIOUS: config.layers[131]: object outside the allowlist None.LayerScale",
+            "[static] SUSPICIOUS: config.layers[122]: object outside the allowlist None.LayerScale",
+            "[static] SUSPICIOUS: config.layers[114]: object outside the allowlist None.LayerScale",
+            "[static] SUSPICIOUS: config.layers[106]: object outside the allowlist None.LayerScale",
+            "[static] SUSPICIOUS: config.layers[98]: object outside the allowlist None.LayerScale",
+            "[static] SUSPICIOUS: config.layers[90]: object outside the allowlist None.LayerScale"
+          ],
+          "seconds": 1.1089361039998948,
+          "category": "UNVERIFIABLE",
+          "unverifiable_only": true,
+          "missing": [
+            "None.LayerScale"
+          ],
+          "unverifiable_items": [
+            "LayerScale"
+          ]
+        }
+      }
+    },
+    {
+      "file": "k3_convnext_tiny.keras",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k3",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "keras",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 5.6,
+            "emulation": 0.0,
+            "total": 166.4
+          },
+          "reasons": [],
+          "seconds": 0.1708767049999551,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "k3_densenet121.h5",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k3",
+      "format": "h5",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "h5",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 863.9,
+            "emulation": 0.0,
+            "total": 908.5
+          },
+          "reasons": [],
+          "seconds": 0.9117284300000392,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "k3_densenet121.keras",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k3",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "keras",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 17.8,
+            "emulation": 0.0,
+            "total": 67.0
+          },
+          "reasons": [],
+          "seconds": 0.06874687899971832,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "k3_efficientnet_b0.h5",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k3",
+      "format": "h5",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "h5",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 633.3,
+            "emulation": 0.0,
+            "total": 660.1
+          },
+          "reasons": [],
+          "seconds": 0.6601657960000011,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "k3_efficientnet_b0.keras",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k3",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "keras",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 9.6,
+            "emulation": 0.0,
+            "total": 31.4
+          },
+          "reasons": [],
+          "seconds": 0.031436921000022267,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "k3_mobilenet_v2.h5",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k3",
+      "format": "h5",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "h5",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 563.7,
+            "emulation": 0.0,
+            "total": 571.3
+          },
+          "reasons": [],
+          "seconds": 0.5713431880003554,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "k3_mobilenet_v2.keras",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k3",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "keras",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 7.0,
+            "emulation": 0.0,
+            "total": 13.9
+          },
+          "reasons": [],
+          "seconds": 0.013955066000107763,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "k3_mobilenet_v3_small.h5",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k3",
+      "format": "h5",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "h5",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 544.9,
+            "emulation": 0.0,
+            "total": 555.2
+          },
+          "reasons": [],
+          "seconds": 0.5552020899999661,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "k3_mobilenet_v3_small.keras",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k3",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "keras",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 11.4,
+            "emulation": 0.0,
+            "total": 23.3
+          },
+          "reasons": [],
+          "seconds": 0.023358524999821384,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "k3_nasnet_mobile.h5",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k3",
+      "format": "h5",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "h5",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 1579.9,
+            "emulation": 0.0,
+            "total": 1615.4
+          },
+          "reasons": [],
+          "seconds": 1.615425416999642,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "k3_nasnet_mobile.keras",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k3",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "keras",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 31.6,
+            "emulation": 0.0,
+            "total": 54.7
+          },
+          "reasons": [],
+          "seconds": 0.05477383399966129,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "k3_text_gru.h5",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k3",
+      "format": "h5",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "h5",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 379.5,
+            "emulation": 0.0,
+            "total": 379.7
+          },
+          "reasons": [],
+          "seconds": 0.37975724800026,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "k3_text_gru.keras",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k3",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "keras",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.5,
+            "emulation": 0.0,
+            "total": 0.6
+          },
+          "reasons": [],
+          "seconds": 0.0006390630001078534,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    },
+    {
+      "file": "keras_dense.keras",
+      "label": "benign",
+      "category": "benign_external",
+      "expected": "CLEAN",
+      "source": "benign_k3",
+      "format": "keras",
+      "results": {
+        "safeloadai": {
+          "outcome": "clean",
+          "verdict": "CLEAN",
+          "file_format": "keras",
+          "layers": {
+            "static": "CLEAN",
+            "emulation": "CLEAN"
+          },
+          "timings_ms": {
+            "static": 0.3,
+            "emulation": 0.0,
+            "total": 0.3
+          },
+          "reasons": [],
+          "seconds": 0.00030536799977198825,
+          "category": null,
+          "unverifiable_only": false
+        }
+      }
+    }
+  ]
+}

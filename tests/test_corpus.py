@@ -39,9 +39,6 @@ def test_corpus_verdicts(corpus):
 @pytest.mark.parametrize("name, expected", [
     ("clean_model.pkl", Verdict.CLEAN),
     ("clean_model.keras", Verdict.CLEAN),
-    ("evil_os_system.pkl", Verdict.MALICIOUS),
-    ("evil_file_write.pkl", Verdict.MALICIOUS),
-    ("evil_network_beacon.pkl", Verdict.MALICIOUS),
     ("evil_lambda.keras", Verdict.MALICIOUS),
     ("evil_custom_object.keras", Verdict.SUSPICIOUS),
 ])

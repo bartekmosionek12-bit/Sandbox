@@ -16,7 +16,7 @@ from . import behaviour, verdict
 from . import static as static_mod
 from .parsing import detect as detect_mod
 from .parsing.zipsafe import SafeZip, ZipRefused
-from .report import LayerResult, Report, Verdict, combine
+from .report import LayerResult, Report, Verdict, combine, combine_findings
 from .sandbox import Limits, emulate_keras_lambdas, emulate_pickle
 from .static.torch_static import MAX_PICKLE_MEMBER_BYTES
 
@@ -147,10 +147,11 @@ def scan(path: str | os.PathLike, *, judge: bool = False, deep: bool = False,
         timings["judge"] = _ms(t)
 
     final, reasons = combine(layers)
+    findings, category = combine_findings(layers)
     timings["total"] = _ms(started)
     return Report(path=path, file_name=os.path.basename(path), sha256=sha256, size=size,
                   file_format=file_format, verdict=final, reasons=reasons, layers=layers,
-                  timings_ms=timings, version=__version__)
+                  timings_ms=timings, version=__version__, findings=findings, category=category)
 
 
 def _sha256_file(path: str) -> str:

@@ -17,7 +17,7 @@ import pytest
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
-SAMPLES = os.path.join(ROOT, "poc", "samples")
+SAMPLES = os.path.join(ROOT, "tests", "fixtures", "poc")
 
 
 @pytest.fixture(autouse=True)

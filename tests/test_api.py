@@ -4,13 +4,11 @@ Pickles here are benign and built with pickle.dumps on the host; payload samples
 are only ever scanned, never loaded.
 """
 import json
-import os
 import pickle
-import shutil
 import sys
 
 import pytest
-from conftest import SAMPLES
+from corpus.build_corpus import MARKER_CMD, P2, STOP, call, g, s
 
 from safeloadai import UnsafeModelError, Verdict, api, safe_load, scan
 from safeloadai.sandbox import runtime
@@ -34,7 +32,7 @@ def test_pathlib_path_accepted(tmp_path, fake_emulation):
 
 def test_static_malicious_sample_is_blocked(tmp_path, fake_emulation):
     target = tmp_path / "evil.pkl"
-    shutil.copy(os.path.join(SAMPLES, "evil_os_system.pkl"), target)
+    target.write_bytes(P2 + call(g("posix", "system"), s(MARKER_CMD)) + STOP)
     with pytest.raises(UnsafeModelError) as info:
         safe_load(str(target))
     assert info.value.verdict is Verdict.MALICIOUS

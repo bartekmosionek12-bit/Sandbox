@@ -78,8 +78,60 @@ PICKLE_GLOBALS: frozenset[tuple[str, str]] = frozenset(
         ("sklearn.tree._classes", "DecisionTreeClassifier"),
         ("sklearn.tree._classes", "DecisionTreeRegressor"),
         ("sklearn.tree._tree", "Tree"),
+        # Added after the 2026-10-18 false-positive review
+        # (evaluation/results/false-positives-20261018.md). One justification per pair.
+        ("numpy", "float64"),  # scalar type used as a dtype parameter; calling it returns a float or raises
+        ("numpy.random._pcg64", "PCG64"),  # bit-generator class; its state is a dict of integers
+        ("numpy.random._pickle", "__generator_ctor"),  # only with the argument check in GUARDED_CALLS
+        ("sklearn._loss._loss", "CyHalfBinomialLoss"),  # Cython loss without constructor arguments
+        ("sklearn._loss._loss", "CyHalfSquaredError"),  # Cython loss without constructor arguments
+        ("sklearn._loss.link", "IdentityLink"),  # stateless link class
+        ("sklearn._loss.link", "LogitLink"),  # stateless link class
+        ("sklearn._loss.loss", "HalfBinomialLoss"),  # Python loss; constructor arguments are numbers
+        ("sklearn._loss.loss", "HalfSquaredError"),  # Python loss; constructor arguments are numbers
+        # restores __dict__ only; each transformer it names is checked as its own global
+        # (FunctionTransformer, which holds an arbitrary function, stays out)
+        ("sklearn.compose._column_transformer", "ColumnTransformer"),
+        ("sklearn.dummy", "DummyRegressor"),  # plain estimator (GradientBoostingRegressor init model)
+        ("sklearn.ensemble._gb", "GradientBoostingRegressor"),  # plain estimator
+        ("sklearn.ensemble._hist_gradient_boosting.binning", "_BinMapper"),  # plain estimator
+        # plain estimator
+        ("sklearn.ensemble._hist_gradient_boosting.gradient_boosting", "HistGradientBoostingClassifier"),
+        ("sklearn.ensemble._hist_gradient_boosting.predictor", "TreePredictor"),  # holds node arrays
+        # restores __dict__; a custom tokenizer/preprocessor/analyzer is a global of its own, still checked
+        ("sklearn.feature_extraction.text", "TfidfVectorizer"),
+        ("sklearn.feature_extraction.text", "TfidfTransformer"),  # plain estimator
+        ("sklearn.linear_model._ridge", "Ridge"),  # plain estimator
+        ("sklearn.linear_model._sgd_fast", "Hinge"),  # Cython loss; __reduce__ is (Hinge, (threshold,))
+        ("sklearn.linear_model._stochastic_gradient", "SGDClassifier"),  # BaseEstimator.__setstate__ only
+        ("sklearn.neural_network._multilayer_perceptron", "MLPClassifier"),  # plain estimator
+        ("sklearn.neural_network._stochastic_optimizers", "AdamOptimizer"),  # holds arrays and floats
+        ("sklearn.preprocessing._encoders", "OneHotEncoder"),  # plain estimator
+        ("sklearn.preprocessing._label", "LabelBinarizer"),  # plain estimator
+        ("sklearn.preprocessing._label", "LabelEncoder"),  # plain estimator (classes_ array)
     ]
 )
+
+# numpy's pickling helpers that call one of their arguments: __generator_ctor(name, ctor)
+# and __randomstate_ctor(name, ctor) return ctor(name), and __bit_generator_ctor(cls)
+# returns cls(). Each is a call primitive, so each allowed pair above is accepted only
+# when every call matches numpy's own pickles (pickle_static._check_guarded_calls):
+# the first argument a numpy bit-generator name, class or instance, the ctor argument
+# absent or __bit_generator_ctor, and the function never passed around as a value.
+NUMPY_BIT_GENERATOR_CTOR = ("numpy.random._pickle", "__bit_generator_ctor")
+NUMPY_BIT_GENERATOR_NAMES = frozenset({"MT19937", "PCG64", "PCG64DXSM", "Philox", "SFC64"})
+NUMPY_BIT_GENERATOR_CLASSES = frozenset({
+    ("numpy.random._mt19937", "MT19937"),
+    ("numpy.random._pcg64", "PCG64"),
+    ("numpy.random._pcg64", "PCG64DXSM"),
+    ("numpy.random._philox", "Philox"),
+    ("numpy.random._sfc64", "SFC64"),
+})
+GUARDED_CALLS = frozenset({
+    ("numpy.random._pickle", "__generator_ctor"),
+    ("numpy.random._pickle", "__randomstate_ctor"),
+    NUMPY_BIT_GENERATOR_CTOR,
+})
 
 # Extra globals a PyTorch checkpoint (data.pkl or a legacy stream) may import.
 # Source: the globals torch.save emits for tensors, parameters and state dicts,
@@ -124,6 +176,20 @@ DANGEROUS_MODULES = frozenset({
     "http", "ftplib", "smtplib", "telnetlib", "requests", "antigravity", "tempfile",
     "io", "_io", "pathlib", "glob", "signal", "threading", "_thread",
 })
+# Globals outside the two sets above that public scanner bypasses use to run code or to
+# call an argument (tests/corpus/build_corpus.py:bypass_payloads). They do not change the
+# verdict; they only keep the reason RISKY instead of UNVERIFIABLE, because the scanner
+# does know what they do, so no override can accept them.
+KNOWN_GADGETS = frozenset({
+    ("numpy.testing._private.utils", "runstring"),  # exec() of a string
+    ("_osx_support", "_read_output"),  # runs a shell command
+    ("_osx_support", "_find_build_tool"),  # runs a shell command
+    ("functools", "partial"),  # calls its first argument
+    ("functools", "reduce"),  # calls its first argument
+    ("operator", "methodcaller"),  # calls a method by name
+    ("operator", "attrgetter"),  # attribute access by name
+})
+
 DANGEROUS_SYMBOLS = frozenset({
     "system", "popen", "spawn", "spawnl", "spawnv", "exec", "execv", "execve",
     "execfile", "eval", "compile", "Popen", "call", "check_call", "check_output",
@@ -143,6 +209,20 @@ KERAS_MODULES = frozenset({
     "keras.optimizers.schedules", "keras.losses", "keras.metrics", "keras.src.models.functional",
     "keras.src.models.sequential", "keras.src.engine.functional",
     "keras.src.engine.sequential", "keras.src.models.model",
+})
+
+# Exact (module, class_name) pairs accepted outside KERAS_MODULES x KERAS_CLASSES. A pair
+# is not a module grant: no other class from these modules is accepted.
+KERAS_CLASS_PAIRS = frozenset({
+    # Keras's own ConvNeXt layer; its config is init_values and projection_dim (numbers)
+    ("keras.src.applications.convnext", "LayerScale"),
+    # how Keras 3 records keras.ops calls in a functional graph: fixed elementwise maths,
+    # no callable argument (added one by one, never keras.src.ops.*)
+    ("keras.src.ops.numpy", "Add"),
+    ("keras.src.ops.numpy", "Multiply"),
+    # the tf-keras module of TFOpLambda; the layer itself passes only when its op is on
+    # TF_OP_ALLOWED (keras_static)
+    ("keras.src.layers.core.tf_op_layer", "TFOpLambda"),
 })
 
 # Built-in Keras classes that may appear in a model config. Exact class names.
@@ -209,6 +289,7 @@ KERAS_FUNCTIONS = frozenset(
 )
 
 # Layers that carry executable Python (marshalled bytecode or a named callable).
+# A TFOpLambda whose op is on TF_OP_ALLOWED is not a finding (keras_static).
 KERAS_CODE_LAYERS = frozenset({"Lambda", "TFOpLambda", "SlicingOpLambda"})
 
 # TensorFlow functions a TFOpLambda may name (function-level, exact).

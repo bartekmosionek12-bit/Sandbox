@@ -5,7 +5,7 @@ the worst of them (see report.combine), so no layer can lower another.
 """
 from __future__ import annotations
 
-from .report import LayerResult, Verdict, combine
+from .report import Category, LayerResult, Verdict, combine
 
 M, S, C = Verdict.MALICIOUS, Verdict.SUSPICIOUS, Verdict.CLEAN
 
@@ -47,8 +47,14 @@ def static_layer(parser_report: dict, *, defer_lambdas: bool = False) -> LayerRe
     verdict = _STATIC.get(str(risk), S)
     if verdict is C:
         return layer
+    unverifiable = parser_report.get("unverifiable") or {}
     for reason in reasons or [f"static risk {risk!r}"]:
-        layer.raise_to(verdict, reason)
+        meta = unverifiable.get(reason) if verdict is S else None
+        if meta:
+            layer.raise_to(verdict, reason, category=Category.UNVERIFIABLE, item=meta.get("item"),
+                           explanation=meta.get("explanation"), pair=meta.get("pair"))
+        else:
+            layer.raise_to(verdict, reason)
     return layer
 
 

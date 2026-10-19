@@ -16,8 +16,10 @@ processes; modelscan is not run on ``.h5`` files, because it reads them with h5p
 on the host (counted as "skipped").
 
 Results go to ``<out>/eval-<label>-<UTC timestamp>.json`` and a Markdown summary
-next to it: detection rate and false-positive rate overall and per format, median
-time, and for every remaining safeloadai false positive the allowlist entries it
+next to it: detection rate and false-positive rate overall and per format, how many
+flagged files are UNVERIFIABLE only (a user could accept them with an informed
+override; reported as their own column, never subtracted from the false positives),
+median time, and for every remaining safeloadai false positive the allowlist entries it
 is missing (review them; nothing is added automatically). ``compare_eval.py``
 turns two runs (before / after) into one table.
 
@@ -126,9 +128,11 @@ def run_safeloadai(path: str) -> dict:
     layers = {layer.name: layer.verdict.value for layer in report.layers}
     result = {"outcome": "clean" if report.clean else "flagged", "verdict": report.verdict.value,
               "file_format": report.file_format, "layers": layers, "timings_ms": report.timings_ms,
-              "reasons": report.reasons[:8], "seconds": time.perf_counter() - started}
+              "reasons": report.reasons[:8], "seconds": time.perf_counter() - started,
+              "category": report.category, "unverifiable_only": report.unverifiable_only}
     if not report.clean:
         result["missing"] = _missing_entries(report)
+        result["unverifiable_items"] = report.unverifiable_items if report.unverifiable_only else []
     return result
 
 
@@ -183,10 +187,14 @@ def _stats(rows: list[tuple[dict, dict]]) -> dict:
     ben = [(e, r) for e, r in rows if e["label"] == "benign"]
     tp = sum(r["outcome"] == "flagged" for _, r in mal)
     fp = sum(r["outcome"] == "flagged" for _, r in ben)
+    # flagged files whose every reason is UNVERIFIABLE (safeloadai only; other tools report none)
+    unverifiable_fp = sum(r["outcome"] == "flagged" and bool(r.get("unverifiable_only")) for _, r in ben)
+    unverifiable_detected = sum(r["outcome"] == "flagged" and bool(r.get("unverifiable_only")) for _, r in mal)
     seconds = [r["seconds"] for _, r in rows if r["outcome"] != "skipped"]
     return {
         "malicious": len(mal), "benign": len(ben), "detected": tp,
         "detection_rate": _rate(tp, len(mal)), "false_positives": fp, "fp_rate": _rate(fp, len(ben)),
+        "unverifiable_fp": unverifiable_fp, "unverifiable_detected": unverifiable_detected,
         "errors": sum(r["outcome"] == "error" for _, r in rows),
         "unsupported": sum(r["outcome"] == "unsupported" for _, r in rows),
         "skipped": sum(r["outcome"] == "skipped" for _, r in rows),
@@ -244,19 +252,26 @@ def markdown(summary: dict, fps: dict, entries: list[dict], tools: list[str], me
     lines = [f"# Evaluation {meta['label']} ({meta['created']})", "",
              f"safeloadai {meta['safeloadai']}, Python {meta['python']}, {meta['platform']}. "
              f"{len(entries)} files.", "",
-             "| tool | detected / malicious | false positives / benign | errors | unsupported | skipped | "
-             "median s | p95 s |", "|---|---|---|---|---|---|---|---|"]
+             "| tool | detected / malicious | false positives / benign | of which UNVERIFIABLE | errors | "
+             "unsupported | skipped | median s | p95 s |", "|---|---|---|---|---|---|---|---|---|"]
     for tool, s in summary.items():
+        unv = s.get("unverifiable_fp", 0) if tool == "safeloadai" else "-"
         lines.append(f"| {tool} | {s['detected']} / {s['malicious']} | {s['false_positives']} / {s['benign']} | "
-                     f"{s['errors']} | {s['unsupported']} | {s['skipped']} | {s['seconds_median']} | "
+                     f"{unv} | {s['errors']} | {s['unsupported']} | {s['skipped']} | {s['seconds_median']} | "
                      f"{s['seconds_p95']} |")
-    lines += ["", "## Per format", "", "| format | tool | detected / malicious | FP / benign | FP rate | median s |",
-              "|---|---|---|---|---|---|"]
+    lines += ["", "\"of which UNVERIFIABLE\": false positives whose every reason is UNVERIFIABLE, so a user "
+              "could accept them, item by item, for that one file. They still count as false positives. "
+              f"Malicious files that are UNVERIFIABLE only: {summary['safeloadai'].get('unverifiable_detected', 0)} "
+              "(an override would let these through, which is why it names every item).",
+              "", "## Per format", "",
+              "| format | tool | detected / malicious | FP / benign | FP UNVERIFIABLE | FP rate | median s |",
+              "|---|---|---|---|---|---|---|"]
     for fmt in sorted(summary["safeloadai"]["per_format"]):
         for tool, s in summary.items():
             p = s["per_format"][fmt]
+            unv = p.get("unverifiable_fp", 0) if tool == "safeloadai" else "-"
             lines.append(f"| {fmt} | {tool} | {p['detected']} / {p['malicious']} | {p['false_positives']} / "
-                         f"{p['benign']} | {p['fp_rate']} | {p['seconds_median']} |")
+                         f"{p['benign']} | {unv} | {p['fp_rate']} | {p['seconds_median']} |")
     c = summary["safeloadai"]["layer_contribution"]
     lines += ["", "safeloadai layer contribution on malicious files: "
               f"static only {c['static_only']}, emulation only {c['emulation_only']}, both {c['both']}, "

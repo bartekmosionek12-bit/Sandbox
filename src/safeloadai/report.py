@@ -3,6 +3,12 @@
 The final verdict is the maximum over layer verdicts. No layer can lower what
 another layer found: that is how "the judge can only raise severity" and
 "detonation evidence always affects the verdict" are enforced in code.
+
+Every reason also carries a category (``Category``): MALICIOUS evidence, RISKY
+behaviour, or UNVERIFIABLE (the scanner cannot know what code a named object would
+run). The category never changes the verdict; it only decides whether an informed,
+per-file override is possible (``override.py``): only when every reason is
+UNVERIFIABLE.
 """
 from __future__ import annotations
 
@@ -10,7 +16,7 @@ import json
 from dataclasses import asdict, dataclass, field
 from enum import StrEnum
 
-SCHEMA_VERSION = "2.0"
+SCHEMA_VERSION = "2.1"
 
 
 class Verdict(StrEnum):
@@ -30,6 +36,21 @@ def worst(*verdicts: Verdict) -> Verdict:
     return max(verdicts, key=lambda v: v.rank, default=Verdict.CLEAN)
 
 
+class Category(StrEnum):
+    """Why a reason was raised. UNVERIFIABLE is only ever given to SUSPICIOUS reasons."""
+
+    MALICIOUS = "MALICIOUS"  # evidence of a known sink or of tampering
+    RISKY = "RISKY"  # behaviour or a structure the scanner refuses (anomaly, error, limit, code)
+    UNVERIFIABLE = "UNVERIFIABLE"  # a named object whose code the scanner cannot see
+
+    @property
+    def rank(self) -> int:
+        return _CATEGORY_RANK[self]
+
+
+_CATEGORY_RANK = {Category.UNVERIFIABLE: 0, Category.RISKY: 1, Category.MALICIOUS: 2}
+
+
 @dataclass
 class LayerResult:
     name: str
@@ -39,11 +60,29 @@ class LayerResult:
     evidence: list[dict] = field(default_factory=list)
     timings_ms: dict = field(default_factory=dict)
     details: dict = field(default_factory=dict)
+    findings: list[dict] = field(default_factory=list)
 
-    def raise_to(self, verdict: Verdict, reason: str) -> None:
-        """Record a finding; the layer verdict only ever goes up."""
+    def raise_to(self, verdict: Verdict, reason: str, *, category: Category | None = None,
+                 item: str | None = None, explanation: str | None = None, pair: tuple | None = None) -> None:
+        """Record a finding; the layer verdict only ever goes up.
+
+        ``category`` defaults to MALICIOUS for a MALICIOUS reason and RISKY otherwise.
+        UNVERIFIABLE needs the exact ``item`` a user would have to accept, and is never
+        kept for a MALICIOUS reason.
+        """
         self.verdict = worst(self.verdict, verdict)
-        self.reasons.append(f"{verdict.value}: {reason}")
+        text = f"{verdict.value}: {reason}"
+        self.reasons.append(text)
+        if verdict is Verdict.MALICIOUS:
+            category = Category.MALICIOUS
+        elif category is None or category is Category.MALICIOUS or (category is Category.UNVERIFIABLE and not item):
+            category = Category.RISKY
+        finding = {"layer": self.name, "verdict": verdict.value, "category": category.value, "text": text}
+        if category is Category.UNVERIFIABLE:
+            finding.update(item=item, explanation=explanation)
+            if pair is not None:
+                finding["pair"] = [str(pair[0]), str(pair[1])]
+        self.findings.append(finding)
 
 
 @dataclass
@@ -59,10 +98,29 @@ class Report:
     timings_ms: dict
     version: str
     schema_version: str = SCHEMA_VERSION
+    findings: list[dict] = field(default_factory=list)
+    category: str | None = None
+    override: dict | None = None
 
     @property
     def clean(self) -> bool:
         return self.verdict is Verdict.CLEAN
+
+    @property
+    def unverifiable_only(self) -> bool:
+        """SUSPICIOUS, and every reason is UNVERIFIABLE: the only case an override can apply to."""
+        return (self.verdict is Verdict.SUSPICIOUS and bool(self.findings)
+                and all(f["category"] == Category.UNVERIFIABLE for f in self.findings))
+
+    @property
+    def unverifiable_items(self) -> list[str]:
+        return sorted({f["item"] for f in self.findings if f["category"] == Category.UNVERIFIABLE})
+
+    @property
+    def accepted(self) -> bool:
+        """CLEAN, or SUSPICIOUS with every reason UNVERIFIABLE and an accepted override.
+        The verdict itself stays SUSPICIOUS."""
+        return self.clean or (self.unverifiable_only and bool(self.override) and self.override.get("accepted") is True)
 
     def layer(self, name: str) -> LayerResult | None:
         return next((layer for layer in self.layers if layer.name == name), None)
@@ -84,3 +142,22 @@ def combine(layers: list[LayerResult]) -> tuple[Verdict, list[str]]:
     reasons = [f"[{layer.name}] {r}" for layer in layers if layer.verdict is not Verdict.CLEAN
                for r in layer.reasons]
     return verdict, reasons
+
+
+def combine_findings(layers: list[LayerResult]) -> tuple[list[dict], str | None]:
+    """Categorised reasons of every non-clean layer, and the worst category.
+
+    A reason recorded without a finding (written to ``reasons`` directly) is RISKY:
+    nothing becomes UNVERIFIABLE unless the code that raised it said so.
+    """
+    findings: list[dict] = []
+    for layer in layers:
+        if layer.verdict is Verdict.CLEAN:
+            continue
+        covered = {f["text"] for f in layer.findings}
+        findings.extend(dict(f, text=f"[{layer.name}] {f['text']}") for f in layer.findings)
+        findings.extend({"layer": layer.name, "verdict": Verdict.SUSPICIOUS.value, "category": Category.RISKY.value,
+                         "text": f"[{layer.name}] {r}"} for r in layer.reasons if r not in covered)
+    if not findings:
+        return findings, None
+    return findings, max((Category(f["category"]) for f in findings), key=lambda c: c.rank).value

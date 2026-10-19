@@ -87,19 +87,22 @@ def dtype_value(value):
 class Machine:
     """Walks pickles from ``stream`` (a BytesIO over the whole file).
 
-    ``on_import(module, name, pos, opcode, resolved)`` and ``on_opcode(op, arg, pos)``
-    are callbacks. With ``joblib=True`` BUILD on a NumpyArrayWrapper skips (or, for
+    ``on_import(module, name, pos, opcode, resolved)``, ``on_opcode(op, arg, pos)`` and
+    ``on_call(how, func, args, pos)`` are callbacks; ``on_call`` sees every opcode that
+    would call something (REDUCE, NEWOBJ, NEWOBJ_EX, OBJ, INST, and BUILD with
+    ``args == (state,)``). With ``joblib=True`` BUILD on a NumpyArrayWrapper skips (or, for
     object dtypes, walks as a nested pickle) the array data that follows, exactly as
     ``joblib.numpy_pickle.NumpyUnpickler`` reads it.
     """
 
     def __init__(self, data: bytes, *, joblib: bool = True, on_import=None, on_opcode=None,
-                 max_opcodes: int = 5_000_000):
+                 on_call=None, max_opcodes: int = 5_000_000):
         self.data = data
         self.stream = io.BytesIO(data)
         self.joblib = joblib
         self.on_import = on_import or (lambda *a: None)
         self.on_opcode = on_opcode or (lambda *a: None)
+        self.on_call = on_call or (lambda *a: None)
         self.max_opcodes = max_opcodes
         self.opcodes = 0
         self.arrays = 0
@@ -279,7 +282,9 @@ class Machine:
             if name == "GLOBAL":
                 stack.append(func)
             else:
-                stack.append(Obj("inst", func, tuple(pop_mark(stack))))
+                args = tuple(pop_mark(stack))
+                self.on_call("inst", func, args, pos)
+                stack.append(Obj("inst", func, args))
         elif name == "STACK_GLOBAL":
             qualname, module = pop(stack), pop(stack)
             resolved = isinstance(module, str) and isinstance(qualname, str)
@@ -291,21 +296,26 @@ class Machine:
             args, func = pop(stack), pop(stack)
             if not isinstance(args, tuple):
                 raise VMError("REDUCE arguments are not a tuple")
+            self.on_call("reduce", func, args, pos)
             stack.append(Obj("reduce", func, args))
         elif name == "NEWOBJ":
             args, cls = pop(stack), pop(stack)
+            self.on_call("newobj", cls, args, pos)
             stack.append(Obj("newobj", cls, args))
         elif name == "NEWOBJ_EX":
             kwargs, args, cls = pop(stack), pop(stack), pop(stack)
+            self.on_call("newobj_ex", cls, (args, kwargs), pos)
             stack.append(Obj("newobj_ex", cls, (args, kwargs)))
         elif name == "OBJ":
             items = pop_mark(stack)
             if not items:
                 raise VMError("OBJ without a class")
+            self.on_call("obj", items[0], tuple(items[1:]), pos)
             stack.append(Obj("obj", items[0], tuple(items[1:])))
         elif name == "BUILD":
             build_state = pop(stack)
             target = top(stack)
+            self.on_call("build", target, (build_state,), pos)
             if isinstance(target, Obj):
                 target.state = build_state
             self._after_build(stack, memo, pos, end, state, nested)
@@ -388,7 +398,8 @@ class Machine:
         self.stream.seek(cursor + plan.nbytes)
 
 
-def plain_reading_imports(data: bytes, region, max_opcodes: int = 5_000_000) -> tuple[list[tuple], bool]:
+def plain_reading_imports(data: bytes, region, max_opcodes: int = 5_000_000,
+                          on_call=None) -> tuple[list[tuple], bool]:
     """Imports a plain ``pickle.load`` would perform from where joblib starts reading
     array data: it interprets those bytes as opcodes, with the same stack and memo.
 
@@ -408,7 +419,8 @@ def plain_reading_imports(data: bytes, region, max_opcodes: int = 5_000_000) -> 
         if opcode.name in ("EXT1", "EXT2", "EXT4"):
             found.append((None, None, pos, opcode.name))
 
-    machine = Machine(data, joblib=False, on_import=on_import, on_opcode=on_opcode, max_opcodes=max_opcodes)
+    machine = Machine(data, joblib=False, on_import=on_import, on_opcode=on_opcode, on_call=on_call,
+                      max_opcodes=max_opcodes)
     machine.stream.seek(start)
     state = {"frame_end": None, "first_int": None}
     stack, memo = list(stack), dict(memo)

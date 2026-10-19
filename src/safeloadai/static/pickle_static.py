@@ -24,8 +24,21 @@ import pickletools
 import re
 from typing import Any
 
-from .allowlists import DANGEROUS_MODULES, DANGEROUS_SYMBOLS, PICKLE_GLOBALS, TORCH_GLOBALS
-from .pickle_vm import Machine, plain_reading_imports
+from .. import override
+from .allowlists import (
+    DANGEROUS_MODULES,
+    DANGEROUS_SYMBOLS,
+    GUARDED_CALLS,
+    KNOWN_GADGETS,
+    NUMPY_BIT_GENERATOR_CLASSES,
+    NUMPY_BIT_GENERATOR_CTOR,
+    NUMPY_BIT_GENERATOR_NAMES,
+    PICKLE_GLOBALS,
+    TORCH_GLOBALS,
+)
+from .lookalike import imitates
+from .lookalike import reason as lookalike_reason
+from .pickle_vm import Global, Machine, Obj, plain_reading_imports
 
 SCHEMA_VERSION = "1.1"
 
@@ -100,6 +113,8 @@ def _empty_report(file_name: str, file_format: str) -> dict:
         "notes": [],
         "error": None,
         "pickle_count": 0,
+        # reason text -> {"item", "pair", "explanation"} for the reasons that are UNVERIFIABLE
+        "unverifiable": {},
     }
 
 
@@ -153,7 +168,9 @@ def parse_pickle(data: bytes, file_name: str = "<memory>", *, torch: bool = Fals
     allow = base | TORCH_GLOBALS if torch else base
     index_ref = [0]
     on_opcode, on_import = _recorders(report, index_ref)
-    machine = Machine(data, joblib=joblib, on_import=on_import, on_opcode=on_opcode, max_opcodes=MAX_OPCODES)
+    calls: list[tuple] = []
+    machine = Machine(data, joblib=joblib, on_import=on_import, on_opcode=on_opcode,
+                      on_call=lambda *call: calls.append(call), max_opcodes=MAX_OPCODES)
     try:
         legacy_torch = False
         while machine.stream.tell() < len(data):
@@ -181,6 +198,7 @@ def parse_pickle(data: bytes, file_name: str = "<memory>", *, torch: bool = Fals
         report["error"] = f"opcode walk failed: {type(exc).__name__}: {exc}"
     report["pickle_count"] = index_ref[0]
     _joblib_findings(report, machine, data, allow)
+    report["reasons"].extend(_check_guarded_calls(calls))
 
     report["raw_disasm"] = _disasm(data)
     _score(report, allow, torch)
@@ -229,7 +247,11 @@ def _joblib_findings(report: dict, machine: Machine, data: bytes, allow: frozens
         )
     if machine.first_region is None:
         return
-    found, decided = plain_reading_imports(data, machine.first_region, MAX_OPCODES)
+    calls: list[tuple] = []
+    found, decided = plain_reading_imports(data, machine.first_region, MAX_OPCODES,
+                                           on_call=lambda *call: calls.append(call))
+    report["reasons"].extend(f"parser differential: plain pickle.load reading of the joblib array data: {r}"
+                             for r in _check_guarded_calls(calls))
     for module, name, pos, opcode in found:
         if module is not None and not _importable_top_level(module):
             break  # pickle.load raises ImportError here; nothing after it runs
@@ -251,6 +273,95 @@ def _joblib_findings(report: dict, machine: Machine, data: bytes, allow: frozens
     if not decided:
         report["reasons"].append("parser differential check ran out of budget; plain pickle.load reading "
                                  "of the joblib array data is undecided")
+
+
+# --- calls to allowlisted helpers that call one of their own arguments -----------------
+
+MAX_VALUE_WALK = 100_000
+
+
+def _guarded(value) -> bool:
+    return isinstance(value, Global) and value.pair in GUARDED_CALLS
+
+
+def _is_bit_generator(value) -> bool:
+    """A numpy bit-generator instance as numpy pickles it: __bit_generator_ctor(<class or name>)."""
+    return (isinstance(value, Obj) and value.how == "reduce" and isinstance(value.func, Global)
+            and value.func.pair == NUMPY_BIT_GENERATOR_CTOR and _bit_generator_args_ok(value.args))
+
+
+def _bit_generator_args_ok(args) -> bool:
+    if not isinstance(args, tuple) or len(args) > 1:
+        return False
+    if not args:
+        return True  # numpy's default, MT19937
+    first = args[0]
+    return (isinstance(first, str) and first in NUMPY_BIT_GENERATOR_NAMES) or (
+        isinstance(first, Global) and first.pair in NUMPY_BIT_GENERATOR_CLASSES)
+
+
+def _generator_args_ok(args) -> bool:
+    """__generator_ctor / __randomstate_ctor: (name or instance[, __bit_generator_ctor])."""
+    if not isinstance(args, tuple) or not 1 <= len(args) <= 2:
+        return False
+    first = args[0]
+    if not ((isinstance(first, str) and first in NUMPY_BIT_GENERATOR_NAMES) or _is_bit_generator(first)):
+        return False
+    return len(args) == 1 or (isinstance(args[1], Global) and args[1].pair == NUMPY_BIT_GENERATOR_CTOR)
+
+
+def _guarded_values(value, skip_top: int | None = None) -> list[Global]:
+    """Guarded globals reachable inside ``value`` (tuples, lists, dicts, sets).
+    ``skip_top`` exempts one top-level tuple position (the permitted ctor argument).
+    An Obj is not entered: its callable, arguments and state were checked at its own call."""
+    found, seen, todo, steps = [], set(), [(value, 0)], 0
+    while todo:
+        item, depth = todo.pop()
+        steps += 1
+        if steps > MAX_VALUE_WALK:
+            found.append(Global("<undecided>", "<walk limit>"))
+            break
+        if _guarded(item):
+            found.append(item)
+            continue
+        if id(item) in seen:
+            continue
+        seen.add(id(item))
+        if isinstance(item, tuple) and depth == 0 and skip_top is not None:
+            todo.extend((v, depth + 1) for i, v in enumerate(item) if i != skip_top)
+        elif isinstance(item, (tuple, list, set, frozenset)):
+            todo.extend((v, depth + 1) for v in item)
+        elif isinstance(item, dict):
+            todo.extend((v, depth + 1) for kv in item.items() for v in kv)
+    return found
+
+
+def _check_guarded_calls(calls: list[tuple]) -> list[str]:
+    """Reasons for every call that uses numpy's ctor helpers other than the way numpy does.
+
+    Values are checked after the walk, so a list or dict filled in after it was passed
+    to a call is seen with its final contents.
+    """
+    reasons = []
+    for how, func, args, pos in calls:
+        exempt = None
+        if _guarded(func):
+            name = f"{func.module}.{func.name}"
+            if how != "reduce":
+                reasons.append(f"{name} at {pos} is used through {how.upper()}, not called the way numpy does")
+            elif func.pair == NUMPY_BIT_GENERATOR_CTOR:
+                if not _bit_generator_args_ok(args):
+                    reasons.append(f"{name} at {pos} is called with arguments numpy never writes "
+                                   "(only a numpy bit-generator name or class is accepted)")
+            elif not _generator_args_ok(args):
+                reasons.append(f"{name} at {pos} is called with arguments numpy never writes (it calls its "
+                               "second argument; only a numpy bit generator and __bit_generator_ctor are accepted)")
+            else:
+                exempt = 1
+        for value in _guarded_values(args, skip_top=exempt):
+            reasons.append(f"{value.module}.{value.name} is passed as a value at {pos} "
+                           f"({how.upper()}); it may only be called directly")
+    return reasons
 
 
 def _disasm(data: bytes) -> str:
@@ -296,9 +407,20 @@ def _score(report: dict, allow: frozenset, torch: bool) -> None:
 
     for imp in report["suspicious_imports"]:
         reasons.append(f"import of a known sink: {imp['module']}.{imp['symbol']}")
+    unverifiable = report.setdefault("unverifiable", {})
     for imp in report["unknown_imports"]:
         if imp["module"] is not None:
-            reasons.append(f"import outside the allowlist: {imp['module']}.{imp['symbol']}")
+            reason = f"import outside the allowlist: {imp['module']}.{imp['symbol']}"
+            reasons.append(reason)
+            if (imp["module"], imp["symbol"]) in KNOWN_GADGETS:
+                continue
+            ref = imitates(imp["module"])
+            if ref:
+                reasons.append(lookalike_reason(imp["module"], ref))
+                continue
+            unverifiable[reason] = {"item": f"{imp['module']}.{imp['symbol']}",
+                                    "pair": [imp["module"], imp["symbol"]],
+                                    "explanation": override.pickle_global(imp["module"], imp["symbol"])}
 
     if report["suspicious_imports"] and has_call:
         report["static_risk"] = "malicious"

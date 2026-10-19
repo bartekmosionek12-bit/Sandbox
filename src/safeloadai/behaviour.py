@@ -10,12 +10,19 @@ The guest only records; this module decides. Rules, all fail-closed:
 * any other call that is neither a framework tensor operation nor a method of
   an allowlisted global -> SUSPICIOUS;
 * an import of a global outside the allowlist -> SUSPICIOUS.
+
+An import outside the allowlist that is not a known sink, and an unexpected call to
+it or through it, are UNVERIFIABLE (the scanner cannot see that code); everything
+else stays RISKY or MALICIOUS.
 """
 from __future__ import annotations
 
-from .report import LayerResult, Verdict
+from . import override
+from .report import Category, LayerResult, Verdict
 from .sandbox.host import GuestRun
-from .static.allowlists import PICKLE_GLOBALS, TORCH_GLOBALS
+from .static.allowlists import KNOWN_GADGETS, PICKLE_GLOBALS, TORCH_GLOBALS
+from .static.lookalike import imitates
+from .static.pickle_static import is_dangerous_import
 
 M, S = Verdict.MALICIOUS, Verdict.SUSPICIOUS
 
@@ -132,6 +139,13 @@ def classify(run: GuestRun, *, name: str = "emulation", torch: bool = False,
 
     allow_pairs = PICKLE_GLOBALS | frozenset(extra_allowed) | (TORCH_GLOBALS if torch else frozenset())
     names = allowed_names(extra_allowed, torch)
+    unknown: dict[str, tuple[str, str]] = {}  # "module.name" -> pair, for imports that are not sinks
+    for event in run.events:
+        if event.get("kind") == "import":
+            pair = (str(event.get("module")), str(event.get("name")))
+            if (event.get("resolved") != "real" and pair not in allow_pairs and pair not in KNOWN_GADGETS
+                    and not is_dangerous_import(*pair) and not imitates(pair[0])):
+                unknown[f"{pair[0]}.{pair[1]}"] = pair
     for event in run.events:
         kind = event.get("kind")
         if kind == "anomaly":
@@ -141,17 +155,37 @@ def classify(run: GuestRun, *, name: str = "emulation", torch: bool = False,
             found = _classify_call(event, names, framework)
             if found:
                 category, severity = found
-                layer.raise_to(severity, f"{category}: {event.get('target')}")
+                target = str(event.get("target"))
+                owner = _unknown_owner(target, unknown) if category == "unexpected_call" else None
+                if owner:
+                    layer.raise_to(severity, f"{category}: {target}", category=Category.UNVERIFIABLE,
+                                   item=owner, pair=unknown[owner],
+                                   explanation=override.pickle_global(*unknown[owner]))
+                else:
+                    layer.raise_to(severity, f"{category}: {target}")
                 _evidence(layer, event, category, severity)
         elif kind == "import":
             pair = (event.get("module"), event.get("name"))
             if event.get("resolved") != "real" and pair not in allow_pairs:
-                layer.raise_to(S, f"import outside the allowlist: {pair[0]}.{pair[1]}")
+                dotted = f"{pair[0]}.{pair[1]}"
+                if dotted in unknown:
+                    layer.raise_to(S, f"import outside the allowlist: {dotted}", category=Category.UNVERIFIABLE,
+                                   item=dotted, pair=unknown[dotted],
+                                   explanation=override.pickle_global(*unknown[dotted]))
+                else:
+                    layer.raise_to(S, f"import outside the allowlist: {dotted}")
                 _evidence(layer, event, "import", S)
         elif kind == "persistent_id" and not torch:
             layer.raise_to(S, "persistent id outside a torch checkpoint")
             _evidence(layer, event, "persistent_id", S)
     return layer
+
+
+def _unknown_owner(target: str, unknown: dict[str, tuple[str, str]]) -> str | None:
+    """The unknown import a call target is (``m.n``), is an attribute of (``m.n.x``) or was
+    returned by (``m.n().x``). Longest match wins."""
+    matches = [name for name in unknown if _matches(target, name)]
+    return max(matches, key=len) if matches else None
 
 
 def _evidence(layer: LayerResult, event: dict, category: str, severity: Verdict) -> None:

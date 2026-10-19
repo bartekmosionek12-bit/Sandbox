@@ -1,0 +1,172 @@
+# Evaluation lookalike (20261019T043135Z)
+
+safeloadai 0.4.0, Python 3.13.16, Linux x86_64. 138 files.
+
+| tool | detected / malicious | false positives / benign | of which UNVERIFIABLE | errors | unsupported | skipped | median s | p95 s |
+|---|---|---|---|---|---|---|---|---|
+| safeloadai | 53 / 53 | 2 / 85 | 2 | 0 | 0 | 0 | 0.3962 | 3.2463 |
+
+"of which UNVERIFIABLE": false positives whose every reason is UNVERIFIABLE, so a user could accept them, item by item, for that one file. They still count as false positives. Malicious files that are UNVERIFIABLE only: 3 (an override would let these through, which is why it names every item).
+
+## Per format
+
+| format | tool | detected / malicious | FP / benign | FP UNVERIFIABLE | FP rate | median s |
+|---|---|---|---|---|---|---|
+| h5 | safeloadai | 4 / 4 | 2 / 16 | 2 | 0.125 | 1.2255 |
+| joblib | safeloadai | 0 / 0 | 0 / 17 | 0 | 0.0 | 0.4026 |
+| keras | safeloadai | 13 / 13 | 0 / 19 | 0 | 0.0 | 0.3866 |
+| pickle | safeloadai | 32 / 32 | 0 / 33 | 0 | 0.0 | 0.3926 |
+| torch | safeloadai | 4 / 4 | 0 / 0 | 0 | None | 0.1594 |
+
+safeloadai layer contribution on malicious files: static only 8, emulation only 1, both 44, neither 0.
+
+## safeloadai false positives
+
+Allowlist entries the flagged benign files would need (review each; none is added automatically):
+
+| missing entry | files | examples |
+|---|---|---|
+| `None.LayerScale` | 2 | k2_convnext_tiny.h5, k3_convnext_tiny.h5 |
+
+## Files
+
+| file | label | expected | safeloadai |  |
+|---|---|---|---|
+| p_os_system.pkl | malicious | MALICIOUS | MALICIOUS |
+| p_os_system_stack_global.pkl | malicious | MALICIOUS | MALICIOUS |
+| p_nt_system.pkl | malicious | MALICIOUS | MALICIOUS |
+| p_subprocess_getoutput.pkl | malicious | MALICIOUS | MALICIOUS |
+| p_inst_opcode.pkl | malicious | MALICIOUS | MALICIOUS |
+| p_obj_opcode.pkl | malicious | MALICIOUS | MALICIOUS |
+| p_getattr_chain.pkl | malicious | MALICIOUS | MALICIOUS |
+| p_exec_nested.pkl | malicious | MALICIOUS | MALICIOUS |
+| p_eval.pkl | malicious | MALICIOUS | MALICIOUS |
+| p_runpy.pkl | malicious | MALICIOUS | MALICIOUS |
+| p_importlib.pkl | malicious | MALICIOUS | MALICIOUS |
+| p_open_write.pkl | malicious | MALICIOUS | MALICIOUS |
+| p_shutil_rmtree.pkl | malicious | MALICIOUS | MALICIOUS |
+| p_socket_loopback.pkl | malicious | MALICIOUS | MALICIOUS |
+| p_webbrowser.pkl | malicious | MALICIOUS | MALICIOUS |
+| p_ctypes.pkl | malicious | MALICIOUS | MALICIOUS |
+| p_numpy_runstring.pkl | malicious | SUSPICIOUS | SUSPICIOUS |
+| p_unknown_global.pkl | malicious | SUSPICIOUS | SUSPICIOUS |
+| p_second_pickle.pkl | malicious | MALICIOUS | MALICIOUS |
+| p_time_gated.pkl | malicious | MALICIOUS | MALICIOUS |
+| p_env_probe.pkl | malicious | MALICIOUS | MALICIOUS |
+| p_sandbox_probe.pkl | malicious | MALICIOUS | MALICIOUS |
+| p_forge_clean_log.pkl | malicious | MALICIOUS | MALICIOUS |
+| p_torch_legacy.pkl | malicious | MALICIOUS | MALICIOUS |
+| p_torch_zip.pt | malicious | MALICIOUS | MALICIOUS |
+| x_nullifai_broken_stream.pkl | malicious | MALICIOUS | MALICIOUS |
+| x_pip_main.pkl | malicious | MALICIOUS | MALICIOUS |
+| x_osx_support_read_output.pkl | malicious | SUSPICIOUS | SUSPICIOUS |
+| x_pydoc_pipepager.pkl | malicious | MALICIOUS | MALICIOUS |
+| x_timeit.pkl | malicious | MALICIOUS | MALICIOUS |
+| x_cprofile_run.pkl | malicious | MALICIOUS | MALICIOUS |
+| x_functools_partial.pkl | malicious | MALICIOUS | MALICIOUS |
+| x_operator_methodcaller.pkl | malicious | MALICIOUS | MALICIOUS |
+| x_zip_name_mismatch.pt | malicious | SUSPICIOUS | SUSPICIOUS |
+| x_zip_flag_bits.pt | malicious | SUSPICIOUS | SUSPICIOUS |
+| x_zip_hidden_pickle.pt | malicious | SUSPICIOUS | MALICIOUS |
+| b_builtins_p0.pkl | benign | CLEAN | CLEAN |
+| b_builtins_p1.pkl | benign | CLEAN | CLEAN |
+| b_builtins_p2.pkl | benign | CLEAN | CLEAN |
+| b_builtins_p3.pkl | benign | CLEAN | CLEAN |
+| b_builtins_p4.pkl | benign | CLEAN | CLEAN |
+| b_builtins_p5.pkl | benign | CLEAN | CLEAN |
+| b_two_pickles.pkl | benign | CLEAN | CLEAN |
+| b_keras_dense.keras | benign | CLEAN | CLEAN |
+| k_custom_object.keras | malicious | SUSPICIOUS | SUSPICIOUS |
+| k_function_os_system.keras | malicious | MALICIOUS | MALICIOUS |
+| k_tfoplambda_write_file.keras | malicious | MALICIOUS | MALICIOUS |
+| k_prefix_module.keras | malicious | SUSPICIOUS | SUSPICIOUS |
+| k_lambda_os_system.keras | malicious | MALICIOUS | MALICIOUS |
+| k_lambda_write_file.keras | malicious | MALICIOUS | MALICIOUS |
+| k_lambda_py_function.keras | malicious | MALICIOUS | MALICIOUS |
+| k_lambda_getattr_strings.keras | malicious | MALICIOUS | MALICIOUS |
+| k_lambda_env_probe.keras | malicious | SUSPICIOUS | MALICIOUS |
+| k_lambda_weight_gated.keras | malicious | SUSPICIOUS | MALICIOUS |
+| k_lambda_introspection.keras | malicious | SUSPICIOUS | MALICIOUS |
+| k_lambda_unknown_global.keras | malicious | SUSPICIOUS | SUSPICIOUS |
+| b_lambda_scale.keras | benign | CLEAN | CLEAN |
+| b_lambda_relu.keras | benign | CLEAN | CLEAN |
+| k_lambda_closure_cmd.keras | malicious | MALICIOUS | MALICIOUS |
+| k2_lambda_marker.h5 | malicious | MALICIOUS | MALICIOUS |
+| k2_lambda_os_system.h5 | malicious | MALICIOUS | MALICIOUS |
+| k2_custom_objects.h5 | malicious | SUSPICIOUS | SUSPICIOUS |
+| s_external_link.h5 | malicious | SUSPICIOUS | SUSPICIOUS |
+| k2_sequential.h5 | benign | CLEAN | CLEAN |
+| k2_functional_cnn.h5 | benign | CLEAN | CLEAN |
+| np_array_f32_p2.pkl | benign | CLEAN | CLEAN |
+| np_array_f32_p4.pkl | benign | CLEAN | CLEAN |
+| np_array_f32_p5.pkl | benign | CLEAN | CLEAN |
+| np_array_i64_p2.pkl | benign | CLEAN | CLEAN |
+| np_array_i64_p4.pkl | benign | CLEAN | CLEAN |
+| np_array_i64_p5.pkl | benign | CLEAN | CLEAN |
+| np_dict_p2.pkl | benign | CLEAN | CLEAN |
+| np_dict_p4.pkl | benign | CLEAN | CLEAN |
+| np_dict_p5.pkl | benign | CLEAN | CLEAN |
+| sk_column_transformer.joblib | benign | CLEAN | CLEAN |
+| sk_column_transformer.pkl | benign | CLEAN | CLEAN |
+| sk_forest.joblib | benign | CLEAN | CLEAN |
+| sk_forest.pkl | benign | CLEAN | CLEAN |
+| sk_gbr.joblib | benign | CLEAN | CLEAN |
+| sk_gbr.pkl | benign | CLEAN | CLEAN |
+| sk_hgb.joblib | benign | CLEAN | CLEAN |
+| sk_hgb.pkl | benign | CLEAN | CLEAN |
+| sk_kmeans.joblib | benign | CLEAN | CLEAN |
+| sk_kmeans.pkl | benign | CLEAN | CLEAN |
+| sk_knn.joblib | benign | CLEAN | CLEAN |
+| sk_knn.pkl | benign | CLEAN | CLEAN |
+| sk_label_encoder.joblib | benign | CLEAN | CLEAN |
+| sk_label_encoder.pkl | benign | CLEAN | CLEAN |
+| sk_linreg.joblib | benign | CLEAN | CLEAN |
+| sk_linreg.pkl | benign | CLEAN | CLEAN |
+| sk_logreg.joblib | benign | CLEAN | CLEAN |
+| sk_logreg.pkl | benign | CLEAN | CLEAN |
+| sk_mlp.joblib | benign | CLEAN | CLEAN |
+| sk_mlp.pkl | benign | CLEAN | CLEAN |
+| sk_pca.joblib | benign | CLEAN | CLEAN |
+| sk_pca.pkl | benign | CLEAN | CLEAN |
+| sk_pipeline.joblib | benign | CLEAN | CLEAN |
+| sk_pipeline.pkl | benign | CLEAN | CLEAN |
+| sk_ridge.joblib | benign | CLEAN | CLEAN |
+| sk_ridge.pkl | benign | CLEAN | CLEAN |
+| sk_sgd.joblib | benign | CLEAN | CLEAN |
+| sk_sgd.pkl | benign | CLEAN | CLEAN |
+| sk_svc.joblib | benign | CLEAN | CLEAN |
+| sk_svc.pkl | benign | CLEAN | CLEAN |
+| sk_tfidf.joblib | benign | CLEAN | CLEAN |
+| sk_tfidf.pkl | benign | CLEAN | CLEAN |
+| sk_tree.joblib | benign | CLEAN | CLEAN |
+| sk_tree.pkl | benign | CLEAN | CLEAN |
+| k2_convnext_tiny.h5 | benign | CLEAN | SUSPICIOUS |
+| k2_convnext_tiny.keras | benign | CLEAN | CLEAN |
+| k2_densenet121.h5 | benign | CLEAN | CLEAN |
+| k2_densenet121.keras | benign | CLEAN | CLEAN |
+| k2_efficientnet_b0.h5 | benign | CLEAN | CLEAN |
+| k2_efficientnet_b0.keras | benign | CLEAN | CLEAN |
+| k2_mobilenet_v2.h5 | benign | CLEAN | CLEAN |
+| k2_mobilenet_v2.keras | benign | CLEAN | CLEAN |
+| k2_mobilenet_v3_small.h5 | benign | CLEAN | CLEAN |
+| k2_mobilenet_v3_small.keras | benign | CLEAN | CLEAN |
+| k2_nasnet_mobile.h5 | benign | CLEAN | CLEAN |
+| k2_nasnet_mobile.keras | benign | CLEAN | CLEAN |
+| k2_text_gru.h5 | benign | CLEAN | CLEAN |
+| k2_text_gru.keras | benign | CLEAN | CLEAN |
+| keras_dense.keras | benign | CLEAN | CLEAN |
+| k3_convnext_tiny.h5 | benign | CLEAN | SUSPICIOUS |
+| k3_convnext_tiny.keras | benign | CLEAN | CLEAN |
+| k3_densenet121.h5 | benign | CLEAN | CLEAN |
+| k3_densenet121.keras | benign | CLEAN | CLEAN |
+| k3_efficientnet_b0.h5 | benign | CLEAN | CLEAN |
+| k3_efficientnet_b0.keras | benign | CLEAN | CLEAN |
+| k3_mobilenet_v2.h5 | benign | CLEAN | CLEAN |
+| k3_mobilenet_v2.keras | benign | CLEAN | CLEAN |
+| k3_mobilenet_v3_small.h5 | benign | CLEAN | CLEAN |
+| k3_mobilenet_v3_small.keras | benign | CLEAN | CLEAN |
+| k3_nasnet_mobile.h5 | benign | CLEAN | CLEAN |
+| k3_nasnet_mobile.keras | benign | CLEAN | CLEAN |
+| k3_text_gru.h5 | benign | CLEAN | CLEAN |
+| k3_text_gru.keras | benign | CLEAN | CLEAN |
+| keras_dense.keras | benign | CLEAN | CLEAN |

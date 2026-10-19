@@ -15,9 +15,6 @@ def _su(text):
 @pytest.mark.parametrize(
     "name, risk",
     [
-        ("evil_os_system.pkl", "malicious"),
-        ("evil_file_write.pkl", "malicious"),
-        ("evil_network_beacon.pkl", "malicious"),
         ("clean_model.pkl", "clean"),
     ],
 )

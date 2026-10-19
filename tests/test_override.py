@@ -65,7 +65,7 @@ def test_every_reason_has_a_category(fraction_a, tmp_path):
     assert {f["category"] for f in evil.findings} <= {"MALICIOUS", "RISKY"}
     report = scan(fraction_a)
     assert report.unverifiable_items == ["fractions.Fraction"]
-    assert scan(Path(__file__).parent.parent / "poc" / "samples" / "clean_model.pkl").category is None
+    assert scan(Path(__file__).with_name("fixtures") / "poc" / "clean_model.pkl").category is None
 
 
 def test_override_accepts_unverifiable_only_file_and_records_it():

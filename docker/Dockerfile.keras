@@ -4,7 +4,7 @@ FROM python:3.11-slim
 
 # Wersja Pythona ma znaczenie: zmarshallowany obiekt code z warstwy Lambda
 # odtwarza się tylko w tej samej wersji, w której powstał. Fixture'y
-# generuje poc/build_poc_keras.py i stempluje w metadata.json wersją
+# generuje docker/build_keras_fixtures.py (pliki w tests/fixtures/poc/) i stempluje w metadata.json wersją
 # generatora, a detoner mówi wprost, gdy się nie zgadza.
 
 COPY docker/requirements-keras.txt /tmp/requirements-keras.txt

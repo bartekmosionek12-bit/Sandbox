@@ -201,14 +201,14 @@ def test_lambda_closure_values_from_config_are_used():
 
 
 def test_sample_lambda_from_another_python_is_rejected_before_execution():
-    # poc/samples/evil_lambda.keras carries bytecode from another CPython version
+    # tests/fixtures/poc/evil_lambda.keras carries bytecode from another CPython version
     # that starts with RESUME too; it must be rejected, not run until it traps.
     import os
 
     from safeloadai.static import keras_static
 
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    report = keras_static.parse_file(os.path.join(root, "poc", "samples", "evil_lambda.keras"))
+    report = keras_static.parse_file(os.path.join(root, "tests", "fixtures", "poc", "evil_lambda.keras"))
     run = emulate_keras_lambdas(report["lambdas"])
     assert run.completed
     assert any("layout invalid" in a for a in _anomalies(run))

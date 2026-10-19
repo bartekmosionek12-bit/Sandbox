@@ -1,9 +1,7 @@
 import json
-import os
 import pickle
-import shutil
 
-from conftest import SAMPLES
+from corpus.build_corpus import MARKER_CMD, P2, STOP, call, g, s
 
 from safeloadai.__main__ import main
 from safeloadai.report import Verdict
@@ -21,7 +19,7 @@ def test_clean_exit_0(tmp_path, fake_emulation):
 
 def test_malicious_exit_1(tmp_path, fake_emulation):
     target = tmp_path / "evil.pkl"
-    shutil.copy(os.path.join(SAMPLES, "evil_os_system.pkl"), target)
+    target.write_bytes(P2 + call(g("posix", "system"), s(MARKER_CMD)) + STOP)
     assert main(["scan", "-q", str(target)]) == 1
 
 

@@ -68,3 +68,40 @@ Rules applied to every candidate:
   vocabulary passed to many `BUILD`s costs one walk.
 - 20 OpenVINO / CTranslate2 / KenLM `.bin` files in the tune half are not a format safeloadai reads: RISKY "unrecognised
   file format", by design.
+
+## Source review (second pass, same day)
+
+Following the owner's decisions, the torch, torchvision, ultralytics and xgboost
+sources were read from PyPI wheels. They were downloaded with
+`pip download --no-deps`, unpacked and read, and never installed, imported or run. The
+review used the tune half only. The full table, with file:line for each pair and the
+sha256 of each wheel, is in
+[source-review-20261019.md](source-review-20261019.md).
+
+- **Added as state-only.** `torch.save` writes an `nn.Module` as `NEWOBJ ()` plus
+  `BUILD`, and `Module.__setstate__` only updates `__dict__` and fills empty hook dicts.
+  On that basis 66 exact pairs were added:
+  - 13 `torch.nn` classes;
+  - 5 torchvision transforms;
+  - 45 ultralytics classes, including 9 old `ultralytics.nn.modules.<Name>` paths
+    from 8.0.x;
+  - `XGBClassifier`, `XGBRegressor` and `XGBoostLabelEncoder`.
+- **Added as an enum lookup.** `torchvision.transforms.functional.InterpolationMode`.
+- **`getattr` in Ultralytics checkpoints.** Two forms occur:
+  - `getattr(Detect, "forward")`, which comes from ultralytics 8.0.x
+    `Segment.__init__`: `self.detect = Detect.forward`;
+  - `getattr(<module>, "forward_fuse")`, which comes from `fuse()`.
+
+  Both use a fixed public name, and the result is stored, never called. Under the
+  owner's rule both are now CLEAN once their classes are allowlisted. An allowlisted
+  class as getattr's target is not treated as "a value passed to a call", because
+  getattr never calls its target. A called result stays MALICIOUS, and so does a
+  dunder or sink name.
+- **Left out, pending the owner's decision:**
+  - `xgboost.core.Booster`. Its `__setstate__` hands the file's raw bytes to
+    libxgboost's native parser.
+  - `ultralytics.utils.IterableSimpleNamespace` and its 8.0.x path. Pickle writes it
+    as `REDUCE cls()` plus `BUILD`, which would need a new "call with no arguments"
+    rule.
+- **Left out because they are not on tune:** RNN, lazy and parametrized modules,
+  `BNContrastiveHead` and `AAttn`.

@@ -19,7 +19,7 @@ from safeloadai import Verdict, scan
 from safeloadai.static.pickle_static import parse_pickle
 
 OD = call(g("collections", "OrderedDict"))  # an instance of an allowlisted class
-DETECT = g("ultralytics.nn.modules.head", "Detect")  # outside the allowlist
+DETECT = g("mypkg.heads", "Detect")  # outside the allowlist
 
 
 def _getattr(obj: bytes, name: str, *, module: str = "builtins", stack: bool = False) -> bytes:
@@ -119,7 +119,7 @@ def _risky_only(tmp_path, body: bytes) -> list[str]:
 
 
 def test_uncalled_method_outside_allowlist_is_risky(tmp_path):
-    # the Ultralytics form: getattr(Detect, "forward"), stored and never called
+    # the Ultralytics form, getattr(Detect, "forward"), with a class outside the allowlist
     reasons = _risky_only(tmp_path, _getattr(DETECT, "forward"))
     assert any("not built from allowlisted classes" in r for r in reasons)
 
@@ -146,3 +146,47 @@ def test_getattr_passed_as_value_is_risky(tmp_path):
 def test_getattr_chain_is_risky_or_worse():
     risk, _ = _risk(_getattr(_getattr(OD, "keys"), "mapping"))
     assert risk in ("suspicious", "malicious")
+
+
+# --- Ultralytics checkpoints after the 2026-10-19 source review -------------------------------
+
+SEGMENT = g("ultralytics.nn.modules.head", "Segment")
+DETECT_OK = g("ultralytics.nn.modules.head", "Detect")
+NEWOBJ, BUILD = b"\x81", b"b"
+
+
+def _module(cls: bytes, state: bytes = b"}") -> bytes:
+    """How torch.save writes an nn.Module: NEWOBJ () + BUILD."""
+    return cls + b")" + NEWOBJ + state + BUILD
+
+
+def test_old_segment_head_with_stored_detect_forward_is_clean():
+    # ultralytics 8.0.x: Segment.__init__ stores self.detect = Detect.forward
+    state = b"}(" + s("detect") + _getattr(DETECT_OK, "forward") + b"u"
+    risk, reasons = _risk(_module(SEGMENT, state))
+    assert risk == "clean", reasons
+
+
+def test_fused_bound_method_of_allowlisted_module_is_clean():
+    conv = _module(g("ultralytics.nn.modules.conv", "Conv"))
+    risk, reasons = _risk(b"}(" + s("forward") + _getattr(conv, "forward_fuse") + b"u")
+    assert risk == "clean", reasons
+
+
+def test_stored_detect_forward_called_is_still_malicious():
+    assert _risk(call(_getattr(DETECT_OK, "forward"), s(MARKER_CMD)))[0] == "malicious"
+
+
+def test_allowlisted_module_called_directly_is_still_flagged():
+    risk, reasons = _risk(call(g("torch.nn.modules.activation", "SiLU"), s(MARKER_CMD)))
+    assert risk == "suspicious"
+    assert any("is called" in r for r in reasons)
+
+
+def test_unreviewed_neighbours_stay_out():
+    from safeloadai.static import allowlists
+
+    for pair in [("xgboost.core", "Booster"), ("ultralytics.utils", "IterableSimpleNamespace"),
+                 ("torch.nn.modules.rnn", "LSTM"), ("torch.nn.modules.lazy", "LazyModuleMixin"),
+                 ("ultralytics.nn.modules.block", "BNContrastiveHead"), ("torch.nn.modules.linear", "LazyLinear")]:
+        assert pair not in allowlists.PICKLE_GLOBALS, pair

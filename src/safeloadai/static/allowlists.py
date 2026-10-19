@@ -186,6 +186,80 @@ STATE_ONLY_CLASSES = frozenset({
     # is object.__new__ plus a __dict__ update and __post_init__ is not called.
     ("transformers.training_args", "TrainingArguments"),
     ("transformers.training_args_seq2seq", "Seq2SeqTrainingArguments"),
+    # 2026-10-19 source review (evaluation/results/allowlist-review-20261019.md, "Source review"):
+    # sources read from PyPI wheels (torch 2.11.0, torchvision 0.26.0, ultralytics 8.4.182 and
+    # 8.0.50, xgboost 3.4.1 and 1.5.2), never installed or imported. Only classes seen on the
+    # tune half; no module prefix.
+    # torch 2.11.0 source: nn.Module pickles as NEWOBJ () + BUILD (protocol 2, no __reduce__);
+    # Module.__setstate__ = __dict__.update + empty hook-dict defaults (module.py:1925)
+    ("torch.nn.modules.activation", "SiLU"),
+    ("torch.nn.modules.container", "ModuleList"),
+    ("torch.nn.modules.container", "Sequential"),
+    ("torch.nn.modules.batchnorm", "BatchNorm2d"),
+    ("torch.nn.modules.conv", "Conv2d"),
+    ("torch.nn.modules.conv", "ConvTranspose2d"),
+    ("torch.nn.modules.pooling", "MaxPool2d"),
+    ("torch.nn.modules.pooling", "AdaptiveAvgPool2d"),
+    ("torch.nn.modules.upsampling", "Upsample"),
+    ("torch.nn.modules.linear", "Identity"),
+    ("torch.nn.modules.linear", "Linear"),
+    ("torch.nn.modules.dropout", "Dropout"),
+    ("torch.nn.modules.loss", "BCEWithLogitsLoss"),
+    # torchvision 0.26.0
+    ("torchvision.transforms.transforms", "Compose"),
+    ("torchvision.transforms.transforms", "ToTensor"),
+    ("torchvision.transforms.transforms", "Normalize"),
+    ("torchvision.transforms.transforms", "Resize"),
+    ("torchvision.transforms.transforms", "CenterCrop"),
+    # ultralytics 8.4.182 (and 8.0.50 for the ultralytics.nn.modules.<Name> paths)
+    ("ultralytics.nn.tasks", "DetectionModel"),
+    ("ultralytics.nn.tasks", "SegmentationModel"),
+    ("ultralytics.nn.tasks", "ClassificationModel"),
+    ("ultralytics.nn.tasks", "PoseModel"),
+    ("ultralytics.nn.modules.conv", "Conv"),
+    ("ultralytics.nn.modules.conv", "Concat"),
+    ("ultralytics.nn.modules.conv", "DWConv"),
+    ("ultralytics.nn.modules.conv", "RepConv"),
+    ("ultralytics.nn.modules.block", "Bottleneck"),
+    ("ultralytics.nn.modules.block", "SPPF"),
+    ("ultralytics.nn.modules.block", "DFL"),
+    ("ultralytics.nn.modules.block", "C2f"),
+    ("ultralytics.nn.modules.block", "C3k"),
+    ("ultralytics.nn.modules.block", "C3k2"),
+    ("ultralytics.nn.modules.block", "C2PSA"),
+    ("ultralytics.nn.modules.block", "PSABlock"),
+    ("ultralytics.nn.modules.block", "Attention"),
+    ("ultralytics.nn.modules.block", "Proto"),
+    ("ultralytics.nn.modules.block", "AConv"),
+    ("ultralytics.nn.modules.block", "ELAN1"),
+    ("ultralytics.nn.modules.block", "RepBottleneck"),
+    ("ultralytics.nn.modules.block", "RepCSP"),
+    ("ultralytics.nn.modules.block", "RepNCSPELAN4"),
+    ("ultralytics.nn.modules.block", "SPPELAN"),
+    ("ultralytics.nn.modules.head", "Detect"),
+    ("ultralytics.nn.modules.head", "Segment"),
+    ("ultralytics.nn.modules.head", "Classify"),
+    ("ultralytics.nn.modules.head", "Pose"),
+    ("ultralytics.nn.modules", "Conv"),
+    ("ultralytics.nn.modules", "C2f"),
+    ("ultralytics.nn.modules", "Concat"),
+    ("ultralytics.nn.modules", "Bottleneck"),
+    ("ultralytics.nn.modules", "DFL"),
+    ("ultralytics.nn.modules", "Detect"),
+    ("ultralytics.nn.modules", "SPPF"),
+    ("ultralytics.nn.modules", "Segment"),
+    ("ultralytics.nn.modules", "Proto"),
+    ("ultralytics.utils.loss", "BboxLoss"),
+    ("ultralytics.utils.loss", "DFLoss"),
+    ("ultralytics.utils.loss", "v8DetectionLoss"),
+    ("ultralytics.utils.loss", "v8SegmentationLoss"),
+    ("ultralytics.utils.loss", "E2ELoss"),
+    ("ultralytics.utils.tal", "TaskAlignedAssigner"),
+    # xgboost (BaseEstimator.__setstate__ only). Booster itself stays out: its __setstate__
+    # feeds the raw bytes to libxgboost's native parser (owner's decision pending)
+    ("xgboost.sklearn", "XGBClassifier"),
+    ("xgboost.sklearn", "XGBRegressor"),
+    ("xgboost.compat", "XGBoostLabelEncoder"),
 })
 # Enum classes, accepted only as cls(value) with one str or int argument: a member lookup.
 ENUM_CLASSES = frozenset({
@@ -196,6 +270,8 @@ ENUM_CLASSES = frozenset({
     ("transformers.trainer_utils", "EvaluationStrategy"),
     ("transformers.training_args", "OptimizerNames"),
     ("accelerate.utils.dataclasses", "DistributedType"),
+    # torchvision 0.26.0 functional.py: class InterpolationMode(Enum) with str values
+    ("torchvision.transforms.functional", "InterpolationMode"),
 })
 # pandas.core.indexes.base._new_Index(cls, d) returns cls.__new__(cls, **d): it calls its
 # first argument. Accepted only as pandas writes it for a plain Index: _new_Index(Index,

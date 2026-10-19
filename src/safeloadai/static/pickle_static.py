@@ -453,7 +453,10 @@ def _check_guarded_calls(calls: list[tuple]) -> list[str]:
     for how, func, args, pos in calls:
         exempt = None
         if isinstance(func, Global) and func.pair in GETATTR:
-            pass  # judged by _check_getattr; its arguments are still walked below
+            # judged by _check_getattr. getattr never calls its target, so an allowlisted class
+            # there (getattr(Detect, "forward"), how pickle writes a function stored on a class)
+            # is not a value handed to a caller; the name is still walked.
+            exempt = 0 if isinstance(args, tuple) and args and isinstance(args[0], Global) else None
         elif isinstance(func, Global) and func.pair in ARGUMENT_CHECKED:
             reason, exempt = _argument_check(how, func.pair, args)
             if reason:

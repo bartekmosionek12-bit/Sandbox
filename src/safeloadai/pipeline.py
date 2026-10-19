@@ -50,7 +50,7 @@ def emulation_layer(data: bytes, parser_report: dict, extra_allowed: frozenset,
     if fmt == detect_mod.TORCH:
         try:
             with SafeZip(data, max_member_bytes=MAX_PICKLE_MEMBER_BYTES) as zf:
-                streams = [zf.read(n) for n in zf.names if n.endswith(".pkl")]
+                streams = [zf.read(n, ignore_crc=True) for n in zf.names if n.endswith(".pkl")]
         except ZipRefused as exc:
             layer = LayerResult(name="emulation", verdict=Verdict.CLEAN, ran=False)
             layer.raise_to(Verdict.SUSPICIOUS, f"archive refused, nothing emulated: {exc}")

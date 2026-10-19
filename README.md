@@ -287,6 +287,10 @@ How to read the table:
   to decode to a STOP, to 8 opcodes, or to an opcode that imports or calls; a
   stream that fails before that cannot make `pickle.load` import anything.
   The HDF5 reading after a user block is SUSPICIOUS by design (see below).
+- **CRC-32.** A PyTorch archive member whose CRC-32 does not match the archive
+  is analysed anyway (torch's reader appears not to check it) and the file is
+  SUSPICIOUS (RISKY). A `.keras` member with a bad CRC-32 is refused, as
+  `zipfile` refuses it.
 - **CLEAN Lambda models do not load through `safe_load`,** because Keras safe
   mode refuses Lambda bytecode. Load them yourself if you accept that risk.
 - **Loading a CLEAN pickle imports allowlisted libraries on your machine,**

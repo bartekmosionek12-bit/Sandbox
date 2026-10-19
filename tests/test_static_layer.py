@@ -274,3 +274,38 @@ def test_pickle_builtins_name_stays_a_known_sink():
     data = b"\x80\x02cbuiltins\nbinary_focal_loss\n)R."
     report = pickle_static.parse_pickle(data)
     assert report["static_risk"] == "malicious", report["reasons"]
+
+
+def _torch_zip_bad_crc(data_pkl: bytes) -> bytes:
+    """A stored torch zip whose data.pkl bytes do not match the recorded CRC-32."""
+    placeholder = b"\xa5" * len(data_pkl)
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_STORED) as zf:
+        zf.writestr("archive/data.pkl", placeholder)
+        zf.writestr("archive/version", b"3\n")
+    return buf.getvalue().replace(placeholder, data_pkl, 1)
+
+
+def test_torch_member_with_bad_crc_is_analysed_and_risky():
+    # torch's reader does not check CRC-32, so the bytes are analysed, and the mismatch stays RISKY.
+    report = torch_static.parse_torch_zip(_torch_zip_bad_crc(b"\x80\x02]q\x00."))
+    assert report["static_risk"] == "suspicious", report["reasons"]
+    assert any("CRC-32 of member 'archive/data.pkl'" in r for r in report["reasons"]), report["reasons"]
+    assert report["pickle_count"] == 1
+
+
+def test_torch_member_with_bad_crc_still_finds_the_payload():
+    report = torch_static.parse_torch_zip(_torch_zip_bad_crc(b"\x80\x02cposix\nsystem\n(S'echo MARKER'\ntR."))
+    assert report["static_risk"] == "malicious", report["reasons"]
+
+
+def test_keras_member_with_bad_crc_is_still_refused():
+    # zipfile, which Keras uses, checks CRC-32: such a .keras does not load, and is refused.
+    placeholder = b"\xa5" * 20
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_STORED) as zf:
+        zf.writestr("config.json", placeholder)
+        zf.writestr("metadata.json", b'{"keras_version": "3.15.1"}')
+    report = keras_static.parse_keras(buf.getvalue().replace(placeholder, b'{"class_name": "X"} ', 1))
+    assert report["static_risk"] == "suspicious"
+    assert any("Bad CRC-32" in r for r in report["reasons"]), report["reasons"]

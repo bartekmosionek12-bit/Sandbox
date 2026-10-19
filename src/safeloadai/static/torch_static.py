@@ -29,14 +29,16 @@ def parse_torch_zip(data: bytes, file_name: str = "<memory>", extra_allowed: fro
             problems = list(zf.inventory.problems)
             names = zf.names
             pickles = [n for n in names if n.endswith(".pkl")]
-            members = {n: zf.read(n) for n in pickles}
+            # torch's zip reader does not check CRC-32 (P6): read what it would read.
+            members = {n: zf.read(n, ignore_crc=True) for n in pickles}
             hidden = {}
             for n in names:
                 if n.endswith(".pkl") or n.endswith("/") or zf.size(n) > MAX_PICKLE_MEMBER_BYTES:
                     continue
                 head = zf.head(n, 2)
                 if len(head) == 2 and head[0] == 0x80 and 2 <= head[1] <= 5:
-                    hidden[n] = zf.read(n)
+                    hidden[n] = zf.read(n, ignore_crc=True)
+            crc = dict(zf.crc_mismatches)
     except ZipRefused as exc:
         report = parse_pickle(b"", file_name, torch=True, file_format="torch")
         report["error"] = str(exc)
@@ -81,6 +83,9 @@ def parse_torch_zip(data: bytes, file_name: str = "<memory>", extra_allowed: fro
             combined["static_risk"] = risk
     is_torchscript = any(n.split("/")[1:2] == ["code"] or n.endswith("/constants.pkl") for n in names)
     extra = [f"archive: {p}" for p in problems]
+    extra += [f"archive: CRC-32 of member {n!r} is {got:#010x}, the archive records {want:#010x}; torch.load "
+              "does not check CRC-32, so these are the bytes it would unpickle (analysed above)"
+              for n, (want, got) in sorted(crc.items())]
     if is_torchscript:
         extra.append("TorchScript archive: contains Python code run by torch.jit.load (out of scope)")
     if extra:

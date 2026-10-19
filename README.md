@@ -187,7 +187,7 @@ report says why; `safeloadai doctor` tells you how to fix it. Optional extras:
 
 ## Results
 
-Runs of 2026-10-19, safeloadai 0.5.0, in a disposable cloud container with `evaluation/guard.py` on and no `--deep`. Full tables: [eval-hub-1k](evaluation/results/eval-hub-1k-20261019T143515Z.md), [review](evaluation/results/review-hf-1k-20261019.md), [allowlist review](evaluation/results/allowlist-review-20261019.md).
+Runs of 2026-10-19, safeloadai 0.5.0, in a disposable cloud container with `evaluation/guard.py` on and no `--deep`. These runs include the getattr rule, the end of a pickle reading at STOP and the source review of torch, torchvision, Ultralytics and xgboost. Full tables: [eval-hub-1k-r2](evaluation/results/eval-hub-1k-r2-20261019T155841Z.md), [310-file set](evaluation/results/eval-hf310-r2-20261019T155947Z.md), [source review](evaluation/results/source-review-20261019.md), [review](evaluation/results/review-hf-1k-20261019.md), [allowlist review](evaluation/results/allowlist-review-20261019.md).
 
 **Detection.** "Detected" means any verdict other than CLEAN; safeloadai's verdict was MALICIOUS on every one of these.
 
@@ -202,16 +202,17 @@ Runs of 2026-10-19, safeloadai 0.5.0, in a disposable cloud container with `eval
 | set | files | safeloadai FP | of which UNVERIFIABLE only | RISKY | MALICIOUS |
 |---|---|---|---|---|---|
 | 0.4.0 on the first 310-file Hub set (corrected) | 306 | 120 (39 %) | 82 | 32 | 6 |
-| 0.5.0 on the same 306 files | 306 | 76 (25 %) | 44 | 31 | 1 |
-| 0.5.0 held-out half (headline) | 502 | 175 (35 %) | 125 | 45 | 5 |
+| 0.5.0 on the same 306 files | 306 | 74 (24 %) | 42 | 31 | 1 |
+| 0.5.0 held-out half (headline) | 502 | 157 (31 %) | 109 | 47 | 1 |
 
-Held-out by format: `.h5` 10/85 (12 %), `.keras` 26/72 (36 %), `.joblib` 21/38 (55 %), `.pkl` 26/54 (48 %), torch 92/253 (36 %). picklescan and modelscan flag 4 of the 502 held-out files, fickling 184.
+Held-out by format: `.h5` 10/85 (12 %), `.keras` 26/72 (36 %), `.joblib` 21/38 (55 %), `.pkl` 26/54 (48 %), torch 74/253 (29 %). picklescan and modelscan flag 4 of the 502 held-out files, fickling 184. Before the getattr rule and the source review, the held-out half was at 175 (125 UNVERIFIABLE only, 45 RISKY, 5 MALICIOUS).
 
 How to read these numbers:
 
-- **UNVERIFIABLE is not RISKY.** UNVERIFIABLE means the file names something the scanner cannot check, such as a class from a library outside the allowlist, a custom Keras layer or the author's own loss. Nothing in it is known to be dangerous, and a user can accept those exact items for that one file. RISKY means the scanner knows the construct can be abused (a polyglot, an argument-checked global used another way, an unreadable format, a bad CRC), so no override accepts it. 125 of the 175 held-out false positives are UNVERIFIABLE only: Ultralytics checkpoints, xgboost and other third-party estimators, and `training_args.bin` files that need `accelerate.state.PartialState`.
-- **The 5 held-out MALICIOUS false positives are all Ultralytics checkpoints**, and the Hub's own scanner marks 4 of them unsafe. Four import `getattr`, which reaches any attribute; the fifth (YOLO-World) is pickled with `dill`, and the emulation layer calls it MALICIOUS. MALICIOUS stays MALICIOUS and cannot be overridden.
-- **The held-out rate is higher than the 310-file rate** because the new corpus is stratified: every Ultralytics checkpoint (33/33) and most xgboost files are flagged, and they now make up a fixed share of the sample.
+- **UNVERIFIABLE is not RISKY.** UNVERIFIABLE means the file names something the scanner cannot check, such as a class from a library outside the allowlist, a custom Keras layer or the author's own loss. Nothing in it is known to be dangerous, and a user can accept those exact items for that one file. RISKY means the scanner knows the construct can be abused (a polyglot, an argument-checked global used another way, an unreadable format, a bad CRC, a `getattr` on a class outside the allowlist), so no override accepts it. 109 of the 157 held-out false positives are UNVERIFIABLE only: Ultralytics classes the review did not cover, xgboost `Booster` and other third-party estimators, and `training_args.bin` files that need `accelerate.state.PartialState`.
+- **The one held-out MALICIOUS false positive** is YOLO-World (`Bingsu/yolo-world-mirror`), which is pickled with `dill`; the emulation layer sees `dill._dill._load_type` and calls it MALICIOUS. MALICIOUS stays MALICIOUS and cannot be overridden. The four Ultralytics checkpoints that were MALICIOUS only for importing `getattr` are now judged by how getattr is used: a stored method of an allowlisted class is clean, anything else outside the allowlist is RISKY.
+- **Ultralytics went from 33/33 to 15/33 held-out files flagged.** The rest mostly need `IterableSimpleNamespace` (pickled as `REDUCE cls()`, which no rule accepts yet), newer classes (YOLOE, `Segment26`) or a YOLOv5 `models.*` module.
+- **The held-out rate is higher than the 310-file rate** because the new corpus is stratified: Ultralytics checkpoints and most xgboost files are a fixed share of the sample.
 - **The malicious Hub files are a convenience sample**: test payloads and proofs of concept, mostly simple pickles. They show that what the Hub's scanners flag is caught, not how safeloadai does against a targeted attacker. 25 more flagged files had evidence too weak to label and count in no rate.
 - **The lab and mutation payloads are marker rebuilds**, and the mutation generator was written with knowledge of the scanner. It found one real gap (pickles with no PROTO header, now fixed).
 

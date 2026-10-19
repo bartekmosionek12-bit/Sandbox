@@ -124,8 +124,9 @@ def load_entries(lab: str | None, hf: str | None, benign: list[str], mutations: 
                             "hub_scan": item.get("hub_scan", "unknown"), "repo_id": item["repo_id"],
                             "revision": item["revision"], "sha256": item["sha256"], "size": item["size"]})
             label, reason = reviewed.get((item["repo_id"], item["filename"]), ("benign", None))
-            if label == "malicious":  # a scanner test file the benign discovery picked up
-                entries[-1].update(label="malicious", expected="MALICIOUS", label_reason=reason)
+            if label != "benign":  # a scanner test file the benign discovery picked up
+                entries[-1].update(label=label, label_reason=reason,
+                                   expected="MALICIOUS" if label == "malicious" else "SUSPICIOUS")
     if hf_malicious:
         for item in _jsonl(os.path.join(hf_malicious, "manifest.jsonl")):
             label, reason = reviewed.get((item["repo_id"], item["filename"]),
@@ -431,6 +432,32 @@ def markdown(summary: dict, fps: dict, entries: list[dict], tools: list[str], me
     return "\n".join(lines) + "\n"
 
 
+def resummarise(path: str, labels: str | None, label: str, out: str) -> int:
+    """Rebuild the summaries of an earlier run, with the reviewed labels applied again to
+    its Hub entries (a label fixed after the run needs no new scan)."""
+    with open(path, encoding="utf-8") as fh:
+        run = json.load(fh)
+    reviewed = read_labels(labels) if labels else {}
+    entries = run["entries"]
+    for e in entries:
+        if e.get("repo_id") and (e["repo_id"], e["file"][len(e["repo_id"]) + 1:]) in reviewed:
+            lab, reason = reviewed[(e["repo_id"], e["file"][len(e["repo_id"]) + 1:])]
+            e.update(label=lab, label_reason=reason,
+                     expected={"malicious": "MALICIOUS", "benign": "CLEAN"}.get(lab, "SUSPICIOUS"))
+    tools = run["tools"]
+    summary, groups, fps = summarise(entries, tools), summarise_groups(entries, tools), false_positives(entries)
+    meta = {k: run[k] for k in ("created", "python", "safeloadai", "platform")}
+    meta["label"] = label
+    base = os.path.join(out, f"eval-{label}-{run['created']}")
+    with open(base + ".json", "w", encoding="utf-8") as fh:
+        json.dump({**run, "label": label, "summary": summary, "groups": groups, "false_positives": fps,
+                   "relabelled_from": os.path.basename(path)}, fh, indent=2)
+    with open(base + ".md", "w", encoding="utf-8") as fh:
+        fh.write(markdown(summary, fps, entries, tools, meta, groups))
+    print(f"wrote {base}.json and {base}.md", file=sys.stderr)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--lab", help="lab corpus directory (with manifest.json)")
@@ -439,12 +466,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--hf-malicious", help="flagged Hub files (fetch_malicious_hf.py output)")
     parser.add_argument("--labels", help="reviewed label file for --hf-malicious")
     parser.add_argument("--jobs", type=int, default=1, help="files scanned in parallel (each worker is guarded)")
+    parser.add_argument("--from-json", help="re-summarise an earlier run (labels re-applied, nothing scanned)")
     parser.add_argument("--benign", action="append", default=[], help="directory of benign model files")
     parser.add_argument("--tool-bin", help="directory holding the other scanners' executables")
     parser.add_argument("--tools", help="comma-separated subset of: " + ",".join(TOOLS))
     parser.add_argument("--label", default="run", help="name of this run, e.g. before / after")
     parser.add_argument("--out", default=os.path.join(ROOT, "evaluation", "results"))
     args = parser.parse_args(argv)
+    if args.from_json:
+        return resummarise(args.from_json, args.labels, args.label, args.out)
     if not (args.lab or args.hf or args.benign or args.mutations or args.hf_malicious):
         parser.error("give --lab, --mutations, --hf, --hf-malicious and/or --benign")
 

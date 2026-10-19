@@ -195,18 +195,19 @@ ENUM_CLASSES = frozenset({
     ("accelerate.utils.dataclasses", "DistributedType"),
 })
 # pandas.core.indexes.base._new_Index(cls, d) returns cls.__new__(cls, **d): it calls its
-# first argument. Accepted only as pandas writes it, _new_Index(<an Index class>, {"data":
-# ..., "name": ...}) (pandas 3.0.5 Index.__reduce__).
+# first argument. Accepted only as pandas writes it for a plain Index: _new_Index(Index,
+# {"data": ..., "name": ...}) (pandas 3.0.5 Index.__reduce__). Other Index classes are not
+# reviewed (their form was seen only in held-out files).
 PANDAS_NEW_INDEX = ("pandas.core.indexes.base", "_new_Index")
-PANDAS_INDEX_CLASSES = frozenset({("pandas.core.indexes.base", "Index")})
-PANDAS_INDEX_KEYS = frozenset({"data", "name"})
+# class -> the dict keys its __reduce__ writes
+PANDAS_INDEX_KEYS = {
+    ("pandas.core.indexes.base", "Index"): frozenset({"data", "name"}),
+}
+PANDAS_INDEX_CLASSES = frozenset(PANDAS_INDEX_KEYS)
 # collections.defaultdict(factory): the factory is called later, on a missing key, never
-# while loading. Accepted only with no factory or a builtin container or number type.
+# while loading. Accepted with no factory or one imported global, which the allowlist
+# checks like any other import (the owner's rule: "factory checked as global").
 DEFAULTDICT = ("collections", "defaultdict")
-DEFAULTDICT_FACTORIES = frozenset(
-    (module, name) for module in ("builtins", "__builtin__")
-    for name in ("list", "dict", "set", "frozenset", "tuple", "int", "float", "str", "bytes", "bool")
-)
 ARGUMENT_CHECKED = STATE_ONLY_CLASSES | ENUM_CLASSES | {PANDAS_NEW_INDEX, DEFAULTDICT}
 PICKLE_GLOBALS = PICKLE_GLOBALS | ARGUMENT_CHECKED
 

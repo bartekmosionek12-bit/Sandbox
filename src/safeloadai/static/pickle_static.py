@@ -30,7 +30,6 @@ from .allowlists import (
     DANGEROUS_MODULES,
     DANGEROUS_SYMBOLS,
     DEFAULTDICT,
-    DEFAULTDICT_FACTORIES,
     ENUM_CLASSES,
     GUARDED_CALLS,
     KNOWN_GADGETS,
@@ -311,15 +310,17 @@ def _argument_check(how: str, pair: tuple[str, str], args) -> tuple[str | None, 
         return f"is called with {_short(args)}; only a member lookup with one str or int is accepted", None
     if pair == PANDAS_NEW_INDEX:
         if (len(args) == 2 and isinstance(args[0], Global) and args[0].pair in PANDAS_INDEX_CLASSES
-                and isinstance(args[1], dict) and set(args[1]) <= PANDAS_INDEX_KEYS):
+                and isinstance(args[1], dict) and set(args[1]) <= PANDAS_INDEX_KEYS[args[0].pair]):
             return None, 0
-        return ("is called with arguments pandas never writes (it calls its first argument; only "
-                "pandas.core.indexes.base.Index with a data/name dict is accepted)"), None
+        shown = (args[0], sorted(args[1]) if isinstance(args[1], dict) else args[1]) if len(args) == 2 else args
+        return (f"is called with arguments pandas never writes ({_short(shown)}; it calls its first argument, "
+                "and only pandas.core.indexes.base.Index with a data/name dict is accepted)"), None
     if pair == DEFAULTDICT:
-        if not args or (len(args) == 1 and (args[0] is None or (isinstance(args[0], Global)
-                                                                and args[0].pair in DEFAULTDICT_FACTORIES))):
-            return None, 0
-        return f"is given the factory {_short(args)}; only a builtin container or number type is accepted", None
+        # The factory runs only on a missing key, after loading; as a global it is checked
+        # against the allowlist like any other import.
+        if not args or (len(args) == 1 and (args[0] is None or isinstance(args[0], Global))):
+            return None, None  # not exempt: an argument-checked global is no factory either
+        return f"is given {_short(args)}; only no factory or one imported global is accepted", None
     return "has no argument check", None
 
 

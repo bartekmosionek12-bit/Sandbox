@@ -81,7 +81,8 @@ def test_library_pickles_are_clean(proto):
     models = [csr_matrix(np.eye(3)), SimpleImputer().fit(x), Lasso().fit(x, y), MultinomialNB().fit(x, y),
               RandomForestRegressor(n_estimators=2, random_state=0).fit(x, y),
               CalibratedClassifierCV(LinearSVC(), cv=2).fit(x, y),
-              defaultdict(list, {"a": [1, 2]}), defaultdict(None, {"b": 1})]
+              defaultdict(list, {"a": [1, 2]}), defaultdict(None, {"b": 1}),
+              defaultdict(__import__("collections").OrderedDict)]
     from argparse import Namespace
 
     from sklearn.impute import MissingIndicator
@@ -103,8 +104,13 @@ def test_pandas_index_pickle_is_clean():
     assert risk == "clean", reasons
 
 
-def test_pandas_new_index_as_pandas_writes_it_is_clean():
-    data = P2 + call(g(*NEW_INDEX), g(*INDEX), _state(s("data") + b"N", s("name") + s("cols"))) + STOP
+RANGE = ("pandas.core.indexes.range", "RangeIndex")
+
+
+@pytest.mark.parametrize("data", [
+    P2 + call(g(*NEW_INDEX), g(*INDEX), _state(s("data") + b"N", s("name") + s("cols"))) + STOP,
+])
+def test_pandas_new_index_as_pandas_writes_it_is_clean(data):
     risk, reasons = _risk(data)
     assert risk == "clean", reasons
 
@@ -134,9 +140,13 @@ def test_pandas_new_index_as_pandas_writes_it_is_clean():
     P2 + call(g(*NEW_INDEX), g(*INDEX), _state(s("data") + b"N", s("tupleize_cols") + b"\x88")) + STOP,
     P2 + call(g(*NEW_INDEX), g(*INDEX), b"]") + STOP,
     P2 + call(g(*NEW_INDEX), s("pandas"), _state()) + STOP,
-    # defaultdict: only a builtin type (or nothing) as the factory
-    P2 + call(g(*DD), g("numpy", "float64")) + STOP,
-    P2 + call(g(*DD), g(*TA)) + STOP,
+    P2 + call(g(*NEW_INDEX), g(*RANGE), _state(s("data") + b"N")) + STOP,
+    # RangeIndex is not reviewed (seen only in held-out files)
+    P2 + call(g(*NEW_INDEX), g(*RANGE), _state(s("name") + b"N", s("start") + b"K\x00")) + STOP,
+    # defaultdict: no factory or one imported global; the global itself is checked
+    P2 + call(g(*DD), g(*TA)) + STOP,  # a state-only class passed as a value
+    P2 + call(g(*DD), g("safeloadai_marker_pkg", "factory")) + STOP,  # not on the allowlist
+    P2 + call(g(*DD), call(g("collections", "OrderedDict"))) + STOP,  # not a global
     P2 + call(g(*DD), b"N", b"N") + STOP,
 ])
 def test_misuse_of_argument_checked_pairs_stays_flagged(data):

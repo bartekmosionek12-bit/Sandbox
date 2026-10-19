@@ -78,6 +78,16 @@ severe verdict of any layer, so no layer can lower what another one found.
    count, size, compression ratio and path traversal. The format is detected
    from the content, and a file whose extension does not match its content is
    SUSPICIOUS.
+   - **Every reading is analysed.** Loaders disagree about where a file
+     starts: `pickle.load`, `joblib.load` and legacy `torch.load` read from
+     offset 0, `zipfile` (Keras) finds the archive from its end, and h5py
+     looks for the HDF5 superblock at 0, 512, 1024, ... A file can therefore
+     be a pickle for one loader and a `.keras` archive for another. The
+     scanner lists every reading that parses (a pickle or compressed joblib
+     stream at offset 0, a ZIP archive, an HDF5 superblock) and runs each
+     through static analysis and emulation; the most severe verdict wins. A
+     file with more than one reading, or with bytes in front of an archive or
+     superblock that no reading explains, is at least SUSPICIOUS (RISKY).
 2. **Static analysis.**
    - **Pickle:** every opcode is walked, STACK_GLOBAL included. Imports must
      match an exact `(module, qualname)` allowlist, and any other import is at
@@ -268,6 +278,15 @@ How to read the table:
     when the file was created with `libver="latest"`; Keras itself uses the
     default (old-style groups), so such files should be rare. Part of the
     false-positive measurement.
+- **Polyglot files.** Recognised readings: a pickle stream at offset 0 (any
+  protocol), a joblib-compressed stream at offset 0, a ZIP archive found from
+  its end-of-central-directory record, and the first HDF5 superblock at 0, 512,
+  1024, ... A reading the scanner does not know (another archive format, a
+  second ZIP archive earlier in the file, data a custom loader reads at some
+  other offset) is not analysed. A pickle reading needs the bytes at offset 0
+  to decode to a STOP, to 8 opcodes, or to an opcode that imports or calls; a
+  stream that fails before that cannot make `pickle.load` import anything.
+  The HDF5 reading after a user block is SUSPICIOUS by design (see below).
 - **CLEAN Lambda models do not load through `safe_load`,** because Keras safe
   mode refuses Lambda bytecode. Load them yourself if you accept that risk.
 - **Loading a CLEAN pickle imports allowlisted libraries on your machine,**

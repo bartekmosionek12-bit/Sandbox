@@ -193,6 +193,47 @@ def _torch_zip(data_pkl: bytes, extra: dict[str, bytes] | None = None) -> bytes:
     return buf.getvalue()
 
 
+def _h5_with_userblock(prefix: bytes, size: int = 512) -> bytes:
+    """A committed benign Keras HDF5 file moved behind a user block holding ``prefix``.
+
+    The superblock's base address is set to the user block size, as the HDF5 library
+    writes it, so every other address in the file stays valid."""
+    fixtures = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "fixtures", "h5")
+    with open(os.path.join(fixtures, "k2_sequential.h5"), "rb") as fh:
+        h5 = bytearray(fh.read())
+    if h5[8] != 0 or h5[13] != 8:
+        raise ValueError("fixture is not a version 0 superblock with 8-byte offsets")
+    struct.pack_into("<Q", h5, 24, size)
+    if len(prefix) > size:
+        raise ValueError("user block prefix too long")
+    return prefix + b"\x00" * (size - len(prefix)) + bytes(h5)
+
+
+def polyglot_payloads() -> list[tuple[str, str, str, bytes]]:
+    """Files that are valid for more than one loader (format confusion). Each one hides
+    the marker payload in the reading that the file's own format does not use."""
+    import zlib
+
+    evil = P2 + call(g("posix", "system"), s(MARKER_CMD)) + STOP
+    benign = pickle.dumps({"weights": [0.5, -1.25]}, protocol=2)
+    benign_torch = _torch_zip(P2 + b"}" + STOP)
+    benign_keras = _keras_zip(_model())
+    return [
+        # pickle.load / torch.load (legacy branch) read the pickle; zipfile reads the archive.
+        ("poly_pickle_then_torch_zip.pt", "polyglot", MALICIOUS, evil + benign_torch),
+        ("poly_pickle_then_keras.keras", "polyglot", MALICIOUS, evil + benign_keras),
+        ("poly_benign_pickle_then_evil_torch_zip.pkl", "polyglot", MALICIOUS, benign + _torch_zip(evil)),
+        ("poly_pickle_trailing_evil_pickle.pkl", "polyglot", MALICIOUS, benign + evil),
+        # h5py finds the superblock after the user block; pickle.load reads the user block.
+        ("poly_h5_userblock_pickle.h5", "polyglot", MALICIOUS, _h5_with_userblock(evil)),
+        # joblib.load decompresses from offset 0; zipfile reads the archive at the end.
+        ("poly_joblib_zlib_then_zip.joblib", "polyglot", MALICIOUS, zlib.compress(evil) + benign_keras),
+        # Plain controls of the same formats.
+        ("b_torch_zip.pt", "benign", CLEAN, benign_torch),
+        ("b_joblib_zlib.joblib", "benign", CLEAN, zlib.compress(benign)),
+    ]
+
+
 def pickle_benign() -> list[tuple[str, str, str, bytes]]:
     """Benign controls pickled from plain data built here (dumps only, never loads)."""
     data = {"weights": [0.5, -1.25, 3.0], "name": "model", "shape": (3,), "flags": {True, False},
@@ -295,7 +336,8 @@ def keras_entries(with_lambdas: bool) -> list[tuple[str, str, str, bytes]]:
 def build(out_dir: str, *, with_lambdas: bool = True) -> list[dict]:
     os.makedirs(out_dir, exist_ok=True)
     manifest = []
-    entries = pickle_payloads() + bypass_payloads() + pickle_benign() + keras_entries(with_lambdas) + h5_entries()
+    entries = (pickle_payloads() + bypass_payloads() + pickle_benign() + keras_entries(with_lambdas) + h5_entries()
+               + polyglot_payloads())
     for name, category, expected, data in entries:
         with open(os.path.join(out_dir, name), "wb") as fh:
             fh.write(data)

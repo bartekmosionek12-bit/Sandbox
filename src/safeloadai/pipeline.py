@@ -121,16 +121,29 @@ def scan(path: str | os.PathLike, *, judge: bool = False, deep: bool = False,
     file_format = str(parser_report.get("file_format"))
     layers = [verdict.static_layer(parser_report, defer_lambdas=True)]
     layers[0].timings_ms["total"] = timings["static"] = _ms(t)
+    extra_views = parser_report.get("_extra_views") or []
 
     step("emulation in the WASI sandbox")
     t = time.perf_counter()
     if data:
-        emulation = emulation_layer(data, parser_report, extra_allowed, limits)
+        view = parser_report.get("_view")
+        emulation = emulation_layer(view.slice(data) if view else data, parser_report, extra_allowed, limits)
     else:
         emulation = LayerResult(name="emulation", verdict=Verdict.CLEAN, ran=False)
         emulation.raise_to(Verdict.SUSPICIOUS, "file too large to emulate")
     timings["emulation"] = _ms(t)
     layers.append(emulation)
+
+    # Every other reading of a polyglot file gets its own static and emulation layers.
+    for view, report in extra_views:
+        step(f"other reading: {view.fmt} at offset {view.start}")
+        extra_static = verdict.static_layer(report, defer_lambdas=True)
+        extra_emulation = emulation_layer(view.slice(data), report, extra_allowed, limits)
+        extra_static.name, extra_emulation.name = f"static[{view.label}]", f"emulation[{view.label}]"
+        for layer in (extra_static, extra_emulation):
+            for finding in layer.findings:
+                finding["layer"] = layer.name
+        layers += [extra_static, extra_emulation]
 
     if deep:
         step("deep detonation")

@@ -7,11 +7,14 @@ A small stack/memo simulation recovers the module and name behind
 Scoring, strictest first:
 
 * MALICIOUS: an import of a known code-execution / process / file / network sink
-  together with any opcode that calls or constructs an object.
+  together with any opcode that calls or constructs an object. ``builtins.getattr``
+  is judged use by use instead (``_check_getattr``): MALICIOUS only when its result
+  is called or the attribute is a dunder or a sink name.
 * SUSPICIOUS: any import outside the exact allowlist (called or not: ``find_class``
   imports the module, and import-time side effects are code execution), an import
   that cannot be resolved, a copyreg extension code, a persistent id outside a
-  torch checkpoint, trailing bytes after the last pickle, or any parse error.
+  torch checkpoint, trailing data after the STOP that is not another pickle (a
+  trailing pickle is analysed as a reading of its own), or any parse error.
 * CLEAN: everything else.
 
 A file may hold several pickles back to back (legacy PyTorch, joblib); all of them
@@ -19,6 +22,7 @@ are analysed.
 """
 from __future__ import annotations
 
+import base64
 import io
 import pickletools
 import re
@@ -26,19 +30,31 @@ from typing import Any
 
 from .. import override
 from .allowlists import (
+    ARGUMENT_CHECKED,
     DANGEROUS_MODULES,
     DANGEROUS_SYMBOLS,
+    DEFAULTDICT,
+    DILL_MODULES,
+    DILL_SINKS,
+    ENUM_CLASSES,
+    GETATTR,
     GUARDED_CALLS,
     KNOWN_GADGETS,
     NUMPY_BIT_GENERATOR_CLASSES,
     NUMPY_BIT_GENERATOR_CTOR,
     NUMPY_BIT_GENERATOR_NAMES,
+    PANDAS_INDEX_CLASSES,
+    PANDAS_INDEX_KEYS,
+    PANDAS_NEW_INDEX,
     PICKLE_GLOBALS,
+    STATE_ONLY_CLASSES,
+    TF_DANGEROUS,
     TORCH_GLOBALS,
+    ZERO_ARG_CLASSES,
 )
 from .lookalike import imitates
 from .lookalike import reason as lookalike_reason
-from .pickle_vm import Global, Machine, Obj, plain_reading_imports
+from .pickle_vm import Global, Machine, Obj, class_of, identifier_path, plain_reading_imports
 
 SCHEMA_VERSION = "1.1"
 
@@ -115,6 +131,15 @@ def _empty_report(file_name: str, file_format: str) -> dict:
         "pickle_count": 0,
         # reason text -> {"item", "pair", "explanation"} for the reasons that are UNVERIFIABLE
         "unverifiable": {},
+        # reasons that make builtins.getattr uses MALICIOUS (_check_getattr)
+        "getattr_malicious": [],
+        # bytes after the reading's last STOP: {"start", "length", "looks_like_pickle"}
+        "trailing": None,
+        # Keras models pickled as an embedded .keras archive (_embedded_keras)
+        "embedded_keras": [],
+        # dill code objects to emulate, and sink names found in them (_dill_code)
+        "dill_code": [],
+        "code_malicious": [],
     }
 
 
@@ -124,7 +149,8 @@ def is_dangerous_import(module: str, name: str) -> bool:
     leaf = name.rsplit(".", 1)[-1]
     head = name.split(".", 1)[0]
     return (
-        module in DANGEROUS_MODULES
+        (module in DILL_MODULES and name in DILL_SINKS)
+        or module in DANGEROUS_MODULES
         or root in DANGEROUS_MODULES
         or name in DANGEROUS_SYMBOLS
         or leaf in DANGEROUS_SYMBOLS
@@ -153,8 +179,16 @@ def _recorders(report: dict, index_ref: list):
 
 def parse_pickle(data: bytes, file_name: str = "<memory>", *, torch: bool = False,
                  file_format: str = "pickle", extra_allowed: frozenset = frozenset(),
-                 joblib: bool = True) -> dict:
+                 joblib: bool = True, trailing: str = "nested", depth: int = 0) -> dict:
     """Analyse pickle bytes and return the parser contract (dict).
+
+    The reading ends at the first STOP, where ``pickle.load`` stops (a legacy PyTorch
+    file is the exception: ``torch.load`` reads its five pickles). Any bytes after it
+    are trailing data, recorded in ``report["trailing"]`` with a RISKY reason, never
+    walked as part of this reading. With ``trailing="nested"`` (the default, used
+    inside containers) trailing bytes that look like a pickle are analysed as a reading
+    of their own and their findings merged with a prefix; ``trailing="view"`` leaves
+    that to the caller (``static.analyze_bytes`` makes them a separate view).
 
     ``torch=True`` widens the allowlist with the globals a PyTorch checkpoint
     needs and accepts persistent ids (torch stores tensor data out of band).
@@ -164,6 +198,7 @@ def parse_pickle(data: bytes, file_name: str = "<memory>", *, torch: bool = Fals
     ``pickle.load`` would import from them (parser differential).
     """
     report = _empty_report(file_name, file_format)
+    legacy_torch = False
     base = PICKLE_GLOBALS | frozenset(extra_allowed)
     allow = base | TORCH_GLOBALS if torch else base
     index_ref = [0]
@@ -172,7 +207,6 @@ def parse_pickle(data: bytes, file_name: str = "<memory>", *, torch: bool = Fals
     machine = Machine(data, joblib=joblib, on_import=on_import, on_opcode=on_opcode,
                       on_call=lambda *call: calls.append(call), max_opcodes=MAX_OPCODES)
     try:
-        legacy_torch = False
         while machine.stream.tell() < len(data):
             if index_ref[0] >= MAX_PICKLES:
                 raise ValueError(f"more than {MAX_PICKLES} pickles in one file")
@@ -192,17 +226,57 @@ def parse_pickle(data: bytes, file_name: str = "<memory>", *, torch: bool = Fals
                     "legacy torch pickles (not analysed, never unpickled)"
                 )
                 break
-            if machine.stream.tell() == start:
+            if machine.stream.tell() == start or not legacy_torch:
                 break
     except Exception as exc:  # noqa: BLE001 - any parse failure must surface
         report["error"] = f"opcode walk failed: {type(exc).__name__}: {exc}"
     report["pickle_count"] = index_ref[0]
+    if not report["error"] and machine.stream.tell() < len(data) and not legacy_torch:
+        _trailing(report, data, machine.stream.tell(), trailing, depth,
+                  dict(torch=torch, file_format=file_format, extra_allowed=extra_allowed, joblib=joblib))
     _joblib_findings(report, machine, data, allow)
+    handled = _embedded_keras(report, calls, machine.refs)
+    _dill_code(report, calls)
     report["reasons"].extend(_check_guarded_calls(calls))
+    report["getattr_malicious"], risky = _check_getattr(calls, allow, _imports_getattr(report), handled)
+    report["reasons"].extend(risky)
 
     report["raw_disasm"] = _disasm(data)
     _score(report, allow, torch)
     return report
+
+
+def _trailing(report: dict, data: bytes, start: int, mode: str, depth: int, options: dict) -> None:
+    """Record the bytes after the reading's last STOP; in "nested" mode, analyse them as
+    a reading of their own when they look like a pickle."""
+    from ..parsing.detect import _looks_like_pickle
+
+    rest = data[start:]
+    report["trailing"] = {"start": start, "length": len(rest), "looks_like_pickle": _looks_like_pickle(rest)}
+    text = (f"{len(rest)} bytes of trailing data after the pickle's STOP (offset {start}); "
+            "pickle.load stops there, a loader that reads on would see them")
+    if not report["trailing"]["looks_like_pickle"]:
+        report["reasons"].append(text)
+        return
+    # Another pickle: analysed as a reading of its own, which carries its own findings.
+    report["notes"].append(text + "; they hold another pickle, analysed as a reading of its own")
+    if mode != "nested":
+        return
+    if depth + 1 >= MAX_PICKLES:
+        report["reasons"].append(f"more than {MAX_PICKLES} readings of trailing data; the rest is not analysed")
+        return
+    sub = parse_pickle(rest, report["file_name"], trailing="nested", depth=depth + 1, **options)
+    prefix = f"trailing data at offset {start}: "
+    report["reasons"].extend(prefix + r for r in sub["reasons"])
+    report["unverifiable"].update({prefix + k: v for k, v in sub["unverifiable"].items()})
+    report["suspicious_strings"].extend(sub["suspicious_strings"])
+    report["notes"].extend(prefix + n for n in sub["notes"])
+    for key in ("embedded_keras", "dill_code", "code_malicious"):
+        report[key].extend(sub[key])
+    report.setdefault("_embedded", []).extend(sub.get("_embedded") or [])
+    report["trailing"]["report"] = {"static_risk": sub["static_risk"], "pickle_count": sub["pickle_count"]}
+    if sub["static_risk"] == "malicious":
+        report["trailing_malicious"] = True
 
 
 # Top-level packages a model-loading environment commonly has, besides the
@@ -277,11 +351,79 @@ def _joblib_findings(report: dict, machine: Machine, data: bytes, allow: frozens
 
 # --- calls to allowlisted helpers that call one of their own arguments -----------------
 
-MAX_VALUE_WALK = 100_000
+# Steps of the value walk over all calls of one stream together. Containers are walked
+# once per stream (see _guarded_values), so the walk is bounded by the stream's edges,
+# which MAX_OPCODES bounds; this is a backstop.
+MAX_VALUE_WALK = 10_000_000
 
 
 def _guarded(value) -> bool:
-    return isinstance(value, Global) and value.pair in GUARDED_CALLS
+    return isinstance(value, Global) and (value.pair in GUARDED_CALLS or value.pair in ARGUMENT_CHECKED
+                                          or value.pair in GETATTR)
+
+
+def _argument_check(how: str, pair: tuple[str, str], args) -> tuple[str | None, int | None]:
+    """(reason or None, top-level argument position exempt from the value walk) for one
+    call of an ARGUMENT_CHECKED pair (allowlists.py says what each check allows)."""
+    if pair in STATE_ONLY_CLASSES:
+        if how == "newobj" and args == ():
+            return None, None
+        return (f"is called ({how.upper()} with arguments {_short(args)}); it is accepted only when rebuilt "
+                "from its saved state without calling it (NEWOBJ with no arguments)"), None
+    if how != "reduce":
+        return f"is used through {how.upper()}, not called the way its library pickles it", None
+    if pair in ZERO_ARG_CLASSES:
+        if args == ():
+            return None, None
+        return (f"is called with arguments {_short(args)}; it is accepted only as a call with no arguments "
+                "(REDUCE cls()) followed by BUILD"), None
+    if pair in ENUM_CLASSES:
+        if len(args) == 1 and type(args[0]) in (str, int):
+            return None, None
+        return f"is called with {_short(args)}; only a member lookup with one str or int is accepted", None
+    if pair == PANDAS_NEW_INDEX:
+        if (len(args) == 2 and isinstance(args[0], Global) and args[0].pair in PANDAS_INDEX_CLASSES
+                and isinstance(args[1], dict) and set(args[1]) <= PANDAS_INDEX_KEYS[args[0].pair]):
+            return None, 0
+        shown = (args[0], sorted(args[1]) if isinstance(args[1], dict) else args[1]) if len(args) == 2 else args
+        return (f"is called with arguments pandas never writes ({_short(shown)}; it calls its first argument, "
+                "and only pandas.core.indexes.base.Index with a data/name dict is accepted)"), None
+    if pair == DEFAULTDICT:
+        # The factory runs only on a missing key, after loading; as a global it is checked
+        # against the allowlist like any other import.
+        if not args or (len(args) == 1 and (args[0] is None or isinstance(args[0], Global))):
+            return None, None  # not exempt: an argument-checked global is no factory either
+        return f"is given {_short(args)}; only no factory or one imported global is accepted", None
+    return "has no argument check", None
+
+
+def _is_zero_arg_instance(value) -> bool:
+    return isinstance(value, Obj) and value.how == "reduce" and class_of(value) in ZERO_ARG_CLASSES
+
+
+def _rebuilt_instance_use(how: str, func, args) -> str | None:
+    """An instance of a state-only or zero-arg class may only receive one BUILD with a
+    plain dict state. A (dict, slotstate) state makes pickle call setattr() per slot item,
+    and calling the instance runs its __call__."""
+    if not isinstance(func, Obj):
+        return None
+    pair = class_of(func)
+    if pair not in STATE_ONLY_CLASSES and pair not in ZERO_ARG_CLASSES:
+        return None
+    name = f"an instance of {pair[0]}.{pair[1]}"
+    if how != "build":
+        return f"{name} is called ({how.upper()}); it may only be rebuilt from a dict state"
+    state = args[0] if isinstance(args, tuple) and args else None
+    if not isinstance(state, dict):
+        return (f"{name} is given a {type(state).__name__} BUILD state; only a dict state is accepted "
+                "(a slot state makes pickle call setattr)")
+    return None
+
+
+def _short(args) -> str:
+    text = repr(tuple(f"{a.module}.{a.name}" if isinstance(a, Global) else a for a in args)
+                if isinstance(args, tuple) else args)
+    return text if len(text) <= 120 else text[:117] + "..."
 
 
 def _is_bit_generator(value) -> bool:
@@ -310,29 +452,37 @@ def _generator_args_ok(args) -> bool:
     return len(args) == 1 or (isinstance(args[1], Global) and args[1].pair == NUMPY_BIT_GENERATOR_CTOR)
 
 
-def _guarded_values(value, skip_top: int | None = None) -> list[Global]:
+def _guarded_values(value, skip_top: int | None = None, walk: dict | None = None) -> list[Global]:
     """Guarded globals reachable inside ``value`` (tuples, lists, dicts, sets).
     ``skip_top`` exempts one top-level tuple position (the permitted ctor argument).
-    An Obj is not entered: its callable, arguments and state were checked at its own call."""
-    found, seen, todo, steps = [], set(), [(value, 0)], 0
+    An Obj is not entered: its callable, arguments and state were checked at its own call.
+
+    ``walk`` is shared by every call of one stream: a container already walked for an
+    earlier call is not walked again (whatever it holds was reported then, with its final
+    contents), so a large vocabulary passed to many BUILDs costs one walk. A top-level
+    tuple walked with a position exempt is not marked, so it is walked in full elsewhere."""
+    walk = walk if walk is not None else {"seen": set(), "steps": 0}
+    seen = walk["seen"]
+    found, todo = [], [(value, 0)]
     while todo:
         item, depth = todo.pop()
-        steps += 1
-        if steps > MAX_VALUE_WALK:
+        walk["steps"] += 1
+        if walk["steps"] > MAX_VALUE_WALK:
             found.append(Global("<undecided>", "<walk limit>"))
             break
         if _guarded(item):
             found.append(item)
             continue
-        if id(item) in seen:
-            continue
-        seen.add(id(item))
         if isinstance(item, tuple) and depth == 0 and skip_top is not None:
             todo.extend((v, depth + 1) for i, v in enumerate(item) if i != skip_top)
-        elif isinstance(item, (tuple, list, set, frozenset)):
-            todo.extend((v, depth + 1) for v in item)
-        elif isinstance(item, dict):
+            continue
+        if not isinstance(item, (tuple, list, set, frozenset, dict)) or id(item) in seen:
+            continue
+        seen.add(id(item))
+        if isinstance(item, dict):
             todo.extend((v, depth + 1) for kv in item.items() for v in kv)
+        else:
+            todo.extend((v, depth + 1) for v in item)
     return found
 
 
@@ -343,9 +493,28 @@ def _check_guarded_calls(calls: list[tuple]) -> list[str]:
     to a call is seen with its final contents.
     """
     reasons = []
+    walk = {"seen": set(), "steps": 0}
+    zero_walk = {"seen": set(), "steps": 0}
     for how, func, args, pos in calls:
         exempt = None
-        if _guarded(func):
+        reason = _rebuilt_instance_use(how, func, args)
+        if reason:
+            reasons.append(f"{reason} at {pos}")
+        if how != "build":
+            for obj in _getattr_results(args, zero_walk, _is_zero_arg_instance):
+                pair = class_of(obj)
+                reasons.append(f"an instance of {pair[0]}.{pair[1]} is passed to a call at {pos} ({how.upper()}); "
+                               "it may only be rebuilt from a dict state and stored")
+        if isinstance(func, Global) and func.pair in GETATTR:
+            # judged by _check_getattr. getattr never calls its target, so an allowlisted class
+            # there (getattr(Detect, "forward"), how pickle writes a function stored on a class)
+            # is not a value handed to a caller; the name is still walked.
+            exempt = 0 if isinstance(args, tuple) and args and isinstance(args[0], Global) else None
+        elif isinstance(func, Global) and func.pair in ARGUMENT_CHECKED:
+            reason, exempt = _argument_check(how, func.pair, args)
+            if reason:
+                reasons.append(f"{func.module}.{func.name} at {pos} {reason}")
+        elif _guarded(func):
             name = f"{func.module}.{func.name}"
             if how != "reduce":
                 reasons.append(f"{name} at {pos} is used through {how.upper()}, not called the way numpy does")
@@ -358,10 +527,345 @@ def _check_guarded_calls(calls: list[tuple]) -> list[str]:
                                "second argument; only a numpy bit generator and __bit_generator_ctor are accepted)")
             else:
                 exempt = 1
-        for value in _guarded_values(args, skip_top=exempt):
+        for value in _guarded_values(args, skip_top=exempt, walk=walk):
             reasons.append(f"{value.module}.{value.name} is passed as a value at {pos} "
                            f"({how.upper()}); it may only be called directly")
     return reasons
+
+
+# --- Keras 3 models pickled as an embedded .keras archive --------------------------
+
+# keras/src/saving/keras_saveable.py (Keras 3.3.3 to 3.15.1, source review 2 of 2026-10-19):
+# KerasSaveable.__reduce__ returns (self._unpickle_model, (BytesIO(<.keras archive>),)), and
+# _unpickle_model hands the bytes to saving_lib._load_model_from_fileobj(..., safe_mode=False).
+# In opcodes: REDUCE of builtins.getattr(<keras class>, "_unpickle_model") on an _io.BytesIO
+# rebuilt by NEWOBJ () + BUILD (value, position, dict-or-None); at protocol 2 the value is
+# _codecs.encode(<latin-1 text>, "latin1").
+KERAS_UNPICKLE = "_unpickle_model"
+BYTES_IO = frozenset({("_io", "BytesIO"), ("io", "BytesIO")})
+CODECS_ENCODE = ("_codecs", "encode")
+
+
+def _embedded_blob(value) -> bytes | None:
+    if isinstance(value, (bytes, bytearray)):
+        return bytes(value)
+    if isinstance(value, Obj) and value.how == "reduce" and isinstance(value.func, Global) \
+            and value.func.pair == CODECS_ENCODE and isinstance(value.args, tuple) and len(value.args) == 2 \
+            and isinstance(value.args[0], str) and value.args[1] in ("latin1", "latin-1"):
+        try:
+            return value.args[0].encode("latin-1")
+        except UnicodeEncodeError:
+            return None
+    return None
+
+
+def _keras_class(value) -> bool:
+    return isinstance(value, Global) and identifier_path(value.module) and identifier_path(value.name) \
+        and value.module.split(".", 1)[0] == "keras" and not value.name.startswith("_")
+
+
+def _match_embedded_keras(func, args):
+    """(keras class, getattr result, BytesIO instance, bytes) when a REDUCE is exactly the
+    Keras embedded-model form, else None."""
+    if not (_is_getattr_result(func) and func.how == "reduce" and isinstance(func.args, tuple)
+            and len(func.args) == 2 and _keras_class(func.args[0]) and func.args[1] == KERAS_UNPICKLE):
+        return None
+    if not (isinstance(args, tuple) and len(args) == 1):
+        return None
+    bio = args[0]
+    if not (isinstance(bio, Obj) and bio.how == "newobj" and isinstance(bio.func, Global)
+            and bio.func.pair in BYTES_IO and bio.args == ()):
+        return None
+    state = bio.state
+    if not (isinstance(state, tuple) and len(state) == 3 and isinstance(state[1], int)
+            and not isinstance(state[1], bool) and (state[2] is None or state[2] == {})):
+        return None
+    blob = _embedded_blob(state[0])
+    return None if blob is None else (func.args[0], func, bio, blob)
+
+
+def _embedded_keras(report: dict, calls: list[tuple], refs: dict) -> frozenset:
+    """Recognise Keras models pickled as an embedded .keras archive (owner's decision of
+    2026-10-19: the form is not evidence of an attack by itself).
+
+    Each match keeps a RISKY reason (the pickle runs the Keras loader with
+    safe_mode=False on the bytes, which is never overridable) and hands the bytes to the
+    pipeline under ``_embedded``, which analyses them as a Keras file of their own (static
+    analysis and Lambda emulation) and takes that verdict. The keras class and the
+    BytesIO import are not counted as findings when every use of them is in a match;
+    otherwise they are judged as before. Returns the ids of the argument tuples of the
+    calls a match accounts for (for _check_getattr)."""
+    matches = []
+    for how, func, args, pos in calls:
+        if how == "reduce":
+            found = _match_embedded_keras(func, args)
+            if found:
+                matches.append((pos, args, *found))
+    if not matches:
+        return frozenset()
+    handled: set[int] = set()
+    uses: dict[int, list] = {}  # id of a keras class or BytesIO Global -> [Global, uses in matches]
+    all_single = True
+    for pos, args, cls, result, bio, blob in matches:
+        for value in (cls, bio.func):
+            uses.setdefault(id(value), [value, 0])[1] += 1
+        if refs.get(id(result), 0) == 0 and refs.get(id(bio), 0) == 0:
+            handled.update({id(args), id(result.args)})
+        else:
+            all_single = False  # the method or the BytesIO is used again elsewhere
+        name = f"{cls.module}.{cls.name}.{KERAS_UNPICKLE}"
+        report["reasons"].append(
+            f"pickle invokes the Keras loader on embedded bytes ({name} at {pos} reads a {len(blob)}-byte "
+            "archive with safe_mode=False); the embedded model is analysed as a Keras file of its own")
+        report["embedded_keras"].append({"pos": pos, "class": f"{cls.module}.{cls.name}", "length": len(blob)})
+        report.setdefault("_embedded", []).append({"pos": pos, "label": f"embedded keras@{pos}", "data": blob})
+    # A pair's imports are accounted for when each of its Globals is used only in matches.
+    counts: dict[tuple, int] = {}
+    for imp in report["imports"]:
+        if imp["opcode"] in IMPORT_OPCODES and imp["resolved"]:
+            pair = (imp["module"], imp["symbol"])
+            counts[pair] = counts.get(pair, 0) + 1
+    by_pair: dict[tuple, list[bool]] = {}
+    for value, n in uses.values():
+        by_pair.setdefault(value.pair, []).append(1 + refs.get(id(value), 0) == n)
+    report["_consumed_imports"] = frozenset(
+        pair for pair, ok in by_pair.items() if all_single and all(ok) and counts.get(pair) == len(ok))
+    return frozenset(handled)
+
+
+# --- dill: functions pickled with their bytecode -----------------------------------
+
+# dill._dill._create_code(*args) (0.3.8 and 0.4.1, source review 2): an optional leading
+# co_lnotab, then the CodeType fields of the writing Python. On 3.11 to 3.13 (18 fields):
+# argcount, posonlyargcount, kwonlyargcount, nlocals, stacksize, flags, code, consts,
+# names, varnames, filename, name, qualname, firstlineno, linetable, exceptiontable,
+# freevars, cellvars.
+CODE_FIELDS_311 = 18
+MAX_DILL_CODE = 64
+
+
+class _NotData(ValueError):
+    pass
+
+
+def _code_json(value, depth: int = 0):
+    """A field of a code object as tagged JSON for the sandbox (tuple, bytes, frozenset and
+    nested code objects are tagged); anything that is not plain data is refused."""
+    if depth > 32:
+        raise _NotData("nested too deep")
+    if value is None or isinstance(value, (bool, int, float, str)):
+        return value
+    if isinstance(value, (bytes, bytearray)):
+        return {"b": base64.b64encode(bytes(value)).decode()}
+    if isinstance(value, tuple):
+        return {"t": [_code_json(v, depth + 1) for v in value]}
+    if isinstance(value, frozenset):
+        return {"fs": [_code_json(v, depth + 1) for v in value]}
+    if _is_dill(value, "_create_code") and isinstance(value.args, tuple):
+        return {"code": [_code_json(v, depth + 1) for v in _code_fields(value.args)]}
+    raise _NotData(f"{_describe(value)} is not plain data")
+
+
+def _is_dill(value, name: str) -> bool:
+    return isinstance(value, Obj) and value.how == "reduce" and isinstance(value.func, Global) \
+        and value.func.module in DILL_MODULES and value.func.name == name
+
+
+def _code_fields(args: tuple) -> tuple:
+    return args[1:] if args and not isinstance(args[0], int) else args
+
+
+def _code_strings(fields: tuple) -> list[str]:
+    """co_names and string constants (with those of nested code objects) on the 3.11+
+    layout; every string in a tuple on any other layout."""
+    out, todo = [], []
+    if len(fields) == CODE_FIELDS_311:
+        todo += [fields[7], fields[8]]
+    else:
+        todo += [f for f in fields if isinstance(f, tuple)]
+    while todo:
+        item = todo.pop()
+        if isinstance(item, str):
+            out.append(item)
+        elif isinstance(item, (tuple, frozenset)):
+            todo.extend(item)
+        elif _is_dill(item, "_create_code") and isinstance(item.args, tuple):
+            nested = _code_fields(item.args)
+            todo += [nested[7], nested[8]] if len(nested) == CODE_FIELDS_311 else \
+                [f for f in nested if isinstance(f, tuple)]
+    return out
+
+
+def _dill_code(report: dict, calls: list[tuple]) -> None:
+    """Functions dill pickled with their bytecode (owner's decision of 2026-10-19: treated
+    like a Keras Lambda). Each code object is a RISKY reason ("file carries executable
+    Python code"); sink names among its co_names or string constants are MALICIOUS.
+    The fields go to the pipeline under ``dill_code``, which rebuilds the function inside
+    the WASI sandbox and calls it on fakes, like a Lambda."""
+    functions = {}
+    helpers = set()
+    for how, func, args, pos in calls:
+        if isinstance(func, Global) and func.module in DILL_MODULES:
+            helpers.add(func.name)
+            if func.name == "_create_function" and how == "reduce" and isinstance(args, tuple) and args \
+                    and _is_dill(args[0], "_create_code"):
+                functions.setdefault(id(args[0].args), (args, pos))
+    if helpers:
+        report["reasons"].append(
+            "pickle written by dill: dill.load rebuilds it with dill's own helpers ("
+            + ", ".join(sorted(helpers)) + ")")
+    for how, func, args, pos in calls:
+        if not (isinstance(func, Global) and func.module in DILL_MODULES and func.name == "_create_code"):
+            continue
+        if how != "reduce" or not isinstance(args, tuple):
+            report["reasons"].append(f"{func.module}.{func.name} at {pos} is used through {how.upper()}")
+            continue
+        fields = _code_fields(args)
+        name = fields[11] if len(fields) == CODE_FIELDS_311 and isinstance(fields[11], str) else "?"
+        report["reasons"].append(f"file carries executable Python code ({func.module}._create_code at {pos} "
+                                 f"builds code object {name!r}; it runs when the function is called)")
+        tokens = sorted({s for s in _code_strings(fields) if s in TF_DANGEROUS or s in DANGEROUS_SYMBOLS})
+        if tokens:
+            report["code_malicious"].append(f"dill code object {name!r} at {pos} names the sink(s) "
+                                            + ", ".join(tokens))
+        if len(report["dill_code"]) >= MAX_DILL_CODE:
+            report["reasons"].append(f"more than {MAX_DILL_CODE} dill code objects; the rest is not emulated")
+            continue
+        entry = {"path": f"dill code@{pos}", "name": name, "layout": len(fields), "sink_tokens": tokens,
+                 "input_shape": [1, 8]}
+        try:
+            entry["code_fields"] = [_code_json(v) for v in fields]
+        except _NotData as exc:
+            entry["code_fields"] = None
+            report["reasons"].append(f"dill code object {name!r} at {pos} has a field that is not plain data "
+                                     f"({exc}); not emulated")
+        made = functions.get(id(args))
+        if made:
+            fn_args = made[0]
+            for key, index in (("defaults", 3), ("closure", 4)):
+                value = fn_args[index] if len(fn_args) > index else None
+                if key == "closure" and isinstance(value, tuple):
+                    value = tuple(v.args[0] if _is_dill(v, "_create_cell") and v.args else v for v in value)
+                try:
+                    entry[key] = _code_json(value)
+                except _NotData:
+                    entry[key] = None
+        report["dill_code"].append(entry)
+
+
+# --- builtins.getattr: how pickle writes a bound method -----------------------------
+
+def _imports_getattr(report: dict) -> bool:
+    """Does the stream itself (not a parser-differential reading) import getattr?"""
+    return any((imp["module"], imp["symbol"]) in GETATTR and imp["opcode"] in IMPORT_OPCODES
+               for imp in report["imports"])
+
+
+def _is_getattr_result(value) -> bool:
+    return isinstance(value, Obj) and isinstance(value.func, Global) and value.func.pair in GETATTR
+
+
+def _getattr_target_ok(target, allow: frozenset) -> bool:
+    """An instance of an allowlisted class, or an allowlisted class itself."""
+    if isinstance(target, Global):
+        pair = target.pair
+    elif isinstance(target, Obj) and not _is_getattr_result(target):
+        pair = class_of(target)
+    else:
+        return False
+    return pair is not None and pair in allow and pair not in GETATTR and not is_dangerous_import(*pair)
+
+
+def _describe(value) -> str:
+    if isinstance(value, Global):
+        return f"{value.module}.{value.name}"
+    if isinstance(value, Obj):
+        pair = class_of(value)
+        return f"an instance of {pair[0]}.{pair[1]}" if pair else f"a {value.how.upper()} result"
+    return _short((value,))[1:-2] if not isinstance(value, str) else repr(value[:60])
+
+
+def _getattr_results(value, walk: dict, match=None) -> list[Obj]:
+    """getattr results (or Objs ``match`` accepts) inside ``value`` (tuples, lists, dicts,
+    sets; other Objs are not entered: their own calls were checked when they were made)."""
+    match = match or _is_getattr_result
+    found, todo = [], [value]
+    while todo:
+        item = todo.pop()
+        walk["steps"] += 1
+        if walk["steps"] > MAX_VALUE_WALK:
+            break
+        if match(item):
+            found.append(item)
+            continue
+        if not isinstance(item, (tuple, list, set, frozenset, dict)) or id(item) in walk["seen"]:
+            continue
+        walk["seen"].add(id(item))
+        todo.extend(v for kv in item.items() for v in kv) if isinstance(item, dict) else todo.extend(item)
+    return found
+
+
+def _check_getattr(calls: list[tuple], allow: frozenset, imported: bool,
+                   handled: frozenset = frozenset()) -> tuple[list[str], list[str]]:
+    """(MALICIOUS reasons, RISKY reasons) for every use of builtins.getattr.
+
+    ``getattr(obj, "name")`` is how pickle writes a bound method. It is accepted only
+    for an object or class from the allowlist and a constant name without a leading
+    underscore, when nothing uses the result while loading. Using the result is calling
+    it or passing it, at any depth, as an argument of any call (a defaultdict factory,
+    a numpy ctor helper, another getattr, ...); only storing it in a BUILD state is not a
+    use. A used result, a dunder name or a sink name is evidence (MALICIOUS); every other
+    use is RISKY. Calls in ``handled`` (ids of their argument tuples) belong to a Keras
+    embedded-model pattern and are judged by _embedded_keras instead.
+    """
+    malicious, risky = [], []
+    used = False
+    walk = {"seen": set(), "steps": 0}
+    for how, func, args, pos in calls:
+        if id(args) in handled:
+            used = used or (isinstance(func, Global) and func.pair in GETATTR)
+            continue
+        if _is_getattr_result(func):
+            malicious.append(f"the result of builtins.getattr({_short(func.args)[1:-1]}) is called "
+                             f"({how.upper()} at {pos})")
+            continue
+        if how != "build":
+            for result in _getattr_results(args, walk):
+                target = (f"{func.module}.{func.name}" if isinstance(func, Global) else _describe(func))
+                malicious.append(f"the result of builtins.getattr({_short(result.args)[1:-1]}) is passed as an "
+                                 f"argument to {target} ({how.upper()} at {pos})")
+        if not (isinstance(func, Global) and func.pair in GETATTR):
+            continue
+        used = True
+        where = f"{func.module}.{func.name} at {pos}"
+        if how not in ("reduce", "obj", "inst"):
+            risky.append(f"{where} is used through {how.upper()}, not called the way pickle writes a method")
+            continue
+        if not isinstance(args, tuple) or len(args) != 2:
+            risky.append(f"{where} is called with {_short(args)}; pickle writes a method as getattr(obj, name)")
+            continue
+        target, name = args
+        if not isinstance(name, str):
+            risky.append(f"{where} is given an attribute name that is not a constant string ({_describe(name)})")
+            continue
+        if name.startswith("__") and name.endswith("__"):
+            malicious.append(f"{where} reads the dunder attribute {name!r} of {_describe(target)}")
+            continue
+        if name in DANGEROUS_SYMBOLS:
+            malicious.append(f"{where} reads the sink attribute {name!r} of {_describe(target)}")
+            continue
+        if isinstance(target, Global) and is_dangerous_import(*target.pair):
+            malicious.append(f"{where} reads {name!r} of the sink {_describe(target)}")
+            continue
+        if name.startswith("_"):
+            risky.append(f"{where} reads the private attribute {name!r} of {_describe(target)}")
+            continue
+        if not _getattr_target_ok(target, allow):
+            risky.append(f"{where} reads {name!r} of {_describe(target)}, which is not built from "
+                         "allowlisted classes")
+    if imported and not used:
+        risky.append("builtins.getattr is imported but never called the way pickle writes a method")
+    return malicious, risky
 
 
 def _disasm(data: bytes) -> str:
@@ -391,6 +895,10 @@ def _score(report: dict, allow: frozenset, torch: bool) -> None:
             continue
         if (module, qualname) in allow:
             continue
+        if (module, qualname) in GETATTR and imp["opcode"] in IMPORT_OPCODES:
+            continue  # judged use by use in _check_getattr
+        if (module, qualname) in report.get("_consumed_imports", ()) and imp["opcode"] in IMPORT_OPCODES:
+            continue  # only used to load an embedded Keras model (_embedded_keras)
         if is_dangerous_import(module, qualname):
             report["suspicious_imports"].append({"module": module, "symbol": qualname, "pos": imp["pos"]})
         else:
@@ -422,7 +930,9 @@ def _score(report: dict, allow: frozenset, torch: bool) -> None:
                                     "pair": [imp["module"], imp["symbol"]],
                                     "explanation": override.pickle_global(imp["module"], imp["symbol"])}
 
-    if report["suspicious_imports"] and has_call:
+    getattr_malicious = (report.get("getattr_malicious") or []) + (report.get("code_malicious") or [])
+    reasons.extend(getattr_malicious)
+    if (report["suspicious_imports"] and has_call) or getattr_malicious or report.get("trailing_malicious"):
         report["static_risk"] = "malicious"
     elif reasons:
         report["static_risk"] = "suspicious"

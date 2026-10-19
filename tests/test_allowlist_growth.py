@@ -223,7 +223,7 @@ def test_reviewed_keras_pairs_are_clean(layer):
 
 
 @pytest.mark.parametrize("layer", [
-    _layer("keras.src.ops.numpy", "Subtract"),  # added one by one, not keras.src.ops.*
+    _layer("keras.src.ops.numpy", "Einsum"),  # added one by one, not keras.src.ops.*
     _layer("keras.src.ops.core", "Add"),
     _layer("keras.src.applications.resnet", "LayerScale"),
     _layer(TF_OP_MODULE, "Dense", {"units": 2}),  # a pair, not a module grant

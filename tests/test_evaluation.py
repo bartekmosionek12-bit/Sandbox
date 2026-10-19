@@ -76,14 +76,16 @@ def _fake_hub(files):
     repos = sorted({repo for repo, _ in files})
 
     class HfApi:
-        def list_models(self, filter, sort, limit):  # noqa: A002 - huggingface_hub keyword
+        def list_models(self, **kwargs):
             return [sib(id=r, downloads=10, private=False, gated=False) for r in repos]
 
-        def model_info(self, repo_id, files_metadata):
+        def model_info(self, repo_id, files_metadata, securityStatus=False):  # noqa: N803 - Hub keyword
             siblings = [sib(rfilename=n, size=len(d), lfs=sib(sha256=hashlib.sha256(d).hexdigest()))
                         for (r, n), d in files.items() if r == repo_id]
             siblings.append(sib(rfilename="modeling_custom.py", size=10, lfs=None))
-            return sib(sha="a" * 40, siblings=siblings, gated=False, disabled=False, downloads=10)
+            status = {"scansDone": True, "filesWithIssues": [{"path": "model.h5", "level": "suspicious"}]}
+            return sib(sha="a" * 40, siblings=siblings, gated=False, disabled=False, downloads=10,
+                       security_repo_status=status if securityStatus else None)
 
     def hf_hub_download(repo_id, filename, revision, local_dir):
         assert revision == "a" * 40
@@ -108,8 +110,36 @@ def test_fetch_discovers_weight_files_and_records_hashes(tmp_path):
     for entry in manifest:
         data = (tmp_path / entry["path"]).read_bytes()
         assert entry["sha256"] == entry["lfs_sha256"] == hashlib.sha256(data).hexdigest()
+        assert entry["split"] == fetch.split_of(entry["repo_id"])
         assert entry["revision"] == "a" * 40
     assert not list(tmp_path.rglob("*.py"))
+    assert by_name["model.h5"]["hub_scan"] == "suspicious"
+    assert by_name["pytorch_model.bin"]["hub_scan"] == "no_issue"
+    assert by_name["pytorch_model.bin"]["stratum"] == "torch_transformers"
+
+
+def test_split_is_by_repo_deterministic_and_balanced(tmp_path):
+    fetch = _load("fetch_benign_hf")
+    repos = [f"org{i}/model{i}" for i in range(2000)]
+    halves = [fetch.split_of(r) for r in repos]
+    assert halves == [fetch.split_of(r) for r in repos]
+    assert 0.45 < halves.count("tune") / len(halves) < 0.55
+    fetch.write_splits([{"repo_id": r} for r in repos[:10]], str(tmp_path))
+    tune = (tmp_path / "hf-tune.txt").read_text().splitlines()[1:]
+    held = (tmp_path / "hf-heldout.txt").read_text().splitlines()[1:]
+    assert sorted(tune + held) == sorted(repos[:10]) and not set(tune) & set(held)
+
+
+def test_fetch_reuses_seed_files_by_commit(tmp_path):
+    fetch = _load("fetch_benign_hf")
+    files = {("org/a", "pytorch_model.bin"): b"torch-bytes"}
+    seed, out = tmp_path / "seed", tmp_path / "out"
+    fetch.discover(_fake_hub(files), str(seed), 1 << 20, {"torch_transformers"}, set(), 0.01)
+    hub = _fake_hub(files)
+    hub.hf_hub_download = lambda **kw: pytest.fail("seeded file downloaded again")
+    assert fetch.discover(hub, str(out), 1 << 20, {"torch_transformers"}, set(), 0.01, str(seed)) == 1
+    (entry,) = fetch.read_manifest(str(out))
+    assert (out / entry["path"]).read_bytes() == b"torch-bytes"
 
 
 def test_fetch_rejects_a_sha256_mismatch(tmp_path):
@@ -191,3 +221,38 @@ def test_unverifiable_false_positives_are_their_own_column():
     assert "of which UNVERIFIABLE" in text and "| safeloadai | 1 / 1 | 2 / 2 | 1 |" in text
     run = {"label": "x", "summary": summary, "entries": entries}
     assert "FP UNVERIFIABLE after" in compare.compare(run, run)
+
+
+def test_run_eval_groups_split_and_heldout_stays_out_of_the_review(tmp_path):
+    run_eval = _load("run_eval")
+    fetch = _load("fetch_benign_hf")
+    tune = next(f"org/r{i}" for i in range(100) if fetch.split_of(f"org/r{i}") == "tune")
+    held = next(f"org/r{i}" for i in range(100) if fetch.split_of(f"org/r{i}") == "heldout")
+    (tmp_path / "manifest.jsonl").write_text("".join(json.dumps({
+        "repo_id": repo, "filename": "m.joblib", "path": f"files/{repo}/m.joblib", "format": "sklearn",
+        "revision": "b" * 40, "sha256": "c" * 64, "size": 3, "stratum": "sklearn"}) + "\n" for repo in (tune, held)))
+    entries = run_eval.load_entries(None, str(tmp_path), [])
+    assert [e["group"] for e in entries] == ["hf-tune", "hf-heldout"]
+    for e in entries:
+        e["results"] = _entry("x", "benign", "joblib", "SUSPICIOUS", [f"sk.{e['group']}"])["results"]
+        e["results"]["safeloadai"]["category"] = "RISKY"
+    groups = run_eval.summarise_groups(entries, [])
+    held_stats = groups["hf-heldout"]["safeloadai"]
+    assert held_stats["fp_rate"] == 1.0 and held_stats["fp_risky"] == 1
+    assert held_stats["per_library"]["sklearn"]["false_positives"] == 1
+    assert list(run_eval.false_positives(entries)["missing"]) == ["sk.hf-tune"]
+    assert "### hf-heldout: per library" in run_eval.group_markdown(groups, [])
+
+
+def test_run_eval_reviewed_labels_override_the_proposal(tmp_path):
+    run_eval = _load("run_eval")
+    rows = [("org/a", "evil.pkl", "malicious", "proposed"), ("org/a", "fp.pkl", "unclear", "only getattr")]
+    (tmp_path / "manifest.jsonl").write_text("".join(json.dumps({
+        "repo_id": r, "filename": f, "path": f"files/{f}", "format": "sklearn", "revision": "b" * 40,
+        "sha256": "c" * 64, "size": 3, "proposed_label": label, "label_reason": why}) + "\n"
+        for r, f, label, why in rows))
+    labels = tmp_path / "labels.tsv"
+    labels.write_text("# header\n" + "org/a\tfp.pkl\t" + "b" * 40 + "\t" + "c" * 64 + "\tbenign\trepo says benign\n")
+    entries = run_eval.load_entries(None, None, [], hf_malicious=str(tmp_path), labels=str(labels))
+    assert [(e["label"], e["expected"]) for e in entries] == [("malicious", "MALICIOUS"), ("benign", "CLEAN")]
+    assert {e["group"] for e in entries} == {"hf-malicious"}

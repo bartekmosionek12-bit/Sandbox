@@ -24,6 +24,13 @@ model = safe_load("model.pkl")       # loads only if CLEAN, else raises UnsafeMo
 safeloadai scan models/ --json       # exit 0 CLEAN, 1 MALICIOUS, 3 SUSPICIOUS, 2 usage error
 ```
 
+That is the default, and the strictest, way to use it. Every option that changes a
+verdict (a user allowlist, accepting UNVERIFIABLE items, a config file) or how the
+scan runs (deep detonation, the LLM judge, limits) is off by default. Each one is
+announced on the command line and recorded in the Report's `options` section. Each
+one is documented, with the risk it carries, in [docs/OPTIONS.md](docs/OPTIONS.md).
+`safeloadai options` prints them all with their current settings.
+
 ## Reason categories and the informed override
 
 Every reason in a Report has a category. It never changes the verdict:
@@ -63,7 +70,8 @@ safeloadai scan convnext.h5 --accept-unverified LayerScale  # CI and scripts: na
 safeloadai scan models/ --accept-unverified <sha256>:LayerScale   # several files: scope by sha256
 ```
 
-The CLI prompts only when stdin and stdout are both a terminal (and never with
+See [docs/OPTIONS.md](docs/OPTIONS.md#accept_unverified) for the risk this option
+carries and how to check it in the Report. The CLI prompts only when stdin and stdout are both a terminal (and never with
 `--json` or `--no-input`). Anywhere else it refuses unless
 `--accept-unverified` names every item. A file with an accepted override counts
 as exit 0. A legacy `.h5` is still not loaded by `safe_load` after an override
@@ -78,6 +86,16 @@ severe verdict of any layer, so no layer can lower what another one found.
    count, size, compression ratio and path traversal. The format is detected
    from the content, and a file whose extension does not match its content is
    SUSPICIOUS.
+   - **Every reading is analysed.** Loaders disagree about where a file
+     starts: `pickle.load`, `joblib.load` and legacy `torch.load` read from
+     offset 0, `zipfile` (Keras) finds the archive from its end, and h5py
+     looks for the HDF5 superblock at 0, 512, 1024, ... A file can therefore
+     be a pickle for one loader and a `.keras` archive for another. The
+     scanner lists every reading that parses (a pickle or compressed joblib
+     stream at offset 0, a ZIP archive, an HDF5 superblock) and runs each
+     through static analysis and emulation; the most severe verdict wins. A
+     file with more than one reading, or with bytes in front of an archive or
+     superblock that no reading explains, is at least SUSPICIOUS (RISKY).
 2. **Static analysis.**
    - **Pickle:** every opcode is walked, STACK_GLOBAL included. Imports must
      match an exact `(module, qualname)` allowlist, and any other import is at
@@ -169,26 +187,42 @@ report says why; `safeloadai doctor` tells you how to fix it. Optional extras:
 
 ## Results
 
-Latest local run, 2026-10-18 (0.4.0). It covers 138 files: 53 harmless marker payloads, including rebuilds of public scanner bypasses and CVE-2024-3660, and 85 locally generated benign scikit-learn, numpy, `.keras` and `.h5` models. Setup, caveats and the full tables are in [evaluation/results/README.md](evaluation/results/README.md).
+Runs of 2026-10-19, safeloadai 0.5.0, in a disposable cloud container with `evaluation/guard.py` on and no `--deep`. These runs include the getattr rule, the end of a pickle reading at STOP, the source reviews of torch, torchvision, Ultralytics, xgboost, Keras and dill, the zero-arg rule, Keras models embedded in pickles and dill code analysis. Full tables: [eval-hub-1k-r3](evaluation/results/eval-hub-1k-r3-20261019T184057Z.md), [310-file set](evaluation/results/eval-hf310-r3-20261019T184154Z.md), [source review](evaluation/results/source-review-20261019.md), [source review 2](evaluation/results/source-review-2-20261019.md), [review](evaluation/results/review-hf-1k-20261019.md), [allowlist review](evaluation/results/allowlist-review-20261019.md).
 
-| tool | detected / malicious | false positives / benign | of which UNVERIFIABLE | median s |
-|---|---|---|---|---|
-| safeloadai 0.2 | 52 / 53 | 49 / 85 | - | 0.40 |
-| safeloadai 0.3.0 | 53 / 53 | 23 / 85 | - | 0.41 |
-| safeloadai 0.4.0 | 53 / 53 | 2 / 85 | 2 | 0.40 |
-| picklescan 1.0.5 | 32 / 53 | 0 / 85 | - | 0.09 |
-| fickling 0.1.12 | 36 / 53 | 61 / 85 | - | 0.06 |
-| modelscan 0.8.8 | 23 / 53 | 0 / 85 | - | 0.17 |
+Each run is reported twice:
 
-The other scanners were measured on the same 138 files in the 0.3.0 run and were not re-run for 0.4.0.
+- **default** is plain `scan(path)`, with no option.
+- **opt-in** is the same report with every UNVERIFIABLE item accepted for that one file, as `--accept-unverified` would do ([docs/OPTIONS.md](docs/OPTIONS.md)). A file with any RISKY or MALICIOUS reason stays flagged.
 
-How to read the table:
+**Detection.** "Detected" means any verdict other than CLEAN; safeloadai's verdict was MALICIOUS on every one of these by default.
 
-- **The malicious files are lab rebuilds with harmless markers,** not a public malware set.
-- **The benign files are not independent of the allowlist,** and they are not Hugging Face models. A false-positive rate on unseen models still needs the Hub set: `evaluation/fetch_benign_hf.py`, then `run_eval.py --hf DIR`.
-- **The 2 remaining false positives are SUSPICIOUS and UNVERIFIABLE only:** ConvNeXt saved as legacy `.h5` names `LayerScale` without its module, so the scanner cannot know which class the loading code passes. The pairs that [false-positives-20261018.md](evaluation/results/false-positives-20261018.md) marked safe were added in 0.4.0, each with a justification and a regression test that keeps the malicious variant flagged.
-- **3 malicious lab files are UNVERIFIABLE only** (an unknown pickle global and Keras custom objects). An override would let them through, which is why it has to name every item, for one file, and is recorded. The fourth, a `kerasx` look-alike module, is RISKY and cannot be overridden.
-- **Format coverage explains some of the other tools' misses.** picklescan and fickling return "clean" for `.keras` and `.h5` files they do not analyse. modelscan without its TensorFlow extra skips `.keras`, and the evaluation does not run it on `.h5`, because modelscan opens those with h5py on the host.
+| set | safeloadai default | safeloadai opt-in | picklescan 1.0.5 | fickling 0.1.12 | modelscan 0.8.8 |
+|---|---|---|---|---|---|
+| lab marker payloads (incl. 6 polyglots) | 59 / 59 | 56 / 59 | 35 / 59 | 40 / 59 | 24 / 59 |
+| mutations (`tests/corpus/mutate.py`) | 774 / 774 | 774 / 774 | 678 / 774 | 654 / 774 | 618 / 774 |
+| real Hub files flagged by the Hub's scanners, labelled malicious from that evidence | 49 / 49 | 49 / 49 | 31 / 49 | 32 / 49 | 29 / 49 |
+
+The 3 lab files opt-in lets through are the ones built to be UNVERIFIABLE (an unknown pickle global, a custom Keras object, a custom object in an `.h5`): accepting every UNVERIFIABLE item without reading it accepts them too.
+
+**False positives on real Hugging Face files.** The 943-file benign corpus is split by repo into a tune half (the allowlist review looked only at it) and a held-out half.
+
+| set | files | default FP | of which UNVERIFIABLE only | RISKY | MALICIOUS | opt-in FP |
+|---|---|---|---|---|---|---|
+| 0.4.0 on the first 310-file Hub set (corrected) | 306 | 120 (39 %) | 82 | 32 | 6 | - |
+| 0.5.0 on the same 306 files | 306 | 74 (24 %) | 42 | 32 | 0 | 32 (10 %) |
+| 0.5.0 held-out half (headline) | 502 | 150 (30 %) | 102 | 48 | 0 | 48 (10 %) |
+
+Held-out by format, default (opt-in): `.h5` 10/85 (1), `.keras` 26/72 (6), `.joblib` 21/38 (2), `.pkl` 26/54 (1), torch 67/253 (38). picklescan and modelscan flag 4 of the 502 held-out files, fickling 184. Before the getattr rule and the source reviews, the held-out half was at 175 (125 UNVERIFIABLE only, 45 RISKY, 5 MALICIOUS).
+
+How to read these numbers:
+
+- **UNVERIFIABLE is not RISKY.** UNVERIFIABLE means the file names something the scanner cannot check, such as a class from a library outside the allowlist, a custom Keras layer or the author's own loss. Nothing in it is known to be dangerous, and a user can accept those exact items for that one file. RISKY means the scanner knows the construct can be abused (a polyglot, an argument-checked global used another way, an unreadable format, a bad CRC, a `getattr` on a class outside the allowlist, a dill pickle, a pickle that runs the Keras loader), so no override accepts it. 102 of the 150 held-out false positives are UNVERIFIABLE only: Ultralytics classes the review did not cover, xgboost `Booster` and other third-party estimators, and `training_args.bin` files that need `accelerate.state.PartialState`.
+- **No benign file is MALICIOUS any more.** The last two were a YOLO-World checkpoint (`dill._dill._load_type("set")`, a type lookup the emulator had scored as code execution) and `a-01a/dogs-vs-cats-svm` (a Keras 3 model pickled as an embedded `.keras` archive). Both are RISKY now; the embedded archive is analysed as a Keras file of its own.
+- **Most of the 48 RISKY held-out files are not pickles at all.** 33 are `.bin` files that are neither pickle nor archive (OpenVINO weights and similar, "unrecognised file format"), which is why the torch row keeps 38 after opt-in.
+- **Ultralytics went from 33/33 to 8/33 held-out files flagged** (3 after opt-in). The rest need newer classes (YOLOE, `Segment26`) or a YOLOv5 `models.*` module.
+- **The held-out rate is higher than the 310-file rate** because the new corpus is stratified: Ultralytics checkpoints and most xgboost files are a fixed share of the sample.
+- **The malicious Hub files are a convenience sample**: test payloads and proofs of concept, mostly simple pickles. They show that what the Hub's scanners flag is caught, not how safeloadai does against a targeted attacker. 25 more flagged files had evidence too weak to label and count in no rate.
+- **The lab and mutation payloads are marker rebuilds**, and the mutation generator was written with knowledge of the scanner. It found one real gap (pickles with no PROTO header, now fixed).
 
 ## LIMITATIONS
 
@@ -268,6 +302,19 @@ How to read the table:
     when the file was created with `libver="latest"`; Keras itself uses the
     default (old-style groups), so such files should be rare. Part of the
     false-positive measurement.
+- **Polyglot files.** Recognised readings: a pickle stream at offset 0 (any
+  protocol), a joblib-compressed stream at offset 0, a ZIP archive found from
+  its end-of-central-directory record, and the first HDF5 superblock at 0, 512,
+  1024, ... A reading the scanner does not know (another archive format, a
+  second ZIP archive earlier in the file, data a custom loader reads at some
+  other offset) is not analysed. A pickle reading needs the bytes at offset 0
+  to decode to a STOP, to 8 opcodes, or to an opcode that imports or calls; a
+  stream that fails before that cannot make `pickle.load` import anything.
+  The HDF5 reading after a user block is SUSPICIOUS by design (see below).
+- **CRC-32.** A PyTorch archive member whose CRC-32 does not match the archive
+  is analysed anyway (torch's reader appears not to check it) and the file is
+  SUSPICIOUS (RISKY). A `.keras` member with a bad CRC-32 is refused, as
+  `zipfile` refuses it.
 - **CLEAN Lambda models do not load through `safe_load`,** because Keras safe
   mode refuses Lambda bytecode. Load them yourself if you accept that risk.
 - **Loading a CLEAN pickle imports allowlisted libraries on your machine,**

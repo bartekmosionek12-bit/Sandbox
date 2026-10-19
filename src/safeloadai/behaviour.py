@@ -20,7 +20,16 @@ from __future__ import annotations
 from . import override
 from .report import Category, LayerResult, Verdict
 from .sandbox.host import GuestRun
-from .static.allowlists import KNOWN_GADGETS, PICKLE_GLOBALS, TORCH_GLOBALS
+from .static.allowlists import (
+    DANGEROUS_SYMBOLS,
+    DILL_CODE,
+    DILL_DATA,
+    DILL_MODULES,
+    GETATTR,
+    KNOWN_GADGETS,
+    PICKLE_GLOBALS,
+    TORCH_GLOBALS,
+)
 from .static.lookalike import imitates
 from .static.pickle_static import is_dangerous_import
 
@@ -101,11 +110,23 @@ def _classify_call(event: dict, allowed_names: frozenset[str], framework: bool) 
     if target == "builtins.open":
         mode = _unquote(str(args[1])) if len(args) > 1 else _unquote(str((event.get("kwargs") or {}).get("mode", "r")))
         return ("file_write", M) if WRITE_MODES & set(mode) else ("file_read", S)
+    if target == "builtins.getattr":
+        # How pickle writes a bound method. The static layer judges the object and whether
+        # the result is called; here a public, non-sink constant name is no finding.
+        name = _unquote(str(args[1])) if len(args) > 1 else ""
+        if name and not name.startswith("_") and name not in DANGEROUS_SYMBOLS:
+            return None
+        return "introspection", S
     if target == "builtins.__import__":
         module = _unquote(str(args[0])) if args else ""
         if module.split(".")[0] in SAFE_IMPORTS:
             return None
         return "import", S
+    if any(_matches(target, f"{module}.{name}") for module in DILL_MODULES for name in DILL_DATA | DILL_CODE):
+        # Reviewed dill helpers (allowlists.DILL_CODE, DILL_DATA): a type lookup, cells, dict
+        # copies and the code a function is rebuilt from, whose bytecode the static layer
+        # and the dill code emulation judge. Other dill helpers stay code_exec sinks.
+        return "dill", S
     found = sink_for(target)
     if found:
         return found
@@ -144,6 +165,7 @@ def classify(run: GuestRun, *, name: str = "emulation", torch: bool = False,
         if event.get("kind") == "import":
             pair = (str(event.get("module")), str(event.get("name")))
             if (event.get("resolved") != "real" and pair not in allow_pairs and pair not in KNOWN_GADGETS
+                    and pair not in GETATTR
                     and not is_dangerous_import(*pair) and not imitates(pair[0])):
                 unknown[f"{pair[0]}.{pair[1]}"] = pair
     for event in run.events:
@@ -166,7 +188,7 @@ def classify(run: GuestRun, *, name: str = "emulation", torch: bool = False,
                 _evidence(layer, event, category, severity)
         elif kind == "import":
             pair = (event.get("module"), event.get("name"))
-            if event.get("resolved") != "real" and pair not in allow_pairs:
+            if event.get("resolved") != "real" and pair not in allow_pairs and pair not in GETATTR:
                 dotted = f"{pair[0]}.{pair[1]}"
                 if dotted in unknown:
                     layer.raise_to(S, f"import outside the allowlist: {dotted}", category=Category.UNVERIFIABLE,

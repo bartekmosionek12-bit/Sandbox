@@ -20,7 +20,10 @@ from datetime import UTC, datetime
 from .report import Report
 
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
-HOW = frozenset({"api", "cli-flag", "cli-prompt"})
+HOW = frozenset({"api", "cli-flag", "cli-prompt", "config"})
+# Report.options source for each way an override is given
+SOURCE = {"api": "argument", "cli-flag": "CLI flag --accept-unverified", "cli-prompt": "interactive prompt",
+          "config": "config file"}
 
 # --- explanations -----------------------------------------------------------------------
 
@@ -56,7 +59,29 @@ def keras_function(module: str, name: str) -> str:
             f"Accept '{module}.{name}' for this file only if you know and trust that exact module.")
 
 
+def keras_custom_builtin(name: str) -> str:
+    return (f"The config names the function '{name}' under the module 'builtins'. That is how Keras saves a "
+            "loss, metric or activation the model's author wrote. Keras does not take it from Python's "
+            "builtins: it looks the name up among its own functions and the custom_objects your loading code "
+            "passes, and loading fails if neither has it. The scanner cannot see that code. Accept "
+            f"'builtins.{name}' for this file only if you know the exact function your code passes.")
+
+
+# Globals whose reason is UNVERIFIABLE for a reason of their own (owner's decisions).
+_PICKLE_GLOBAL_EXPLANATIONS = {
+    ("xgboost.core", "Booster"): (
+        "The pickle rebuilds xgboost.core.Booster. Its __setstate__ hands the raw model bytes from the file to "
+        "libxgboost's native C++ parser (XGBoosterUnserializeFromBuffer); no Python code is chosen by the file, "
+        "but the scanner cannot check that parser's memory safety against hostile bytes. Prefer a model saved "
+        "with Booster.save_model('model.json') or ('model.ubj') and loaded with load_model; accept "
+        "'xgboost.core.Booster' for this file only if you trust its source."),
+}
+
+
 def pickle_global(module: str, name: str) -> str:
+    special = _PICKLE_GLOBAL_EXPLANATIONS.get((module, name))
+    if special:
+        return special
     return (f"The pickle imports {module}.{name}, which is not on the allowlist and is not a known sink. "
             f"Unpickling imports {module} and calls {name}, and the scanner cannot see that code. If you "
             f"know and trust it, name the exact pair yourself (allow=[('{module}', '{name}')] or "
@@ -88,7 +113,7 @@ def _items(items) -> list[str]:
     return sorted({str(item) for item in items})
 
 
-def apply(report: Report, items: Iterable[str] | None, *, how: str) -> bool:
+def apply(report: Report, items: Iterable[str] | None, *, how: str, config_path: str | None = None) -> bool:
     """Try the override for ``report``'s file; record the outcome in ``report.override``.
 
     Accepted only if the verdict is SUSPICIOUS, every reason is UNVERIFIABLE, and
@@ -96,9 +121,14 @@ def apply(report: Report, items: Iterable[str] | None, *, how: str) -> bool:
     """
     if how not in HOW:
         raise ValueError(f"how must be one of {sorted(HOW)}")
+    requested = sorted({str(i) for i in items or ()})
+    if requested:
+        source = SOURCE[how] if how != "config" else f"config file {config_path or ''}".strip()
+        report.options = [o for o in report.options if o["name"] != "accept_unverified"]
+        report.options.append({"name": "accept_unverified", "value": requested, "source": source,
+                               "direction": "looser"})
     if report.clean:
         return True
-    requested = sorted({str(i) for i in items or ()})
     record = {"accepted": False, "items": [], "requested": requested, "sha256": report.sha256,
               "time": datetime.now(UTC).isoformat(timespec="seconds"), "how": how, "refused_because": None}
     report.override = record

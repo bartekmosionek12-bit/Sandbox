@@ -110,6 +110,9 @@ class Machine:
         self.array_bytes = 0
         self.legacy_wrappers = 0
         self.first_region = None  # (stack, memo) snapshot where joblib's reading first diverges
+        # id -> number of extra references (GET, DUP) to a Global or Obj: a value pushed once
+        # and never fetched again is used exactly where it was pushed.
+        self.refs: dict[int, int] = {}
 
     # --- one pickle ---------------------------------------------------------------
 
@@ -218,7 +221,7 @@ class Machine:
         elif name == "POP_MARK":
             pop_mark(stack)
         elif name == "DUP":
-            stack.append(top(stack))
+            stack.append(self._ref(top(stack)))
         elif name in ("TUPLE1", "TUPLE2", "TUPLE3"):
             n = int(name[-1])
             items = [pop(stack) for _ in range(n)][::-1]
@@ -266,7 +269,7 @@ class Machine:
         elif name in ("GET", "BINGET", "LONG_BINGET"):
             if arg not in memo:
                 raise VMError(f"memo key {arg!r} not found")
-            stack.append(memo[arg])
+            stack.append(self._ref(memo[arg]))
         elif name in ("PUT", "BINPUT", "LONG_BINPUT"):
             if not isinstance(arg, int) or arg < 0:
                 raise VMError("negative PUT argument")
@@ -327,6 +330,11 @@ class Machine:
             stack.append(Obj("persid", None, (pop(stack),)))
         else:
             raise VMError(f"opcode {name} is not modelled")
+
+    def _ref(self, value):
+        if isinstance(value, (Global, Obj)):
+            self.refs[id(value)] = self.refs.get(id(value), 0) + 1
+        return value
 
     def _dict(self, items):
         out = {}

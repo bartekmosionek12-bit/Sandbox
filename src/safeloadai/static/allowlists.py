@@ -109,6 +109,13 @@ PICKLE_GLOBALS: frozenset[tuple[str, str]] = frozenset(
         ("sklearn.preprocessing._encoders", "OneHotEncoder"),  # plain estimator
         ("sklearn.preprocessing._label", "LabelBinarizer"),  # plain estimator
         ("sklearn.preprocessing._label", "LabelEncoder"),  # plain estimator (classes_ array)
+        # 2026-10-19 review: Cython unpickle helper, same as the CyHalfMultinomialLoss one above
+        ("sklearn._loss._loss", "__pyx_unpickle_CyHalfBinomialLoss"),
+        # the type object and numpy's abstract scalar type, as values (copyreg._reconstructor's
+        # base, make_column_selector's dtype_exclude); calling either makes a bare object or raises
+        ("builtins", "object"),
+        ("__builtin__", "object"),
+        ("numpy", "number"),
     ]
 )
 
@@ -132,6 +139,176 @@ GUARDED_CALLS = frozenset({
     ("numpy.random._pickle", "__randomstate_ctor"),
     NUMPY_BIT_GENERATOR_CTOR,
 })
+
+# --- pairs that pass only with an argument check (2026-10-19 review) --------------------
+# evaluation/results/allowlist-review-20261019.md; enforced by
+# pickle_static._check_guarded_calls, with a regression test per check in
+# tests/test_allowlist_review_20261019.py.
+
+# Classes accepted only when the stream rebuilds an instance from its saved state without
+# calling the class: NEWOBJ with no arguments (how protocol 2+ saves a plain object), then
+# BUILD. Only cls.__new__ (object.__new__ for all of these) and then __setstate__ or a
+# __dict__ update run. Every value in the state is checked as its own global, and nothing
+# in it is called while loading. Calling the class (REDUCE, OBJ, INST, NEWOBJ with
+# arguments) would run its constructor, so it is refused, and so is passing the class
+# around as a value.
+STATE_ONLY_CLASSES = frozenset({
+    # scipy 1.18 sparse matrices define no __reduce__/__setstate__ (checked in the source)
+    ("scipy.sparse._csr", "csr_matrix"),
+    # pandas Index: only as the class argument of _new_Index (PANDAS_NEW_INDEX below)
+    ("pandas.core.indexes.base", "Index"),
+    # scikit-learn 1.9.1 estimators: BaseEstimator.__setstate__ only (version warning,
+    # then a __dict__ update); constructors only store their parameters
+    ("sklearn.calibration", "CalibratedClassifierCV"),
+    ("sklearn.calibration", "_CalibratedClassifier"),
+    ("sklearn.calibration", "_SigmoidCalibration"),
+    ("sklearn.ensemble._forest", "RandomForestRegressor"),
+    ("sklearn.impute._base", "SimpleImputer"),
+    ("sklearn.linear_model._coordinate_descent", "Lasso"),
+    ("sklearn.naive_bayes", "MultinomialNB"),
+    ("sklearn.svm._classes", "LinearSVC"),
+    ("sklearn.impute._base", "MissingIndicator"),
+    ("sklearn.linear_model._logistic", "LogisticRegressionCV"),
+    ("sklearn.model_selection._search_successive_halving", "HalvingGridSearchCV"),  # holds an estimator
+    ("sklearn.model_selection._split", "StratifiedKFold"),
+    ("sklearn.preprocessing._data", "MinMaxScaler"),
+    ("sklearn.preprocessing._encoders", "OrdinalEncoder"),
+    ("sklearn.tree._classes", "ExtraTreeRegressor"),
+    # sklearn 1.9.1: __init__ stores pattern / dtype_include / dtype_exclude; no pickling hooks
+    ("sklearn.compose._column_transformer", "make_column_selector"),
+    # stdlib argparse.Namespace (an old training_args.bin): no pickling hooks, attributes only
+    ("argparse", "Namespace"),
+    # transformers' training arguments (training_args.bin): plain dataclasses. Rebuilt
+    # from state, __post_init__ (which sets up devices and reads config files) never runs;
+    # the fields are data, and an enum field is checked by ENUM_CLASSES. The owner checked
+    # the transformers 4.30.0 and 5.20.1 sources (2026-10-19): @dataclass with no
+    # __setstate__, __reduce__, __getstate__, __setattr__ or property setters, so unpickling
+    # is object.__new__ plus a __dict__ update and __post_init__ is not called.
+    ("transformers.training_args", "TrainingArguments"),
+    ("transformers.training_args_seq2seq", "Seq2SeqTrainingArguments"),
+    # 2026-10-19 source review (evaluation/results/allowlist-review-20261019.md, "Source review"):
+    # sources read from PyPI wheels (torch 2.11.0, torchvision 0.26.0, ultralytics 8.4.182 and
+    # 8.0.50, xgboost 3.4.1 and 1.5.2), never installed or imported. Only classes seen on the
+    # tune half; no module prefix.
+    # torch 2.11.0 source: nn.Module pickles as NEWOBJ () + BUILD (protocol 2, no __reduce__);
+    # Module.__setstate__ = __dict__.update + empty hook-dict defaults (module.py:1925)
+    ("torch.nn.modules.activation", "SiLU"),
+    ("torch.nn.modules.container", "ModuleList"),
+    ("torch.nn.modules.container", "Sequential"),
+    ("torch.nn.modules.batchnorm", "BatchNorm2d"),
+    ("torch.nn.modules.conv", "Conv2d"),
+    ("torch.nn.modules.conv", "ConvTranspose2d"),
+    ("torch.nn.modules.pooling", "MaxPool2d"),
+    ("torch.nn.modules.pooling", "AdaptiveAvgPool2d"),
+    ("torch.nn.modules.upsampling", "Upsample"),
+    ("torch.nn.modules.linear", "Identity"),
+    ("torch.nn.modules.linear", "Linear"),
+    ("torch.nn.modules.dropout", "Dropout"),
+    ("torch.nn.modules.loss", "BCEWithLogitsLoss"),
+    # torchvision 0.26.0
+    ("torchvision.transforms.transforms", "Compose"),
+    ("torchvision.transforms.transforms", "ToTensor"),
+    ("torchvision.transforms.transforms", "Normalize"),
+    ("torchvision.transforms.transforms", "Resize"),
+    ("torchvision.transforms.transforms", "CenterCrop"),
+    # ultralytics 8.4.182 (and 8.0.50 for the ultralytics.nn.modules.<Name> paths)
+    ("ultralytics.nn.tasks", "DetectionModel"),
+    ("ultralytics.nn.tasks", "SegmentationModel"),
+    ("ultralytics.nn.tasks", "ClassificationModel"),
+    ("ultralytics.nn.tasks", "PoseModel"),
+    ("ultralytics.nn.modules.conv", "Conv"),
+    ("ultralytics.nn.modules.conv", "Concat"),
+    ("ultralytics.nn.modules.conv", "DWConv"),
+    ("ultralytics.nn.modules.conv", "RepConv"),
+    ("ultralytics.nn.modules.block", "Bottleneck"),
+    ("ultralytics.nn.modules.block", "SPPF"),
+    ("ultralytics.nn.modules.block", "DFL"),
+    ("ultralytics.nn.modules.block", "C2f"),
+    ("ultralytics.nn.modules.block", "C3k"),
+    ("ultralytics.nn.modules.block", "C3k2"),
+    ("ultralytics.nn.modules.block", "C2PSA"),
+    ("ultralytics.nn.modules.block", "PSABlock"),
+    ("ultralytics.nn.modules.block", "Attention"),
+    ("ultralytics.nn.modules.block", "Proto"),
+    ("ultralytics.nn.modules.block", "AConv"),
+    ("ultralytics.nn.modules.block", "ELAN1"),
+    ("ultralytics.nn.modules.block", "RepBottleneck"),
+    ("ultralytics.nn.modules.block", "RepCSP"),
+    ("ultralytics.nn.modules.block", "RepNCSPELAN4"),
+    ("ultralytics.nn.modules.block", "SPPELAN"),
+    ("ultralytics.nn.modules.head", "Detect"),
+    ("ultralytics.nn.modules.head", "Segment"),
+    ("ultralytics.nn.modules.head", "Classify"),
+    ("ultralytics.nn.modules.head", "Pose"),
+    ("ultralytics.nn.modules", "Conv"),
+    ("ultralytics.nn.modules", "C2f"),
+    ("ultralytics.nn.modules", "Concat"),
+    ("ultralytics.nn.modules", "Bottleneck"),
+    ("ultralytics.nn.modules", "DFL"),
+    ("ultralytics.nn.modules", "Detect"),
+    ("ultralytics.nn.modules", "SPPF"),
+    ("ultralytics.nn.modules", "Segment"),
+    ("ultralytics.nn.modules", "Proto"),
+    ("ultralytics.utils.loss", "BboxLoss"),
+    ("ultralytics.utils.loss", "DFLoss"),
+    ("ultralytics.utils.loss", "v8DetectionLoss"),
+    ("ultralytics.utils.loss", "v8SegmentationLoss"),
+    ("ultralytics.utils.loss", "E2ELoss"),
+    ("ultralytics.utils.tal", "TaskAlignedAssigner"),
+    # xgboost (BaseEstimator.__setstate__ only). Booster itself stays out: its __setstate__
+    # feeds the raw bytes to libxgboost's native parser (owner's decision pending)
+    ("xgboost.sklearn", "XGBClassifier"),
+    ("xgboost.sklearn", "XGBRegressor"),
+    ("xgboost.compat", "XGBoostLabelEncoder"),
+})
+# Enum classes, accepted only as cls(value) with one str or int argument: a member lookup.
+ENUM_CLASSES = frozenset({
+    ("transformers.trainer_utils", "IntervalStrategy"),
+    ("transformers.trainer_utils", "SchedulerType"),
+    ("transformers.trainer_utils", "HubStrategy"),
+    ("transformers.trainer_utils", "SaveStrategy"),
+    ("transformers.trainer_utils", "EvaluationStrategy"),
+    ("transformers.training_args", "OptimizerNames"),
+    ("accelerate.utils.dataclasses", "DistributedType"),
+    # torchvision 0.26.0 functional.py: class InterpolationMode(Enum) with str values
+    ("torchvision.transforms.functional", "InterpolationMode"),
+})
+# pandas.core.indexes.base._new_Index(cls, d) returns cls.__new__(cls, **d): it calls its
+# first argument. Accepted only as pandas writes it for a plain Index: _new_Index(Index,
+# {"data": ..., "name": ...}) (pandas 3.0.5 Index.__reduce__). Other Index classes are not
+# reviewed (their form was seen only in held-out files).
+PANDAS_NEW_INDEX = ("pandas.core.indexes.base", "_new_Index")
+# class -> the dict keys its __reduce__ writes
+PANDAS_INDEX_KEYS = {
+    ("pandas.core.indexes.base", "Index"): frozenset({"data", "name"}),
+}
+PANDAS_INDEX_CLASSES = frozenset(PANDAS_INDEX_KEYS)
+# collections.defaultdict(factory): the factory is called later, on a missing key, never
+# while loading. Accepted with no factory or one imported global, which the allowlist
+# checks like any other import (the owner's rule: "factory checked as global").
+DEFAULTDICT = ("collections", "defaultdict")
+# Classes pickled as REDUCE cls() + BUILD (a types.SimpleNamespace subclass: its C __reduce__
+# returns (type(self), (), self.__dict__)). Accepted only as a call with an exactly empty
+# argument tuple whose result goes only to a BUILD with a dict state, never to another call
+# (owner's rule "zero-arg call", 2026-10-19). Each entry: reviewed source version and why.
+ZERO_ARG_CLASSES = frozenset({
+    # ultralytics 8.4.182 utils/__init__.py and 8.0.50 yolo/utils/__init__.py: SimpleNamespace
+    # subclass adding __iter__, __str__, __getattr__ (raises AttributeError, also for
+    # "__setstate__", which BUILD looks up) and get(); no __init__, __setattr__ or properties
+    # (evaluation/results/source-review-2-20261019.md)
+    ("ultralytics.utils", "IterableSimpleNamespace"),
+    ("ultralytics.yolo.utils", "IterableSimpleNamespace"),
+})
+ARGUMENT_CHECKED = STATE_ONLY_CLASSES | ENUM_CLASSES | ZERO_ARG_CLASSES | {PANDAS_NEW_INDEX, DEFAULTDICT}
+PICKLE_GLOBALS = PICKLE_GLOBALS | ARGUMENT_CHECKED
+
+# builtins.getattr is how pickle writes a bound method: getattr(obj, "name"). It is never
+# on the allowlist; pickle_static._check_getattr judges every use (owner's rule, 2026-10-19):
+# * MALICIOUS when the result is called, or the name is a dunder or a sink name;
+# * CLEAN for getattr(<instance or class from the allowlist>, "<constant name without a
+#   leading _>") whose result is never called while loading;
+# * RISKY (not overridable) for anything else.
+GETATTR = frozenset({("builtins", "getattr"), ("__builtin__", "getattr")})
 
 # Extra globals a PyTorch checkpoint (data.pkl or a legacy stream) may import.
 # Source: the globals torch.save emits for tensors, parameters and state dicts,
@@ -190,6 +367,20 @@ KNOWN_GADGETS = frozenset({
     ("operator", "attrgetter"),  # attribute access by name
 })
 
+# dill (0.3.8 and 0.4.1, dill/_dill.py; evaluation/results/source-review-2-20261019.md).
+# Helpers that import, eval, call an argument, read attributes by name, unmarshal or open
+# files: known sinks, like os.system.
+DILL_MODULES = frozenset({"dill._dill", "dill.dill"})  # dill's find_class maps dill.dill to dill._dill
+DILL_SINKS = frozenset({
+    "_import_module", "_eval_repr", "_getattr", "_get_attr", "_create_type", "_create_ftype",
+    "_create_array", "_unmarshal", "_create_filehandle", "_create_capsule", "_create_namedtuple",
+})
+# Helpers a plain dill function or set is rebuilt with. _create_code/_create_function build
+# code (judged by pickle_static._dill_code: RISKY, MALICIOUS with sink names); _load_type is
+# a lookup in a fixed table; _create_cell and _setitems hold or copy data.
+DILL_CODE = frozenset({"_create_code", "_create_function"})
+DILL_DATA = frozenset({"_load_type", "_create_cell", "_setitems"})
+
 DANGEROUS_SYMBOLS = frozenset({
     "system", "popen", "spawn", "spawnl", "spawnv", "exec", "execv", "execve",
     "execfile", "eval", "compile", "Popen", "call", "check_call", "check_output",
@@ -220,6 +411,8 @@ KERAS_CLASS_PAIRS = frozenset({
     # no callable argument (added one by one, never keras.src.ops.*)
     ("keras.src.ops.numpy", "Add"),
     ("keras.src.ops.numpy", "Multiply"),
+    ("keras.src.ops.numpy", "Subtract"),  # 2026-10-19 review: elementwise, no callable argument
+    ("keras.src.ops.numpy", "TrueDivide"),  # 2026-10-19 review: elementwise, no callable argument
     # the tf-keras module of TFOpLambda; the layer itself passes only when its op is on
     # TF_OP_ALLOWED (keras_static)
     ("keras.src.layers.core.tf_op_layer", "TFOpLambda"),
@@ -276,6 +469,13 @@ KERAS_CLASSES = frozenset({
     "CategoricalCrossentropy", "SparseCategoricalCrossentropy", "Huber",
     "Accuracy", "BinaryAccuracy", "CategoricalAccuracy", "SparseCategoricalAccuracy",
     "MeanMetricWrapper", "Mean", "AUC", "Precision", "Recall",
+    # 2026-10-19 review (evaluation/results/allowlist-review-20261019.md). Augmentation
+    # layers: the config is numbers and fixed-choice strings (fill_mode, interpolation,
+    # mode), never a callable; any nested object is still checked on its own.
+    "RandomRotation", "RandomTranslation", "RandomZoom", "RandomContrast", "RandomFlip",
+    "OrthogonalInitializer",  # Keras 3's registered name for Orthogonal (gain, seed)
+    "CategoricalFocalCrossentropy",  # loss; alpha, gamma, from_logits, label_smoothing, axis
+    "R2Score",  # metric; class_aggregation, num_regressors
 })
 
 # Keras serializes functions as {"class_name": "function", "config": "<name>",
@@ -336,6 +536,7 @@ KERAS2_CLASSES = KERAS_CLASSES | frozenset(
         "SparseTopKCategoricalAccuracy", "MeanAbsolutePercentageError", "MeanSquaredLogarithmicError",
         "Hinge", "SquaredHinge", "CategoricalHinge", "LogCosh", "KLDivergence", "Poisson",
         "CosineSimilarity", "BinaryFocalCrossentropy",
+        "TrueDivide",  # 2026-10-19 review: Keras 3 elementwise op saved to .h5 without a module
     }
     | {f"Custom>{name}" for name in _KERAS2_OPTIMIZERS}
 )

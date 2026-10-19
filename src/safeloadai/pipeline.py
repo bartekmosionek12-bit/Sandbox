@@ -10,9 +10,10 @@ from __future__ import annotations
 import hashlib
 import os
 import time
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Mapping
 
 from . import behaviour, verdict
+from . import options as options_mod
 from . import static as static_mod
 from .parsing import detect as detect_mod
 from .parsing.zipsafe import SafeZip, ZipRefused
@@ -50,7 +51,7 @@ def emulation_layer(data: bytes, parser_report: dict, extra_allowed: frozenset,
     if fmt == detect_mod.TORCH:
         try:
             with SafeZip(data, max_member_bytes=MAX_PICKLE_MEMBER_BYTES) as zf:
-                streams = [zf.read(n) for n in zf.names if n.endswith(".pkl")]
+                streams = [zf.read(n, ignore_crc=True) for n in zf.names if n.endswith(".pkl")]
         except ZipRefused as exc:
             layer = LayerResult(name="emulation", verdict=Verdict.CLEAN, ran=False)
             layer.raise_to(Verdict.SUSPICIOUS, f"archive refused, nothing emulated: {exc}")
@@ -76,6 +77,67 @@ def emulation_layer(data: bytes, parser_report: dict, extra_allowed: frozenset,
     return layer
 
 
+MAX_EMBEDDED = 16
+MAX_EMBEDDED_DEPTH = 4
+
+
+def _reading_layers(label: str, data: bytes, report: dict, extra_allowed: frozenset,
+                    limits: Limits | None) -> list[LayerResult]:
+    static = verdict.static_layer(report, defer_lambdas=True)
+    emulation = emulation_layer(data, report, extra_allowed, limits)
+    static.name, emulation.name = f"static[{label}]", f"emulation[{label}]"
+    out = [static, emulation] + _code_layers(label, report, limits)
+    for layer in out:
+        for finding in layer.findings:
+            finding["layer"] = layer.name
+    return out
+
+
+def _code_layers(label: str, report: dict, limits: Limits | None) -> list[LayerResult]:
+    """Functions a dill pickle carries with their bytecode, rebuilt inside the WASI sandbox
+    and called on fakes like Keras Lambdas (owner's decision of 2026-10-19)."""
+    entries = report.get("dill_code") or []
+    if not entries:
+        return []
+    layer = behaviour.classify(emulate_keras_lambdas(entries, limits=limits))
+    layer.name = f"emulation[{label + '/' if label else ''}dill code]"
+    for finding in layer.findings:
+        finding["layer"] = layer.name
+    return [layer]
+
+
+def _embedded(parser_report: dict, extra_views: list, extra_allowed: frozenset):
+    """(label, bytes, static report) for every embedded model, its own readings and the
+    models embedded in those, breadth first, at most MAX_EMBEDDED in all. A Keras loader
+    reads the bytes, so anything that is not a Keras archive is RISKY."""
+    todo = [(item, "", 0) for rep in [parser_report] + [r for _v, r in extra_views]
+            for item in rep.get("_embedded") or []]
+    count = 0
+    while todo:
+        item, parent, depth = todo.pop(0)
+        label = f"{parent}{item['label']}"
+        if count >= MAX_EMBEDDED or depth >= MAX_EMBEDDED_DEPTH:
+            layer = LayerResult(name=f"static[{label}]", verdict=Verdict.CLEAN, ran=False)
+            layer.raise_to(Verdict.SUSPICIOUS, f"more than {MAX_EMBEDDED} embedded models or nesting deeper "
+                                               f"than {MAX_EMBEDDED_DEPTH}; {label} is not analysed")
+            parser_report.setdefault("_embedded_skipped", []).append(layer)
+            continue
+        count += 1
+        blob = item["data"]
+        report = static_mod.analyze_bytes(blob, f"{label}.keras", extra_allowed)
+        if report.get("file_format") != detect_mod.KERAS:
+            report["reasons"].append(f"the embedded bytes the Keras loader reads are not a Keras archive "
+                                     f"(detected {report.get('file_format')})")
+            if report["static_risk"] == "clean":
+                report["static_risk"] = "suspicious"
+        view = report.get("_view")
+        yield label, view.slice(blob) if view else blob, report
+        for other, rep in report.get("_extra_views") or []:
+            yield f"{label}/{other.label}", other.slice(blob), rep
+        for rep in [report] + [r for _v, r in report.get("_extra_views") or []]:
+            todo += [(sub, f"{label}/", depth + 1) for sub in rep.get("_embedded") or []]
+
+
 def _deep_layer(path: str, file_format: str) -> LayerResult:
     from . import deep
 
@@ -92,8 +154,12 @@ def _judge_layer(parser_report: dict, emulation: LayerResult) -> LayerResult | N
 
 def scan(path: str | os.PathLike, *, judge: bool = False, deep: bool = False,
          allow: Iterable[tuple[str, str]] = (), limits: Limits | None = None,
-         progress: Progress = None) -> Report:
-    """Scan one model file. Never deserialises it on the host."""
+         progress: Progress = None, option_sources: Mapping[str, str] | None = None) -> Report:
+    """Scan one model file. Never deserialises it on the host.
+
+    Every keyword defaults to the strictest behaviour (docs/OPTIONS.md). Non-default
+    options are recorded in ``Report.options`` with their source (``option_sources``
+    maps an option name to where it came from; the default is "argument")."""
     from . import __version__
 
     def step(message: str) -> None:
@@ -101,7 +167,10 @@ def scan(path: str | os.PathLike, *, judge: bool = False, deep: bool = False,
             progress(message)
 
     path = os.fspath(path)
-    extra_allowed = frozenset((str(m), str(n)) for m, n in allow)
+    allow = options_mod.validate_allow(allow)
+    extra_allowed = frozenset(allow)
+    used_options = options_mod.scan_options(allow=allow, judge=judge, deep=deep, limits=limits,
+                                            sources=option_sources)
     started = time.perf_counter()
     timings: dict[str, float] = {}
 
@@ -121,16 +190,31 @@ def scan(path: str | os.PathLike, *, judge: bool = False, deep: bool = False,
     file_format = str(parser_report.get("file_format"))
     layers = [verdict.static_layer(parser_report, defer_lambdas=True)]
     layers[0].timings_ms["total"] = timings["static"] = _ms(t)
+    extra_views = parser_report.get("_extra_views") or []
 
     step("emulation in the WASI sandbox")
     t = time.perf_counter()
     if data:
-        emulation = emulation_layer(data, parser_report, extra_allowed, limits)
+        view = parser_report.get("_view")
+        emulation = emulation_layer(view.slice(data) if view else data, parser_report, extra_allowed, limits)
     else:
         emulation = LayerResult(name="emulation", verdict=Verdict.CLEAN, ran=False)
         emulation.raise_to(Verdict.SUSPICIOUS, "file too large to emulate")
     timings["emulation"] = _ms(t)
     layers.append(emulation)
+    layers += _code_layers("", parser_report, limits)
+
+    # Every other reading of a polyglot file gets its own static and emulation layers.
+    for view, report in extra_views:
+        step(f"other reading: {view.fmt} at offset {view.start}")
+        layers += _reading_layers(view.label, view.slice(data), report, extra_allowed, limits)
+    # A model a pickle carries as bytes for a loader it calls (Keras 3 pickles a model as an
+    # embedded .keras archive) is analysed as a file of its own.
+    for label, part, report in _embedded(parser_report, extra_views, extra_allowed):
+        step(f"embedded model: {label}")
+        layers += _reading_layers(label, part, report, extra_allowed, limits)
+
+    layers += parser_report.pop("_embedded_skipped", [])
 
     if deep:
         step("deep detonation")
@@ -151,7 +235,8 @@ def scan(path: str | os.PathLike, *, judge: bool = False, deep: bool = False,
     timings["total"] = _ms(started)
     return Report(path=path, file_name=os.path.basename(path), sha256=sha256, size=size,
                   file_format=file_format, verdict=final, reasons=reasons, layers=layers,
-                  timings_ms=timings, version=__version__, findings=findings, category=category)
+                  timings_ms=timings, version=__version__, findings=findings, category=category,
+                  options=used_options)
 
 
 def _sha256_file(path: str) -> str:

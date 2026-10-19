@@ -29,14 +29,16 @@ def parse_torch_zip(data: bytes, file_name: str = "<memory>", extra_allowed: fro
             problems = list(zf.inventory.problems)
             names = zf.names
             pickles = [n for n in names if n.endswith(".pkl")]
-            members = {n: zf.read(n) for n in pickles}
+            # torch's zip reader does not check CRC-32 (P6): read what it would read.
+            members = {n: zf.read(n, ignore_crc=True) for n in pickles}
             hidden = {}
             for n in names:
                 if n.endswith(".pkl") or n.endswith("/") or zf.size(n) > MAX_PICKLE_MEMBER_BYTES:
                     continue
                 head = zf.head(n, 2)
                 if len(head) == 2 and head[0] == 0x80 and 2 <= head[1] <= 5:
-                    hidden[n] = zf.read(n)
+                    hidden[n] = zf.read(n, ignore_crc=True)
+            crc = dict(zf.crc_mismatches)
     except ZipRefused as exc:
         report = parse_pickle(b"", file_name, torch=True, file_format="torch")
         report["error"] = str(exc)
@@ -54,8 +56,10 @@ def parse_torch_zip(data: bytes, file_name: str = "<memory>", extra_allowed: fro
             combined["members"] = []
         else:
             for key in ("opcodes", "flagged_opcodes", "suspicious_imports", "unknown_imports",
-                        "imports", "suspicious_strings", "reasons", "notes"):
+                        "imports", "suspicious_strings", "reasons", "notes", "embedded_keras", "dill_code",
+                        "code_malicious"):
                 combined[key].extend(part[key])
+            combined.setdefault("_embedded", []).extend(part.get("_embedded") or [])
             combined["raw_disasm"] += f"\n--- {member} ---\n" + part["raw_disasm"]
             combined["error"] = combined["error"] or part["error"]
             if _SEVERITY[part["static_risk"]] > _SEVERITY[combined["static_risk"]]:
@@ -73,14 +77,19 @@ def parse_torch_zip(data: bytes, file_name: str = "<memory>", extra_allowed: fro
         imported = ", ".join(sorted({f"{i['module']}.{i['symbol']}" for i in part["imports"]}))
         combined["reasons"].append(f"member {member!r} is a pickle outside the .pkl members "
                                    f"(imports {imported[:300]})")
-        for key in ("suspicious_imports", "unknown_imports", "reasons"):
+        for key in ("suspicious_imports", "unknown_imports", "reasons", "embedded_keras", "dill_code",
+                    "code_malicious"):
             combined[key].extend(part[key])
+        combined.setdefault("_embedded", []).extend(part.get("_embedded") or [])
         combined["members"].append({"name": member, "static_risk": part["static_risk"], "hidden": True})
         risk = part["static_risk"] if part["static_risk"] != "clean" else "suspicious"
         if _SEVERITY[risk] > _SEVERITY[combined["static_risk"]]:
             combined["static_risk"] = risk
     is_torchscript = any(n.split("/")[1:2] == ["code"] or n.endswith("/constants.pkl") for n in names)
     extra = [f"archive: {p}" for p in problems]
+    extra += [f"archive: CRC-32 of member {n!r} is {got:#010x}, the archive records {want:#010x}; torch.load "
+              "does not check CRC-32, so these are the bytes it would unpickle (analysed above)"
+              for n, (want, got) in sorted(crc.items())]
     if is_torchscript:
         extra.append("TorchScript archive: contains Python code run by torch.jit.load (out of scope)")
     if extra:

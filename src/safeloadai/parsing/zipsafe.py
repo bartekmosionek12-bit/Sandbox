@@ -15,6 +15,7 @@ from __future__ import annotations
 import io
 import posixpath
 import zipfile
+import zlib
 from dataclasses import dataclass, field
 
 DEFAULT_MAX_MEMBERS = 10_000
@@ -91,6 +92,7 @@ class SafeZip:
             problems.append(f"{leading} bytes of data before the first ZIP entry (polyglot file)")
 
         self._infos = {i.filename: i for i in infos}
+        self.crc_mismatches: dict[str, tuple[int, int]] = {}
         self.inventory = ZipInventory(names=[i.filename for i in infos], problems=problems,
                                       leading_bytes=leading)
 
@@ -121,8 +123,13 @@ class SafeZip:
         except (zipfile.BadZipFile, OSError, EOFError, NotImplementedError, RuntimeError) as exc:
             raise ZipRefused(f"member {name!r} cannot be read: {exc}") from exc
 
-    def read(self, name: str) -> bytes:
-        """Bytes of one member, refused if it is too large or too compressed."""
+    def read(self, name: str, *, ignore_crc: bool = False) -> bytes:
+        """Bytes of one member, refused if it is too large or too compressed.
+
+        ``ignore_crc=True`` reads a member whose CRC-32 does not match the archive
+        instead of refusing it, and records the mismatch in ``crc_mismatches`` (name ->
+        (recorded, computed)). Use it only for a reader that does not check CRC-32
+        either (PyTorch's), so that the bytes that reader would use get analysed."""
         info = self._infos.get(name)
         if info is None:
             raise ZipRefused(f"member not found: {name!r}")
@@ -139,10 +146,18 @@ class SafeZip:
         out = bytearray()
         try:
             with self._zf.open(info) as fh:
+                if ignore_crc:
+                    if not hasattr(fh, "_expected_crc"):
+                        raise ZipRefused(f"member {name!r}: cannot read without the CRC-32 check here")
+                    fh._expected_crc = None  # checked below, against the same recorded value
                 while chunk := fh.read(1 << 20):
                     out += chunk
                     if len(out) > self.max_member_bytes:
                         raise ZipRefused(f"member {name!r} exceeds {self.max_member_bytes} bytes")
         except (zipfile.BadZipFile, OSError, EOFError, NotImplementedError, RuntimeError) as exc:
             raise ZipRefused(f"member {name!r} cannot be read: {exc}") from exc
+        if ignore_crc:
+            computed = zlib.crc32(out) & 0xFFFFFFFF
+            if computed != info.CRC:
+                self.crc_mismatches[name] = (info.CRC, computed)
         return bytes(out)

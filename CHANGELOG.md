@@ -5,11 +5,76 @@ This file follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Vers
 - `safeloadai` (the scanner);
 - `safeloadai-runtime` (the pinned sandbox runtime). It has its own version and changes only when the runtime does.
 
-## Unreleased
+## safeloadai 0.5.0
+
+### Added
+- **Every reading of a file is analysed.** A file can be a valid pickle for `pickle.load` and a valid archive for `zipfile` at the same time (a polyglot). The scanner now finds every reading a loader could make (a pickle or joblib stream at offset 0, a ZIP archive found from its end, an HDF5 superblock after a user block) and analyses each one with its own static and emulation layers; the worst verdict wins. A file with more than one reading is at least SUSPICIOUS (RISKY). The report lists the readings in `views`.
+- **Argument-checked allowlist entries.** New pickle globals that would call an argument or run a constructor pass only the way their library writes them: state-only classes (rebuilt from saved state, constructor never called), enum lookups, `pandas._new_Index` with pandas' own `Index`, and `collections.defaultdict` with a builtin factory. Added this way: `TrainingArguments` and its enums, 16 scikit-learn classes, `scipy.sparse.csr_matrix`, `argparse.Namespace` and others (`evaluation/results/allowlist-review-20261019.md`). Keras: five augmentation layers, `OrthogonalInitializer`, `CategoricalFocalCrossentropy`, `R2Score`, the `Subtract`/`TrueDivide` ops.
+- **Mutation corpus** (`tests/corpus/mutate.py`): 830 re-encodings of the marker payloads (import and string opcodes, protocol headers, memo tricks, nested pickles, joblib compressors, PyTorch containers, polyglots) plus benign controls.
+- **Evaluation:** a stratified ~1,000-file benign Hub fetch with a repo-level tune/held-out split and the Hub's own scan status per file; a fetcher for Hub files the Hub's scanners flag, with labels from that evidence only; `run_eval.py` reports per group (lab, mutations, Hub-flagged, tune, held-out), per format and per library, with RISKY / UNVERIFIABLE / MALICIOUS splits of the false positives, and scans in parallel (`--jobs`).
 
 ### Fixed
-- **Custom Keras losses and metrics are no longer MALICIOUS.** Keras saves a user's own loss, metric or activation function as `builtins.<name>`, and the static layer treated every `builtins` name as a known sink. A name that Python's `builtins` does not define, and that no sink list names, is now an UNVERIFIABLE custom object. Real builtins such as `eval`, `exec` or `open` stay MALICIOUS. This removed 6 MALICIOUS false positives in the Hugging Face evaluation (`evaluation/results/review-hf-full-20261019.md`).
+- **Custom Keras losses and metrics are no longer MALICIOUS.** Keras saves a user's own loss, metric or activation function as `builtins.<name>`, and the static layer treated every `builtins` name as a known sink. A name that Python's `builtins` does not define, and that no sink list names, is now an UNVERIFIABLE custom object. Real builtins such as `eval`, `exec` or `open` stay MALICIOUS.
+- **Pickles without a PROTO header** whose first opcode is a newer one (SHORT_BINUNICODE, FRAME, ...) were "unrecognised format" (SUSPICIOUS); `pickle.load` runs them, and they are now analysed (MALICIOUS when they call a sink).
+- **PyTorch members with a bad CRC-32** were refused unread. `torch.load` does not check CRC-32, so the member is now analysed and the mismatch is a RISKY reason (Keras archives still refuse it).
+- The argument-check value walk visits each container once per stream, so large TF-IDF vocabularies no longer hit its step limit (RISKY false positives).
+- `builtins.object` (the base `copyreg._reconstructor` names, and a `make_column_selector` value) is no longer scored as a sink.
 - `evaluation/fetch_benign_hf.py` works with huggingface_hub 2.x, which dropped `list_models(library=...)`.
+
+### Changed
+- **`builtins.getattr` is judged use by use.**
+  - It is MALICIOUS only when its result is called, the attribute is a dunder or sink
+    name, or the target is a sink.
+  - A method of an allowlisted object or class, stored and never called, is CLEAN.
+    That is how pickle writes a bound method, and how Ultralytics checkpoints store
+    `Detect.forward`.
+  - Any other use is RISKY (not overridable). Before this change, any getattr import
+    with a call opcode was MALICIOUS.
+- **A pickle reading ends at its first STOP.** Bytes after it are reported as trailing
+  data, not as a walker error. A trailing pickle is analysed as a reading of its own.
+- **Evidence comes first.** Reasons and findings now list sinks, processes, network
+  access, file writes and code execution before everything else.
+- **Allowlist from a source review.** 64 classes were added as state-only:
+  - 13 `torch.nn` modules;
+  - 5 torchvision transforms;
+  - 43 Ultralytics classes;
+  - 3 xgboost scikit-learn wrappers.
+
+  `torchvision` `InterpolationMode` was added as an enum lookup. `xgboost.core.Booster`
+  stays out; it is UNVERIFIABLE with its own explanation (libxgboost parses its raw
+  bytes), and docs/OPTIONS.md names the safer `save_model("model.json")` format.
+  Details are in `evaluation/results/source-review-20261019.md`.
+- **Passing a getattr result to any call is a use.** A method handed to a call or a
+  controlled slot (a `defaultdict` factory, numpy's `__generator_ctor`, another
+  getattr) is MALICIOUS, like calling it. An allowlisted class is allowed only as
+  getattr's first argument.
+- **Zero-arg call rule** for reviewed `SimpleNamespace` subclasses (Ultralytics'
+  `IterableSimpleNamespace`): an empty argument tuple, a dict BUILD state, and the
+  instance is never called or passed to a call.
+- **Keras models inside pickles.** Keras 3 pickles a model as an embedded `.keras`
+  archive (`getattr(<model class>, "_unpickle_model")(BytesIO(...))`). The scanner now
+  recognises that form, analyses the embedded archive as a Keras file of its own
+  (static layer and Lambda emulation) and takes its verdict. The pickle keeps a RISKY
+  reason, which cannot be overridden, because the loader runs with `safe_mode=False`.
+- **dill.** A function dill pickles with its bytecode (`_create_code`) is judged like
+  a Keras Lambda: RISKY ("file carries executable Python code"), MALICIOUS when its
+  names or constants name a sink, and rebuilt and called on fakes in the WASI sandbox.
+  Any dill pickle is RISKY. dill's helpers that import, eval or call an argument are
+  known sinks. `_load_type`, a lookup in a fixed type table, is no longer scored as
+  code execution by the emulator.
+- **Evaluation:** an opt-in run (every UNVERIFIABLE item accepted) is reported next to
+  the default run.
+- **Report schema 2.2** adds `options`.
+
+### Security
+- **Secure defaults and documented options.**
+  - Plain `scan(path)` / `safeloadai scan FILE` uses no opt-in rule.
+  - Every non-default option is recorded in `Report.options` (name, value, source,
+    direction), announced with a warning on stderr, and shown on the verdict line
+    (`CLEAN (with options: ...)`).
+  - `allow` refuses sinks, known gadgets, `getattr` and wildcards.
+  - A config file (`safeloadai.toml`) is read only when named with `--config`.
+  - New: `safeloadai options` and `docs/OPTIONS.md`.
 
 ## safeloadai 0.4.0
 

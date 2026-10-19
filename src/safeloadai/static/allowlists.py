@@ -277,6 +277,8 @@ KERAS_CLASS_PAIRS = frozenset({
     # no callable argument (added one by one, never keras.src.ops.*)
     ("keras.src.ops.numpy", "Add"),
     ("keras.src.ops.numpy", "Multiply"),
+    ("keras.src.ops.numpy", "Subtract"),  # 2026-10-19 review: elementwise, no callable argument
+    ("keras.src.ops.numpy", "TrueDivide"),  # 2026-10-19 review: elementwise, no callable argument
     # the tf-keras module of TFOpLambda; the layer itself passes only when its op is on
     # TF_OP_ALLOWED (keras_static)
     ("keras.src.layers.core.tf_op_layer", "TFOpLambda"),
@@ -333,6 +335,12 @@ KERAS_CLASSES = frozenset({
     "CategoricalCrossentropy", "SparseCategoricalCrossentropy", "Huber",
     "Accuracy", "BinaryAccuracy", "CategoricalAccuracy", "SparseCategoricalAccuracy",
     "MeanMetricWrapper", "Mean", "AUC", "Precision", "Recall",
+    # 2026-10-19 review (evaluation/results/allowlist-review-20261019.md). Augmentation
+    # layers: the config is numbers and fixed-choice strings (fill_mode, interpolation,
+    # mode), never a callable; any nested object is still checked on its own.
+    "RandomRotation", "RandomTranslation", "RandomZoom", "RandomContrast", "RandomFlip",
+    "OrthogonalInitializer",  # Keras 3's registered name for Orthogonal (gain, seed)
+    "CategoricalFocalCrossentropy",  # loss; alpha, gamma, from_logits, label_smoothing, axis
 })
 
 # Keras serializes functions as {"class_name": "function", "config": "<name>",
@@ -393,6 +401,7 @@ KERAS2_CLASSES = KERAS_CLASSES | frozenset(
         "SparseTopKCategoricalAccuracy", "MeanAbsolutePercentageError", "MeanSquaredLogarithmicError",
         "Hinge", "SquaredHinge", "CategoricalHinge", "LogCosh", "KLDivergence", "Poisson",
         "CosineSimilarity", "BinaryFocalCrossentropy",
+        "TrueDivide",  # 2026-10-19 review: Keras 3 elementwise op saved to .h5 without a module
     }
     | {f"Custom>{name}" for name in _KERAS2_OPTIMIZERS}
 )

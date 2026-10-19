@@ -147,3 +147,51 @@ def test_called_training_args_is_not_clean_end_to_end(tmp_path):
     path = tmp_path / "training_args.bin"
     path.write_bytes(P2 + call(g(*TA), s(MARKER_CMD)) + STOP)
     assert scan(path).verdict is not Verdict.CLEAN
+
+
+# --- Keras ------------------------------------------------------------------------------------
+
+def _keras_node(class_name: str, config: dict, module: str | None = "keras.layers") -> dict:
+    node = {"class_name": class_name, "config": config}
+    if module is not None:
+        node["module"] = module
+    return node
+
+
+def _keras_findings(*nodes: dict) -> list:
+    from safeloadai.static.keras_static import _empty_report, walk_config
+
+    report = _empty_report("m.keras")
+    walk_config({"class_name": "Sequential", "module": "keras", "config": {"layers": list(nodes)}}, report)
+    return report["unknown_imports"] + report["suspicious_imports"] + report["flagged_opcodes"]
+
+
+@pytest.mark.parametrize("node", [
+    _keras_node("RandomRotation", {"factor": 0.1, "fill_mode": "reflect", "interpolation": "bilinear", "seed": 1}),
+    _keras_node("RandomTranslation", {"height_factor": 0.1, "width_factor": 0.1}),
+    _keras_node("RandomZoom", {"height_factor": 0.2}),
+    _keras_node("RandomFlip", {"mode": "horizontal"}, module=None),
+    _keras_node("RandomContrast", {"factor": 0.2}, module=None),
+    _keras_node("OrthogonalInitializer", {"gain": 1.0, "seed": None}, module="keras.initializers"),
+    _keras_node("CategoricalFocalCrossentropy", {"alpha": 0.25, "gamma": 2.0}, module="keras.losses"),
+    _keras_node("Subtract", {"name": "subtract"}, module="keras.src.ops.numpy"),
+    _keras_node("TrueDivide", {"name": "true_divide"}, module="keras.src.ops.numpy"),
+])
+def test_reviewed_keras_classes_are_known(node):
+    assert not _keras_findings(node)
+
+
+@pytest.mark.parametrize("node", [
+    # a nested object inside an accepted layer's config is still checked
+    _keras_node("RandomRotation", {"factor": 0.1, "fill_value": {"class_name": "function", "module": "posix",
+                                                                   "config": "system"}}),
+    _keras_node("RandomZoom", {"height_factor": {"class_name": "Lambda", "module": "keras.layers",
+                                                 "config": {"function": "x"}}}),
+    # left out by the review: loads a SavedModel from a path
+    _keras_node("TFSMLayer", {"filepath": "/tmp/safeloadai_marker"}),
+    # an accepted name from another module is not accepted
+    _keras_node("RandomRotation", {}, module="safeloadai_marker_pkg"),
+    _keras_node("Subtract", {}, module="keras.src.ops.core"),
+])
+def test_keras_neighbours_stay_flagged(node):
+    assert _keras_findings(node)

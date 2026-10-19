@@ -75,8 +75,14 @@ def proposed_label(security: dict | None) -> tuple[str, str]:
                     if (m, n) in SINK_IMPORTS or m.split(".")[0] in SINK_MODULES})
     if sinks:
         return "malicious", "Hub pickle scan: dangerous import " + ", ".join(sinks)
-    if av.get("status") not in (None, "safe") and "signature" in str(av.get("message", "")).lower():
-        return "malicious", "Hub antivirus scan: " + str(av.get("message"))[:200]
+    # The antivirus scan flags any import from __main__ ("CodeExec___main___ANY_GLOBAL"): that is
+    # what a pickled notebook class looks like too, so that signature alone settles nothing.
+    signatures = [w for w in str(av.get("message", "")).split() if w.startswith("Py.Malware.")]
+    telling = [w for w in signatures if "___main___" not in w]
+    if av.get("status") not in (None, "safe") and telling:
+        return "malicious", "Hub antivirus scan: " + " ".join(telling)[:200]
+    if signatures:
+        return "unclear", "Hub antivirus scan: only a __main__ import signature (a notebook class looks the same)"
     if dangerous:
         return "unclear", "Hub pickle scan: only " + ", ".join(sorted({f"{m}.{n}" for m, n in dangerous}))
     return "unclear", f"Hub status {security.get('status')!r} with no dangerous import or signature"

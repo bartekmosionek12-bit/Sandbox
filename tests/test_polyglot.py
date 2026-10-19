@@ -97,3 +97,55 @@ def test_headerless_short_binunicode_pickle_is_malicious(tmp_path):
     path = tmp_path / "m.pkl"
     path.write_bytes(b"\x8c\x05posix\x8c\x06system\x93(\x8c\x0becho MARKERtR.")
     assert scan(path).verdict is Verdict.MALICIOUS
+
+
+# --- a pickle reading ends at its STOP (owner's rule, 2026-10-19) --------------------------
+
+EVIL = b"\x80\x02cposix\nsystem\n(X\x0b\x00\x00\x00echo MARKERtR."
+
+
+@pytest.mark.wasi
+def test_pickle_then_benign_zip_reports_the_sink_first(tmp_path):
+    zip_part = PAYLOADS["b_torch_zip.pt"][1]
+    data = EVIL + zip_part
+    path = tmp_path / "evil_then_zip.pt"
+    path.write_bytes(data)
+    report = scan(path)
+    assert report.verdict is Verdict.MALICIOUS
+    assert "known sink" in report.reasons[0], report.reasons
+    assert report.findings[0]["category"] == "MALICIOUS"
+    # the zip is trailing data of the pickle reading, not a walker error
+    static = report.layer("static").details
+    assert static["error"] is None
+    assert static["trailing"]["start"] == len(EVIL)
+    pickle_view = next(v for v in static["views"] if v["format"] == "pickle")
+    assert pickle_view["end"] == len(EVIL)
+    assert not any("opcode walk failed" in r for r in report.reasons), report.reasons
+
+
+@pytest.mark.wasi
+def test_benign_pickle_then_evil_pickle_is_a_second_reading(tmp_path):
+    benign = pickle.dumps({"a": 1}, protocol=2)
+    path = tmp_path / "two.pkl"
+    path.write_bytes(benign + EVIL)
+    report = scan(path)
+    assert report.verdict is Verdict.MALICIOUS
+    assert "known sink" in report.reasons[0], report.reasons
+    assert any(layer.name == f"static[pickle@{len(benign)}]" for layer in report.layers)
+
+
+def test_trailing_garbage_is_risky_not_a_walker_error():
+    from safeloadai.static.pickle_static import parse_pickle
+
+    report = parse_pickle(pickle.dumps([1, 2], protocol=2) + b"\xff\xfe junk", trailing="view")
+    assert report["error"] is None
+    assert report["static_risk"] == "suspicious"
+    assert any("trailing data" in r for r in report["reasons"])
+
+
+def test_trailing_pickle_inside_a_container_is_analysed():
+    from safeloadai.static.pickle_static import parse_pickle
+
+    report = parse_pickle(pickle.dumps([1, 2], protocol=2) + EVIL)
+    assert report["static_risk"] == "malicious"
+    assert any(r.startswith("trailing data at offset") and "known sink" in r for r in report["reasons"])

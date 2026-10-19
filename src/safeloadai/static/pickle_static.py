@@ -13,7 +13,8 @@ Scoring, strictest first:
 * SUSPICIOUS: any import outside the exact allowlist (called or not: ``find_class``
   imports the module, and import-time side effects are code execution), an import
   that cannot be resolved, a copyreg extension code, a persistent id outside a
-  torch checkpoint, trailing bytes after the last pickle, or any parse error.
+  torch checkpoint, trailing data after the STOP that is not another pickle (a
+  trailing pickle is analysed as a reading of its own), or any parse error.
 * CLEAN: everything else.
 
 A file may hold several pickles back to back (legacy PyTorch, joblib); all of them
@@ -127,6 +128,8 @@ def _empty_report(file_name: str, file_format: str) -> dict:
         "unverifiable": {},
         # reasons that make builtins.getattr uses MALICIOUS (_check_getattr)
         "getattr_malicious": [],
+        # bytes after the reading's last STOP: {"start", "length", "looks_like_pickle"}
+        "trailing": None,
     }
 
 
@@ -165,8 +168,16 @@ def _recorders(report: dict, index_ref: list):
 
 def parse_pickle(data: bytes, file_name: str = "<memory>", *, torch: bool = False,
                  file_format: str = "pickle", extra_allowed: frozenset = frozenset(),
-                 joblib: bool = True) -> dict:
+                 joblib: bool = True, trailing: str = "nested", depth: int = 0) -> dict:
     """Analyse pickle bytes and return the parser contract (dict).
+
+    The reading ends at the first STOP, where ``pickle.load`` stops (a legacy PyTorch
+    file is the exception: ``torch.load`` reads its five pickles). Any bytes after it
+    are trailing data, recorded in ``report["trailing"]`` with a RISKY reason, never
+    walked as part of this reading. With ``trailing="nested"`` (the default, used
+    inside containers) trailing bytes that look like a pickle are analysed as a reading
+    of their own and their findings merged with a prefix; ``trailing="view"`` leaves
+    that to the caller (``static.analyze_bytes`` makes them a separate view).
 
     ``torch=True`` widens the allowlist with the globals a PyTorch checkpoint
     needs and accepts persistent ids (torch stores tensor data out of band).
@@ -176,6 +187,7 @@ def parse_pickle(data: bytes, file_name: str = "<memory>", *, torch: bool = Fals
     ``pickle.load`` would import from them (parser differential).
     """
     report = _empty_report(file_name, file_format)
+    legacy_torch = False
     base = PICKLE_GLOBALS | frozenset(extra_allowed)
     allow = base | TORCH_GLOBALS if torch else base
     index_ref = [0]
@@ -184,7 +196,6 @@ def parse_pickle(data: bytes, file_name: str = "<memory>", *, torch: bool = Fals
     machine = Machine(data, joblib=joblib, on_import=on_import, on_opcode=on_opcode,
                       on_call=lambda *call: calls.append(call), max_opcodes=MAX_OPCODES)
     try:
-        legacy_torch = False
         while machine.stream.tell() < len(data):
             if index_ref[0] >= MAX_PICKLES:
                 raise ValueError(f"more than {MAX_PICKLES} pickles in one file")
@@ -204,11 +215,14 @@ def parse_pickle(data: bytes, file_name: str = "<memory>", *, torch: bool = Fals
                     "legacy torch pickles (not analysed, never unpickled)"
                 )
                 break
-            if machine.stream.tell() == start:
+            if machine.stream.tell() == start or not legacy_torch:
                 break
     except Exception as exc:  # noqa: BLE001 - any parse failure must surface
         report["error"] = f"opcode walk failed: {type(exc).__name__}: {exc}"
     report["pickle_count"] = index_ref[0]
+    if not report["error"] and machine.stream.tell() < len(data) and not legacy_torch:
+        _trailing(report, data, machine.stream.tell(), trailing, depth,
+                  dict(torch=torch, file_format=file_format, extra_allowed=extra_allowed, joblib=joblib))
     _joblib_findings(report, machine, data, allow)
     report["reasons"].extend(_check_guarded_calls(calls))
     report["getattr_malicious"], risky = _check_getattr(calls, allow, _imports_getattr(report))
@@ -217,6 +231,36 @@ def parse_pickle(data: bytes, file_name: str = "<memory>", *, torch: bool = Fals
     report["raw_disasm"] = _disasm(data)
     _score(report, allow, torch)
     return report
+
+
+def _trailing(report: dict, data: bytes, start: int, mode: str, depth: int, options: dict) -> None:
+    """Record the bytes after the reading's last STOP; in "nested" mode, analyse them as
+    a reading of their own when they look like a pickle."""
+    from ..parsing.detect import _looks_like_pickle
+
+    rest = data[start:]
+    report["trailing"] = {"start": start, "length": len(rest), "looks_like_pickle": _looks_like_pickle(rest)}
+    text = (f"{len(rest)} bytes of trailing data after the pickle's STOP (offset {start}); "
+            "pickle.load stops there, a loader that reads on would see them")
+    if not report["trailing"]["looks_like_pickle"]:
+        report["reasons"].append(text)
+        return
+    # Another pickle: analysed as a reading of its own, which carries its own findings.
+    report["notes"].append(text + "; they hold another pickle, analysed as a reading of its own")
+    if mode != "nested":
+        return
+    if depth + 1 >= MAX_PICKLES:
+        report["reasons"].append(f"more than {MAX_PICKLES} readings of trailing data; the rest is not analysed")
+        return
+    sub = parse_pickle(rest, report["file_name"], trailing="nested", depth=depth + 1, **options)
+    prefix = f"trailing data at offset {start}: "
+    report["reasons"].extend(prefix + r for r in sub["reasons"])
+    report["unverifiable"].update({prefix + k: v for k, v in sub["unverifiable"].items()})
+    report["suspicious_strings"].extend(sub["suspicious_strings"])
+    report["notes"].extend(prefix + n for n in sub["notes"])
+    report["trailing"]["report"] = {"static_risk": sub["static_risk"], "pickle_count": sub["pickle_count"]}
+    if sub["static_risk"] == "malicious":
+        report["trailing_malicious"] = True
 
 
 # Top-level packages a model-loading environment commonly has, besides the
@@ -576,7 +620,7 @@ def _score(report: dict, allow: frozenset, torch: bool) -> None:
 
     getattr_malicious = report.get("getattr_malicious") or []
     reasons.extend(getattr_malicious)
-    if (report["suspicious_imports"] and has_call) or getattr_malicious:
+    if (report["suspicious_imports"] and has_call) or getattr_malicious or report.get("trailing_malicious"):
         report["static_risk"] = "malicious"
     elif reasons:
         report["static_risk"] = "suspicious"

@@ -13,6 +13,7 @@ UNVERIFIABLE.
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import asdict, dataclass, field
 from enum import StrEnum
 
@@ -136,12 +137,27 @@ class Report:
         return json.dumps(self.to_dict(), default=str, **kwargs)
 
 
+# A reason that is evidence of what the file does: a sink import or call, a process,
+# network or file write, code execution, a called getattr result or a dunder read.
+_EVIDENCE = re.compile(
+    r"known sink|sink attribute|of the sink|\b(?:code_exec|process|network|file_write|native): |"
+    r"is called \(|dunder|reverse_shell|tamper|forged|detonation event", re.IGNORECASE)
+
+
+def evidence_rank(text: str) -> int:
+    """0 for evidence (see ``_EVIDENCE``), 1 for any other MALICIOUS reason, 2 for the rest."""
+    if _EVIDENCE.search(text):
+        return 0
+    return 1 if "MALICIOUS:" in text else 2
+
+
 def combine(layers: list[LayerResult]) -> tuple[Verdict, list[str]]:
-    """Final verdict = worst layer verdict; reasons from every non-clean layer."""
+    """Final verdict = worst layer verdict; reasons from every non-clean layer, evidence
+    first (``evidence_rank``), otherwise in layer order."""
     verdict = worst(*(layer.verdict for layer in layers))
     reasons = [f"[{layer.name}] {r}" for layer in layers if layer.verdict is not Verdict.CLEAN
                for r in layer.reasons]
-    return verdict, reasons
+    return verdict, sorted(reasons, key=evidence_rank)
 
 
 def combine_findings(layers: list[LayerResult]) -> tuple[list[dict], str | None]:
@@ -158,6 +174,7 @@ def combine_findings(layers: list[LayerResult]) -> tuple[list[dict], str | None]
         findings.extend(dict(f, text=f"[{layer.name}] {f['text']}") for f in layer.findings)
         findings.extend({"layer": layer.name, "verdict": Verdict.SUSPICIOUS.value, "category": Category.RISKY.value,
                          "text": f"[{layer.name}] {r}"} for r in layer.reasons if r not in covered)
+    findings.sort(key=lambda f: evidence_rank(f["text"]))
     if not findings:
         return findings, None
     return findings, max((Category(f["category"]) for f in findings), key=lambda c: c.rank).value

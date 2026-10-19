@@ -32,9 +32,21 @@ def _is_legacy_torch(parser_report: dict) -> bool:
     return any("legacy PyTorch" in str(n) for n in parser_report.get("notes") or [])
 
 
+def cleared_pairs(parser_report: dict) -> tuple[frozenset, frozenset]:
+    """(pairs the static layer accepted as state-only or by another rule, pairs it found
+    only referenced) for one reading (static/clearance.py)."""
+    allowed, referenced = set(), set()
+    for entry in parser_report.get("cleared") or []:
+        pair = tuple(entry["pair"])
+        (referenced if entry["mechanism"] == "referenced" else allowed).add(pair)
+    return frozenset(allowed), frozenset(referenced - allowed)
+
+
 def emulation_layer(data: bytes, parser_report: dict, extra_allowed: frozenset,
                     limits: Limits | None = None) -> LayerResult:
     fmt = parser_report.get("file_format")
+    cleared, referenced = cleared_pairs(parser_report)
+    extra_allowed = frozenset(extra_allowed) | cleared
     if fmt == detect_mod.JOBLIB:
         stream = parser_report.get("_stream", data if not parser_report.get("compression") else None)
         if stream is None:
@@ -43,11 +55,12 @@ def emulation_layer(data: bytes, parser_report: dict, extra_allowed: frozenset,
             return layer
         run = emulate_pickle([stream], max_pickles=parser_report.get("pickle_count") or 1, joblib=True,
                              limits=limits)
-        return behaviour.classify(run, extra_allowed=extra_allowed, framework=False)
+        return behaviour.classify(run, extra_allowed=extra_allowed, framework=False, referenced=referenced)
     if fmt == detect_mod.PICKLE:
         torch = _is_legacy_torch(parser_report)
         run = emulate_pickle([data], max_pickles=parser_report.get("pickle_count") or 1, limits=limits)
-        return behaviour.classify(run, torch=torch, extra_allowed=extra_allowed, framework=False)
+        return behaviour.classify(run, torch=torch, extra_allowed=extra_allowed, framework=False,
+                                  referenced=referenced)
     if fmt == detect_mod.TORCH:
         try:
             with SafeZip(data, max_member_bytes=MAX_PICKLE_MEMBER_BYTES) as zf:
@@ -61,7 +74,8 @@ def emulation_layer(data: bytes, parser_report: dict, extra_allowed: frozenset,
             layer.raise_to(Verdict.SUSPICIOUS, "torch archive without a pickle member")
             return layer
         run = emulate_pickle(streams, max_pickles=1, limits=limits)
-        return behaviour.classify(run, torch=True, extra_allowed=extra_allowed, framework=False)
+        return behaviour.classify(run, torch=True, extra_allowed=extra_allowed, framework=False,
+                                  referenced=referenced)
     if fmt in (detect_mod.KERAS, detect_mod.H5):
         if parser_report.get("error") and fmt == detect_mod.H5:
             layer = LayerResult(name="emulation", verdict=Verdict.CLEAN, ran=False)

@@ -80,10 +80,10 @@ sha256 of each wheel, is in
 
 - **Added as state-only.** `torch.save` writes an `nn.Module` as `NEWOBJ ()` plus
   `BUILD`, and `Module.__setstate__` only updates `__dict__` and fills empty hook dicts.
-  On that basis 66 exact pairs were added:
+  On that basis 64 exact pairs were added:
   - 13 `torch.nn` classes;
   - 5 torchvision transforms;
-  - 45 ultralytics classes, including 9 old `ultralytics.nn.modules.<Name>` paths
+  - 43 ultralytics classes, including 9 old `ultralytics.nn.modules.<Name>` paths
     from 8.0.x;
   - `XGBClassifier`, `XGBRegressor` and `XGBoostLabelEncoder`.
 - **Added as an enum lookup.** `torchvision.transforms.functional.InterpolationMode`.

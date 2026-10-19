@@ -7,7 +7,9 @@ A small stack/memo simulation recovers the module and name behind
 Scoring, strictest first:
 
 * MALICIOUS: an import of a known code-execution / process / file / network sink
-  together with any opcode that calls or constructs an object.
+  together with any opcode that calls or constructs an object. ``builtins.getattr``
+  is judged use by use instead (``_check_getattr``): MALICIOUS only when its result
+  is called or the attribute is a dunder or a sink name.
 * SUSPICIOUS: any import outside the exact allowlist (called or not: ``find_class``
   imports the module, and import-time side effects are code execution), an import
   that cannot be resolved, a copyreg extension code, a persistent id outside a
@@ -31,6 +33,7 @@ from .allowlists import (
     DANGEROUS_SYMBOLS,
     DEFAULTDICT,
     ENUM_CLASSES,
+    GETATTR,
     GUARDED_CALLS,
     KNOWN_GADGETS,
     NUMPY_BIT_GENERATOR_CLASSES,
@@ -45,7 +48,7 @@ from .allowlists import (
 )
 from .lookalike import imitates
 from .lookalike import reason as lookalike_reason
-from .pickle_vm import Global, Machine, Obj, plain_reading_imports
+from .pickle_vm import Global, Machine, Obj, class_of, plain_reading_imports
 
 SCHEMA_VERSION = "1.1"
 
@@ -122,6 +125,8 @@ def _empty_report(file_name: str, file_format: str) -> dict:
         "pickle_count": 0,
         # reason text -> {"item", "pair", "explanation"} for the reasons that are UNVERIFIABLE
         "unverifiable": {},
+        # reasons that make builtins.getattr uses MALICIOUS (_check_getattr)
+        "getattr_malicious": [],
     }
 
 
@@ -206,6 +211,8 @@ def parse_pickle(data: bytes, file_name: str = "<memory>", *, torch: bool = Fals
     report["pickle_count"] = index_ref[0]
     _joblib_findings(report, machine, data, allow)
     report["reasons"].extend(_check_guarded_calls(calls))
+    report["getattr_malicious"], risky = _check_getattr(calls, allow, _imports_getattr(report))
+    report["reasons"].extend(risky)
 
     report["raw_disasm"] = _disasm(data)
     _score(report, allow, torch)
@@ -291,7 +298,8 @@ MAX_VALUE_WALK = 10_000_000
 
 
 def _guarded(value) -> bool:
-    return isinstance(value, Global) and (value.pair in GUARDED_CALLS or value.pair in ARGUMENT_CHECKED)
+    return isinstance(value, Global) and (value.pair in GUARDED_CALLS or value.pair in ARGUMENT_CHECKED
+                                          or value.pair in GETATTR)
 
 
 def _argument_check(how: str, pair: tuple[str, str], args) -> tuple[str | None, int | None]:
@@ -400,7 +408,9 @@ def _check_guarded_calls(calls: list[tuple]) -> list[str]:
     walk = {"seen": set(), "steps": 0}
     for how, func, args, pos in calls:
         exempt = None
-        if isinstance(func, Global) and func.pair in ARGUMENT_CHECKED:
+        if isinstance(func, Global) and func.pair in GETATTR:
+            pass  # judged by _check_getattr; its arguments are still walked below
+        elif isinstance(func, Global) and func.pair in ARGUMENT_CHECKED:
             reason, exempt = _argument_check(how, func.pair, args)
             if reason:
                 reasons.append(f"{func.module}.{func.name} at {pos} {reason}")
@@ -421,6 +431,87 @@ def _check_guarded_calls(calls: list[tuple]) -> list[str]:
             reasons.append(f"{value.module}.{value.name} is passed as a value at {pos} "
                            f"({how.upper()}); it may only be called directly")
     return reasons
+
+
+# --- builtins.getattr: how pickle writes a bound method -----------------------------
+
+def _imports_getattr(report: dict) -> bool:
+    """Does the stream itself (not a parser-differential reading) import getattr?"""
+    return any((imp["module"], imp["symbol"]) in GETATTR and imp["opcode"] in IMPORT_OPCODES
+               for imp in report["imports"])
+
+
+def _is_getattr_result(value) -> bool:
+    return isinstance(value, Obj) and isinstance(value.func, Global) and value.func.pair in GETATTR
+
+
+def _getattr_target_ok(target, allow: frozenset) -> bool:
+    """An instance of an allowlisted class, or an allowlisted class itself."""
+    if isinstance(target, Global):
+        pair = target.pair
+    elif isinstance(target, Obj) and not _is_getattr_result(target):
+        pair = class_of(target)
+    else:
+        return False
+    return pair is not None and pair in allow and pair not in GETATTR and not is_dangerous_import(*pair)
+
+
+def _describe(value) -> str:
+    if isinstance(value, Global):
+        return f"{value.module}.{value.name}"
+    if isinstance(value, Obj):
+        pair = class_of(value)
+        return f"an instance of {pair[0]}.{pair[1]}" if pair else f"a {value.how.upper()} result"
+    return _short((value,))[1:-2] if not isinstance(value, str) else repr(value[:60])
+
+
+def _check_getattr(calls: list[tuple], allow: frozenset, imported: bool) -> tuple[list[str], list[str]]:
+    """(MALICIOUS reasons, RISKY reasons) for every use of builtins.getattr.
+
+    ``getattr(obj, "name")`` is how pickle writes a bound method. It is accepted only
+    for an object or class from the allowlist and a constant name without a leading
+    underscore, when nothing calls the result while loading. A called result, a dunder
+    name or a sink name is evidence (MALICIOUS); every other use is RISKY.
+    """
+    malicious, risky = [], []
+    used = False
+    for how, func, args, pos in calls:
+        if _is_getattr_result(func):
+            malicious.append(f"the result of builtins.getattr({_short(func.args)[1:-1]}) is called "
+                             f"({how.upper()} at {pos})")
+            continue
+        if not (isinstance(func, Global) and func.pair in GETATTR):
+            continue
+        used = True
+        where = f"{func.module}.{func.name} at {pos}"
+        if how not in ("reduce", "obj", "inst"):
+            risky.append(f"{where} is used through {how.upper()}, not called the way pickle writes a method")
+            continue
+        if not isinstance(args, tuple) or len(args) != 2:
+            risky.append(f"{where} is called with {_short(args)}; pickle writes a method as getattr(obj, name)")
+            continue
+        target, name = args
+        if not isinstance(name, str):
+            risky.append(f"{where} is given an attribute name that is not a constant string ({_describe(name)})")
+            continue
+        if name.startswith("__") and name.endswith("__"):
+            malicious.append(f"{where} reads the dunder attribute {name!r} of {_describe(target)}")
+            continue
+        if name in DANGEROUS_SYMBOLS:
+            malicious.append(f"{where} reads the sink attribute {name!r} of {_describe(target)}")
+            continue
+        if isinstance(target, Global) and is_dangerous_import(*target.pair):
+            malicious.append(f"{where} reads {name!r} of the sink {_describe(target)}")
+            continue
+        if name.startswith("_"):
+            risky.append(f"{where} reads the private attribute {name!r} of {_describe(target)}")
+            continue
+        if not _getattr_target_ok(target, allow):
+            risky.append(f"{where} reads {name!r} of {_describe(target)}, which is not built from "
+                         "allowlisted classes")
+    if imported and not used:
+        risky.append("builtins.getattr is imported but never called the way pickle writes a method")
+    return malicious, risky
 
 
 def _disasm(data: bytes) -> str:
@@ -450,6 +541,8 @@ def _score(report: dict, allow: frozenset, torch: bool) -> None:
             continue
         if (module, qualname) in allow:
             continue
+        if (module, qualname) in GETATTR and imp["opcode"] in IMPORT_OPCODES:
+            continue  # judged use by use in _check_getattr
         if is_dangerous_import(module, qualname):
             report["suspicious_imports"].append({"module": module, "symbol": qualname, "pos": imp["pos"]})
         else:
@@ -481,7 +574,9 @@ def _score(report: dict, allow: frozenset, torch: bool) -> None:
                                     "pair": [imp["module"], imp["symbol"]],
                                     "explanation": override.pickle_global(imp["module"], imp["symbol"])}
 
-    if report["suspicious_imports"] and has_call:
+    getattr_malicious = report.get("getattr_malicious") or []
+    reasons.extend(getattr_malicious)
+    if (report["suspicious_imports"] and has_call) or getattr_malicious:
         report["static_risk"] = "malicious"
     elif reasons:
         report["static_risk"] = "suspicious"

@@ -180,7 +180,10 @@ STATE_ONLY_CLASSES = frozenset({
     ("argparse", "Namespace"),
     # transformers' training arguments (training_args.bin): plain dataclasses. Rebuilt
     # from state, __post_init__ (which sets up devices and reads config files) never runs;
-    # the fields are data, and an enum field is checked by ENUM_CLASSES.
+    # the fields are data, and an enum field is checked by ENUM_CLASSES. The owner checked
+    # the transformers 4.30.0 and 5.20.1 sources (2026-10-19): @dataclass with no
+    # __setstate__, __reduce__, __getstate__, __setattr__ or property setters, so unpickling
+    # is object.__new__ plus a __dict__ update and __post_init__ is not called.
     ("transformers.training_args", "TrainingArguments"),
     ("transformers.training_args_seq2seq", "Seq2SeqTrainingArguments"),
 })
@@ -210,6 +213,14 @@ PANDAS_INDEX_CLASSES = frozenset(PANDAS_INDEX_KEYS)
 DEFAULTDICT = ("collections", "defaultdict")
 ARGUMENT_CHECKED = STATE_ONLY_CLASSES | ENUM_CLASSES | {PANDAS_NEW_INDEX, DEFAULTDICT}
 PICKLE_GLOBALS = PICKLE_GLOBALS | ARGUMENT_CHECKED
+
+# builtins.getattr is how pickle writes a bound method: getattr(obj, "name"). It is never
+# on the allowlist; pickle_static._check_getattr judges every use (owner's rule, 2026-10-19):
+# * MALICIOUS when the result is called, or the name is a dunder or a sink name;
+# * CLEAN for getattr(<instance or class from the allowlist>, "<constant name without a
+#   leading _>") whose result is never called while loading;
+# * RISKY (not overridable) for anything else.
+GETATTR = frozenset({("builtins", "getattr"), ("__builtin__", "getattr")})
 
 # Extra globals a PyTorch checkpoint (data.pkl or a legacy stream) may import.
 # Source: the globals torch.save emits for tensors, parameters and state dicts,

@@ -22,6 +22,8 @@ Exit codes of ``scan`` (stable, for CI):
     2  usage error, or no file to scan
     3  at least one file is SUSPICIOUS and none is MALICIOUS
     4  the WASI runtime failed its integrity check; nothing was scanned
+    5  at least one file is UNSUPPORTED (in no format safeloadai reads) and none is
+       MALICIOUS or SUSPICIOUS; such a file is never loadable by safe_load
 
 ``doctor`` exits 0 when every check passes and 1 otherwise.
 """
@@ -40,7 +42,7 @@ from .pipeline import scan
 from .report import Report, Verdict
 from .sandbox.runtime import RuntimeIntegrityError
 
-EXIT_CLEAN, EXIT_MALICIOUS, EXIT_USAGE, EXIT_SUSPICIOUS, EXIT_INTEGRITY = 0, 1, 2, 3, 4
+EXIT_CLEAN, EXIT_MALICIOUS, EXIT_USAGE, EXIT_SUSPICIOUS, EXIT_INTEGRITY, EXIT_UNSUPPORTED = 0, 1, 2, 3, 4, 5
 SUPPORTED = tuple(EXTENSION_HINTS)
 
 
@@ -232,6 +234,8 @@ def main(argv: list[str] | None = None) -> int:
         return EXIT_MALICIOUS
     if any(r.verdict is Verdict.SUSPICIOUS and not r.accepted for r in reports):
         return EXIT_SUSPICIOUS
+    if Verdict.UNSUPPORTED in verdicts:
+        return EXIT_UNSUPPORTED
     return EXIT_CLEAN
 
 

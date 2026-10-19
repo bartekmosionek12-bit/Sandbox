@@ -73,6 +73,9 @@ def emulation_layer(data: bytes, parser_report: dict, extra_allowed: frozenset,
                                reasons=["no executable content in the Keras config; nothing to emulate"])
         return behaviour.classify(emulate_keras_lambdas(lambdas, limits=limits))
     layer = LayerResult(name="emulation", verdict=Verdict.CLEAN, ran=False)
+    if parser_report.get("unsupported"):
+        layer.reasons.append("nothing to emulate: the file is in no supported format (UNSUPPORTED)")
+        return layer
     layer.raise_to(Verdict.SUSPICIOUS, f"no emulator for format {fmt!r}")
     return layer
 
@@ -128,7 +131,7 @@ def _embedded(parser_report: dict, extra_views: list, extra_allowed: frozenset):
         if report.get("file_format") != detect_mod.KERAS:
             report["reasons"].append(f"the embedded bytes the Keras loader reads are not a Keras archive "
                                      f"(detected {report.get('file_format')})")
-            if report["static_risk"] == "clean":
+            if report["static_risk"] in ("clean", "unsupported"):
                 report["static_risk"] = "suspicious"
         view = report.get("_view")
         yield label, view.slice(blob) if view else blob, report
@@ -175,17 +178,18 @@ def scan(path: str | os.PathLike, *, judge: bool = False, deep: bool = False,
     timings: dict[str, float] = {}
 
     size = os.path.getsize(path)
-    if size > static_mod.MAX_FILE_BYTES:
+    too_large = size > static_mod.MAX_FILE_BYTES
+    if too_large:
         parser_report = static_mod.analyze_file(path)
         data = b""
     else:
         with open(path, "rb") as fh:
             data = fh.read()
-    sha256 = hashlib.sha256(data).hexdigest() if data else _sha256_file(path)
+    sha256 = _sha256_file(path) if too_large else hashlib.sha256(data).hexdigest()
 
     step("static analysis")
     t = time.perf_counter()
-    if data:
+    if not too_large:
         parser_report = static_mod.analyze_bytes(data, os.path.basename(path), extra_allowed)
     file_format = str(parser_report.get("file_format"))
     layers = [verdict.static_layer(parser_report, defer_lambdas=True)]
@@ -194,7 +198,7 @@ def scan(path: str | os.PathLike, *, judge: bool = False, deep: bool = False,
 
     step("emulation in the WASI sandbox")
     t = time.perf_counter()
-    if data:
+    if not too_large:
         view = parser_report.get("_view")
         emulation = emulation_layer(view.slice(data) if view else data, parser_report, extra_allowed, limits)
     else:

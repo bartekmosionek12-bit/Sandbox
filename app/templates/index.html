@@ -35,7 +35,8 @@
 {% if error %}<p class="MALICIOUS">Could not read the report: {{ error }}</p>{% endif %}
 {% for r in reports %}
 <section>
-  <h2><span class="verdict {{ r.verdict }}">{{ r.verdict }}</span> {{ r.file_name }}</h2>
+  <h2><span class="verdict {{ r.verdict }}">{{ r.verdict }}</span>{% if r.options %} (with options: {{ r.options|map(attribute="name")|join(", ") }}){% endif %} {{ r.file_name }}</h2>
+  {% if r.options %}<ul>{% for o in r.options %}<li class="SUSPICIOUS">non-default option <code>{{ o.name }}</code> = <code>{{ o.value }}</code> from {{ o.source }} ({{ o.direction }})</li>{% endfor %}</ul>{% endif %}
   <p class="muted">format {{ r.file_format }} · sha256 <code>{{ r.sha256 }}</code> · {{ r.timings_ms.total }} ms · safeloadai {{ r.version }}</p>
   {% if r.findings %}<ul>{% for f in r.findings %}<li><b>{{ f.category }}</b> <code>{{ f.text }}</code>{% if f.explanation %}<br><span class="muted">{{ f.explanation }}</span>{% endif %}</li>{% endfor %}</ul>
   {% elif r.reasons %}<ul>{% for reason in r.reasons %}<li><code>{{ reason }}</code></li>{% endfor %}</ul>{% endif %}

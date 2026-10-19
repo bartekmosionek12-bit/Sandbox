@@ -24,6 +24,13 @@ model = safe_load("model.pkl")       # loads only if CLEAN, else raises UnsafeMo
 safeloadai scan models/ --json       # exit 0 CLEAN, 1 MALICIOUS, 3 SUSPICIOUS, 2 usage error
 ```
 
+That is the default, and the strictest, way to use it. Every option that changes a
+verdict (a user allowlist, accepting UNVERIFIABLE items, a config file) or how the
+scan runs (deep detonation, the LLM judge, limits) is off by default. Each one is
+announced on the command line and recorded in the Report's `options` section. Each
+one is documented, with the risk it carries, in [docs/OPTIONS.md](docs/OPTIONS.md).
+`safeloadai options` prints them all with their current settings.
+
 ## Reason categories and the informed override
 
 Every reason in a Report has a category. It never changes the verdict:
@@ -63,7 +70,8 @@ safeloadai scan convnext.h5 --accept-unverified LayerScale  # CI and scripts: na
 safeloadai scan models/ --accept-unverified <sha256>:LayerScale   # several files: scope by sha256
 ```
 
-The CLI prompts only when stdin and stdout are both a terminal (and never with
+See [docs/OPTIONS.md](docs/OPTIONS.md#accept_unverified) for the risk this option
+carries and how to check it in the Report. The CLI prompts only when stdin and stdout are both a terminal (and never with
 `--json` or `--no-input`). Anywhere else it refuses unless
 `--accept-unverified` names every item. A file with an accepted override counts
 as exit 0. A legacy `.h5` is still not loaded by `safe_load` after an override

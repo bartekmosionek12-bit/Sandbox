@@ -1,7 +1,15 @@
 """Command line.
 
-    safeloadai scan <file|dir>... [--json] [--judge] [--deep] [--accept-unverified [SHA256:]ITEM]...
+    safeloadai scan <file|dir>... [--json] [--judge] [--deep] [--allow MODULE:QUALNAME]...
+                    [--accept-unverified [SHA256:]ITEM]... [--config FILE]
+    safeloadai options [--config FILE]
     safeloadai doctor [--json]
+
+Plain ``safeloadai scan FILE`` uses only the strictest defaults. Every non-default
+option is announced with a one-line warning on stderr before the results, recorded in
+the Report's ``options`` section, and shown on the verdict line ("CLEAN (with options:
+...)"). A config file is read only when named with ``--config``; ``docs/OPTIONS.md``
+documents every option.
 
 A SUSPICIOUS file whose every reason is UNVERIFIABLE can be accepted, item by item,
 for that file's sha256 only: with ``--accept-unverified``, or at an interactive
@@ -25,6 +33,7 @@ import os
 import re
 import sys
 
+from . import options as options_mod
 from . import override
 from .parsing.detect import EXTENSION_HINTS
 from .pipeline import scan
@@ -86,6 +95,10 @@ def _build_parser() -> argparse.ArgumentParser:
     s.add_argument("--no-input", action="store_true", help="never prompt, even on a terminal")
     s.add_argument("--report", metavar="FILE", help="also write the Report JSON to FILE")
     s.add_argument("-q", "--quiet", action="store_true", help="no per-file text output")
+    s.add_argument("--config", metavar="FILE",
+                   help=f"read options from this {options_mod.CONFIG_NAME} (never read unless named here)")
+    o = sub.add_parser("options", help="print every option, its default and the effective settings")
+    o.add_argument("--config", metavar="FILE", help="also show what this config file sets")
     d = sub.add_parser("doctor", help="check the sandbox runtime and explain how to fix problems")
     d.add_argument("--json", action="store_true", help="print the checks as JSON")
     return parser
@@ -95,6 +108,8 @@ def _print_text(report: Report) -> None:
     status = report.verdict.value
     if not report.clean and report.accepted:
         status += f" (accepted: {', '.join(report.override['items'])})"
+    if report.options:
+        status += f" (with options: {', '.join(o['name'] for o in report.options)})"
     print(f"{status:<10} {report.path}  ({report.file_format}, {report.timings_ms.get('total')} ms)")
     for finding in report.findings[:20]:
         print(f"    [{finding['category']}] {finding['text']}")
@@ -132,18 +147,25 @@ def _prompt(report: Report) -> bool:
     return answer.strip().lower() in ("y", "yes")
 
 
-def _overrides(reports: list[Report], accepts: list[tuple[str | None, str]], *, may_prompt: bool) -> None:
+def _overrides(reports: list[Report], accepts: list[tuple[str | None, str, str]], *, may_prompt: bool) -> None:
     by_sha: dict[str, list[str]] = {}
-    for sha, item in accepts:
-        by_sha.setdefault(sha or reports[0].sha256, []).append(item)
+    origin: dict[str, str] = {}
+    for sha, item, source in accepts:
+        key = sha or reports[0].sha256
+        by_sha.setdefault(key, []).append(item)
+        origin[key] = source
     for sha in sorted(set(by_sha) - {r.sha256 for r in reports}):
         print(f"safeloadai: --accept-unverified names sha256 {sha}, which matches no scanned file; ignored",
               file=sys.stderr)
     for report in reports:
+        if report.sha256 in by_sha:
+            source = origin[report.sha256]
+            how = "config" if source.startswith(options_mod.CONFIG) else "cli-flag"
+            override.apply(report, by_sha[report.sha256], how=how,
+                           config_path=source[len(options_mod.CONFIG) + 1:] if how == "config" else None)
+            continue
         if report.clean:
             continue
-        if report.sha256 in by_sha:
-            override.apply(report, by_sha[report.sha256], how="cli-flag")
         elif may_prompt and report.unverifiable_only:
             if _prompt(report):
                 override.apply(report, report.unverifiable_items, how="cli-prompt")
@@ -161,6 +183,13 @@ def main(argv: list[str] | None = None) -> int:
         from . import doctor
 
         return doctor.main(as_json=args.json)
+    if args.command == "options":
+        return _options_command(args.config)
+    try:
+        settings = _settings(args)
+    except (options_mod.OptionError, OSError, argparse.ArgumentTypeError) as exc:
+        print(f"safeloadai: {exc}", file=sys.stderr)
+        return EXIT_USAGE
     files, missing = _collect(args.paths)
     for path in missing:
         print(f"safeloadai: no such file or directory: {path}", file=sys.stderr)
@@ -169,17 +198,24 @@ def main(argv: list[str] | None = None) -> int:
             print("safeloadai: nothing to scan", file=sys.stderr)
         return EXIT_USAGE
 
-    if len(files) > 1 and any(sha is None for sha, _ in args.accept_unverified):
+    if len(files) > 1 and any(sha is None for sha, _item, _source in settings["accept_unverified"]):
         print("safeloadai: with several files, --accept-unverified needs SHA256:ITEM (the file's sha256)",
               file=sys.stderr)
         return EXIT_USAGE
 
+    for line in _announce(settings):
+        print(line, file=sys.stderr)
     try:
-        reports = [scan(f, judge=args.judge, deep=args.deep, allow=args.allow) for f in files]
+        reports = [scan(f, judge=settings["judge"], deep=settings["deep"], allow=settings["allow"],
+                        option_sources=settings["sources"]) for f in files]
+    except options_mod.OptionError as exc:
+        print(f"safeloadai: {exc}", file=sys.stderr)
+        return EXIT_USAGE
     except RuntimeIntegrityError as exc:
         print(f"safeloadai: {exc}", file=sys.stderr)
         return EXIT_INTEGRITY
-    _overrides(reports, args.accept_unverified, may_prompt=not args.no_input and not args.json and _interactive())
+    _overrides(reports, settings["accept_unverified"],
+               may_prompt=not args.no_input and not args.json and _interactive())
     payload = [r.to_dict() for r in reports]
     document = payload[0] if len(payload) == 1 else payload
     if args.json:
@@ -196,6 +232,84 @@ def main(argv: list[str] | None = None) -> int:
         return EXIT_MALICIOUS
     if any(r.verdict is Verdict.SUSPICIOUS and not r.accepted for r in reports):
         return EXIT_SUSPICIOUS
+    return EXIT_CLEAN
+
+
+def _settings(args) -> dict:
+    """Effective scan options: CLI flags, then the config file named with --config (a
+    flag and the file are combined; the file never removes a flag). ``sources`` says
+    where each non-default option came from."""
+    settings = {"allow": list(args.allow), "judge": args.judge, "deep": args.deep,
+                "accept_unverified": [(sha, item, "CLI flag --accept-unverified")
+                                      for sha, item in args.accept_unverified],
+                "sources": {}, "config": None}
+    flag_sources = {"allow": "CLI flag --allow", "judge": "CLI flag --judge", "deep": "CLI flag --deep"}
+    for name, source in flag_sources.items():
+        if settings[name]:
+            settings["sources"][name] = source
+    if args.config:
+        config = options_mod.load_config(args.config)
+        source = f"{options_mod.CONFIG} {args.config}"
+        settings["config"] = args.config
+        for text in config.get("allow", []):
+            settings["allow"].append(_allow_pair(text))
+        for text in config.get("accept_unverified", []):
+            sha, item = _accept_item(text)
+            settings["accept_unverified"].append((sha, item, source))
+        for name in ("judge", "deep"):
+            if config.get(name):
+                settings[name] = True
+        for name in ("allow", "judge", "deep"):
+            if config.get(name):
+                settings["sources"][name] = (settings["sources"][name] + " and " + source
+                                             if name in settings["sources"] else source)
+        if config.get("accept_unverified"):
+            settings["sources"]["accept_unverified"] = source
+    settings["allow"] = list(options_mod.validate_allow(settings["allow"]))
+    return settings
+
+
+def _announce(settings: dict) -> list[str]:
+    """One warning per non-default option, before any result; a config file says which
+    option it set."""
+    lines = []
+    if settings["config"]:
+        lines.append(f"safeloadai: reading options from config file {settings['config']}")
+    entries = [options_mod.record(name, settings[name], settings["sources"][name])
+               for name in ("allow", "deep", "judge") if not options_mod.is_default(name, settings[name])]
+    if settings["accept_unverified"]:
+        sources = sorted({source for _sha, _item, source in settings["accept_unverified"]})
+        entries.append(options_mod.record("accept_unverified",
+                                          [f"{sha}:{item}" if sha else item
+                                           for sha, item, _s in settings["accept_unverified"]],
+                                          " and ".join(sources)))
+    lines += [options_mod.warning(entry) for entry in entries]
+    return lines
+
+
+def _options_command(config: str | None) -> int:
+    print(options_mod.summary_table())
+    print("\nEffective settings for `safeloadai scan`:")
+    for option in options_mod.OPTIONS:
+        value = os.environ.get(option.env) if option.env else None
+        where = f" (from environment variable {option.env})" if value else ""
+        print(f"  {option.name} = {value if value else repr(option.default)}{where}")
+    found = options_mod.find_config()
+    if config:
+        try:
+            values = options_mod.load_config(config)
+        except (options_mod.OptionError, OSError) as exc:
+            print(f"safeloadai: {exc}", file=sys.stderr)
+            return EXIT_USAGE
+        print(f"\nConfig file {config} (used only with `safeloadai scan --config {config}`) sets:")
+        for key, value in values.items():
+            print(f"  {key} = {value!r}")
+    elif found:
+        print(f"\nConfig file found: {found}. It is NOT used: plain `safeloadai scan` reads no config file; "
+              f"pass --config {found} to use it.")
+    else:
+        print(f"\nNo {options_mod.CONFIG_NAME} in the current directory (none is read unless named with --config).")
+    print("\nEvery option is documented in docs/OPTIONS.md.")
     return EXIT_CLEAN
 
 

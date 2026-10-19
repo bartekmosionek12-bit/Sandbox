@@ -20,7 +20,10 @@ from datetime import UTC, datetime
 from .report import Report
 
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
-HOW = frozenset({"api", "cli-flag", "cli-prompt"})
+HOW = frozenset({"api", "cli-flag", "cli-prompt", "config"})
+# Report.options source for each way an override is given
+SOURCE = {"api": "argument", "cli-flag": "CLI flag --accept-unverified", "cli-prompt": "interactive prompt",
+          "config": "config file"}
 
 # --- explanations -----------------------------------------------------------------------
 
@@ -96,7 +99,7 @@ def _items(items) -> list[str]:
     return sorted({str(item) for item in items})
 
 
-def apply(report: Report, items: Iterable[str] | None, *, how: str) -> bool:
+def apply(report: Report, items: Iterable[str] | None, *, how: str, config_path: str | None = None) -> bool:
     """Try the override for ``report``'s file; record the outcome in ``report.override``.
 
     Accepted only if the verdict is SUSPICIOUS, every reason is UNVERIFIABLE, and
@@ -104,9 +107,14 @@ def apply(report: Report, items: Iterable[str] | None, *, how: str) -> bool:
     """
     if how not in HOW:
         raise ValueError(f"how must be one of {sorted(HOW)}")
+    requested = sorted({str(i) for i in items or ()})
+    if requested:
+        source = SOURCE[how] if how != "config" else f"config file {config_path or ''}".strip()
+        report.options = [o for o in report.options if o["name"] != "accept_unverified"]
+        report.options.append({"name": "accept_unverified", "value": requested, "source": source,
+                               "direction": "looser"})
     if report.clean:
         return True
-    requested = sorted({str(i) for i in items or ()})
     record = {"accepted": False, "items": [], "requested": requested, "sha256": report.sha256,
               "time": datetime.now(UTC).isoformat(timespec="seconds"), "how": how, "refused_because": None}
     report.override = record

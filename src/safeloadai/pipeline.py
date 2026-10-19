@@ -10,9 +10,10 @@ from __future__ import annotations
 import hashlib
 import os
 import time
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Mapping
 
 from . import behaviour, verdict
+from . import options as options_mod
 from . import static as static_mod
 from .parsing import detect as detect_mod
 from .parsing.zipsafe import SafeZip, ZipRefused
@@ -92,8 +93,12 @@ def _judge_layer(parser_report: dict, emulation: LayerResult) -> LayerResult | N
 
 def scan(path: str | os.PathLike, *, judge: bool = False, deep: bool = False,
          allow: Iterable[tuple[str, str]] = (), limits: Limits | None = None,
-         progress: Progress = None) -> Report:
-    """Scan one model file. Never deserialises it on the host."""
+         progress: Progress = None, option_sources: Mapping[str, str] | None = None) -> Report:
+    """Scan one model file. Never deserialises it on the host.
+
+    Every keyword defaults to the strictest behaviour (docs/OPTIONS.md). Non-default
+    options are recorded in ``Report.options`` with their source (``option_sources``
+    maps an option name to where it came from; the default is "argument")."""
     from . import __version__
 
     def step(message: str) -> None:
@@ -101,7 +106,10 @@ def scan(path: str | os.PathLike, *, judge: bool = False, deep: bool = False,
             progress(message)
 
     path = os.fspath(path)
-    extra_allowed = frozenset((str(m), str(n)) for m, n in allow)
+    allow = options_mod.validate_allow(allow)
+    extra_allowed = frozenset(allow)
+    used_options = options_mod.scan_options(allow=allow, judge=judge, deep=deep, limits=limits,
+                                            sources=option_sources)
     started = time.perf_counter()
     timings: dict[str, float] = {}
 
@@ -164,7 +172,8 @@ def scan(path: str | os.PathLike, *, judge: bool = False, deep: bool = False,
     timings["total"] = _ms(started)
     return Report(path=path, file_name=os.path.basename(path), sha256=sha256, size=size,
                   file_format=file_format, verdict=final, reasons=reasons, layers=layers,
-                  timings_ms=timings, version=__version__, findings=findings, category=category)
+                  timings_ms=timings, version=__version__, findings=findings, category=category,
+                  options=used_options)
 
 
 def _sha256_file(path: str) -> str:

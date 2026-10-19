@@ -17,7 +17,7 @@ import re
 from dataclasses import asdict, dataclass, field
 from enum import StrEnum
 
-SCHEMA_VERSION = "2.1"
+SCHEMA_VERSION = "2.2"
 
 
 class Verdict(StrEnum):
@@ -102,6 +102,8 @@ class Report:
     findings: list[dict] = field(default_factory=list)
     category: str | None = None
     override: dict | None = None
+    # non-default options: {"name", "value", "source", "direction"} (options.py)
+    options: list[dict] = field(default_factory=list)
 
     @property
     def clean(self) -> bool:

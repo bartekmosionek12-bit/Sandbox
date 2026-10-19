@@ -46,6 +46,7 @@ from .allowlists import (
     PICKLE_GLOBALS,
     STATE_ONLY_CLASSES,
     TORCH_GLOBALS,
+    ZERO_ARG_CLASSES,
 )
 from .lookalike import imitates
 from .lookalike import reason as lookalike_reason
@@ -356,6 +357,11 @@ def _argument_check(how: str, pair: tuple[str, str], args) -> tuple[str | None, 
                 "from its saved state without calling it (NEWOBJ with no arguments)"), None
     if how != "reduce":
         return f"is used through {how.upper()}, not called the way its library pickles it", None
+    if pair in ZERO_ARG_CLASSES:
+        if args == ():
+            return None, None
+        return (f"is called with arguments {_short(args)}; it is accepted only as a call with no arguments "
+                "(REDUCE cls()) followed by BUILD"), None
     if pair in ENUM_CLASSES:
         if len(args) == 1 and type(args[0]) in (str, int):
             return None, None
@@ -374,6 +380,29 @@ def _argument_check(how: str, pair: tuple[str, str], args) -> tuple[str | None, 
             return None, None  # not exempt: an argument-checked global is no factory either
         return f"is given {_short(args)}; only no factory or one imported global is accepted", None
     return "has no argument check", None
+
+
+def _is_zero_arg_instance(value) -> bool:
+    return isinstance(value, Obj) and value.how == "reduce" and class_of(value) in ZERO_ARG_CLASSES
+
+
+def _rebuilt_instance_use(how: str, func, args) -> str | None:
+    """An instance of a state-only or zero-arg class may only receive one BUILD with a
+    plain dict state. A (dict, slotstate) state makes pickle call setattr() per slot item,
+    and calling the instance runs its __call__."""
+    if not isinstance(func, Obj):
+        return None
+    pair = class_of(func)
+    if pair not in STATE_ONLY_CLASSES and pair not in ZERO_ARG_CLASSES:
+        return None
+    name = f"an instance of {pair[0]}.{pair[1]}"
+    if how != "build":
+        return f"{name} is called ({how.upper()}); it may only be rebuilt from a dict state"
+    state = args[0] if isinstance(args, tuple) and args else None
+    if not isinstance(state, dict):
+        return (f"{name} is given a {type(state).__name__} BUILD state; only a dict state is accepted "
+                "(a slot state makes pickle call setattr)")
+    return None
 
 
 def _short(args) -> str:
@@ -450,8 +479,17 @@ def _check_guarded_calls(calls: list[tuple]) -> list[str]:
     """
     reasons = []
     walk = {"seen": set(), "steps": 0}
+    zero_walk = {"seen": set(), "steps": 0}
     for how, func, args, pos in calls:
         exempt = None
+        reason = _rebuilt_instance_use(how, func, args)
+        if reason:
+            reasons.append(f"{reason} at {pos}")
+        if how != "build":
+            for obj in _getattr_results(args, zero_walk, _is_zero_arg_instance):
+                pair = class_of(obj)
+                reasons.append(f"an instance of {pair[0]}.{pair[1]} is passed to a call at {pos} ({how.upper()}); "
+                               "it may only be rebuilt from a dict state and stored")
         if isinstance(func, Global) and func.pair in GETATTR:
             # judged by _check_getattr. getattr never calls its target, so an allowlisted class
             # there (getattr(Detect, "forward"), how pickle writes a function stored on a class)
@@ -512,16 +550,17 @@ def _describe(value) -> str:
     return _short((value,))[1:-2] if not isinstance(value, str) else repr(value[:60])
 
 
-def _getattr_results(value, walk: dict) -> list[Obj]:
-    """getattr results inside ``value`` (tuples, lists, dicts, sets; other Objs are not
-    entered: their own calls were checked when they were made)."""
+def _getattr_results(value, walk: dict, match=None) -> list[Obj]:
+    """getattr results (or Objs ``match`` accepts) inside ``value`` (tuples, lists, dicts,
+    sets; other Objs are not entered: their own calls were checked when they were made)."""
+    match = match or _is_getattr_result
     found, todo = [], [value]
     while todo:
         item = todo.pop()
         walk["steps"] += 1
         if walk["steps"] > MAX_VALUE_WALK:
             break
-        if _is_getattr_result(item):
+        if match(item):
             found.append(item)
             continue
         if not isinstance(item, (tuple, list, set, frozenset, dict)) or id(item) in walk["seen"]:

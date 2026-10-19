@@ -186,7 +186,7 @@ def test_allowlisted_module_called_directly_is_still_flagged():
 def test_unreviewed_neighbours_stay_out():
     from safeloadai.static import allowlists
 
-    for pair in [("xgboost.core", "Booster"), ("ultralytics.utils", "IterableSimpleNamespace"),
+    for pair in [("xgboost.core", "Booster"), ("types", "SimpleNamespace"),
                  ("torch.nn.modules.rnn", "LSTM"), ("torch.nn.modules.lazy", "LazyModuleMixin"),
                  ("ultralytics.nn.modules.block", "BNContrastiveHead"), ("torch.nn.modules.linear", "LazyLinear")]:
         assert pair not in allowlists.PICKLE_GLOBALS, pair

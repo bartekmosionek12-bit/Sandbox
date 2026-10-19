@@ -263,3 +263,60 @@ def test_xgboost_booster_is_unverifiable_with_its_own_explanation(tmp_path):
     assert report.unverifiable_items == ["xgboost.core.Booster"]
     explanation = next(f["explanation"] for f in report.findings if f["category"] == "UNVERIFIABLE")
     assert "native" in explanation and "save_model" in explanation
+
+
+# --- zero-arg call rule (owner, 2026-10-19): IterableSimpleNamespace -------------------------
+
+NS = ("ultralytics.utils", "IterableSimpleNamespace")
+EMPTY_TUPLE, REDUCE = b")", b"R"
+
+
+def _ns(state: bytes = b"}") -> bytes:
+    """How pickle writes a SimpleNamespace subclass: REDUCE cls() + BUILD(dict)."""
+    return g(*NS) + EMPTY_TUPLE + REDUCE + state + BUILD
+
+
+def test_zero_arg_namespace_rebuilt_from_dict_is_clean():
+    risk, reasons = _risk(P2 + _ns(_state(s("epochs") + b"Kd", s("model") + s("yolov8n.pt"))) + STOP)
+    assert risk == "clean", reasons
+    old = P2 + g("ultralytics.yolo.utils", "IterableSimpleNamespace") + EMPTY_TUPLE + REDUCE + b"}" + BUILD + STOP
+    assert _risk(old)[0] == "clean"
+
+
+def test_zero_arg_class_with_arguments_is_flagged():
+    risk, reasons = _risk(P2 + call(g(*NS), s("x")) + STOP)
+    assert risk == "suspicious" and any("only as a call with no arguments" in r for r in reasons)
+
+
+def test_zero_arg_call_on_an_unreviewed_class_is_flagged():
+    risk, reasons = _risk(P2 + g("types", "SimpleNamespace") + EMPTY_TUPLE + REDUCE + b"}" + BUILD + STOP)
+    assert risk != "clean"
+    risk, reasons = _risk(P2 + g("ultralytics.utils", "SimpleClass") + EMPTY_TUPLE + REDUCE + STOP)
+    assert risk != "clean"
+
+
+def test_zero_arg_result_called_is_flagged():
+    risk, reasons = _risk(P2 + call(g(*NS) + EMPTY_TUPLE + REDUCE, s(MARKER_CMD)) + STOP)
+    assert risk != "clean" and any("is called" in r for r in reasons)
+
+
+def test_zero_arg_result_passed_to_another_call_is_flagged():
+    risk, reasons = _risk(P2 + call(g("collections", "OrderedDict"), _ns()) + STOP)
+    assert risk != "clean" and any("is passed to a call" in r for r in reasons)
+
+
+def test_zero_arg_slotstate_build_is_flagged():
+    slot = b"(" + b"N" + _state(s("x") + b"K\x01") + b"t"  # (None, {"x": 1})
+    risk, reasons = _risk(P2 + g(*NS) + EMPTY_TUPLE + REDUCE + slot + BUILD + STOP)
+    assert risk != "clean" and any("BUILD state" in r for r in reasons)
+
+
+def test_state_only_slotstate_build_is_flagged():
+    slot = b"(" + b"N" + _state(s("x") + b"K\x01") + b"t"
+    risk, reasons = _risk(P2 + g(*TA) + b")" + NEWOBJ + slot + BUILD + STOP)
+    assert risk != "clean" and any("BUILD state" in r for r in reasons)
+
+
+def test_state_only_instance_called_is_flagged():
+    risk, reasons = _risk(P2 + call(g(*TA) + b")" + NEWOBJ, s(MARKER_CMD)) + STOP)
+    assert risk != "clean" and any("is called" in r for r in reasons)

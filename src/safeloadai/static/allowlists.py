@@ -287,7 +287,19 @@ PANDAS_INDEX_CLASSES = frozenset(PANDAS_INDEX_KEYS)
 # while loading. Accepted with no factory or one imported global, which the allowlist
 # checks like any other import (the owner's rule: "factory checked as global").
 DEFAULTDICT = ("collections", "defaultdict")
-ARGUMENT_CHECKED = STATE_ONLY_CLASSES | ENUM_CLASSES | {PANDAS_NEW_INDEX, DEFAULTDICT}
+# Classes pickled as REDUCE cls() + BUILD (a types.SimpleNamespace subclass: its C __reduce__
+# returns (type(self), (), self.__dict__)). Accepted only as a call with an exactly empty
+# argument tuple whose result goes only to a BUILD with a dict state, never to another call
+# (owner's rule "zero-arg call", 2026-10-19). Each entry: reviewed source version and why.
+ZERO_ARG_CLASSES = frozenset({
+    # ultralytics 8.4.182 utils/__init__.py and 8.0.50 yolo/utils/__init__.py: SimpleNamespace
+    # subclass adding __iter__, __str__, __getattr__ (raises AttributeError, also for
+    # "__setstate__", which BUILD looks up) and get(); no __init__, __setattr__ or properties
+    # (evaluation/results/source-review-2-20261019.md)
+    ("ultralytics.utils", "IterableSimpleNamespace"),
+    ("ultralytics.yolo.utils", "IterableSimpleNamespace"),
+})
+ARGUMENT_CHECKED = STATE_ONLY_CLASSES | ENUM_CLASSES | ZERO_ARG_CLASSES | {PANDAS_NEW_INDEX, DEFAULTDICT}
 PICKLE_GLOBALS = PICKLE_GLOBALS | ARGUMENT_CHECKED
 
 # builtins.getattr is how pickle writes a bound method: getattr(obj, "name"). It is never

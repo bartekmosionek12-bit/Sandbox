@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import base64
 import binascii
+import builtins
 import json
 import os
 
@@ -228,8 +229,9 @@ def _check_object(node: dict, path: str, report: dict, keras2: bool = False) -> 
         if pair in KERAS_FUNCTIONS:
             return
         entry = {"module": str(module), "symbol": str(name), "pos": None, "path": path}
-        if isinstance(name, str) and (name in TF_DANGEROUS or str(module).split(".")[0] in
-                                      ("os", "posix", "subprocess", "builtins", "socket")):
+        if isinstance(name, str) and (name in TF_DANGEROUS or (
+                str(module).split(".")[0] in ("os", "posix", "subprocess", "builtins", "socket")
+                and not _custom_builtins_function(str(module), name))):
             report["suspicious_imports"].append(entry)
         else:
             report["unknown_imports"].append(dict(entry, kind="function") if isinstance(name, str) else entry)
@@ -441,6 +443,16 @@ def _target(imp: dict) -> tuple[str, str] | None:
     return None
 
 
+def _custom_builtins_function(module: str, name: str) -> bool:
+    """Keras saves a user's own loss, metric or activation as ``builtins.<name>``. On load
+    it looks that name up among Keras' built-in functions and the caller's custom objects,
+    never in Python's ``builtins``, and fails if neither has it. A name that Python's
+    ``builtins`` does not define and that no sink list names is such a custom function:
+    unknown, not a known sink."""
+    return (module == "builtins" and not hasattr(builtins, name)
+            and name not in DANGEROUS_SYMBOLS and name.split(".")[-1] not in DANGEROUS_SYMBOLS)
+
+
 def _promote_sinks(report: dict) -> None:
     """An unknown object that names a known sink or gadget is never UNVERIFIABLE. A class
     or function from a sink module (``subprocess.Popen``) is a known sink: Keras imports
@@ -448,10 +460,12 @@ def _promote_sinks(report: dict) -> None:
     unknown = []
     for imp in report["unknown_imports"]:
         target = _target(imp)
-        if target and (target[0] in DANGEROUS_MODULES or target[0].split(".")[0] in DANGEROUS_MODULES):
+        custom = bool(target) and _custom_builtins_function(*target)
+        if target and not custom and (target[0] in DANGEROUS_MODULES
+                                      or target[0].split(".")[0] in DANGEROUS_MODULES):
             report["suspicious_imports"].append({k: v for k, v in imp.items() if k != "kind"})
             continue
-        if target and (is_dangerous_import(*target) or target in KNOWN_GADGETS):
+        if target and not custom and (is_dangerous_import(*target) or target in KNOWN_GADGETS):
             imp = dict(imp, sink_like=".".join(part for part in target if part))
         unknown.append(imp)
     report["unknown_imports"] = unknown

@@ -96,3 +96,12 @@ Same 138 files, same tools and versions, only safeloadai, under the evaluation g
 - **3 malicious lab files remain UNVERIFIABLE only:** `p_unknown_global.pkl`, `k_custom_object.keras` and `k2_custom_objects.h5`. Their names do not imitate an allowlisted module, so the scanner cannot tell them from a real custom class. Accepting them means trusting their code (README, LIMITATIONS).
 - **Median times are higher for `.keras` and `.h5`** (0.06 s to 0.39 s and 0.62 s to 1.23 s). The run started in a freshly started container with empty caches; the change adds only a string comparison per unknown name. Treat these times as noise, not as a regression.
 
+
+## Hugging Face runs, 2026-10-19
+
+Files: `eval-hf-20261019T121001Z.*` (93 Hub files) and `eval-hf-full-20261019T123116Z.*` (310 Hub files), reviewed in `review-hf-20261019.md` and `review-hf-full-20261019.md`.
+
+- **Detection:** safeloadai found all 53 lab payloads and all 4 real malicious Keras Lambda models that turned up among the Hub's popular files. picklescan (32/53 lab) and modelscan (23/53 lab) reported all 4 Hub samples clean.
+- **False positives:** 120 of 306 genuinely benign Hub files (39%). 82 of them are UNVERIFIABLE only, meaning an import outside the allowlist that the user can accept item by item. `.h5` is lowest at 15%; `.pkl`, `.keras`, `.joblib` and torch files are between 43% and 56%.
+- **One scanner bug:** 6 of the false positives are `.keras` files with a custom loss or metric saved as `builtins.<name>`, which the Keras static layer wrongly treats as a known sink.
+- **One open question:** a `.pkl` that is a Keras zip with 3.9 MB of leading data was stopped (SUSPICIOUS), but those leading bytes were not analysed.

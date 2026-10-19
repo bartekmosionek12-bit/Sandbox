@@ -5,6 +5,12 @@ This file follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Vers
 - `safeloadai` (the scanner);
 - `safeloadai-runtime` (the pinned sandbox runtime). It has its own version and changes only when the runtime does.
 
+## Unreleased
+
+### Fixed
+- **Custom Keras losses and metrics are no longer MALICIOUS.** Keras saves a user's own loss, metric or activation function as `builtins.<name>`, and the static layer treated every `builtins` name as a known sink. A name that Python's `builtins` does not define, and that no sink list names, is now an UNVERIFIABLE custom object. Real builtins such as `eval`, `exec` or `open` stay MALICIOUS. This removed 6 MALICIOUS false positives in the Hugging Face evaluation (`evaluation/results/review-hf-full-20261019.md`).
+- `evaluation/fetch_benign_hf.py` works with huggingface_hub 2.x, which dropped `list_models(library=...)`.
+
 ## safeloadai 0.4.0
 
 ### Added

@@ -225,3 +225,26 @@ def test_lambda_function_object_outside_lambda_layer_is_flagged():
     report = keras_static.parse_keras(buf.getvalue())
     assert report["static_risk"] != "clean"
     assert any(i["symbol"] == "__lambda__" for i in report["unknown_imports"])
+
+
+def _keras_with_loss(module: str, name: str) -> bytes:
+    config = {"module": "keras", "class_name": "Sequential", "registered_name": None,
+              "config": {"layers": [DENSE]},
+              "compile_config": {"loss": {"module": module, "class_name": "function",
+                                          "config": name, "registered_name": "function"}}}
+    return _zip({"config.json": json.dumps(config).encode(),
+                 "metadata.json": b'{"keras_version": "3.15.1"}'})
+
+
+def test_keras_custom_loss_saved_under_builtins_is_unverifiable_not_malicious():
+    # Keras records a user's own loss as builtins.<name>; Python's builtins has no such name.
+    report = keras_static.parse_keras(_keras_with_loss("builtins", "binary_focal_loss"))
+    assert report["static_risk"] == "suspicious", report["reasons"]
+    assert not any("known sink" in r for r in report["reasons"]), report["reasons"]
+    assert report["unverifiable"], report["reasons"]
+
+
+@pytest.mark.parametrize("name", ["eval", "exec", "__import__", "open", "breakpoint"])
+def test_keras_real_builtin_function_stays_malicious(name):
+    report = keras_static.parse_keras(_keras_with_loss("builtins", name))
+    assert report["static_risk"] == "malicious", report["reasons"]

@@ -76,7 +76,7 @@ def _fake_hub(files):
     repos = sorted({repo for repo, _ in files})
 
     class HfApi:
-        def list_models(self, library, sort, limit):
+        def list_models(self, filter, sort, limit):  # noqa: A002 - huggingface_hub keyword
             return [sib(id=r, downloads=10, private=False, gated=False) for r in repos]
 
         def model_info(self, repo_id, files_metadata):

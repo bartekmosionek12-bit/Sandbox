@@ -127,7 +127,7 @@ def discover(hub, out: str, max_bytes: int, only: set[str], done: set[tuple[str,
             if have >= target:
                 break
             try:
-                models = api.list_models(library=library, sort="downloads", limit=target * 6)
+                models = api.list_models(filter=library, sort="downloads", limit=target * 6)
             except Exception as exc:  # noqa: BLE001 - one failed listing should not stop the run
                 print(f"listing {library}: {exc}", file=sys.stderr)
                 continue

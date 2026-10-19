@@ -67,7 +67,21 @@ def keras_custom_builtin(name: str) -> str:
             f"'builtins.{name}' for this file only if you know the exact function your code passes.")
 
 
+# Globals whose reason is UNVERIFIABLE for a reason of their own (owner's decisions).
+_PICKLE_GLOBAL_EXPLANATIONS = {
+    ("xgboost.core", "Booster"): (
+        "The pickle rebuilds xgboost.core.Booster. Its __setstate__ hands the raw model bytes from the file to "
+        "libxgboost's native C++ parser (XGBoosterUnserializeFromBuffer); no Python code is chosen by the file, "
+        "but the scanner cannot check that parser's memory safety against hostile bytes. Prefer a model saved "
+        "with Booster.save_model('model.json') or ('model.ubj') and loaded with load_model; accept "
+        "'xgboost.core.Booster' for this file only if you trust its source."),
+}
+
+
 def pickle_global(module: str, name: str) -> str:
+    special = _PICKLE_GLOBAL_EXPLANATIONS.get((module, name))
+    if special:
+        return special
     return (f"The pickle imports {module}.{name}, which is not on the allowlist and is not a known sink. "
             f"Unpickling imports {module} and calls {name}, and the scanner cannot see that code. If you "
             f"know and trust it, name the exact pair yourself (allow=[('{module}', '{name}')] or "

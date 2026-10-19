@@ -190,3 +190,38 @@ def test_unreviewed_neighbours_stay_out():
                  ("torch.nn.modules.rnn", "LSTM"), ("torch.nn.modules.lazy", "LazyModuleMixin"),
                  ("ultralytics.nn.modules.block", "BNContrastiveHead"), ("torch.nn.modules.linear", "LazyLinear")]:
         assert pair not in allowlists.PICKLE_GLOBALS, pair
+
+
+# --- using a getattr result is calling it or passing it to any call (owner, 2026-10-19) ----
+
+def test_result_passed_as_defaultdict_factory_is_not_clean():
+    risk, reasons = _risk(call(g("collections", "defaultdict"), _getattr(OD, "keys")))
+    assert risk == "malicious"
+    assert any("passed as an argument to collections.defaultdict" in r for r in reasons)
+
+
+def test_result_passed_to_numpy_ctor_helper_is_not_clean():
+    body = call(g("numpy.random._pickle", "__generator_ctor"), s("PCG64"), _getattr(OD, "keys"))
+    assert _risk(body)[0] == "malicious"
+
+
+def test_result_nested_in_a_call_argument_is_not_clean():
+    body = call(g("collections", "OrderedDict"), b"]" + b"(" + tup(s("cb"), _getattr(OD, "keys")) + b"e")
+    assert _risk(body)[0] == "malicious"
+
+
+def test_getattr_chain_passes_a_result_to_getattr():
+    assert _risk(_getattr(_getattr(OD, "keys"), "mapping"))[0] == "malicious"
+
+
+def test_allowlisted_class_is_allowed_only_as_getattrs_first_argument():
+    # as the attribute name slot it is a value passed to a call
+    body = call(g("builtins", "getattr"), OD, g("collections", "defaultdict"))
+    assert _risk(body)[0] != "clean"
+    assert _risk(call(g("collections", "OrderedDict"), tup(tup(s("k"), g("collections", "defaultdict")))))[0] \
+        != "clean"
+
+
+def test_result_stored_in_build_state_is_clean():
+    state = b"}(" + s("detect") + _getattr(DETECT_OK, "forward") + b"u"
+    assert _risk(_module(SEGMENT, state))[0] == "clean"

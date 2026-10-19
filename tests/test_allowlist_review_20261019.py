@@ -249,3 +249,17 @@ def test_builtins_object_as_a_value_is_clean_and_a_sink_next_to_it_is_not():
     assert risk == "clean", reasons
     risk, _ = _risk(P2 + call(g("builtins", "getattr"), g("builtins", "object"), s("__subclasses__")) + STOP)
     assert risk == "malicious"
+
+
+def test_xgboost_booster_is_unverifiable_with_its_own_explanation(tmp_path):
+    from safeloadai import pipeline
+
+    data = P2 + g("xgboost.core", "Booster") + b")" + NEWOBJ + _state(s("handle") + b"C\x03abc") + BUILD + STOP
+    assert ("xgboost.core", "Booster") not in allowlists.PICKLE_GLOBALS
+    path = tmp_path / "booster.pkl"
+    path.write_bytes(data)
+    report = pipeline.scan(str(path))
+    assert report.verdict is Verdict.SUSPICIOUS and report.unverifiable_only, report.findings
+    assert report.unverifiable_items == ["xgboost.core.Booster"]
+    explanation = next(f["explanation"] for f in report.findings if f["category"] == "UNVERIFIABLE")
+    assert "native" in explanation and "save_model" in explanation

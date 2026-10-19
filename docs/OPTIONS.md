@@ -120,6 +120,11 @@ Every entry in `Report.options` looks like this:
    - Re-save a Keras model as `.keras`, which records each class's module, or
      without custom objects.
    - Ask the publisher for `.safetensors`.
+   - For xgboost (item `xgboost.core.Booster`, whose raw bytes go to libxgboost's
+     native parser): ask for the model saved with xgboost's own format,
+     `booster.save_model("model.json")` or `booster.save_model("model.ubj")`, and
+     load it with `xgboost.Booster(model_file="model.json")`. That format holds no
+     pickle, so no Python object is rebuilt. It is still parsed by libxgboost.
 
 ## `deep`
 

@@ -512,21 +512,49 @@ def _describe(value) -> str:
     return _short((value,))[1:-2] if not isinstance(value, str) else repr(value[:60])
 
 
+def _getattr_results(value, walk: dict) -> list[Obj]:
+    """getattr results inside ``value`` (tuples, lists, dicts, sets; other Objs are not
+    entered: their own calls were checked when they were made)."""
+    found, todo = [], [value]
+    while todo:
+        item = todo.pop()
+        walk["steps"] += 1
+        if walk["steps"] > MAX_VALUE_WALK:
+            break
+        if _is_getattr_result(item):
+            found.append(item)
+            continue
+        if not isinstance(item, (tuple, list, set, frozenset, dict)) or id(item) in walk["seen"]:
+            continue
+        walk["seen"].add(id(item))
+        todo.extend(v for kv in item.items() for v in kv) if isinstance(item, dict) else todo.extend(item)
+    return found
+
+
 def _check_getattr(calls: list[tuple], allow: frozenset, imported: bool) -> tuple[list[str], list[str]]:
     """(MALICIOUS reasons, RISKY reasons) for every use of builtins.getattr.
 
     ``getattr(obj, "name")`` is how pickle writes a bound method. It is accepted only
     for an object or class from the allowlist and a constant name without a leading
-    underscore, when nothing calls the result while loading. A called result, a dunder
-    name or a sink name is evidence (MALICIOUS); every other use is RISKY.
+    underscore, when nothing uses the result while loading. Using the result is calling
+    it or passing it, at any depth, as an argument of any call (a defaultdict factory,
+    a numpy ctor helper, another getattr, ...); only storing it in a BUILD state is not a
+    use. A used result, a dunder name or a sink name is evidence (MALICIOUS); every other
+    use is RISKY.
     """
     malicious, risky = [], []
     used = False
+    walk = {"seen": set(), "steps": 0}
     for how, func, args, pos in calls:
         if _is_getattr_result(func):
             malicious.append(f"the result of builtins.getattr({_short(func.args)[1:-1]}) is called "
                              f"({how.upper()} at {pos})")
             continue
+        if how != "build":
+            for result in _getattr_results(args, walk):
+                target = (f"{func.module}.{func.name}" if isinstance(func, Global) else _describe(func))
+                malicious.append(f"the result of builtins.getattr({_short(result.args)[1:-1]}) is passed as an "
+                                 f"argument to {target} ({how.upper()} at {pos})")
         if not (isinstance(func, Global) and func.pair in GETATTR):
             continue
         used = True

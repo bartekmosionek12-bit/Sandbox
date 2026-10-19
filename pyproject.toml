@@ -27,7 +27,7 @@ lz4 = [
 ]
 # The LLM judge is optional and off by default; the library works without it.
 judge = [
-    "anthropic>=0.125,<1.0",
+    "anthropic>=0.125,<2.0",
 ]
 # The dashboard (app/) is a report viewer, not part of the library.
 dashboard = [

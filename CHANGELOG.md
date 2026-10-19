@@ -22,6 +22,7 @@ This file follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Vers
   - `tools/drift_check.py`, `tools/runtime_watch.py` and `docs/UPDATING_RUNTIME.md`.
 - The evaluation reports UNVERIFIABLE-only false positives as their own column, and counts malicious files that are UNVERIFIABLE only.
 - The report viewer shows categories, explanations and overrides.
+- **Look-alike module names are RISKY.** An unknown object from a module that imitates an allowlisted one (`kerasx`, `keras_x`, `tf_evil_pkg`, `tensorflowx`, `sklearn2`, `numpy_`, an edit distance of at most 2 such as `nunpy`, or a homoglyph spelling such as `kеras` with a Cyrillic `е`) is RISKY, not UNVERIFIABLE, so it can never be overridden. Ordinary unknown names such as `mycompany.layers.Foo` stay UNVERIFIABLE. Malicious lab files that are UNVERIFIABLE only went from 4 to 3.
 
 ### Changed
 - **Allowlist grown from the reviewed false-positive list** (`evaluation/results/false-positives-20261018.md`). It adds 25 scikit-learn and numpy pairs (including the checked `__generator_ctor`), Keras `LayerScale` and the `keras.src.ops.numpy` `Add` and `Multiply` ops, and TFOpLambda from `keras.src.layers.core.tf_op_layer`, all as exact pairs. False positives on the local benign set dropped from 23/85 to 2/85, and detection stays 53/53.
@@ -29,6 +30,9 @@ This file follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Vers
 - **`numpy.random._pickle.__generator_ctor` is allowed only with numpy's own arguments.** The already allowed `__randomstate_ctor` and `__bit_generator_ctor` now get the same check, because they call an argument too.
 - **Report schema 2.1** adds `findings`, `category` and `override`.
 - **Every GitHub Action is pinned by commit SHA.**
+
+### Removed
+- **`poc/`.** The clean samples, `evil_custom_object.keras` and `evil_lambda.keras` (the C15 regression) moved to `tests/fixtures/poc/`. The three PoC pickles with non-marker payloads were removed; `tests/corpus/build_corpus.py` generates their marker equivalents.
 
 ## safeloadai 0.3.0 / safeloadai-runtime 0.1.0
 

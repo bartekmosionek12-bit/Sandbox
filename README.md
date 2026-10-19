@@ -31,8 +31,11 @@ Every reason in a Report has a category. It never changes the verdict:
 - **MALICIOUS:** evidence of a known sink (process, network, file write, code
   execution) or of tampering with the sandbox's evidence.
 - **RISKY:** behaviour or structure the scanner refuses, such as code-carrying
-  layers, anomalies in emulation, parse errors, limits, archive tricks or
-  known gadgets.
+  layers, anomalies in emulation, parse errors, limits, archive tricks,
+  known gadgets, or a module name that imitates an allowlisted one (`kerasx`,
+  `keras_x`, `tf_evil_pkg`, `sklearn2`, `numpy_`, `nunpy`, `kеras` with a Cyrillic
+  `е`): a prefix or suffix of an allowlisted top-level package, an edit
+  distance of at most 2, or a homoglyph spelling.
 - **UNVERIFIABLE:** a named object whose code the scanner cannot see. Examples
   are a class named without its module in a Keras 2 `.h5` (`LayerScale`), a
   Keras class or custom object outside the known list, or a pickle global
@@ -172,7 +175,7 @@ Latest local run, 2026-10-18 (0.4.0). It covers 138 files: 53 harmless marker pa
 |---|---|---|---|---|
 | safeloadai 0.2 | 52 / 53 | 49 / 85 | - | 0.40 |
 | safeloadai 0.3.0 | 53 / 53 | 23 / 85 | - | 0.41 |
-| safeloadai 0.4.0 | 53 / 53 | 2 / 85 | 2 | 0.39 |
+| safeloadai 0.4.0 | 53 / 53 | 2 / 85 | 2 | 0.40 |
 | picklescan 1.0.5 | 32 / 53 | 0 / 85 | - | 0.09 |
 | fickling 0.1.12 | 36 / 53 | 61 / 85 | - | 0.06 |
 | modelscan 0.8.8 | 23 / 53 | 0 / 85 | - | 0.17 |
@@ -184,7 +187,7 @@ How to read the table:
 - **The malicious files are lab rebuilds with harmless markers,** not a public malware set.
 - **The benign files are not independent of the allowlist,** and they are not Hugging Face models. A false-positive rate on unseen models still needs the Hub set: `evaluation/fetch_benign_hf.py`, then `run_eval.py --hf DIR`.
 - **The 2 remaining false positives are SUSPICIOUS and UNVERIFIABLE only:** ConvNeXt saved as legacy `.h5` names `LayerScale` without its module, so the scanner cannot know which class the loading code passes. The pairs that [false-positives-20261018.md](evaluation/results/false-positives-20261018.md) marked safe were added in 0.4.0, each with a justification and a regression test that keeps the malicious variant flagged.
-- **4 malicious lab files are UNVERIFIABLE only** (an unknown pickle global, Keras custom objects and a `kerasx` look-alike module). An override would let them through, which is why it has to name every item, for one file, and is recorded.
+- **3 malicious lab files are UNVERIFIABLE only** (an unknown pickle global and Keras custom objects). An override would let them through, which is why it has to name every item, for one file, and is recorded. The fourth, a `kerasx` look-alike module, is RISKY and cannot be overridden.
 - **Format coverage explains some of the other tools' misses.** picklescan and fickling return "clean" for `.keras` and `.h5` files they do not analyse. modelscan without its TensorFlow extra skips `.keras`, and the evaluation does not run it on `.h5`, because modelscan opens those with h5py on the host.
 
 ## LIMITATIONS
@@ -213,6 +216,15 @@ How to read the table:
   its own. It cannot remove records the host has already received, so it can
   add noise but cannot turn a recorded alarm into a clean log. Writes without
   the nonce count as tampering and are MALICIOUS.
+- **An override on UNVERIFIABLE means trusting that class's code.** The scanner
+  cannot see the code of an UNVERIFIABLE item, which is what the category
+  says. Accepting it tells `safe_load` to import and run whatever the named
+  module or the class your loading code passes does, with your privileges.
+  The scanner checked everything else in the file, not that code. Accept only
+  items whose source you know and trust, for the file you checked. Look-alike
+  names of allowlisted modules are RISKY instead, so they cannot be accepted,
+  but a name that is merely unfamiliar (`mycompany.layers.Foo`) can be, and
+  so can a payload hidden behind it.
 - **Allowlist false positives.** The pickle allowlist holds only the exact
   pairs that the tuning corpus and the reviewed false-positive list needed.
   - **Pickle:** benign models that use other classes are SUSPICIOUS (UNVERIFIABLE)

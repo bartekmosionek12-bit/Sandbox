@@ -1,11 +1,18 @@
 """Evaluate safeloadai against the lab corpus and real model files, and compare it
 with other scanners (modelscan, picklescan, Fickling) when they are installed.
 
-    python evaluation/run_eval.py --lab DIR [--hf DIR] [--benign DIR ...] [--tool-bin DIR] [--label after]
+    python evaluation/run_eval.py --lab DIR [--mutations DIR] [--hf DIR] [--hf-malicious DIR --labels FILE]
+                                  [--benign DIR ...] [--tool-bin DIR] [--jobs N] [--label after]
 
 * ``--lab``: a directory written by ``tests/corpus/build_corpus.py`` (manifest.json).
+* ``--mutations``: a directory written by ``tests/corpus/mutate.py`` (manifest.json).
 * ``--hf``: a directory written by ``evaluation/fetch_benign_hf.py`` (manifest.jsonl);
   its files count as benign, and repo id, commit and sha256 go into the results.
+  Each file is in the "tune" or "held-out" group by its repo (``split_of``); the
+  headline false-positive rate is the held-out one.
+* ``--hf-malicious``: a directory written by ``evaluation/fetch_malicious_hf.py``,
+  labelled by the reviewed ``--labels`` file (files labelled ``unclear`` are reported
+  but count in neither rate).
 * ``--benign``: any other directory of benign model files.
 
 The run is under the evaluation guard (``evaluation/guard.py``): framework loaders
@@ -44,6 +51,7 @@ from datetime import UTC, datetime
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from fetch_benign_hf import split_of  # noqa: E402
 from guard import activate  # noqa: E402
 
 from safeloadai import __version__, scan  # noqa: E402
@@ -78,29 +86,61 @@ def _ext(path: str) -> str:
     return os.path.splitext(path)[1].lower()
 
 
-def load_entries(lab: str | None, hf: str | None, benign: list[str]) -> list[dict]:
+def read_labels(path: str) -> dict[tuple[str, str], tuple[str, str]]:
+    """(repo, file) -> (label, reason) from a reviewed label file (tab-separated)."""
+    labels = {}
+    with open(path, encoding="utf-8") as fh:
+        for line in fh:
+            if line.startswith("#") or not line.strip():
+                continue
+            repo, name, _commit, _sha, label, reason = line.rstrip("\n").split("\t", 5)
+            labels[(repo, name)] = (label, reason)
+    return labels
+
+
+def _jsonl(path: str) -> list[dict]:
+    with open(path, encoding="utf-8") as fh:
+        return [json.loads(line) for line in fh if line.strip()]
+
+
+def load_entries(lab: str | None, hf: str | None, benign: list[str], mutations: str | None = None,
+                 hf_malicious: str | None = None, labels: str | None = None) -> list[dict]:
     entries = []
-    if lab:
-        with open(os.path.join(lab, "manifest.json"), encoding="utf-8") as fh:
+    for directory, source in ((lab, "lab"), (mutations, "mutations")):
+        if not directory:
+            continue
+        with open(os.path.join(directory, "manifest.json"), encoding="utf-8") as fh:
             for item in json.load(fh):
-                entries.append(dict(item, path=os.path.join(lab, item["file"]), source="lab"))
+                entries.append(dict(item, path=os.path.join(directory, item["file"]), source=source,
+                                    group=source))
     if hf:
-        with open(os.path.join(hf, "manifest.jsonl"), encoding="utf-8") as fh:
-            for line in fh:
-                if not line.strip():
-                    continue
-                item = json.loads(line)
-                entries.append({"file": f"{item['repo_id']}/{item['filename']}", "path": os.path.join(hf, item["path"]),
-                                "label": "benign", "category": f"hf_{item['format']}", "expected": "CLEAN",
-                                "source": "hf", "repo_id": item["repo_id"], "revision": item["revision"],
-                                "sha256": item["sha256"], "size": item["size"]})
+        for item in _jsonl(os.path.join(hf, "manifest.jsonl")):
+            split = item.get("split") or split_of(item["repo_id"])
+            entries.append({"file": f"{item['repo_id']}/{item['filename']}", "path": os.path.join(hf, item["path"]),
+                            "label": "benign", "category": f"hf_{item['format']}", "expected": "CLEAN",
+                            "source": "hf", "group": f"hf-{split}", "split": split,
+                            "library": item.get("stratum") or item.get("library") or item["format"],
+                            "hub_scan": item.get("hub_scan", "unknown"), "repo_id": item["repo_id"],
+                            "revision": item["revision"], "sha256": item["sha256"], "size": item["size"]})
+    if hf_malicious:
+        reviewed = read_labels(labels) if labels else {}
+        for item in _jsonl(os.path.join(hf_malicious, "manifest.jsonl")):
+            label, reason = reviewed.get((item["repo_id"], item["filename"]),
+                                         (item["proposed_label"], item["label_reason"]))
+            entries.append({"file": f"{item['repo_id']}/{item['filename']}",
+                            "path": os.path.join(hf_malicious, item["path"]), "label": label,
+                            "category": f"hf_flagged_{item['format']}",
+                            "expected": {"malicious": "MALICIOUS", "benign": "CLEAN"}.get(label, "SUSPICIOUS"),
+                            "source": "hf-malicious", "group": "hf-malicious", "label_reason": reason,
+                            "hub_scan": item.get("hub_scan"), "repo_id": item["repo_id"],
+                            "revision": item["revision"], "sha256": item["sha256"], "size": item["size"]})
     for directory in benign:
         for path in _files(directory):
             entries.append({"file": os.path.relpath(path, directory), "path": path, "label": "benign",
                             "category": "benign_external", "expected": "CLEAN",
-                            "source": os.path.basename(os.path.normpath(directory))})
+                            "source": os.path.basename(os.path.normpath(directory)), "group": "benign"})
     for entry in entries:
-        entry.setdefault("format", EXT_FORMAT.get(_ext(entry["path"]), "other"))
+        entry["format"] = EXT_FORMAT.get(_ext(entry["path"]), "other")
     return entries
 
 
@@ -134,6 +174,24 @@ def run_safeloadai(path: str) -> dict:
         result["missing"] = _missing_entries(report)
         result["unverifiable_items"] = report.unverifiable_items if report.unverifiable_only else []
     return result
+
+
+def _init_worker(allowed: tuple) -> None:
+    platform.uname()
+    activate(allowed)
+
+
+def _ready(_i: int) -> bool:
+    time.sleep(0.2)
+    return True
+
+
+def _evaluate(job: tuple[str, tuple[str, ...], str | None]) -> dict:
+    path, tools, tool_bin = job
+    results = {"safeloadai": run_safeloadai(path)}
+    for tool in tools:
+        results[tool] = run_tool(tool, path, tool_bin)
+    return results
 
 
 def run_tool(name: str, path: str, tool_bin: str | None) -> dict:
@@ -191,7 +249,14 @@ def _stats(rows: list[tuple[dict, dict]]) -> dict:
     unverifiable_fp = sum(r["outcome"] == "flagged" and bool(r.get("unverifiable_only")) for _, r in ben)
     unverifiable_detected = sum(r["outcome"] == "flagged" and bool(r.get("unverifiable_only")) for _, r in mal)
     seconds = [r["seconds"] for _, r in rows if r["outcome"] != "skipped"]
+    flagged_ben = [r for _, r in ben if r["outcome"] == "flagged"]
     return {
+        "unclear": sum(e["label"] not in ("malicious", "benign") for e, _ in rows),
+        # safeloadai only: how its benign false positives split by category.
+        "fp_malicious_verdict": sum(r.get("verdict") == "MALICIOUS" for r in flagged_ben),
+        "fp_risky": sum(r.get("category") == "RISKY" for r in flagged_ben),
+        "unverifiable_share": _rate(unverifiable_fp, len(ben)),
+        "risky_share": _rate(sum(r.get("category") == "RISKY" for r in flagged_ben), len(ben)),
         "malicious": len(mal), "benign": len(ben), "detected": tp,
         "detection_rate": _rate(tp, len(mal)), "false_positives": fp, "fp_rate": _rate(fp, len(ben)),
         "unverifiable_fp": unverifiable_fp, "unverifiable_detected": unverifiable_detected,
@@ -201,6 +266,33 @@ def _stats(rows: list[tuple[dict, dict]]) -> dict:
         "seconds_median": round(statistics.median(seconds), 4) if seconds else None,
         "seconds_p95": _percentile(seconds, 0.95), "seconds_max": round(max(seconds), 4) if seconds else None,
     }
+
+
+GROUP_ORDER = ("lab", "mutations", "hf-malicious", "hf-tune", "hf-heldout", "benign")
+
+
+def groups_of(entries: list[dict]) -> list[str]:
+    present = {e.get("group", e.get("source")) for e in entries}
+    return [g for g in GROUP_ORDER if g in present] + sorted(present - set(GROUP_ORDER))
+
+
+def summarise_groups(entries: list[dict], tools: list[str]) -> dict:
+    """group -> tool -> stats, with per-format and (Hub groups) per-library breakdowns."""
+    out = {}
+    for group in groups_of(entries):
+        members = [e for e in entries if e.get("group", e.get("source")) == group]
+        out[group] = {}
+        for tool in ["safeloadai", *tools]:
+            rows = [(e, e["results"][tool]) for e in members]
+            stats = _stats(rows)
+            stats["per_format"] = {f: _stats([(e, r) for e, r in rows if e["format"] == f])
+                                   for f in sorted({e["format"] for e in members})}
+            libraries = sorted({e["library"] for e in members if e.get("library")})
+            if libraries:
+                stats["per_library"] = {lib: _stats([(e, r) for e, r in rows if e.get("library") == lib])
+                                        for lib in libraries}
+            out[group][tool] = stats
+    return out
 
 
 def summarise(entries: list[dict], tools: list[str]) -> dict:
@@ -232,12 +324,13 @@ def summarise(entries: list[dict], tools: list[str]) -> dict:
 
 
 def false_positives(entries: list[dict]) -> dict:
-    """Missing allowlist entry -> files that need it, over safeloadai's benign false positives."""
+    """Missing allowlist entry -> files that need it, over safeloadai's benign false positives.
+    Held-out Hub files are left out: the allowlist review must not see them."""
     needs: dict[str, list[str]] = defaultdict(list)
     other: Counter = Counter()
     for e in entries:
         r = e["results"]["safeloadai"]
-        if e["label"] != "benign" or r["outcome"] != "flagged":
+        if e["label"] != "benign" or r["outcome"] != "flagged" or e.get("group") == "hf-heldout":
             continue
         missing = r.get("missing") or []
         for item in missing:
@@ -248,7 +341,43 @@ def false_positives(entries: list[dict]) -> dict:
             "other_reasons": dict(other.most_common())}
 
 
-def markdown(summary: dict, fps: dict, entries: list[dict], tools: list[str], meta: dict) -> str:
+def _group_table(title: str, rows: dict[str, dict], tools: list[str], first: str) -> list[str]:
+    lines = ["", f"### {title}", "",
+             f"| {first} | tool | detected / malicious | FP / benign | FP rate | FP MALICIOUS | FP RISKY | "
+             "FP UNVERIFIABLE | errors | median s | p95 s |", "|---|---|---|---|---|---|---|---|---|---|---|"]
+    for key, per_tool in rows.items():
+        for tool in ["safeloadai", *tools]:
+            p = per_tool[tool]
+            own = tool == "safeloadai"
+            lines.append(f"| {key} | {tool} | {p['detected']} / {p['malicious']} | {p['false_positives']} / "
+                         f"{p['benign']} | {p['fp_rate']} | {p['fp_malicious_verdict'] if own else '-'} | "
+                         f"{p['fp_risky'] if own else '-'} | {p['unverifiable_fp'] if own else '-'} | "
+                         f"{p['errors']} | {p['seconds_median']} | {p['seconds_p95']} |")
+    return lines
+
+
+def group_markdown(groups: dict, tools: list[str]) -> list[str]:
+    lines = ["", "## Per group", "",
+             "Groups: `lab` and `mutations` are generated marker payloads; `hf-malicious` are Hub files the Hub's "
+             "scanners flag, labelled from that evidence; `hf-tune` and `hf-heldout` are the two halves of the "
+             "benign Hub corpus, split by repo. The allowlist review looked only at `hf-tune`; the headline "
+             "false-positive rate is `hf-heldout`. FP MALICIOUS / RISKY / UNVERIFIABLE split safeloadai's false "
+             "positives by category."]
+    for group, per_tool in groups.items():
+        lines += _group_table(f"{group}: total", {"all": per_tool}, tools, "set")
+        fmts = sorted(per_tool["safeloadai"]["per_format"])
+        lines += _group_table(f"{group}: per format",
+                              {f: {t: per_tool[t]["per_format"][f] for t in per_tool} for f in fmts}, tools, "format")
+        libs = sorted(per_tool["safeloadai"].get("per_library", {}))
+        if libs:
+            lines += _group_table(f"{group}: per library",
+                                  {lib: {t: per_tool[t]["per_library"][lib] for t in per_tool} for lib in libs},
+                                  tools, "library")
+    return lines
+
+
+def markdown(summary: dict, fps: dict, entries: list[dict], tools: list[str], meta: dict,
+             groups: dict | None = None) -> str:
     lines = [f"# Evaluation {meta['label']} ({meta['created']})", "",
              f"safeloadai {meta['safeloadai']}, Python {meta['python']}, {meta['platform']}. "
              f"{len(entries)} files.", "",
@@ -272,13 +401,16 @@ def markdown(summary: dict, fps: dict, entries: list[dict], tools: list[str], me
             unv = p.get("unverifiable_fp", 0) if tool == "safeloadai" else "-"
             lines.append(f"| {fmt} | {tool} | {p['detected']} / {p['malicious']} | {p['false_positives']} / "
                          f"{p['benign']} | {unv} | {p['fp_rate']} | {p['seconds_median']} |")
+    if groups:
+        lines += group_markdown(groups, tools)
     c = summary["safeloadai"]["layer_contribution"]
     lines += ["", "safeloadai layer contribution on malicious files: "
               f"static only {c['static_only']}, emulation only {c['emulation_only']}, both {c['both']}, "
               f"neither {c['neither']}.", "", "## safeloadai false positives", ""]
     if fps["missing"]:
-        lines += ["Allowlist entries the flagged benign files would need (review each; none is added "
-                  "automatically):", "", "| missing entry | files | examples |", "|---|---|---|"]
+        lines += ["Allowlist entries the flagged benign files would need, over every group except `hf-heldout` "
+                  "(review each; none is added automatically):", "",
+                  "| missing entry | files | examples |", "|---|---|---|"]
         for item, files in fps["missing"].items():
             lines.append(f"| `{item}` | {len(files)} | {', '.join(files[:3])} |")
     if fps["other_reasons"]:
@@ -286,56 +418,74 @@ def markdown(summary: dict, fps: dict, entries: list[dict], tools: list[str], me
         lines += [f"- {count} x {reason}" for reason, count in fps["other_reasons"].items()]
     if not fps["missing"] and not fps["other_reasons"]:
         lines.append("None.")
-    lines += ["", "## Files", "", "| file | label | expected | safeloadai | " + " | ".join(tools) + " |",
-              "|---|---|---|---|" + "---|" * len(tools)]
+    lines += ["", "## Files", "", "| file | group | label | expected | safeloadai | " + " | ".join(tools) + " |",
+              "|---|---|---|---|---|" + "---|" * len(tools)]
     for e in entries:
         res = e["results"]
         cells = [res["safeloadai"].get("verdict", res["safeloadai"]["outcome"])] + [res[t]["outcome"] for t in tools]
-        lines.append(f"| {e['file']} | {e['label']} | {e['expected']} | " + " | ".join(cells) + " |")
+        lines.append(f"| {e['file']} | {e.get('group', e.get('source'))} | {e['label']} | {e['expected']} | "
+                     + " | ".join(cells) + " |")
     return "\n".join(lines) + "\n"
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--lab", help="lab corpus directory (with manifest.json)")
+    parser.add_argument("--mutations", help="mutation corpus directory (with manifest.json)")
     parser.add_argument("--hf", help="Hugging Face corpus directory (with manifest.jsonl)")
+    parser.add_argument("--hf-malicious", help="flagged Hub files (fetch_malicious_hf.py output)")
+    parser.add_argument("--labels", help="reviewed label file for --hf-malicious")
+    parser.add_argument("--jobs", type=int, default=1, help="files scanned in parallel (each worker is guarded)")
     parser.add_argument("--benign", action="append", default=[], help="directory of benign model files")
     parser.add_argument("--tool-bin", help="directory holding the other scanners' executables")
     parser.add_argument("--tools", help="comma-separated subset of: " + ",".join(TOOLS))
     parser.add_argument("--label", default="run", help="name of this run, e.g. before / after")
     parser.add_argument("--out", default=os.path.join(ROOT, "evaluation", "results"))
     args = parser.parse_args(argv)
-    if not args.lab and not args.hf and not args.benign:
-        parser.error("give --lab, --hf and/or --benign")
+    if not (args.lab or args.hf or args.benign or args.mutations or args.hf_malicious):
+        parser.error("give --lab, --mutations, --hf, --hf-malicious and/or --benign")
 
     tools = available_tools(args.tool_bin)
     if args.tools:
         tools = [t for t in args.tools.split(",") if t in tools]
     platform.uname()  # cached before the guard (Windows Python 3.11 runs "ver" for it)
-    activate(tuple(_tool_exe(t, args.tool_bin) for t in tools))
+    allowed = tuple(_tool_exe(t, args.tool_bin) for t in tools)
+    entries = load_entries(args.lab, args.hf, args.benign, args.mutations, args.hf_malicious, args.labels)
+    jobs = [(entry["path"], tuple(tools), args.tool_bin) for entry in entries]
+    if args.jobs > 1:
+        import multiprocessing
+        from concurrent.futures import ProcessPoolExecutor
 
-    entries = load_entries(args.lab, args.hf, args.benign)
-    for i, entry in enumerate(entries, 1):
-        entry["results"] = {"safeloadai": run_safeloadai(entry["path"])}
-        for tool in tools:
-            entry["results"][tool] = run_tool(tool, entry["path"], args.tool_bin)
+        pool = ProcessPoolExecutor(args.jobs, mp_context=multiprocessing.get_context("spawn"),
+                                   initializer=_init_worker, initargs=(allowed,))
+        list(pool.map(_ready, range(args.jobs)))  # workers exist (and are guarded) before the guard goes up here
+        activate(allowed)
+        results = pool.map(_evaluate, jobs)
+    else:
+        activate(allowed)
+        results = map(_evaluate, jobs)
+    for i, (entry, result) in enumerate(zip(entries, results, strict=True), 1):
+        entry["results"] = result
         print(f"[{i}/{len(entries)}] {entry['file']}: "
               + ", ".join(f"{k}={v.get('verdict', v['outcome'])}" for k, v in entry["results"].items()),
               file=sys.stderr)
+    if args.jobs > 1:
+        pool.shutdown()
 
     summary = summarise(entries, tools)
+    groups = summarise_groups(entries, tools)
     fps = false_positives(entries)
     stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     meta = {"label": args.label, "created": stamp, "python": sys.version.split()[0], "safeloadai": __version__,
             "platform": f"{platform.system()} {platform.machine()}"}
     os.makedirs(args.out, exist_ok=True)
-    result = {**meta, "tools": tools, "summary": summary, "false_positives": fps,
+    result = {**meta, "tools": tools, "summary": summary, "groups": groups, "false_positives": fps,
               "entries": [{k: v for k, v in e.items() if k != "path"} for e in entries]}
     base = os.path.join(args.out, f"eval-{args.label}-{stamp}")
     with open(base + ".json", "w", encoding="utf-8") as fh:
         json.dump(result, fh, indent=2)
     with open(base + ".md", "w", encoding="utf-8") as fh:
-        fh.write(markdown(summary, fps, entries, tools, meta))
+        fh.write(markdown(summary, fps, entries, tools, meta, groups))
     print(json.dumps({t: {k: v for k, v in s.items() if k != "per_format"} for t, s in summary.items()}, indent=2))
     print(f"wrote {base}.json and {base}.md", file=sys.stderr)
     return 0

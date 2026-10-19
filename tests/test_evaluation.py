@@ -221,3 +221,38 @@ def test_unverifiable_false_positives_are_their_own_column():
     assert "of which UNVERIFIABLE" in text and "| safeloadai | 1 / 1 | 2 / 2 | 1 |" in text
     run = {"label": "x", "summary": summary, "entries": entries}
     assert "FP UNVERIFIABLE after" in compare.compare(run, run)
+
+
+def test_run_eval_groups_split_and_heldout_stays_out_of_the_review(tmp_path):
+    run_eval = _load("run_eval")
+    fetch = _load("fetch_benign_hf")
+    tune = next(f"org/r{i}" for i in range(100) if fetch.split_of(f"org/r{i}") == "tune")
+    held = next(f"org/r{i}" for i in range(100) if fetch.split_of(f"org/r{i}") == "heldout")
+    (tmp_path / "manifest.jsonl").write_text("".join(json.dumps({
+        "repo_id": repo, "filename": "m.joblib", "path": f"files/{repo}/m.joblib", "format": "sklearn",
+        "revision": "b" * 40, "sha256": "c" * 64, "size": 3, "stratum": "sklearn"}) + "\n" for repo in (tune, held)))
+    entries = run_eval.load_entries(None, str(tmp_path), [])
+    assert [e["group"] for e in entries] == ["hf-tune", "hf-heldout"]
+    for e in entries:
+        e["results"] = _entry("x", "benign", "joblib", "SUSPICIOUS", [f"sk.{e['group']}"])["results"]
+        e["results"]["safeloadai"]["category"] = "RISKY"
+    groups = run_eval.summarise_groups(entries, [])
+    held_stats = groups["hf-heldout"]["safeloadai"]
+    assert held_stats["fp_rate"] == 1.0 and held_stats["fp_risky"] == 1
+    assert held_stats["per_library"]["sklearn"]["false_positives"] == 1
+    assert list(run_eval.false_positives(entries)["missing"]) == ["sk.hf-tune"]
+    assert "### hf-heldout: per library" in run_eval.group_markdown(groups, [])
+
+
+def test_run_eval_reviewed_labels_override_the_proposal(tmp_path):
+    run_eval = _load("run_eval")
+    rows = [("org/a", "evil.pkl", "malicious", "proposed"), ("org/a", "fp.pkl", "unclear", "only getattr")]
+    (tmp_path / "manifest.jsonl").write_text("".join(json.dumps({
+        "repo_id": r, "filename": f, "path": f"files/{f}", "format": "sklearn", "revision": "b" * 40,
+        "sha256": "c" * 64, "size": 3, "proposed_label": label, "label_reason": why}) + "\n"
+        for r, f, label, why in rows))
+    labels = tmp_path / "labels.tsv"
+    labels.write_text("# header\n" + "org/a\tfp.pkl\t" + "b" * 40 + "\t" + "c" * 64 + "\tbenign\trepo says benign\n")
+    entries = run_eval.load_entries(None, None, [], hf_malicious=str(tmp_path), labels=str(labels))
+    assert [(e["label"], e["expected"]) for e in entries] == [("malicious", "MALICIOUS"), ("benign", "CLEAN")]
+    assert {e["group"] for e in entries} == {"hf-malicious"}

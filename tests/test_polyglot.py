@@ -80,3 +80,20 @@ def test_unexplained_bytes_before_an_archive_are_risky(tmp_path):
     assert report.verdict is Verdict.SUSPICIOUS
     assert report.category == "RISKY"
     assert any("before the first ZIP entry" in r for r in report.reasons), report.reasons
+
+
+@pytest.mark.parametrize("data", [
+    # No PROTO header, first opcode SHORT_BINUNICODE / FRAME / BINUNICODE8: pickle.load accepts all of them.
+    b"\x8c\x05posix\x8c\x06system\x93(\x8c\x0becho MARKERtR.",
+    b"\x95\x05\x00\x00\x00\x00\x00\x00\x00N.",
+    b"\x8d\x01\x00\x00\x00\x00\x00\x00\x00a0N.",
+])
+def test_headerless_pickles_with_newer_opcodes_are_a_reading(data):
+    assert views.pickle_at_start(data)
+
+
+@pytest.mark.wasi
+def test_headerless_short_binunicode_pickle_is_malicious(tmp_path):
+    path = tmp_path / "m.pkl"
+    path.write_bytes(b"\x8c\x05posix\x8c\x06system\x93(\x8c\x0becho MARKERtR.")
+    assert scan(path).verdict is Verdict.MALICIOUS

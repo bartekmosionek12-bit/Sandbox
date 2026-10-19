@@ -6,7 +6,9 @@ way round) is either broken or crafted.
 """
 from __future__ import annotations
 
+import io
 import os
+import pickletools
 
 from . import decompress
 from .zipsafe import ZIP_MAGIC, SafeZip, ZipRefused
@@ -35,10 +37,40 @@ EXTENSION_HINTS = {
 SUPPORTED_EXTENSIONS = tuple(EXTENSION_HINTS)
 
 
+# The unpickler does not check that an opcode belongs to the stream's protocol, and a
+# stream needs no PROTO header: any opcode that takes nothing from the stack can come
+# first (a protocol-0-style stream may open with SHORT_BINUNICODE or FRAME, say).
+_PICKLE_FIRST_BYTES = frozenset(
+    op.code.encode("latin-1") for op in pickletools.opcodes if not op.stack_before
+)
+
+
+# A stream is taken for a pickle when its opcodes decode up to a STOP, or up to this
+# many opcodes, or up to any opcode that imports or calls. A stream that fails before
+# all three cannot make pickle.load import or call anything.
+PICKLE_PROBE_OPCODES = 8
+_PICKLE_ACTIVE = frozenset({
+    "GLOBAL", "STACK_GLOBAL", "INST", "OBJ", "REDUCE", "NEWOBJ", "NEWOBJ_EX", "BUILD",
+    "EXT1", "EXT2", "EXT4", "PERSID", "BINPERSID",
+})
+
+
 def _looks_like_pickle(data: bytes) -> bool:
-    # Protocol 2+ starts with PROTO; protocol 0/1 starts with an opcode such as
-    # '(' MARK, ']' EMPTY_LIST, '}' EMPTY_DICT, 'c' GLOBAL, 'I'/'K' ints...
-    return bool(data) and (data[:1] == b"\x80" or data[:1] in b"(]}ccIKJLSVXNF)\x88\x89.")
+    """Would ``pickle.load`` get far enough into these bytes to import or call anything?
+    Decodes with ``pickletools.genops`` only; nothing is unpickled."""
+    if data[:1] not in _PICKLE_FIRST_BYTES or data.startswith(ZIP_MAGIC):
+        # A file that starts with a ZIP local header begins with PERSID ("P"): the
+        # default Unpickler raises on it before reading anything else.
+        return False
+    count = 0
+    try:
+        for opcode, _arg, _pos in pickletools.genops(io.BytesIO(data)):
+            count += 1
+            if opcode.name == "STOP" or opcode.name in _PICKLE_ACTIVE or count >= PICKLE_PROBE_OPCODES:
+                return True
+    except Exception:  # noqa: BLE001 - any decoding failure means "not a pickle here"
+        return False
+    return False
 
 
 def detect(data: bytes) -> str:

@@ -19,9 +19,7 @@ anything: pickle bytes are only decoded by ``pickletools.genops``.
 """
 from __future__ import annotations
 
-import io
 import os
-import pickletools
 from dataclasses import dataclass
 
 from . import decompress
@@ -40,14 +38,6 @@ from .zipsafe import ZIP_MAGIC, SafeZip, ZipRefused
 
 ZIP = "zip"  # a valid archive that is neither a Keras nor a PyTorch file
 
-# A pickle view exists when the bytes at offset 0 decode, opcode by opcode, either to
-# a STOP, or to this many opcodes, or to any opcode that imports or calls. A stream that
-# fails before all three cannot make pickle.load import or call anything.
-PICKLE_PROBE_OPCODES = 8
-_PICKLE_ACTIVE = frozenset({
-    "GLOBAL", "STACK_GLOBAL", "INST", "OBJ", "REDUCE", "NEWOBJ", "NEWOBJ_EX", "BUILD",
-    "EXT1", "EXT2", "EXT4", "PERSID", "BINPERSID",
-})
 MAX_H5_USERBLOCK_PROBES = 40  # 512 * 2**39 is far beyond any file we accept
 
 
@@ -77,19 +67,7 @@ class View:
 
 def pickle_at_start(data: bytes) -> bool:
     """Would ``pickle.load`` get far enough into these bytes to import or call anything?"""
-    if not _looks_like_pickle(data) or data.startswith(ZIP_MAGIC):
-        # A file that starts with a ZIP local header begins with PERSID ("P"): the
-        # default Unpickler raises on it before reading anything else.
-        return False
-    count = 0
-    try:
-        for opcode, _arg, _pos in pickletools.genops(io.BytesIO(data)):
-            count += 1
-            if opcode.name == "STOP" or opcode.name in _PICKLE_ACTIVE or count >= PICKLE_PROBE_OPCODES:
-                return True
-    except Exception:  # noqa: BLE001 - any decoding failure means "not a pickle here"
-        return False
-    return False
+    return _looks_like_pickle(data)
 
 
 def _zip_view(data: bytes) -> View | None:

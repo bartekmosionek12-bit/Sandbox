@@ -22,6 +22,7 @@ are analysed.
 """
 from __future__ import annotations
 
+import base64
 import io
 import pickletools
 import re
@@ -33,6 +34,8 @@ from .allowlists import (
     DANGEROUS_MODULES,
     DANGEROUS_SYMBOLS,
     DEFAULTDICT,
+    DILL_MODULES,
+    DILL_SINKS,
     ENUM_CLASSES,
     GETATTR,
     GUARDED_CALLS,
@@ -45,6 +48,7 @@ from .allowlists import (
     PANDAS_NEW_INDEX,
     PICKLE_GLOBALS,
     STATE_ONLY_CLASSES,
+    TF_DANGEROUS,
     TORCH_GLOBALS,
     ZERO_ARG_CLASSES,
 )
@@ -133,6 +137,9 @@ def _empty_report(file_name: str, file_format: str) -> dict:
         "trailing": None,
         # Keras models pickled as an embedded .keras archive (_embedded_keras)
         "embedded_keras": [],
+        # dill code objects to emulate, and sink names found in them (_dill_code)
+        "dill_code": [],
+        "code_malicious": [],
     }
 
 
@@ -142,7 +149,8 @@ def is_dangerous_import(module: str, name: str) -> bool:
     leaf = name.rsplit(".", 1)[-1]
     head = name.split(".", 1)[0]
     return (
-        module in DANGEROUS_MODULES
+        (module in DILL_MODULES and name in DILL_SINKS)
+        or module in DANGEROUS_MODULES
         or root in DANGEROUS_MODULES
         or name in DANGEROUS_SYMBOLS
         or leaf in DANGEROUS_SYMBOLS
@@ -228,6 +236,7 @@ def parse_pickle(data: bytes, file_name: str = "<memory>", *, torch: bool = Fals
                   dict(torch=torch, file_format=file_format, extra_allowed=extra_allowed, joblib=joblib))
     _joblib_findings(report, machine, data, allow)
     handled = _embedded_keras(report, calls, machine.refs)
+    _dill_code(report, calls)
     report["reasons"].extend(_check_guarded_calls(calls))
     report["getattr_malicious"], risky = _check_getattr(calls, allow, _imports_getattr(report), handled)
     report["reasons"].extend(risky)
@@ -262,7 +271,8 @@ def _trailing(report: dict, data: bytes, start: int, mode: str, depth: int, opti
     report["unverifiable"].update({prefix + k: v for k, v in sub["unverifiable"].items()})
     report["suspicious_strings"].extend(sub["suspicious_strings"])
     report["notes"].extend(prefix + n for n in sub["notes"])
-    report["embedded_keras"].extend(sub["embedded_keras"])
+    for key in ("embedded_keras", "dill_code", "code_malicious"):
+        report[key].extend(sub[key])
     report.setdefault("_embedded", []).extend(sub.get("_embedded") or [])
     report["trailing"]["report"] = {"static_risk": sub["static_risk"], "pickle_count": sub["pickle_count"]}
     if sub["static_risk"] == "malicious":
@@ -623,6 +633,126 @@ def _embedded_keras(report: dict, calls: list[tuple], refs: dict) -> frozenset:
     return frozenset(handled)
 
 
+# --- dill: functions pickled with their bytecode -----------------------------------
+
+# dill._dill._create_code(*args) (0.3.8 and 0.4.1, source review 2): an optional leading
+# co_lnotab, then the CodeType fields of the writing Python. On 3.11 to 3.13 (18 fields):
+# argcount, posonlyargcount, kwonlyargcount, nlocals, stacksize, flags, code, consts,
+# names, varnames, filename, name, qualname, firstlineno, linetable, exceptiontable,
+# freevars, cellvars.
+CODE_FIELDS_311 = 18
+MAX_DILL_CODE = 64
+
+
+class _NotData(ValueError):
+    pass
+
+
+def _code_json(value, depth: int = 0):
+    """A field of a code object as tagged JSON for the sandbox (tuple, bytes, frozenset and
+    nested code objects are tagged); anything that is not plain data is refused."""
+    if depth > 32:
+        raise _NotData("nested too deep")
+    if value is None or isinstance(value, (bool, int, float, str)):
+        return value
+    if isinstance(value, (bytes, bytearray)):
+        return {"b": base64.b64encode(bytes(value)).decode()}
+    if isinstance(value, tuple):
+        return {"t": [_code_json(v, depth + 1) for v in value]}
+    if isinstance(value, frozenset):
+        return {"fs": [_code_json(v, depth + 1) for v in value]}
+    if _is_dill(value, "_create_code") and isinstance(value.args, tuple):
+        return {"code": [_code_json(v, depth + 1) for v in _code_fields(value.args)]}
+    raise _NotData(f"{_describe(value)} is not plain data")
+
+
+def _is_dill(value, name: str) -> bool:
+    return isinstance(value, Obj) and value.how == "reduce" and isinstance(value.func, Global) \
+        and value.func.module in DILL_MODULES and value.func.name == name
+
+
+def _code_fields(args: tuple) -> tuple:
+    return args[1:] if args and not isinstance(args[0], int) else args
+
+
+def _code_strings(fields: tuple) -> list[str]:
+    """co_names and string constants (with those of nested code objects) on the 3.11+
+    layout; every string in a tuple on any other layout."""
+    out, todo = [], []
+    if len(fields) == CODE_FIELDS_311:
+        todo += [fields[7], fields[8]]
+    else:
+        todo += [f for f in fields if isinstance(f, tuple)]
+    while todo:
+        item = todo.pop()
+        if isinstance(item, str):
+            out.append(item)
+        elif isinstance(item, (tuple, frozenset)):
+            todo.extend(item)
+        elif _is_dill(item, "_create_code") and isinstance(item.args, tuple):
+            nested = _code_fields(item.args)
+            todo += [nested[7], nested[8]] if len(nested) == CODE_FIELDS_311 else \
+                [f for f in nested if isinstance(f, tuple)]
+    return out
+
+
+def _dill_code(report: dict, calls: list[tuple]) -> None:
+    """Functions dill pickled with their bytecode (owner's decision of 2026-10-19: treated
+    like a Keras Lambda). Each code object is a RISKY reason ("file carries executable
+    Python code"); sink names among its co_names or string constants are MALICIOUS.
+    The fields go to the pipeline under ``dill_code``, which rebuilds the function inside
+    the WASI sandbox and calls it on fakes, like a Lambda."""
+    functions = {}
+    helpers = set()
+    for how, func, args, pos in calls:
+        if isinstance(func, Global) and func.module in DILL_MODULES:
+            helpers.add(func.name)
+            if func.name == "_create_function" and how == "reduce" and isinstance(args, tuple) and args \
+                    and _is_dill(args[0], "_create_code"):
+                functions.setdefault(id(args[0].args), (args, pos))
+    if helpers:
+        report["reasons"].append(
+            "pickle written by dill: dill.load rebuilds it with dill's own helpers ("
+            + ", ".join(sorted(helpers)) + ")")
+    for how, func, args, pos in calls:
+        if not (isinstance(func, Global) and func.module in DILL_MODULES and func.name == "_create_code"):
+            continue
+        if how != "reduce" or not isinstance(args, tuple):
+            report["reasons"].append(f"{func.module}.{func.name} at {pos} is used through {how.upper()}")
+            continue
+        fields = _code_fields(args)
+        name = fields[11] if len(fields) == CODE_FIELDS_311 and isinstance(fields[11], str) else "?"
+        report["reasons"].append(f"file carries executable Python code ({func.module}._create_code at {pos} "
+                                 f"builds code object {name!r}; it runs when the function is called)")
+        tokens = sorted({s for s in _code_strings(fields) if s in TF_DANGEROUS or s in DANGEROUS_SYMBOLS})
+        if tokens:
+            report["code_malicious"].append(f"dill code object {name!r} at {pos} names the sink(s) "
+                                            + ", ".join(tokens))
+        if len(report["dill_code"]) >= MAX_DILL_CODE:
+            report["reasons"].append(f"more than {MAX_DILL_CODE} dill code objects; the rest is not emulated")
+            continue
+        entry = {"path": f"dill code@{pos}", "name": name, "layout": len(fields), "sink_tokens": tokens,
+                 "input_shape": [1, 8]}
+        try:
+            entry["code_fields"] = [_code_json(v) for v in fields]
+        except _NotData as exc:
+            entry["code_fields"] = None
+            report["reasons"].append(f"dill code object {name!r} at {pos} has a field that is not plain data "
+                                     f"({exc}); not emulated")
+        made = functions.get(id(args))
+        if made:
+            fn_args = made[0]
+            for key, index in (("defaults", 3), ("closure", 4)):
+                value = fn_args[index] if len(fn_args) > index else None
+                if key == "closure" and isinstance(value, tuple):
+                    value = tuple(v.args[0] if _is_dill(v, "_create_cell") and v.args else v for v in value)
+                try:
+                    entry[key] = _code_json(value)
+                except _NotData:
+                    entry[key] = None
+        report["dill_code"].append(entry)
+
+
 # --- builtins.getattr: how pickle writes a bound method -----------------------------
 
 def _imports_getattr(report: dict) -> bool:
@@ -800,7 +930,7 @@ def _score(report: dict, allow: frozenset, torch: bool) -> None:
                                     "pair": [imp["module"], imp["symbol"]],
                                     "explanation": override.pickle_global(imp["module"], imp["symbol"])}
 
-    getattr_malicious = report.get("getattr_malicious") or []
+    getattr_malicious = (report.get("getattr_malicious") or []) + (report.get("code_malicious") or [])
     reasons.extend(getattr_malicious)
     if (report["suspicious_imports"] and has_call) or getattr_malicious or report.get("trailing_malicious"):
         report["static_risk"] = "malicious"

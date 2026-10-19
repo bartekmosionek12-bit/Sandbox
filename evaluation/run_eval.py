@@ -54,10 +54,13 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from fetch_benign_hf import split_of  # noqa: E402
 from guard import activate  # noqa: E402
 
-from safeloadai import __version__, scan  # noqa: E402
+from safeloadai import __version__, override, scan  # noqa: E402
 from safeloadai.parsing.detect import EXTENSION_HINTS  # noqa: E402
 
 MODEL_EXTENSIONS = tuple(EXTENSION_HINTS)
+# safeloadai with the one looser option a user can apply per file: every UNVERIFIABLE
+# item accepted (docs/OPTIONS.md, accept_unverified). Reported next to the default run.
+OPT_IN = "safeloadai opt-in"
 TOOL_TIMEOUT_S = 300
 ERROR_MARKERS = ("Traceback", "NotImplementedError", "Parsing errors", "Error:")
 
@@ -177,6 +180,12 @@ def run_safeloadai(path: str) -> dict:
     if not report.clean:
         result["missing"] = _missing_entries(report)
         result["unverifiable_items"] = report.unverifiable_items if report.unverifiable_only else []
+    # The opt-in run: the same report with every UNVERIFIABLE item accepted, as a user who
+    # passes --accept-unverified for each of them would (refused on any RISKY or MALICIOUS reason).
+    accepted = override.apply(report, report.unverifiable_items, how="argument") if not report.clean else False
+    result["opt_in"] = {"outcome": "clean" if report.clean or accepted else "flagged",
+                        "verdict": "CLEAN (accepted)" if accepted else report.verdict.value,
+                        "category": report.category, "seconds": result["seconds"]}
     return result
 
 
@@ -499,12 +508,15 @@ def main(argv: list[str] | None = None) -> int:
         results = map(_evaluate, jobs)
     for i, (entry, result) in enumerate(zip(entries, results, strict=True), 1):
         entry["results"] = result
+        if "opt_in" in result["safeloadai"]:
+            result[OPT_IN] = result["safeloadai"].pop("opt_in")
         print(f"[{i}/{len(entries)}] {entry['file']}: "
               + ", ".join(f"{k}={v.get('verdict', v['outcome'])}" for k, v in entry["results"].items()),
               file=sys.stderr)
     if args.jobs > 1:
         pool.shutdown()
 
+    tools = [OPT_IN, *tools]
     summary = summarise(entries, tools)
     groups = summarise_groups(entries, tools)
     fps = false_positives(entries)

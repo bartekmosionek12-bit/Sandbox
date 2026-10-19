@@ -20,7 +20,16 @@ from __future__ import annotations
 from . import override
 from .report import Category, LayerResult, Verdict
 from .sandbox.host import GuestRun
-from .static.allowlists import DANGEROUS_SYMBOLS, GETATTR, KNOWN_GADGETS, PICKLE_GLOBALS, TORCH_GLOBALS
+from .static.allowlists import (
+    DANGEROUS_SYMBOLS,
+    DILL_CODE,
+    DILL_DATA,
+    DILL_MODULES,
+    GETATTR,
+    KNOWN_GADGETS,
+    PICKLE_GLOBALS,
+    TORCH_GLOBALS,
+)
 from .static.lookalike import imitates
 from .static.pickle_static import is_dangerous_import
 
@@ -113,6 +122,11 @@ def _classify_call(event: dict, allowed_names: frozenset[str], framework: bool) 
         if module.split(".")[0] in SAFE_IMPORTS:
             return None
         return "import", S
+    if any(_matches(target, f"{module}.{name}") for module in DILL_MODULES for name in DILL_DATA | DILL_CODE):
+        # Reviewed dill helpers (allowlists.DILL_CODE, DILL_DATA): a type lookup, cells, dict
+        # copies and the code a function is rebuilt from, whose bytecode the static layer
+        # and the dill code emulation judge. Other dill helpers stay code_exec sinks.
+        return "dill", S
     found = sink_for(target)
     if found:
         return found

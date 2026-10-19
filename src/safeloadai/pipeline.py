@@ -86,10 +86,24 @@ def _reading_layers(label: str, data: bytes, report: dict, extra_allowed: frozen
     static = verdict.static_layer(report, defer_lambdas=True)
     emulation = emulation_layer(data, report, extra_allowed, limits)
     static.name, emulation.name = f"static[{label}]", f"emulation[{label}]"
-    for layer in (static, emulation):
+    out = [static, emulation] + _code_layers(label, report, limits)
+    for layer in out:
         for finding in layer.findings:
             finding["layer"] = layer.name
-    return [static, emulation]
+    return out
+
+
+def _code_layers(label: str, report: dict, limits: Limits | None) -> list[LayerResult]:
+    """Functions a dill pickle carries with their bytecode, rebuilt inside the WASI sandbox
+    and called on fakes like Keras Lambdas (owner's decision of 2026-10-19)."""
+    entries = report.get("dill_code") or []
+    if not entries:
+        return []
+    layer = behaviour.classify(emulate_keras_lambdas(entries, limits=limits))
+    layer.name = f"emulation[{label + '/' if label else ''}dill code]"
+    for finding in layer.findings:
+        finding["layer"] = layer.name
+    return [layer]
 
 
 def _embedded(parser_report: dict, extra_views: list, extra_allowed: frozenset):
@@ -188,6 +202,7 @@ def scan(path: str | os.PathLike, *, judge: bool = False, deep: bool = False,
         emulation.raise_to(Verdict.SUSPICIOUS, "file too large to emulate")
     timings["emulation"] = _ms(t)
     layers.append(emulation)
+    layers += _code_layers("", parser_report, limits)
 
     # Every other reading of a polyglot file gets its own static and emulation layers.
     for view, report in extra_views:

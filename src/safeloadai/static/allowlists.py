@@ -367,6 +367,20 @@ KNOWN_GADGETS = frozenset({
     ("operator", "attrgetter"),  # attribute access by name
 })
 
+# dill (0.3.8 and 0.4.1, dill/_dill.py; evaluation/results/source-review-2-20261019.md).
+# Helpers that import, eval, call an argument, read attributes by name, unmarshal or open
+# files: known sinks, like os.system.
+DILL_MODULES = frozenset({"dill._dill", "dill.dill"})  # dill's find_class maps dill.dill to dill._dill
+DILL_SINKS = frozenset({
+    "_import_module", "_eval_repr", "_getattr", "_get_attr", "_create_type", "_create_ftype",
+    "_create_array", "_unmarshal", "_create_filehandle", "_create_capsule", "_create_namedtuple",
+})
+# Helpers a plain dill function or set is rebuilt with. _create_code/_create_function build
+# code (judged by pickle_static._dill_code: RISKY, MALICIOUS with sink names); _load_type is
+# a lookup in a fixed table; _create_cell and _setitems hold or copy data.
+DILL_CODE = frozenset({"_create_code", "_create_function"})
+DILL_DATA = frozenset({"_load_type", "_create_cell", "_setitems"})
+
 DANGEROUS_SYMBOLS = frozenset({
     "system", "popen", "spawn", "spawnl", "spawnv", "exec", "execv", "execve",
     "execfile", "eval", "compile", "Popen", "call", "check_call", "check_output",

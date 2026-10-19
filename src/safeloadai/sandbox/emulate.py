@@ -23,7 +23,7 @@ def emulate_pickle(streams: list[bytes], *, max_pickles: int = 1, joblib: bool =
 
 def emulate_keras_lambdas(lambdas: list[dict], *, limits: Limits | None = None) -> GuestRun:
     """Call each Lambda (entries from the static Keras report) on fake tensors."""
-    fields = ("path", "code_b64", "arguments", "defaults", "closure", "input_shape")
+    fields = ("path", "code_b64", "code_fields", "arguments", "defaults", "closure", "input_shape")
     entries = [{k: lam.get(k) for k in fields} for lam in lambdas]
     artefacts = {"lambdas.json": json.dumps(entries).encode("utf-8")}
     return run_guest({"kind": "keras_lambda", "file": "lambdas.json"}, artefacts, limits)

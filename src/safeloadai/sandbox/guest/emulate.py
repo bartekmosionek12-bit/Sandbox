@@ -15,6 +15,7 @@ import json
 import marshal
 import os
 import pickle
+import sys
 import types
 
 import fakes
@@ -287,16 +288,57 @@ def _input_shape(entry):
     return tuple(d if isinstance(d, int) and d > 0 else 1 for d in shape)
 
 
-def _run_one(entry, record):
-    path = entry.get("path", "?")
+CODE_FIELDS_311 = 18  # dill._dill._create_code layout on Python 3.11 to 3.13 (lnotab stripped)
+
+
+def _from_json(value):
+    """Tagged JSON from pickle_static._code_json back to code object fields."""
+    if isinstance(value, list):
+        raise ValueError("untagged list")
+    if not isinstance(value, dict):
+        return value
+    if "b" in value:
+        return base64.b64decode(value["b"])
+    if "t" in value:
+        return tuple(_from_json(v) for v in value["t"])
+    if "fs" in value:
+        return frozenset(_from_json(v) for v in value["fs"])
+    if "code" in value:
+        return _build_code(value["code"])
+    raise ValueError("unknown tag")
+
+
+def _build_code(fields):
+    fields = [_from_json(v) for v in fields]
+    if len(fields) != CODE_FIELDS_311 or sys.version_info < (3, 11):
+        raise ValueError("code object fields from another Python version (%d fields)" % len(fields))
+    return types.CodeType(*fields)
+
+
+def _entry_code(entry, path):
+    """The code object of a Keras Lambda (marshalled) or a dill function (fields)."""
+    if entry.get("code_fields") is not None:
+        try:
+            return _build_code(entry["code_fields"])
+        except Exception as exc:  # noqa: BLE001
+            fakes.record_anomaly("cannot rebuild dill code object", path=path, error=type(exc).__name__,
+                                 detail=str(exc)[:200])
+            return None
     code_b64 = entry.get("code_b64")
     if not code_b64:
         fakes.record_anomaly("Lambda without bytecode", path=path)
-        return
+        return None
     try:
-        code = marshal.loads(base64.b64decode(code_b64))
+        return marshal.loads(base64.b64decode(code_b64))
     except Exception as exc:  # noqa: BLE001
         fakes.record_anomaly("marshal error", path=path, error=type(exc).__name__, detail=str(exc)[:200])
+        return None
+
+
+def _run_one(entry, record):
+    path = entry.get("path", "?")
+    code = _entry_code(entry, path)
+    if code is None:
         return
     if not isinstance(code, types.CodeType):
         fakes.record_anomaly("marshalled object is not code", path=path, type=type(code).__name__)
@@ -315,6 +357,11 @@ def _run_one(entry, record):
     closure = None
     if code.co_freevars:
         values = entry.get("closure")
+        if entry.get("code_fields") is not None:
+            try:
+                values = list(_from_json(values)) if values is not None else None
+            except Exception:  # noqa: BLE001
+                values = None
         if isinstance(values, list) and len(values) == len(code.co_freevars):
             closure = tuple(_cell(v) for v in values)  # JSON data from the config
         else:
@@ -322,7 +369,13 @@ def _run_one(entry, record):
                                  names=list(code.co_freevars))
             closure = tuple(_cell(fakes.FakeObject(n)) for n in code.co_freevars)
     defaults = entry.get("defaults")
-    defaults = tuple(defaults) if isinstance(defaults, list) else None
+    if entry.get("code_fields") is not None:
+        try:
+            defaults = _from_json(defaults)
+        except Exception:  # noqa: BLE001
+            fakes.record_anomaly("dill function defaults are not plain data", path=path)
+            defaults = None
+    defaults = tuple(defaults) if isinstance(defaults, (list, tuple)) else None
     try:
         function = types.FunctionType(code, scope, code.co_name, defaults, closure)
     except Exception as exc:  # noqa: BLE001

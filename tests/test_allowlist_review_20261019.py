@@ -82,6 +82,16 @@ def test_library_pickles_are_clean(proto):
               RandomForestRegressor(n_estimators=2, random_state=0).fit(x, y),
               CalibratedClassifierCV(LinearSVC(), cv=2).fit(x, y),
               defaultdict(list, {"a": [1, 2]}), defaultdict(None, {"b": 1})]
+    from argparse import Namespace
+
+    from sklearn.impute import MissingIndicator
+    from sklearn.linear_model import LogisticRegressionCV
+    from sklearn.model_selection import StratifiedKFold
+    from sklearn.preprocessing import MinMaxScaler, OrdinalEncoder
+    from sklearn.tree import ExtraTreeRegressor
+    models += [MissingIndicator().fit(x), LogisticRegressionCV(cv=2).fit(x, y), StratifiedKFold(2),
+               MinMaxScaler().fit(x), OrdinalEncoder().fit(x), ExtraTreeRegressor(random_state=0).fit(x, y),
+               Namespace(lr=0.1, out="o")]
     for model in models:
         risk, reasons = _risk(pickle.dumps(model, protocol=proto))
         assert risk == "clean", (type(model).__name__, reasons)
@@ -115,6 +125,8 @@ def test_pandas_new_index_as_pandas_writes_it_is_clean():
     P2 + call(g("collections", "OrderedDict"), b"]" + g(*TA) + b"a") + STOP,
     # enum: functional API (two arguments), a callable argument, NEWOBJ
     P2 + call(g(*STRATEGY), s("A"), s("B C")) + STOP,
+    P2 + call(g("transformers.trainer_utils", "SaveStrategy"), s("A"), s("B C")) + STOP,
+    P2 + call(g("argparse", "Namespace"), b"N") + STOP,
     P2 + call(g(*STRATEGY), g("collections", "OrderedDict")) + STOP,
     P2 + g(*STRATEGY) + tup(s("steps")) + NEWOBJ + STOP,
     # _new_Index calls its first argument: only pandas' own Index with a data/name dict
@@ -174,6 +186,7 @@ def _keras_findings(*nodes: dict) -> list:
     _keras_node("RandomContrast", {"factor": 0.2}, module=None),
     _keras_node("OrthogonalInitializer", {"gain": 1.0, "seed": None}, module="keras.initializers"),
     _keras_node("CategoricalFocalCrossentropy", {"alpha": 0.25, "gamma": 2.0}, module="keras.losses"),
+    _keras_node("R2Score", {"class_aggregation": "uniform_average"}, module="keras.metrics"),
     _keras_node("Subtract", {"name": "subtract"}, module="keras.src.ops.numpy"),
     _keras_node("TrueDivide", {"name": "true_divide"}, module="keras.src.ops.numpy"),
 ])
@@ -195,3 +208,34 @@ def test_reviewed_keras_classes_are_known(node):
 ])
 def test_keras_neighbours_stay_flagged(node):
     assert _keras_findings(node)
+
+
+# --- value walk shared by all calls of a stream ---------------------------------------------
+
+def test_large_state_walked_once_is_clean():
+    vocab = b"}(" + b"".join(s(f"w{i}") + b"J" + i.to_bytes(4, "little") for i in range(150_000)) + b"u"
+    memo = b"q\x01"
+    obj = g("sklearn.feature_extraction.text", "TfidfVectorizer") + b")" + NEWOBJ
+    data = P2 + b"(" + obj + _state(s("vocabulary_") + vocab + memo) + BUILD \
+        + b"".join(obj + _state(s("vocabulary_") + b"h\x01") + BUILD for _ in range(20)) + b"l" + STOP
+    risk, reasons = _risk(data)
+    assert risk == "clean", reasons[:3]
+
+
+def test_exempt_argument_tuple_reused_as_a_value_is_flagged():
+    # _new_Index's (cls, d) tuple is memoised, then passed as a value: the class inside it
+    # must be found there even though the first call exempted that position.
+    args = tup(g(*INDEX), _state(s("data") + b"N")) + b"q\x02"
+    data = P2 + g(*NEW_INDEX) + args + b"R0" + call(g("collections", "OrderedDict"), b"]h\x02a") + STOP
+    risk, reasons = _risk(data)
+    assert risk != "clean", reasons
+
+
+def test_builtins_object_as_a_value_is_clean_and_a_sink_next_to_it_is_not():
+    selector = (g("sklearn.compose._column_transformer", "make_column_selector") + b")" + NEWOBJ
+                + _state(s("dtype_exclude") + g("builtins", "object"), s("dtype_include") + g("numpy", "number"))
+                + BUILD)
+    risk, reasons = _risk(P2 + selector + STOP)
+    assert risk == "clean", reasons
+    risk, _ = _risk(P2 + call(g("builtins", "getattr"), g("builtins", "object"), s("__subclasses__")) + STOP)
+    assert risk == "malicious"

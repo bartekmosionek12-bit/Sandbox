@@ -285,7 +285,10 @@ def _joblib_findings(report: dict, machine: Machine, data: bytes, allow: frozens
 
 # --- calls to allowlisted helpers that call one of their own arguments -----------------
 
-MAX_VALUE_WALK = 100_000
+# Steps of the value walk over all calls of one stream together. Containers are walked
+# once per stream (see _guarded_values), so the walk is bounded by the stream's edges,
+# which MAX_OPCODES bounds; this is a backstop.
+MAX_VALUE_WALK = 10_000_000
 
 
 def _guarded(value) -> bool:
@@ -352,29 +355,37 @@ def _generator_args_ok(args) -> bool:
     return len(args) == 1 or (isinstance(args[1], Global) and args[1].pair == NUMPY_BIT_GENERATOR_CTOR)
 
 
-def _guarded_values(value, skip_top: int | None = None) -> list[Global]:
+def _guarded_values(value, skip_top: int | None = None, walk: dict | None = None) -> list[Global]:
     """Guarded globals reachable inside ``value`` (tuples, lists, dicts, sets).
     ``skip_top`` exempts one top-level tuple position (the permitted ctor argument).
-    An Obj is not entered: its callable, arguments and state were checked at its own call."""
-    found, seen, todo, steps = [], set(), [(value, 0)], 0
+    An Obj is not entered: its callable, arguments and state were checked at its own call.
+
+    ``walk`` is shared by every call of one stream: a container already walked for an
+    earlier call is not walked again (whatever it holds was reported then, with its final
+    contents), so a large vocabulary passed to many BUILDs costs one walk. A top-level
+    tuple walked with a position exempt is not marked, so it is walked in full elsewhere."""
+    walk = walk if walk is not None else {"seen": set(), "steps": 0}
+    seen = walk["seen"]
+    found, todo = [], [(value, 0)]
     while todo:
         item, depth = todo.pop()
-        steps += 1
-        if steps > MAX_VALUE_WALK:
+        walk["steps"] += 1
+        if walk["steps"] > MAX_VALUE_WALK:
             found.append(Global("<undecided>", "<walk limit>"))
             break
         if _guarded(item):
             found.append(item)
             continue
-        if id(item) in seen:
-            continue
-        seen.add(id(item))
         if isinstance(item, tuple) and depth == 0 and skip_top is not None:
             todo.extend((v, depth + 1) for i, v in enumerate(item) if i != skip_top)
-        elif isinstance(item, (tuple, list, set, frozenset)):
-            todo.extend((v, depth + 1) for v in item)
-        elif isinstance(item, dict):
+            continue
+        if not isinstance(item, (tuple, list, set, frozenset, dict)) or id(item) in seen:
+            continue
+        seen.add(id(item))
+        if isinstance(item, dict):
             todo.extend((v, depth + 1) for kv in item.items() for v in kv)
+        else:
+            todo.extend((v, depth + 1) for v in item)
     return found
 
 
@@ -385,6 +396,7 @@ def _check_guarded_calls(calls: list[tuple]) -> list[str]:
     to a call is seen with its final contents.
     """
     reasons = []
+    walk = {"seen": set(), "steps": 0}
     for how, func, args, pos in calls:
         exempt = None
         if isinstance(func, Global) and func.pair in ARGUMENT_CHECKED:
@@ -404,7 +416,7 @@ def _check_guarded_calls(calls: list[tuple]) -> list[str]:
                                "second argument; only a numpy bit generator and __bit_generator_ctor are accepted)")
             else:
                 exempt = 1
-        for value in _guarded_values(args, skip_top=exempt):
+        for value in _guarded_values(args, skip_top=exempt, walk=walk):
             reasons.append(f"{value.module}.{value.name} is passed as a value at {pos} "
                            f"({how.upper()}); it may only be called directly")
     return reasons

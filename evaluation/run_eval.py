@@ -106,6 +106,7 @@ def _jsonl(path: str) -> list[dict]:
 def load_entries(lab: str | None, hf: str | None, benign: list[str], mutations: str | None = None,
                  hf_malicious: str | None = None, labels: str | None = None) -> list[dict]:
     entries = []
+    reviewed = read_labels(labels) if labels else {}
     for directory, source in ((lab, "lab"), (mutations, "mutations")):
         if not directory:
             continue
@@ -122,8 +123,10 @@ def load_entries(lab: str | None, hf: str | None, benign: list[str], mutations: 
                             "library": item.get("stratum") or item.get("library") or item["format"],
                             "hub_scan": item.get("hub_scan", "unknown"), "repo_id": item["repo_id"],
                             "revision": item["revision"], "sha256": item["sha256"], "size": item["size"]})
+            label, reason = reviewed.get((item["repo_id"], item["filename"]), ("benign", None))
+            if label == "malicious":  # a scanner test file the benign discovery picked up
+                entries[-1].update(label="malicious", expected="MALICIOUS", label_reason=reason)
     if hf_malicious:
-        reviewed = read_labels(labels) if labels else {}
         for item in _jsonl(os.path.join(hf_malicious, "manifest.jsonl")):
             label, reason = reviewed.get((item["repo_id"], item["filename"]),
                                          (item["proposed_label"], item["label_reason"]))

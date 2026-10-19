@@ -109,6 +109,13 @@ PICKLE_GLOBALS: frozenset[tuple[str, str]] = frozenset(
         ("sklearn.preprocessing._encoders", "OneHotEncoder"),  # plain estimator
         ("sklearn.preprocessing._label", "LabelBinarizer"),  # plain estimator
         ("sklearn.preprocessing._label", "LabelEncoder"),  # plain estimator (classes_ array)
+        # 2026-10-19 review: Cython unpickle helper, same as the CyHalfMultinomialLoss one above
+        ("sklearn._loss._loss", "__pyx_unpickle_CyHalfBinomialLoss"),
+        # the type object and numpy's abstract scalar type, as values (copyreg._reconstructor's
+        # base, make_column_selector's dtype_exclude); calling either makes a bare object or raises
+        ("builtins", "object"),
+        ("__builtin__", "object"),
+        ("numpy", "number"),
     ]
 )
 
@@ -160,6 +167,17 @@ STATE_ONLY_CLASSES = frozenset({
     ("sklearn.linear_model._coordinate_descent", "Lasso"),
     ("sklearn.naive_bayes", "MultinomialNB"),
     ("sklearn.svm._classes", "LinearSVC"),
+    ("sklearn.impute._base", "MissingIndicator"),
+    ("sklearn.linear_model._logistic", "LogisticRegressionCV"),
+    ("sklearn.model_selection._search_successive_halving", "HalvingGridSearchCV"),  # holds an estimator
+    ("sklearn.model_selection._split", "StratifiedKFold"),
+    ("sklearn.preprocessing._data", "MinMaxScaler"),
+    ("sklearn.preprocessing._encoders", "OrdinalEncoder"),
+    ("sklearn.tree._classes", "ExtraTreeRegressor"),
+    # sklearn 1.9.1: __init__ stores pattern / dtype_include / dtype_exclude; no pickling hooks
+    ("sklearn.compose._column_transformer", "make_column_selector"),
+    # stdlib argparse.Namespace (an old training_args.bin): no pickling hooks, attributes only
+    ("argparse", "Namespace"),
     # transformers' training arguments (training_args.bin): plain dataclasses. Rebuilt
     # from state, __post_init__ (which sets up devices and reads config files) never runs;
     # the fields are data, and an enum field is checked by ENUM_CLASSES.
@@ -171,6 +189,8 @@ ENUM_CLASSES = frozenset({
     ("transformers.trainer_utils", "IntervalStrategy"),
     ("transformers.trainer_utils", "SchedulerType"),
     ("transformers.trainer_utils", "HubStrategy"),
+    ("transformers.trainer_utils", "SaveStrategy"),
+    ("transformers.trainer_utils", "EvaluationStrategy"),
     ("transformers.training_args", "OptimizerNames"),
     ("accelerate.utils.dataclasses", "DistributedType"),
 })
@@ -341,6 +361,7 @@ KERAS_CLASSES = frozenset({
     "RandomRotation", "RandomTranslation", "RandomZoom", "RandomContrast", "RandomFlip",
     "OrthogonalInitializer",  # Keras 3's registered name for Orthogonal (gain, seed)
     "CategoricalFocalCrossentropy",  # loss; alpha, gamma, from_logits, label_smoothing, axis
+    "R2Score",  # metric; class_aggregation, num_regressors
 })
 
 # Keras serializes functions as {"class_name": "function", "config": "<name>",

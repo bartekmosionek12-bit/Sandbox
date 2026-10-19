@@ -133,6 +133,63 @@ GUARDED_CALLS = frozenset({
     NUMPY_BIT_GENERATOR_CTOR,
 })
 
+# --- pairs that pass only with an argument check (2026-10-19 review) --------------------
+# evaluation/results/allowlist-review-20261019.md; enforced by
+# pickle_static._check_guarded_calls, with a regression test per check in
+# tests/test_allowlist_review_20261019.py.
+
+# Classes accepted only when the stream rebuilds an instance from its saved state without
+# calling the class: NEWOBJ with no arguments (how protocol 2+ saves a plain object), then
+# BUILD. Only cls.__new__ (object.__new__ for all of these) and then __setstate__ or a
+# __dict__ update run. Every value in the state is checked as its own global, and nothing
+# in it is called while loading. Calling the class (REDUCE, OBJ, INST, NEWOBJ with
+# arguments) would run its constructor, so it is refused, and so is passing the class
+# around as a value.
+STATE_ONLY_CLASSES = frozenset({
+    # scipy 1.18 sparse matrices define no __reduce__/__setstate__ (checked in the source)
+    ("scipy.sparse._csr", "csr_matrix"),
+    # pandas Index: only as the class argument of _new_Index (PANDAS_NEW_INDEX below)
+    ("pandas.core.indexes.base", "Index"),
+    # scikit-learn 1.9.1 estimators: BaseEstimator.__setstate__ only (version warning,
+    # then a __dict__ update); constructors only store their parameters
+    ("sklearn.calibration", "CalibratedClassifierCV"),
+    ("sklearn.calibration", "_CalibratedClassifier"),
+    ("sklearn.calibration", "_SigmoidCalibration"),
+    ("sklearn.ensemble._forest", "RandomForestRegressor"),
+    ("sklearn.impute._base", "SimpleImputer"),
+    ("sklearn.linear_model._coordinate_descent", "Lasso"),
+    ("sklearn.naive_bayes", "MultinomialNB"),
+    ("sklearn.svm._classes", "LinearSVC"),
+    # transformers' training arguments (training_args.bin): plain dataclasses. Rebuilt
+    # from state, __post_init__ (which sets up devices and reads config files) never runs;
+    # the fields are data, and an enum field is checked by ENUM_CLASSES.
+    ("transformers.training_args", "TrainingArguments"),
+    ("transformers.training_args_seq2seq", "Seq2SeqTrainingArguments"),
+})
+# Enum classes, accepted only as cls(value) with one str or int argument: a member lookup.
+ENUM_CLASSES = frozenset({
+    ("transformers.trainer_utils", "IntervalStrategy"),
+    ("transformers.trainer_utils", "SchedulerType"),
+    ("transformers.trainer_utils", "HubStrategy"),
+    ("transformers.training_args", "OptimizerNames"),
+    ("accelerate.utils.dataclasses", "DistributedType"),
+})
+# pandas.core.indexes.base._new_Index(cls, d) returns cls.__new__(cls, **d): it calls its
+# first argument. Accepted only as pandas writes it, _new_Index(<an Index class>, {"data":
+# ..., "name": ...}) (pandas 3.0.5 Index.__reduce__).
+PANDAS_NEW_INDEX = ("pandas.core.indexes.base", "_new_Index")
+PANDAS_INDEX_CLASSES = frozenset({("pandas.core.indexes.base", "Index")})
+PANDAS_INDEX_KEYS = frozenset({"data", "name"})
+# collections.defaultdict(factory): the factory is called later, on a missing key, never
+# while loading. Accepted only with no factory or a builtin container or number type.
+DEFAULTDICT = ("collections", "defaultdict")
+DEFAULTDICT_FACTORIES = frozenset(
+    (module, name) for module in ("builtins", "__builtin__")
+    for name in ("list", "dict", "set", "frozenset", "tuple", "int", "float", "str", "bytes", "bool")
+)
+ARGUMENT_CHECKED = STATE_ONLY_CLASSES | ENUM_CLASSES | {PANDAS_NEW_INDEX, DEFAULTDICT}
+PICKLE_GLOBALS = PICKLE_GLOBALS | ARGUMENT_CHECKED
+
 # Extra globals a PyTorch checkpoint (data.pkl or a legacy stream) may import.
 # Source: the globals torch.save emits for tensors, parameters and state dicts,
 # as listed in torch's own weights-only unpickler. Unverified until milestone 6.

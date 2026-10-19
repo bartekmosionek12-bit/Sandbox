@@ -26,14 +26,22 @@ from typing import Any
 
 from .. import override
 from .allowlists import (
+    ARGUMENT_CHECKED,
     DANGEROUS_MODULES,
     DANGEROUS_SYMBOLS,
+    DEFAULTDICT,
+    DEFAULTDICT_FACTORIES,
+    ENUM_CLASSES,
     GUARDED_CALLS,
     KNOWN_GADGETS,
     NUMPY_BIT_GENERATOR_CLASSES,
     NUMPY_BIT_GENERATOR_CTOR,
     NUMPY_BIT_GENERATOR_NAMES,
+    PANDAS_INDEX_CLASSES,
+    PANDAS_INDEX_KEYS,
+    PANDAS_NEW_INDEX,
     PICKLE_GLOBALS,
+    STATE_ONLY_CLASSES,
     TORCH_GLOBALS,
 )
 from .lookalike import imitates
@@ -281,7 +289,41 @@ MAX_VALUE_WALK = 100_000
 
 
 def _guarded(value) -> bool:
-    return isinstance(value, Global) and value.pair in GUARDED_CALLS
+    return isinstance(value, Global) and (value.pair in GUARDED_CALLS or value.pair in ARGUMENT_CHECKED)
+
+
+def _argument_check(how: str, pair: tuple[str, str], args) -> tuple[str | None, int | None]:
+    """(reason or None, top-level argument position exempt from the value walk) for one
+    call of an ARGUMENT_CHECKED pair (allowlists.py says what each check allows)."""
+    if pair in STATE_ONLY_CLASSES:
+        if how == "newobj" and args == ():
+            return None, None
+        return (f"is called ({how.upper()} with arguments {_short(args)}); it is accepted only when rebuilt "
+                "from its saved state without calling it (NEWOBJ with no arguments)"), None
+    if how != "reduce":
+        return f"is used through {how.upper()}, not called the way its library pickles it", None
+    if pair in ENUM_CLASSES:
+        if len(args) == 1 and type(args[0]) in (str, int):
+            return None, None
+        return f"is called with {_short(args)}; only a member lookup with one str or int is accepted", None
+    if pair == PANDAS_NEW_INDEX:
+        if (len(args) == 2 and isinstance(args[0], Global) and args[0].pair in PANDAS_INDEX_CLASSES
+                and isinstance(args[1], dict) and set(args[1]) <= PANDAS_INDEX_KEYS):
+            return None, 0
+        return ("is called with arguments pandas never writes (it calls its first argument; only "
+                "pandas.core.indexes.base.Index with a data/name dict is accepted)"), None
+    if pair == DEFAULTDICT:
+        if not args or (len(args) == 1 and (args[0] is None or (isinstance(args[0], Global)
+                                                                and args[0].pair in DEFAULTDICT_FACTORIES))):
+            return None, 0
+        return f"is given the factory {_short(args)}; only a builtin container or number type is accepted", None
+    return "has no argument check", None
+
+
+def _short(args) -> str:
+    text = repr(tuple(f"{a.module}.{a.name}" if isinstance(a, Global) else a for a in args)
+                if isinstance(args, tuple) else args)
+    return text if len(text) <= 120 else text[:117] + "..."
 
 
 def _is_bit_generator(value) -> bool:
@@ -345,7 +387,11 @@ def _check_guarded_calls(calls: list[tuple]) -> list[str]:
     reasons = []
     for how, func, args, pos in calls:
         exempt = None
-        if _guarded(func):
+        if isinstance(func, Global) and func.pair in ARGUMENT_CHECKED:
+            reason, exempt = _argument_check(how, func.pair, args)
+            if reason:
+                reasons.append(f"{func.module}.{func.name} at {pos} {reason}")
+        elif _guarded(func):
             name = f"{func.module}.{func.name}"
             if how != "reduce":
                 reasons.append(f"{name} at {pos} is used through {how.upper()}, not called the way numpy does")

@@ -185,7 +185,7 @@ Runs of 2026-10-19, safeloadai 0.5.0, in a disposable cloud container with `eval
 
 | set | safeloadai | picklescan 1.0.5 | fickling 0.1.12 | modelscan 0.8.8 |
 |---|---|---|---|---|
-| lab marker payloads (incl. 8 polyglots) | 59 / 59 | 35 / 59 | 40 / 59 | 24 / 59 |
+| lab marker payloads (incl. 6 polyglots) | 59 / 59 | 35 / 59 | 40 / 59 | 24 / 59 |
 | mutations (`tests/corpus/mutate.py`) | 774 / 774 | 678 / 774 | 654 / 774 | 618 / 774 |
 | real Hub files flagged by the Hub's scanners, labelled malicious from that evidence | 49 / 49 | 31 / 49 | 32 / 49 | 29 / 49 |
 

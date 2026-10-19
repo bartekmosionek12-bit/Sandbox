@@ -21,6 +21,39 @@ This file follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Vers
 - `builtins.object` (the base `copyreg._reconstructor` names, and a `make_column_selector` value) is no longer scored as a sink.
 - `evaluation/fetch_benign_hf.py` works with huggingface_hub 2.x, which dropped `list_models(library=...)`.
 
+### Changed
+- **`builtins.getattr` is judged use by use.**
+  - It is MALICIOUS only when its result is called, the attribute is a dunder or sink
+    name, or the target is a sink.
+  - A method of an allowlisted object or class, stored and never called, is CLEAN.
+    That is how pickle writes a bound method, and how Ultralytics checkpoints store
+    `Detect.forward`.
+  - Any other use is RISKY (not overridable). Before this change, any getattr import
+    with a call opcode was MALICIOUS.
+- **A pickle reading ends at its first STOP.** Bytes after it are reported as trailing
+  data, not as a walker error. A trailing pickle is analysed as a reading of its own.
+- **Evidence comes first.** Reasons and findings now list sinks, processes, network
+  access, file writes and code execution before everything else.
+- **Allowlist from a source review.** 64 classes were added as state-only:
+  - 13 `torch.nn` modules;
+  - 5 torchvision transforms;
+  - 43 Ultralytics classes;
+  - 3 xgboost scikit-learn wrappers.
+
+  `torchvision` `InterpolationMode` was added as an enum lookup. `xgboost.core.Booster`
+  stays out. Details are in `evaluation/results/source-review-20261019.md`.
+- **Report schema 2.2** adds `options`.
+
+### Security
+- **Secure defaults and documented options.**
+  - Plain `scan(path)` / `safeloadai scan FILE` uses no opt-in rule.
+  - Every non-default option is recorded in `Report.options` (name, value, source,
+    direction), announced with a warning on stderr, and shown on the verdict line
+    (`CLEAN (with options: ...)`).
+  - `allow` refuses sinks, known gadgets, `getattr` and wildcards.
+  - A config file (`safeloadai.toml`) is read only when named with `--config`.
+  - New: `safeloadai options` and `docs/OPTIONS.md`.
+
 ## safeloadai 0.4.0
 
 ### Added

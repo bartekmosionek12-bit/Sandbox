@@ -3,7 +3,8 @@
 Run this on your own machine (it needs huggingface.co); tests and CI never run it.
 
     pip install huggingface_hub
-    python evaluation/fetch_benign_hf.py --out /tmp/hf_corpus            # discover ~310 files
+    python evaluation/fetch_benign_hf.py --out /tmp/hf_corpus            # discover ~1,000 files
+    python evaluation/fetch_benign_hf.py --out /tmp/hf_corpus --seed /tmp/old_corpus  # reuse earlier downloads
     python evaluation/fetch_benign_hf.py --out /tmp/hf_corpus --list evaluation/hf_benign.txt
 
 Safety rules this script follows:
@@ -19,6 +20,14 @@ Safety rules this script follows:
   commit the listing returned, into ``OUT/files/<repo with / as __>/``.
   ``OUT/manifest.jsonl`` records repo id, commit hash, file name, size and the
   sha256 computed here (checked against the Hub's LFS sha256 when it has one).
+* Per file the manifest also records the stratum, the Hub library tag the listing
+  used, the repo's download count, and the Hub's own security-scan result for that
+  file when the API exposes it (``hub_scan``: unsafe, suspicious, no_issue,
+  not_scanned or unknown).
+* Every repo is assigned to the "tune" or "held-out" half by a hash of its id
+  (``split_of``), never by file, so all files of one repo are on the same side.
+  The allowlist review may only look at the tune half; the false-positive rate is
+  reported on the held-out half. ``--write-splits DIR`` writes both repo lists.
 * Keep OUT outside the repository (the default is /tmp/hf_corpus; ``hf_corpus/``
   is in .gitignore as well). Never commit downloaded model files; commit only the
   results that ``run_eval.py`` writes.
@@ -44,12 +53,24 @@ FORMATS = {
     ".pkl": "sklearn", ".pickle": "sklearn", ".joblib": "sklearn",
     ".keras": "keras", ".h5": "h5",
 }
-# format -> (target number of files, Hub library filters to search, file-name preference)
-PLAN = {
-    "torch": (110, ["pytorch"], ("pytorch_model.bin",)),
-    "sklearn": (80, ["sklearn", "scikit-learn", "skops", "joblib"], ()),
-    "keras": (50, ["keras", "tf-keras"], ("model.keras",)),
-    "h5": (70, ["keras", "tf-keras", "tf"], ("tf_model.h5", "model.h5")),
+# stratum -> what to fetch. ``filters`` are Hub library tags (``search`` is a free-text
+# query for the one stratum without a tag); ``names`` restricts to exact file names,
+# ``prefer`` orders a repo's files. Targets add up to about 1,000 files.
+STRATA = {
+    "torch_transformers": {"fmt": "torch", "target": 250, "filters": ["transformers", "pytorch"],
+                           "prefer": ("pytorch_model.bin",)},
+    "torch_training_args": {"fmt": "torch", "target": 60, "filters": ["transformers"],
+                            "names": ("training_args.bin",)},
+    "torch_ultralytics": {"fmt": "torch", "target": 60, "filters": ["ultralytics"], "prefer": ()},
+    "torch_timm": {"fmt": "torch", "target": 60, "filters": ["timm"], "prefer": ("pytorch_model.bin",)},
+    "torch_sentence_transformers": {"fmt": "torch", "target": 60, "filters": ["sentence-transformers"],
+                                    "prefer": ("pytorch_model.bin",)},
+    "sklearn": {"fmt": "sklearn", "target": 150, "filters": ["sklearn", "scikit-learn", "skops", "joblib"],
+                "prefer": ()},
+    "sklearn_gbdt": {"fmt": "sklearn", "target": 50, "filters": ["xgboost", "lightgbm", "catboost"], "prefer": ()},
+    "pandas": {"fmt": "sklearn", "target": 20, "search": ["pandas", "dataframe"], "prefer": ()},
+    "keras": {"fmt": "keras", "target": 140, "filters": ["keras", "tf-keras"], "prefer": ("model.keras",)},
+    "h5": {"fmt": "h5", "target": 150, "filters": ["keras", "tf-keras", "tf"], "prefer": ("tf_model.h5", "model.h5")},
 }
 MAX_FILES_PER_REPO = 2
 
@@ -90,12 +111,15 @@ def read_list(path: str) -> list[tuple[str, str]]:
     return pairs
 
 
-def candidate_files(info, wanted: str, max_bytes: int, prefer: tuple[str, ...]) -> list[tuple[str, int, str | None]]:
+def candidate_files(info, wanted: str, max_bytes: int, prefer: tuple[str, ...],
+                    names: tuple[str, ...] = ()) -> list[tuple[str, int, str | None]]:
     """(file name, size, lfs sha256) of weight files of format ``wanted`` in one repo."""
     out = []
     for sibling in info.siblings or []:
         name = sibling.rfilename
         if file_format(name) != wanted or sibling.size is None or sibling.size > max_bytes or sibling.size == 0:
+            continue
+        if names and os.path.basename(name) not in names:
             continue
         lfs = getattr(sibling, "lfs", None)
         lfs_sha = getattr(lfs, "sha256", None) if lfs is not None else None
@@ -114,22 +138,64 @@ def download(api_module, out: str, repo_id: str, revision: str, name: str, lfs_s
     return {"path": os.path.relpath(path, out), "size": os.path.getsize(path), "sha256": digest}
 
 
-def discover(hub, out: str, max_bytes: int, only: set[str], done: set[tuple[str, str]], scale: float) -> int:
+def split_of(repo_id: str) -> str:
+    """"tune" or "heldout", fixed by the repo id alone (so every file of a repo is on one side)."""
+    return "tune" if int(hashlib.sha256(repo_id.encode()).hexdigest(), 16) % 2 == 0 else "heldout"
+
+
+def hub_scan_level(info, name: str) -> str:
+    """The Hub's own security-scan result for one file, as the API reports it."""
+    status = getattr(info, "security_repo_status", None) or getattr(info, "securityRepoStatus", None)
+    if not isinstance(status, dict):
+        return "unknown"
+    for item in status.get("filesWithIssues") or []:
+        if isinstance(item, dict) and item.get("path") == name:
+            return str(item.get("level") or "issue")
+    return "no_issue" if status.get("scansDone") else "not_scanned"
+
+
+def _model_info(api, repo_id: str):
+    for attempt in range(4):
+        try:
+            try:
+                return api.model_info(repo_id, files_metadata=True, securityStatus=True)
+            except TypeError:  # an older client without securityStatus
+                return api.model_info(repo_id, files_metadata=True)
+        except Exception as exc:  # noqa: BLE001
+            if "429" in str(exc) and attempt < 3:
+                time.sleep(30 * (attempt + 1))
+                continue
+            raise
+    return None
+
+
+def _listing(api, stratum: dict, target: int):
+    for library in stratum.get("filters", []):
+        yield library, lambda lib=library: api.list_models(filter=lib, sort="downloads", limit=target * 10)
+    for query in stratum.get("search", []):
+        yield query, lambda q=query: api.list_models(search=q, sort="downloads", limit=target * 10)
+
+
+def discover(hub, out: str, max_bytes: int, only: set[str], done: set[tuple[str, str]], scale: float,
+             seed: str | None = None) -> int:
     api = hub.HfApi()
     fetched = 0
-    for fmt, (target, libraries, prefer) in PLAN.items():
-        if only and fmt not in only:
+    entries = read_manifest(out)
+    seeds = {(e["repo_id"], e["filename"], e["revision"]): e for e in read_manifest(seed)} if seed else {}
+    for name, stratum in STRATA.items():
+        fmt = stratum["fmt"]
+        if only and name not in only and fmt not in only:
             continue
-        target = max(1, round(target * scale))
-        have = sum(1 for repo, name in done if file_format(name) == fmt)
+        target = max(1, round(stratum["target"] * scale))
+        have = sum(1 for e in entries if e.get("stratum", e.get("format")) in (name,))
         seen_repos: set[str] = set()
-        for library in libraries:
+        for tag, listing in _listing(api, stratum, target):
             if have >= target:
                 break
             try:
-                models = api.list_models(filter=library, sort="downloads", limit=target * 6)
+                models = listing()
             except Exception as exc:  # noqa: BLE001 - one failed listing should not stop the run
-                print(f"listing {library}: {exc}", file=sys.stderr)
+                print(f"listing {tag}: {exc}", file=sys.stderr)
                 continue
             for model in models:
                 if have >= target:
@@ -138,36 +204,68 @@ def discover(hub, out: str, max_bytes: int, only: set[str], done: set[tuple[str,
                     continue
                 seen_repos.add(model.id)
                 try:
-                    info = api.model_info(model.id, files_metadata=True)
+                    info = _model_info(api, model.id)
                 except Exception as exc:  # noqa: BLE001
                     print(f"{model.id}: {exc}", file=sys.stderr)
                     continue
-                if getattr(info, "gated", False) or getattr(info, "disabled", False):
+                if info is None or getattr(info, "gated", False) or getattr(info, "disabled", False):
                     continue
-                for name, _size, lfs_sha in candidate_files(info, fmt, max_bytes, prefer):
-                    if (model.id, name) in done or have >= target:
+                for fname, _size, lfs_sha in candidate_files(info, fmt, max_bytes, stratum.get("prefer", ()),
+                                                             stratum.get("names", ())):
+                    if (model.id, fname) in done or have >= target:
                         continue
-                    entry = _fetch_one(hub, out, model.id, info.sha, name, lfs_sha, fmt, library,
-                                       getattr(model, "downloads", None))
+                    extra = {"stratum": name, "split": split_of(model.id), "hub_scan": hub_scan_level(info, fname)}
+                    entry = _fetch_one(hub, out, model.id, info.sha, fname, lfs_sha, fmt, tag,
+                                       getattr(model, "downloads", None), extra, seeds, seed)
                     if entry:
-                        done.add((model.id, name))
+                        done.add((model.id, fname))
+                        entries.append(entry)
                         have += 1
                         fetched += 1
-        print(f"{fmt}: {have}/{target} files", file=sys.stderr)
+        print(f"{name}: {have}/{target} files", file=sys.stderr)
     return fetched
 
 
-def _fetch_one(hub, out, repo_id, revision, name, lfs_sha, fmt, library, downloads) -> dict | None:
+def _fetch_one(hub, out, repo_id, revision, name, lfs_sha, fmt, library, downloads, extra=None,
+               seeds=None, seed=None) -> dict | None:
     try:
-        result = download(hub, out, repo_id, revision, name, lfs_sha)
+        reused = (seeds or {}).get((repo_id, name, revision))
+        if reused and lfs_sha in (None, reused.get("sha256")):
+            result = _link_seed(out, seed, reused)
+        else:
+            result = download(hub, out, repo_id, revision, name, lfs_sha)
     except Exception as exc:  # noqa: BLE001
         print(f"{repo_id} {name}: {exc}", file=sys.stderr)
         return None
     entry = {"repo_id": repo_id, "revision": revision, "filename": name, "format": fmt, "library": library,
-             "downloads": downloads, "lfs_sha256": lfs_sha, "fetched_at": datetime.now(UTC).isoformat(), **result}
+             "downloads": downloads, "lfs_sha256": lfs_sha, "fetched_at": datetime.now(UTC).isoformat(),
+             **(extra or {}), **result}
     append_manifest(out, entry)
     print(f"{repo_id}@{revision[:10]} {name} ({result['size']} bytes)", file=sys.stderr)
     return entry
+
+
+def _link_seed(out: str, seed: str, entry: dict) -> dict:
+    """Reuse a file an earlier run downloaded at the same commit (hard link, hash re-checked)."""
+    source = os.path.join(seed, entry["path"])
+    target = os.path.join(out, entry["path"])
+    os.makedirs(os.path.dirname(target), exist_ok=True)
+    if not os.path.exists(target):
+        os.link(source, target)
+    digest = sha256_file(target)
+    if digest != entry["sha256"]:
+        raise ValueError(f"seed file {source} changed: sha256 {digest}")
+    return {"path": entry["path"], "size": os.path.getsize(target), "sha256": digest}
+
+
+def write_splits(manifest: list[dict], directory: str) -> None:
+    """Commit-able repo lists of the two halves."""
+    os.makedirs(directory, exist_ok=True)
+    repos = sorted({e["repo_id"] for e in manifest})
+    for half in ("tune", "heldout"):
+        with open(os.path.join(directory, f"hf-{half}.txt"), "w", encoding="utf-8") as fh:
+            fh.write(f"# {half} half of the Hugging Face benign corpus: split_of(repo_id) == {half!r}\n")
+            fh.writelines(f"{r}\n" for r in repos if split_of(r) == half)
 
 
 def from_list(hub, out: str, pairs: list[tuple[str, str]], max_bytes: int, done: set[tuple[str, str]]) -> int:
@@ -198,8 +296,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", default="/tmp/hf_corpus")
     parser.add_argument("--list", help="explicit '<repo> <file>' list instead of discovery")
     parser.add_argument("--max-mb", type=int, default=300, help="skip files larger than this")
-    parser.add_argument("--formats", help="comma-separated subset of: " + ",".join(PLAN))
-    parser.add_argument("--scale", type=float, default=1.0, help="multiply every per-format target")
+    parser.add_argument("--formats", help="comma-separated strata or formats: " + ",".join(STRATA))
+    parser.add_argument("--scale", type=float, default=1.0, help="multiply every per-stratum target")
+    parser.add_argument("--seed", help="an earlier corpus directory whose files (same repo, file, commit) are reused")
+    parser.add_argument("--write-splits", metavar="DIR", help="write hf-tune.txt and hf-heldout.txt to DIR")
     args = parser.parse_args(argv)
     try:
         import huggingface_hub as hub
@@ -220,8 +320,10 @@ def main(argv: list[str] | None = None) -> int:
         fetched = from_list(hub, out, read_list(args.list), max_bytes, done)
     else:
         only = set(args.formats.split(",")) if args.formats else set()
-        fetched = discover(hub, out, max_bytes, only, done, args.scale)
+        fetched = discover(hub, out, max_bytes, only, done, args.scale, args.seed)
     total = len(read_manifest(out))
+    if args.write_splits:
+        write_splits(read_manifest(out), args.write_splits)
     print(f"fetched {fetched} new files ({total} in {out}/manifest.jsonl) in {time.time() - started:.0f}s",
           file=sys.stderr)
     print(f"next: python evaluation/run_eval.py --hf {out} --lab <lab dir> --tool-bin <venv>/bin", file=sys.stderr)

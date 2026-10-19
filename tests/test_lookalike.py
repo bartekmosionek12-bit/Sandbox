@@ -91,3 +91,32 @@ def test_lookalike_pickle_global_is_risky_and_cannot_be_overridden(tmp_path, mod
     assert all(f["category"] != "UNVERIFIABLE" for f in report.findings), report.findings
     with pytest.raises(UnsafeModelError, match="override refused"):
         safe_load(path, accept_unverified=[f"{module}.Thing"])
+
+
+@wasi
+@pytest.mark.parametrize("module, class_name, registered, category", [
+    ("subprocess", "Popen", None, "MALICIOUS"),
+    ("importlib", "import_module", None, "MALICIOUS"),
+    ("shutil", "rmtree", None, "MALICIOUS"),
+    ("mycompany.layers", "Foo", "subprocess>Popen", "MALICIOUS"),
+    ("numpy.testing._private.utils", "runstring", None, "RISKY"),  # known gadget
+    ("mycompany.layers", "eval", None, "RISKY"),  # sink name outside a sink module
+])
+def test_keras_class_naming_a_sink_or_gadget_cannot_be_overridden(tmp_path, module, class_name, registered,
+                                                                  category):
+    path = tmp_path / "sink_class.keras"
+    layer = {"module": module, "class_name": class_name, "config": {}, "registered_name": registered or class_name}
+    config = {"module": "keras", "class_name": "Sequential", "registered_name": None,
+              "config": {"layers": [layer]}}
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        zf.writestr("config.json", json.dumps(config))
+        zf.writestr("metadata.json", '{"keras_version": "3.15.1"}')
+    path.write_bytes(buf.getvalue())
+    report = scan(path)
+    assert report.category == category and not report.unverifiable_only, report.findings
+    assert not any(f["category"] == "UNVERIFIABLE" and "Foo" not in f["text"] for f in report.findings)
+    items = [f"{module}.{class_name}"] + ([registered] if registered else []) + report.unverifiable_items
+    assert not override.apply(report, items, how="api")
+    with pytest.raises(UnsafeModelError, match="override refused"):
+        safe_load(path, accept_unverified=items)

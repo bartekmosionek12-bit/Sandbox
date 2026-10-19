@@ -49,11 +49,13 @@ from .allowlists import (
     KERAS_FUNCTIONS,
     KERAS_METRIC_NAMES,
     KERAS_MODULES,
+    KNOWN_GADGETS,
     TF_DANGEROUS,
     TF_OP_ALLOWED,
 )
 from .lookalike import imitates
 from .lookalike import reason as lookalike_reason
+from .pickle_static import is_dangerous_import
 
 SCHEMA_VERSION = "1.1"
 CONFIG_CANDIDATES = ("config.json", "model.json")
@@ -428,6 +430,33 @@ def _unverifiable(imp: dict, file_format) -> dict | None:
     return None
 
 
+def _target(imp: dict) -> tuple[str, str] | None:
+    """The (module, name) an unknown class, function or registered name would import."""
+    kind = imp.get("kind")
+    if kind in ("class", "function"):
+        return imp["module"], imp["symbol"]
+    if kind == "registered":
+        package, _, name = imp["module"].partition(">")
+        return package, name
+    return None
+
+
+def _promote_sinks(report: dict) -> None:
+    """An unknown object that names a known sink or gadget is never UNVERIFIABLE. A class
+    or function from a sink module (``subprocess.Popen``) is a known sink: Keras imports
+    it and calls it while deserialising. A sink or gadget name elsewhere stays RISKY."""
+    unknown = []
+    for imp in report["unknown_imports"]:
+        target = _target(imp)
+        if target and (target[0] in DANGEROUS_MODULES or target[0].split(".")[0] in DANGEROUS_MODULES):
+            report["suspicious_imports"].append({k: v for k, v in imp.items() if k != "kind"})
+            continue
+        if target and (is_dangerous_import(*target) or target in KNOWN_GADGETS):
+            imp = dict(imp, sink_like=".".join(part for part in target if part))
+        unknown.append(imp)
+    report["unknown_imports"] = unknown
+
+
 def finalize(report: dict) -> dict:
     """Turn the collected findings into reasons and the static risk."""
     reasons: list[str] = report["reasons"]
@@ -437,12 +466,16 @@ def finalize(report: dict) -> dict:
             + (" with marshalled bytecode" if lam["has_code"] else "")
             + (f"; sink names in bytecode: {', '.join(lam['sink_tokens'])}" if lam["sink_tokens"] else "")
         )
+    _promote_sinks(report)
     for imp in report["suspicious_imports"]:
         reasons.append(f"{imp.get('path')}: known sink {imp['module']}.{imp['symbol']}")
     unverifiable = report.setdefault("unverifiable", {})
     for imp in report["unknown_imports"]:
         reason = f"{imp.get('path')}: object outside the allowlist {imp['module']}.{imp['symbol']}"
         reasons.append(reason)
+        if imp.get("sink_like"):
+            reasons.append(f"{imp.get('path')}: {imp['sink_like']} is a known sink or gadget")
+            continue
         ref = imitates(imp["module"].split(">")[0] if imp.get("kind") == "registered"
                        else imp["module"] if imp.get("kind") in ("class", "function") else None)
         if ref:

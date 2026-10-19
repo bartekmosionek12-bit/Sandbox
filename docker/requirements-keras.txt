@@ -11,4 +11,4 @@
 #
 # tensorflow-cpu ciągnie Keras 3 i h5py jako zależności — nie pinujemy ich
 # osobno, żeby nie wejść w konflikt z tym, co wybiera TF.
-tensorflow-cpu==2.18.0
+tensorflow-cpu==2.21.0

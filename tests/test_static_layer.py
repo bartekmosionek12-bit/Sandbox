@@ -309,3 +309,13 @@ def test_keras_member_with_bad_crc_is_still_refused():
     report = keras_static.parse_keras(buf.getvalue().replace(placeholder, b'{"class_name": "X"} ', 1))
     assert report["static_risk"] == "suspicious"
     assert any("Bad CRC-32" in r for r in report["reasons"]), report["reasons"]
+
+
+@pytest.mark.parametrize("module, name", [("pandas.io.pickle", "read_pickle"), ("pandas", "read_pickle"),
+                                          ("pandas.io.pytables", "read_hdf"), ("keras.saving", "load_model")])
+def test_a_loader_of_another_pickle_is_a_sink(module, name):
+    # The Hub's 017_poc_picklescan_bypass_pandas_read_pickle_nested_ACE.joblib calls
+    # pandas.read_pickle on a second file: the nested pickle is never analysed.
+    data = (b"\x80\x04\x8c" + bytes([len(module)]) + module.encode() + b"\x8c" + bytes([len(name)])
+            + name.encode() + b"\x93\x8c\x09poc/x.pkl\x85R.")
+    assert pickle_static.parse_pickle(data)["static_risk"] == "malicious"

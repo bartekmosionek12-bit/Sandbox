@@ -15,10 +15,11 @@ This file follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Vers
 - **torch weights_only rules.** A PyTorch stream that `torch.load(weights_only=True)` of torch 2.14.1 accepts is CLEAN (`tools/gen_torch_safe_globals.py`).
 - **Profiles for well-known files** (`src/safeloadai/profiles/`, docs/PROFILES.md): transformers Trainer files (`training_args.bin`, `optimizer.pt`, `scheduler.pt`, `rng_state*.pth`) and Ultralytics checkpoints. A profile accepts its globals only where the producer puts them (for `training_args.bin`: accelerate's `PartialState` and `AcceleratorConfig`). A file with the name and producer signature but another structure is SUSPICIOUS (RISKY).
 - **`trust_inert_from` / `--trust-inert-from DIST`** (off by default): the same state-only analysis on the installed source of the named distributions.
-- **`known_good` / `--no-known-good`.** See below.
+- **Reviewed known files** (`known_good`, on by default; `--no-known-good` turns it off). A file whose exact sha256 is on the shipped list of 27 reviewed tune-split files is CLEAN ("known reviewed file <repo/file>"). MALICIOUS and UNSUPPORTED verdicts are never changed.
 - `Report.cleared` lists every import outside the allowlist that one of these rules accepted, with the rule.
 
 ### Fixed
+- **A pickle that calls `pandas.read_pickle` (or `read_hdf`, `load_model`, ...) on another file is MALICIOUS.** It was UNVERIFIABLE, so it could be accepted item by item (found in the benign Hub corpus: a picklescan-bypass PoC).
 - Scanning an empty file no longer crashes (`UnboundLocalError`); it is UNSUPPORTED.
 
 ## safeloadai 0.5.0

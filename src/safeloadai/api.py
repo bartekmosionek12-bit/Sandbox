@@ -206,12 +206,13 @@ def load_torch(path: str, extra: Iterable[tuple[str, str]] = (), **kwargs) -> An
 
 
 def cleared_pairs(report) -> frozenset[tuple[str, str]]:
-    """Pairs outside the allowlist that the scan's static layers accepted (only referenced,
-    state-only by policy, ...): the restricted loaders must resolve them too."""
+    """Pairs outside the allowlist that the scan accepted (only referenced, state-only by
+    policy, a profile, a known reviewed file, ...): the restricted loaders must resolve them too."""
     pairs = set()
-    for layer in report.layers:
-        for entry in (layer.details or {}).get("cleared") or []:
+    for entry in report.cleared:
+        if entry.get("pair"):
             pairs.add(tuple(entry["pair"]))
+        pairs.update(tuple(p) for p in entry.get("pairs") or ())  # a known reviewed file
     return frozenset(pairs)
 
 

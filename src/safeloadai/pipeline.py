@@ -13,6 +13,7 @@ import time
 from collections.abc import Callable, Iterable, Mapping
 
 from . import behaviour, verdict
+from . import known_good as known_good_mod
 from . import options as options_mod
 from . import static as static_mod
 from .parsing import detect as detect_mod
@@ -193,6 +194,8 @@ def scan(path: str | os.PathLike, *, judge: bool = False, deep: bool = False,
                                             known_good=known_good)
     with clearance_mod.active(clearance_mod.for_distributions(trust_inert_from)):
         report = _scan(path, judge=judge, deep=deep, extra_allowed=extra_allowed, limits=limits, step=step)
+    if known_good:
+        known_good_mod.apply(report)
     report.options = used_options
     return report
 
@@ -278,8 +281,8 @@ def _cleared(layers: list[LayerResult]) -> list[dict]:
             key = (entry["item"], entry["mechanism"])
             if key not in seen:
                 seen.add(key)
-                out.append({"item": entry["item"], "mechanism": entry["mechanism"], "detail": entry["detail"],
-                            "layer": layer.name})
+                out.append({"item": entry["item"], "pair": entry["pair"], "mechanism": entry["mechanism"],
+                            "detail": entry["detail"], "layer": layer.name})
     return out
 
 

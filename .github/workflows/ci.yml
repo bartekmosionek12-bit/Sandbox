@@ -29,7 +29,7 @@ jobs:
         with:
           python-version: "3.13"
       - name: Cache pinned wheels
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/safeloadai-upstream
           key: upstream-wheels-${{ hashFiles('tools/upstream_pins.json') }}
@@ -46,7 +46,7 @@ jobs:
       # The only download of the runtime: at package build time, verified against the
       # sha256 pinned in packages/safeloadai-runtime (the build fails on a mismatch).
       - name: Cache WASI runtime
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: packages/safeloadai-runtime/src/safeloadai_runtime/python-3.12.0.wasm
           key: wasi-python-3.12.0-e5dc5a398b07b54ea8fdb503bf68fb583d533f10ec3f930963e02b9505f7a763

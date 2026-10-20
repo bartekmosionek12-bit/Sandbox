@@ -22,6 +22,11 @@ This file follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Vers
 - **A pickle that calls `pandas.read_pickle` (or `read_hdf`, `load_model`, ...) on another file is MALICIOUS.** It was UNVERIFIABLE, so it could be accepted item by item (found in the benign Hub corpus: a picklescan-bypass PoC).
 - Scanning an empty file no longer crashes (`UnboundLocalError`); it is UNSUPPORTED.
 
+### Changed
+- **Beta.** Version 0.7.0, classifier "Development Status :: 4 - Beta", licensed Apache-2.0 (`LICENSE`); `safeloadai-runtime` declares `Apache-2.0 AND PSF-2.0`.
+- **Evaluation reports what users meet** (`evaluation/run_eval.py`): benign files are split into CLEAN, soft blocks (UNVERIFIABLE only, overridable item by item), hard blocks (RISKY, MALICIOUS) and UNSUPPORTED. New columns: without the known-file list, and a real opt-in (`trust_inert_from` for scikit-learn, transformers, torch). The old "opt-in" column (every UNVERIFIABLE item accepted) is now "upper bound: accept all unverifiable (not recommended)". A Pareto table lists the entries or rules that would unblock most files. Existing flags are unchanged; `--opt-in-trust`, `--opt-in-site` and `--no-opt-in` are new.
+- README rewritten for first-time visitors; the layer-by-layer description moved to docs/HOW_IT_WORKS.md.
+
 ## safeloadai 0.5.0
 
 ### Added

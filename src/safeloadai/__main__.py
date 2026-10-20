@@ -22,6 +22,8 @@ Exit codes of ``scan`` (stable, for CI):
     2  usage error, or no file to scan
     3  at least one file is SUSPICIOUS and none is MALICIOUS
     4  the WASI runtime failed its integrity check; nothing was scanned
+    5  at least one file is UNSUPPORTED (in no format safeloadai reads) and none is
+       MALICIOUS or SUSPICIOUS; such a file is never loadable by safe_load
 
 ``doctor`` exits 0 when every check passes and 1 otherwise.
 """
@@ -40,7 +42,7 @@ from .pipeline import scan
 from .report import Report, Verdict
 from .sandbox.runtime import RuntimeIntegrityError
 
-EXIT_CLEAN, EXIT_MALICIOUS, EXIT_USAGE, EXIT_SUSPICIOUS, EXIT_INTEGRITY = 0, 1, 2, 3, 4
+EXIT_CLEAN, EXIT_MALICIOUS, EXIT_USAGE, EXIT_SUSPICIOUS, EXIT_INTEGRITY, EXIT_UNSUPPORTED = 0, 1, 2, 3, 4, 5
 SUPPORTED = tuple(EXTENSION_HINTS)
 
 
@@ -92,6 +94,11 @@ def _build_parser() -> argparse.ArgumentParser:
                    metavar="[SHA256:]ITEM",
                    help="accept one UNVERIFIABLE item for one file (repeatable); with several files, "
                         "prefix the file's sha256. Refused if the file has any MALICIOUS or RISKY reason")
+    s.add_argument("--trust-inert-from", action="append", default=[], metavar="DISTRIBUTION",
+                   help="judge classes of this installed distribution from its installed source (read, never "
+                        "imported); a class whose rebuild runs no code of its own is accepted (repeatable)")
+    s.add_argument("--no-known-good", action="store_true",
+                   help="do not use the shipped list of reviewed benign files (only makes verdicts stricter)")
     s.add_argument("--no-input", action="store_true", help="never prompt, even on a terminal")
     s.add_argument("--report", metavar="FILE", help="also write the Report JSON to FILE")
     s.add_argument("-q", "--quiet", action="store_true", help="no per-file text output")
@@ -113,6 +120,9 @@ def _print_text(report: Report) -> None:
     print(f"{status:<10} {report.path}  ({report.file_format}, {report.timings_ms.get('total')} ms)")
     for finding in report.findings[:20]:
         print(f"    [{finding['category']}] {finding['text']}")
+    for entry in report.cleared:
+        if entry["mechanism"] != "referenced":
+            print(f"    [accepted] {entry['item']}: {entry['detail']}")
     if report.unverifiable_only and not report.accepted:
         print(f"    every reason is UNVERIFIABLE; to accept this file (sha256 {report.sha256}) name each item:")
         for item in report.unverifiable_items:
@@ -207,6 +217,7 @@ def main(argv: list[str] | None = None) -> int:
         print(line, file=sys.stderr)
     try:
         reports = [scan(f, judge=settings["judge"], deep=settings["deep"], allow=settings["allow"],
+                        trust_inert_from=settings["trust_inert_from"], known_good=settings["known_good"],
                         option_sources=settings["sources"]) for f in files]
     except options_mod.OptionError as exc:
         print(f"safeloadai: {exc}", file=sys.stderr)
@@ -232,6 +243,8 @@ def main(argv: list[str] | None = None) -> int:
         return EXIT_MALICIOUS
     if any(r.verdict is Verdict.SUSPICIOUS and not r.accepted for r in reports):
         return EXIT_SUSPICIOUS
+    if Verdict.UNSUPPORTED in verdicts:
+        return EXIT_UNSUPPORTED
     return EXIT_CLEAN
 
 
@@ -240,13 +253,17 @@ def _settings(args) -> dict:
     flag and the file are combined; the file never removes a flag). ``sources`` says
     where each non-default option came from."""
     settings = {"allow": list(args.allow), "judge": args.judge, "deep": args.deep,
+                "trust_inert_from": list(args.trust_inert_from), "known_good": not args.no_known_good,
                 "accept_unverified": [(sha, item, "CLI flag --accept-unverified")
                                       for sha, item in args.accept_unverified],
                 "sources": {}, "config": None}
-    flag_sources = {"allow": "CLI flag --allow", "judge": "CLI flag --judge", "deep": "CLI flag --deep"}
+    flag_sources = {"allow": "CLI flag --allow", "judge": "CLI flag --judge", "deep": "CLI flag --deep",
+                    "trust_inert_from": "CLI flag --trust-inert-from"}
     for name, source in flag_sources.items():
         if settings[name]:
             settings["sources"][name] = source
+    if not settings["known_good"]:
+        settings["sources"]["known_good"] = "CLI flag --no-known-good"
     if args.config:
         config = options_mod.load_config(args.config)
         source = f"{options_mod.CONFIG} {args.config}"
@@ -259,13 +276,18 @@ def _settings(args) -> dict:
         for name in ("judge", "deep"):
             if config.get(name):
                 settings[name] = True
-        for name in ("allow", "judge", "deep"):
+        settings["trust_inert_from"] += config.get("trust_inert_from", [])
+        if config.get("known_good") is False:
+            settings["known_good"] = False
+            settings["sources"]["known_good"] = source
+        for name in ("allow", "judge", "deep", "trust_inert_from"):
             if config.get(name):
                 settings["sources"][name] = (settings["sources"][name] + " and " + source
                                              if name in settings["sources"] else source)
         if config.get("accept_unverified"):
             settings["sources"]["accept_unverified"] = source
     settings["allow"] = list(options_mod.validate_allow(settings["allow"]))
+    settings["trust_inert_from"] = list(options_mod.validate_trust_inert_from(settings["trust_inert_from"]))
     return settings
 
 
@@ -276,7 +298,8 @@ def _announce(settings: dict) -> list[str]:
     if settings["config"]:
         lines.append(f"safeloadai: reading options from config file {settings['config']}")
     entries = [options_mod.record(name, settings[name], settings["sources"][name])
-               for name in ("allow", "deep", "judge") if not options_mod.is_default(name, settings[name])]
+               for name in ("allow", "trust_inert_from", "known_good", "deep", "judge")
+               if not options_mod.is_default(name, settings[name])]
     if settings["accept_unverified"]:
         sources = sorted({source for _sha, _item, source in settings["accept_unverified"]})
         entries.append(options_mod.record("accept_unverified",

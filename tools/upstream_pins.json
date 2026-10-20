@@ -1,0 +1,160 @@
+{
+  "comment": "Library versions whose source tools/gen_policies.py and tools/gen_torch_safe_globals.py read (as wheel archives, never installed or imported). Changing a pin regenerates src/safeloadai/static/upstream/; the diff is reviewed like an allowlist change.",
+  "distributions": {
+    "numpy": {
+      "version": "2.5.4",
+      "top_level": [
+        "numpy"
+      ],
+      "url": "https://files.pythonhosted.org/packages/ff/a9/bac826765e971d8e16e2064e9ac7525fd69b40ac17c905033a7f5442023f/numpy-2.5.4-cp312-cp312-macosx_11_0_arm64.whl",
+      "file": "numpy-2.5.4-cp312-cp312-macosx_11_0_arm64.whl",
+      "sha256": "b11e8fda06a7d69f15ebf542660b74466c2e51094800c1fb794f47ad4faeef17"
+    },
+    "scipy": {
+      "version": "1.18.1",
+      "top_level": [
+        "scipy"
+      ],
+      "url": "https://files.pythonhosted.org/packages/39/e7/979fd14e75008623df31ba70d6bb144700f68feadcea042021c06a05bf82/scipy-1.18.1-cp312-cp312-win_amd64.whl",
+      "file": "scipy-1.18.1-cp312-cp312-win_amd64.whl",
+      "sha256": "5e4d44984abc0020154ea81b247adeddcc3ac5527b975ff798bd1ba0adc513c2"
+    },
+    "scikit-learn": {
+      "version": "1.9.1",
+      "top_level": [
+        "sklearn"
+      ],
+      "url": "https://files.pythonhosted.org/packages/9d/d6/493086006ea0c68ad62c40a8dece1961b61bf503f45400f133d47f56e5be/scikit_learn-1.9.1-cp312-cp312-win_arm64.whl",
+      "file": "scikit_learn-1.9.1-cp312-cp312-win_arm64.whl",
+      "sha256": "d5945a2908be62350e2978344e62b56c1552c2ca4f844ebf6277c94944d647dd"
+    },
+    "pandas": {
+      "version": "3.0.6",
+      "top_level": [
+        "pandas"
+      ],
+      "url": "https://files.pythonhosted.org/packages/18/8f/48907c7c707b61a8e5018c32e1a3f70623209bfb59020a2f6196159d3aa7/pandas-3.0.6-cp312-cp312-macosx_11_0_arm64.whl",
+      "file": "pandas-3.0.6-cp312-cp312-macosx_11_0_arm64.whl",
+      "sha256": "9dab635a549e58a053c7b0fa054dc0bd7be22f0ed9a720f4a85d5fb993276172"
+    },
+    "torch": {
+      "version": "2.14.1",
+      "top_level": [
+        "torch"
+      ],
+      "url": "https://files.pythonhosted.org/packages/ad/1a/b9648b0d228e513f69f8453ec3f90a8d436d78ff6d85a2773e539f0c07cf/torch-2.14.1-cp312-cp312-win_amd64.whl",
+      "file": "torch-2.14.1-cp312-cp312-win_amd64.whl",
+      "sha256": "38bee9f2a2ccfc6898172a5075e4ba52522fbe143eeb099674fc67ab390e858d"
+    },
+    "torchvision": {
+      "version": "0.29.1",
+      "top_level": [
+        "torchvision"
+      ],
+      "url": "https://files.pythonhosted.org/packages/fa/67/c8cbf53a525ac2fba5d68e36c61636fa08297001a008b151f06c2c0c564a/torchvision-0.29.1-cp312-cp312-win_amd64.whl",
+      "file": "torchvision-0.29.1-cp312-cp312-win_amd64.whl",
+      "sha256": "551c567fd39581570bf553c8df58895d567258b9997760179719f205ec5cd859"
+    },
+    "transformers": {
+      "version": "5.20.2",
+      "top_level": [
+        "transformers"
+      ],
+      "url": "https://files.pythonhosted.org/packages/96/b6/724faefed06913dd3e42e0476fe2c42448675c42f687a12bf810aa098005/transformers-5.20.2-py3-none-any.whl",
+      "file": "transformers-5.20.2-py3-none-any.whl",
+      "sha256": "7ae75dbc1fb3922aff1b6c97b9e5479d6cf26fd86a8866bfb71324190479f807"
+    },
+    "accelerate": {
+      "version": "1.15.0",
+      "top_level": [
+        "accelerate"
+      ],
+      "url": "https://files.pythonhosted.org/packages/8a/4c/34f0450479d01195027260da68d8a3880683f1640c3ca5adf64acb3185f1/accelerate-1.15.0-py3-none-any.whl",
+      "file": "accelerate-1.15.0-py3-none-any.whl",
+      "sha256": "97eacca0b73e45cb867dbf8c5d5d4dc32219544300e0c8992c7334dc2ef33cec"
+    },
+    "xgboost": {
+      "version": "3.4.1",
+      "top_level": [
+        "xgboost"
+      ],
+      "url": "https://files.pythonhosted.org/packages/90/2f/f2fbe984ca095709fd246546125e78834740f347e3aa7561a22a1e928510/xgboost-3.4.1-py3-none-win_arm64.whl",
+      "file": "xgboost-3.4.1-py3-none-win_arm64.whl",
+      "sha256": "e9312b30e5679d27c1d8b9ee97e092b964d960a672d5d406d9fb3cd0845c9797"
+    },
+    "statsmodels": {
+      "version": "0.15.0",
+      "top_level": [
+        "statsmodels"
+      ],
+      "url": "https://files.pythonhosted.org/packages/ef/f5/6b550b5c936dd9ec5c859477698b4fcbccc826e9a4a4a52847fa51673357/statsmodels-0.15.0-cp312-cp312-macosx_11_0_arm64.whl",
+      "file": "statsmodels-0.15.0-cp312-cp312-macosx_11_0_arm64.whl",
+      "sha256": "c6e20788141df134b83ffb43b8cccf135a876188f84124835c86f011f138adee"
+    },
+    "ultralytics": {
+      "version": "8.4.182",
+      "top_level": [
+        "ultralytics"
+      ],
+      "url": "https://files.pythonhosted.org/packages/a5/38/53c3c731a51dc0d27658518d5f0370a052b1328347079cec8c395da7f398/ultralytics-8.4.182-py3-none-any.whl",
+      "file": "ultralytics-8.4.182-py3-none-any.whl",
+      "sha256": "11b90b26fa30f878807b0b8c4ed1870eb3c54e7e876a17a936bd92065a7e743b"
+    },
+    "keras": {
+      "version": "3.15.1",
+      "top_level": [
+        "keras"
+      ],
+      "url": "https://files.pythonhosted.org/packages/8d/b3/c9b848bbdba18e765a8051917c0cc82585b64278ce87895f2e521a27438f/keras-3.15.1-py3-none-any.whl",
+      "file": "keras-3.15.1-py3-none-any.whl",
+      "sha256": "836460e480930acbd19bb7a17e62f9ecad40e8a9af9a651fc8d0586a96d27e20"
+    },
+    "lightgbm": {
+      "version": "4.7.0",
+      "top_level": [
+        "lightgbm"
+      ],
+      "url": "https://files.pythonhosted.org/packages/d5/0b/c5c17d862b12ce292f24cd85d40f2f8f8981668fbdbd43fdc2625eccbc79/lightgbm-4.7.0-py3-none-win_amd64.whl",
+      "file": "lightgbm-4.7.0-py3-none-win_amd64.whl",
+      "sha256": "f42d1e5b32b6f170e606d7c689c6165671da98d7bf37f1addec2623efc8740c9"
+    },
+    "joblib": {
+      "version": "1.6.0",
+      "top_level": [
+        "joblib"
+      ],
+      "url": "https://files.pythonhosted.org/packages/18/53/84099323c2ec4be98d935f63c033ac4151ee83836ca1050ede3b3aadf155/joblib-1.6.0-py3-none-any.whl",
+      "file": "joblib-1.6.0-py3-none-any.whl",
+      "sha256": "3dbbf9f6e4b592a2357b854608e980fe6390d131d7a82f011a377ef2ebef7aba"
+    },
+    "skops": {
+      "version": "0.16.0",
+      "top_level": [
+        "skops"
+      ],
+      "url": "https://files.pythonhosted.org/packages/44/a3/08ae9ea7f7c16e20a447d9289dce40f06f52607ed9a39f554a8426d96ba3/skops-0.16.0-py3-none-any.whl",
+      "file": "skops-0.16.0-py3-none-any.whl",
+      "sha256": "5b2eb1bc49392c74a38db04481e2d110f97d9a72d6ae38fbd698aa7a865a9070",
+      "candidates_only": true
+    }
+  },
+  "policy_scope": [
+    "sklearn",
+    "transformers.training_args",
+    "transformers.training_args_seq2seq",
+    "transformers.trainer_pt_utils",
+    "transformers.trainer_utils",
+    "transformers.trainer_callback",
+    "transformers.debug_utils",
+    "torch.nn",
+    "torchvision",
+    "ultralytics",
+    "pandas",
+    "statsmodels"
+  ],
+  "policy_exclude": {
+    "sklearn.preprocessing._function_transformer:FunctionTransformer": "owner decision A1 (DECISIONS.md): holds an arbitrary function and stays out",
+    "sklearn.compose._target:TransformedTargetRegressor": "holds arbitrary func/inverse_func callables like FunctionTransformer (same reasoning as A1)",
+    "xgboost.core:Booster": "decision A4: hands raw bytes to a native parser; pending the owner's decision"
+  }
+}

@@ -5,6 +5,28 @@ This file follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Vers
 - `safeloadai` (the scanner);
 - `safeloadai-runtime` (the pinned sandbox runtime). It has its own version and changes only when the runtime does.
 
+## safeloadai 0.7.0 (unreleased)
+
+### Added
+- **UNSUPPORTED verdict.** A file in no format safeloadai reads (no pickle, joblib, PyTorch, Keras or HDF5 reading of its bytes exists, such as OpenVINO or CTranslate2 `.bin` weights) is UNSUPPORTED instead of SUSPICIOUS. It is never CLEAN, never loadable by `safe_load` and never overridable, and `safeloadai scan` exits with code 5 for it. Files that parse but look odd stay SUSPICIOUS.
+
+- **Referenced-only globals.** A global the pickle only stores (never calls or hands to code), from an inert module of a known library, is no longer UNVERIFIABLE (`Report.cleared`, mechanism `referenced`).
+- **Source-derived state-only policies.** 1,881 classes of scikit-learn, transformers' Trainer modules, torch.nn, torchvision, ultralytics, pandas and statsmodels, derived from the pinned library source with `ast` (`tools/gen_policies.py`, `static/upstream/`), are accepted when rebuilt from a dict state.
+- **torch weights_only rules.** A PyTorch stream that `torch.load(weights_only=True)` of torch 2.14.1 accepts is CLEAN (`tools/gen_torch_safe_globals.py`).
+- **Profiles for well-known files** (`src/safeloadai/profiles/`, docs/PROFILES.md): transformers Trainer files (`training_args.bin`, `optimizer.pt`, `scheduler.pt`, `rng_state*.pth`) and Ultralytics checkpoints. A profile accepts its globals only where the producer puts them (for `training_args.bin`: accelerate's `PartialState` and `AcceleratorConfig`). A file with the name and producer signature but another structure is SUSPICIOUS (RISKY).
+- **`trust_inert_from` / `--trust-inert-from DIST`** (off by default): the same state-only analysis on the installed source of the named distributions.
+- **Reviewed known files** (`known_good`, on by default; `--no-known-good` turns it off). A file whose exact sha256 is on the shipped list of 27 reviewed tune-split files is CLEAN ("known reviewed file <repo/file>"). MALICIOUS and UNSUPPORTED verdicts are never changed.
+- `Report.cleared` lists every import outside the allowlist that one of these rules accepted, with the rule.
+
+### Fixed
+- **A pickle that calls `pandas.read_pickle` (or `read_hdf`, `load_model`, ...) on another file is MALICIOUS.** It was UNVERIFIABLE, so it could be accepted item by item (found in the benign Hub corpus: a picklescan-bypass PoC).
+- Scanning an empty file no longer crashes (`UnboundLocalError`); it is UNSUPPORTED.
+
+### Changed
+- **Beta.** Version 0.7.0, classifier "Development Status :: 4 - Beta", licensed Apache-2.0 (`LICENSE`); `safeloadai-runtime` declares `Apache-2.0 AND PSF-2.0`.
+- **Evaluation reports what users meet** (`evaluation/run_eval.py`): benign files are split into CLEAN, soft blocks (UNVERIFIABLE only, overridable item by item), hard blocks (RISKY, MALICIOUS) and UNSUPPORTED. New columns: without the known-file list, and a real opt-in (`trust_inert_from` for scikit-learn, transformers, torch). The old "opt-in" column (every UNVERIFIABLE item accepted) is now "upper bound: accept all unverifiable (not recommended)". A Pareto table lists the entries or rules that would unblock most files. Existing flags are unchanged; `--opt-in-trust`, `--opt-in-site` and `--no-opt-in` are new.
+- README rewritten for first-time visitors; the layer-by-layer description moved to docs/HOW_IT_WORKS.md.
+
 ## safeloadai 0.5.0
 
 ### Added

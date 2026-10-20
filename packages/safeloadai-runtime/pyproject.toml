@@ -12,9 +12,10 @@ requires-python = ">=3.11"
 authors = [
   { name="Bartosz Mosionek" },
 ]
+# The packaging code is Apache-2.0 (LICENSES/safeloadai-Apache-2.0.txt, Bartosz Mosionek).
 # The package ships a third-party binary: CPython (PSF-2.0) built for WASI by
 # VMware Wasm Labs (Apache-2.0). Statically linked components: see NOTICE.
-license = "PSF-2.0 AND Apache-2.0"
+license = "Apache-2.0 AND PSF-2.0"
 license-files = ["LICENSES/*", "NOTICE"]
 classifiers = [
   "Programming Language :: Python :: 3",

@@ -1,16 +1,30 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=77.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "safeloadai"
-version = "0.5.0"
+version = "0.7.0"
 authors = [
   { name="Bartosz Mosionek" },
 ]
 description = "SafeLoadAI: decide whether an ML model file is safe to load (static analysis + sandboxed emulation)."
 readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 requires-python = ">=3.11"
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "Topic :: Security",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Operating System :: OS Independent",
+]
 # The sandbox boundary is only as good as its runtime: the CPython-on-WASI build is
 # pinned exactly (and its sha256 is checked again at run time), wasmtime to the
 # major version the test suite runs against.
@@ -61,6 +75,8 @@ include = ["safeloadai*"]
 
 [tool.setuptools.package-data]
 "safeloadai.sandbox" = ["guest/*.py"]
+"safeloadai.static.upstream" = ["*.json"]
+"safeloadai.data" = ["*.tsv"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

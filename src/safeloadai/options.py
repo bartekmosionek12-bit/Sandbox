@@ -49,6 +49,13 @@ OPTIONS: tuple[Option, ...] = (
     Option("accept_unverified", None, "looser", "medium",
            "accept named UNVERIFIABLE items for one file (sha256-bound); refused on any RISKY or MALICIOUS reason",
            "accept_unverified", "--accept-unverified [SHA256:]ITEM", config=True),
+    Option("trust_inert_from", (), "looser", "medium",
+           "treat classes of the named installed distributions as state-only when their installed source says so "
+           "(read with ast, never imported)",
+           "trust_inert_from", "--trust-inert-from DISTRIBUTION", config=True),
+    Option("known_good", True, "stricter", "low",
+           "use the shipped list of reviewed benign files (exact sha256); turning it off only makes verdicts stricter",
+           "known_good", "--no-known-good", config=True),
     Option("deep", False, "stricter", "high",
            "also run the file's own code in a Docker/bwrap/nsjail sandbox (can only raise the verdict)",
            "deep", "--deep", config=True),
@@ -84,6 +91,8 @@ def _value(name: str, value):
         return dataclasses.asdict(value) if value is not None else None
     if name == "allow":
         return [f"{m}:{n}" for m, n in value]
+    if name == "trust_inert_from":
+        return list(value)
     return value
 
 
@@ -91,7 +100,7 @@ def is_default(name: str, value) -> bool:
     default = BY_NAME[name].default
     if name == "limits":
         return value is None or value == Limits()
-    if name == "allow":
+    if name in ("allow", "trust_inert_from"):
         return not tuple(value or ())
     return value == default or (default is None and not value)
 
@@ -101,12 +110,14 @@ def record(name: str, value, source: str) -> dict:
             "direction": BY_NAME[name].direction}
 
 
-def scan_options(*, allow, judge: bool, deep: bool, limits, sources: Mapping[str, str] | None) -> list[dict]:
+def scan_options(*, allow, judge: bool, deep: bool, limits, sources: Mapping[str, str] | None,
+                 trust_inert_from=(), known_good: bool = True) -> list[dict]:
     """Report.options entries for the non-default scan() arguments, plus environment
     settings that change how an enabled option runs."""
     sources = sources or {}
     out = []
-    for name, value in (("allow", allow), ("deep", deep), ("judge", judge), ("limits", limits)):
+    for name, value in (("allow", allow), ("trust_inert_from", trust_inert_from), ("known_good", known_good),
+                        ("deep", deep), ("judge", judge), ("limits", limits)):
         if not is_default(name, value):
             out.append(record(name, value, sources.get(name, ARGUMENT)))
     for option in OPTIONS:
@@ -138,9 +149,29 @@ def validate_allow(allow: Iterable[tuple[str, str]]) -> tuple[tuple[str, str], .
     return tuple(pairs)
 
 
+def validate_trust_inert_from(names: Iterable[str]) -> tuple[str, ...]:
+    """Exact names of installed distributions (importlib.metadata finds them without
+    importing anything); no patterns, nothing that is not installed."""
+    from importlib import metadata
+
+    out = []
+    for name in names:
+        name = str(name).strip()
+        if not name or any(c in name for c in "*?/\\ \t\n:"):
+            raise OptionError(f"trust_inert_from entry {name!r} is not an exact distribution name")
+        try:
+            metadata.distribution(name)
+        except metadata.PackageNotFoundError:
+            raise OptionError(f"trust_inert_from: distribution {name!r} is not installed") from None
+        if name not in out:
+            out.append(name)
+    return tuple(out)
+
+
 # --- config file -----------------------------------------------------------------------
 
-CONFIG_KEYS = {"allow": list, "accept_unverified": list, "deep": bool, "judge": bool}
+CONFIG_KEYS = {"allow": list, "accept_unverified": list, "deep": bool, "judge": bool, "trust_inert_from": list,
+               "known_good": bool}
 
 
 def load_config(path: str | os.PathLike) -> dict:

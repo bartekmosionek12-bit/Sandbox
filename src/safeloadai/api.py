@@ -182,13 +182,38 @@ def load_joblib(path: str, allowed: frozenset[tuple[str, str]]) -> Any:
     return RestrictedJoblibUnpickler(io.BytesIO(inner), allowed).load()
 
 
-def load_torch(path: str, **kwargs) -> Any:
+def load_torch(path: str, extra: Iterable[tuple[str, str]] = (), **kwargs) -> Any:
+    """torch.load(weights_only=True). ``extra``: exact pairs the scan cleared (static/clearance.py),
+    added only for this call through torch.serialization.safe_globals."""
     try:
         import torch
     except ImportError as exc:
         raise ImportError("loading a PyTorch file needs the 'torch' package") from exc
     kwargs["weights_only"] = True
-    return torch.load(path, **kwargs)
+    extra = sorted(set(extra))
+    if not extra:
+        return torch.load(path, **kwargs)
+    import importlib
+
+    objects = []
+    for module, name in extra:
+        value = importlib.import_module(module)
+        for part in name.split("."):
+            value = getattr(value, part)
+        objects.append(value)
+    with torch.serialization.safe_globals(objects):
+        return torch.load(path, **kwargs)
+
+
+def cleared_pairs(report) -> frozenset[tuple[str, str]]:
+    """Pairs outside the allowlist that the scan accepted (only referenced, state-only by
+    policy, a profile, a known reviewed file, ...): the restricted loaders must resolve them too."""
+    pairs = set()
+    for entry in report.cleared:
+        if entry.get("pair"):
+            pairs.add(tuple(entry["pair"]))
+        pairs.update(tuple(p) for p in entry.get("pairs") or ())  # a known reviewed file
+    return frozenset(pairs)
 
 
 def load_keras(path: str, **kwargs) -> Any:
@@ -203,6 +228,7 @@ def load_keras(path: str, **kwargs) -> Any:
 def safe_load(path: str | os.PathLike, *, judge: bool = False, deep: bool = False,
               allow: Iterable[tuple[str, str]] = (),
               accept_unverified: Iterable[str] | Mapping[str, Iterable[str]] | None = None,
+              trust_inert_from: Iterable[str] = (), known_good: bool = True,
               **loader_kwargs) -> Any:
     """Load ``path`` only if ``scan`` says CLEAN, or SUSPICIOUS with only UNVERIFIABLE
     reasons that ``accept_unverified`` names one by one; otherwise raise UnsafeModelError.
@@ -214,7 +240,8 @@ def safe_load(path: str | os.PathLike, *, judge: bool = False, deep: bool = Fals
     allow = tuple((str(m), str(n)) for m, n in allow)
     name = os.path.basename(os.fspath(path))
     with _private_copy(path) as staged:
-        report = scan(staged, judge=judge, deep=deep, allow=allow)
+        report = scan(staged, judge=judge, deep=deep, allow=allow, trust_inert_from=trust_inert_from,
+                      known_good=known_good)
         if not report.clean:
             items = override.items_for(report, accept_unverified)
             if items is not None:
@@ -228,17 +255,17 @@ def safe_load(path: str | os.PathLike, *, judge: bool = False, deep: bool = Fals
                 )
         if _sha256(staged) != report.sha256:
             raise UnsafeModelError("file changed between scan and load", report)
-        allow = allow + tuple(override.accepted_pickle_pairs(report))
+        allow = allow + tuple(override.accepted_pickle_pairs(report)) + tuple(cleared_pairs(report))
         fmt = report.file_format
         if fmt == detect_mod.JOBLIB:
             return load_joblib(staged, PICKLE_GLOBALS | frozenset(allow))
         if fmt == detect_mod.PICKLE:
             allowed = PICKLE_GLOBALS | frozenset(allow)
             if any("legacy PyTorch" in str(n) for n in report.layer("static").details.get("notes", [])):
-                return load_torch(staged, **loader_kwargs)
+                return load_torch(staged, cleared_pairs(report), **loader_kwargs)
             return load_pickle(staged, allowed, **loader_kwargs)
         if fmt == detect_mod.TORCH:
-            return load_torch(staged, **loader_kwargs)
+            return load_torch(staged, cleared_pairs(report), **loader_kwargs)
         if fmt == detect_mod.KERAS:
             return load_keras(staged, **loader_kwargs)
         raise UnsafeModelError(f"no loader for format {fmt!r}", report)

@@ -143,9 +143,14 @@ def allowed_names(extra_allowed: frozenset = frozenset(), torch: bool = False) -
 
 
 def classify(run: GuestRun, *, name: str = "emulation", torch: bool = False,
-             extra_allowed: frozenset = frozenset(), framework: bool = True) -> LayerResult:
+             extra_allowed: frozenset = frozenset(), framework: bool = True,
+             referenced: frozenset = frozenset()) -> LayerResult:
     """``framework=False`` (pickle streams): only methods of allowlisted globals are
-    benign calls; a tensor-library name alone (``numpy.testing...``) is not."""
+    benign calls; a tensor-library name alone (``numpy.testing...``) is not.
+
+    ``referenced``: pairs the static layer found only referenced from an inert library
+    module (static/clearance.py). Their import is no finding; any call to or through
+    them stays RISKY (they are not allowlisted, and not UNVERIFIABLE either)."""
     layer = LayerResult(name=name, verdict=Verdict.CLEAN, timings_ms=dict(run.timings_ms),
                         details={"status": run.status, "completed": run.completed, "runtime": run.runtime,
                                  "problems": run.problems[:50]})
@@ -165,7 +170,7 @@ def classify(run: GuestRun, *, name: str = "emulation", torch: bool = False,
         if event.get("kind") == "import":
             pair = (str(event.get("module")), str(event.get("name")))
             if (event.get("resolved") != "real" and pair not in allow_pairs and pair not in KNOWN_GADGETS
-                    and pair not in GETATTR
+                    and pair not in GETATTR and pair not in referenced
                     and not is_dangerous_import(*pair) and not imitates(pair[0])):
                 unknown[f"{pair[0]}.{pair[1]}"] = pair
     for event in run.events:
@@ -188,7 +193,8 @@ def classify(run: GuestRun, *, name: str = "emulation", torch: bool = False,
                 _evidence(layer, event, category, severity)
         elif kind == "import":
             pair = (event.get("module"), event.get("name"))
-            if event.get("resolved") != "real" and pair not in allow_pairs and pair not in GETATTR:
+            if (event.get("resolved") != "real" and pair not in allow_pairs and pair not in GETATTR
+                    and pair not in referenced):
                 dotted = f"{pair[0]}.{pair[1]}"
                 if dotted in unknown:
                     layer.raise_to(S, f"import outside the allowlist: {dotted}", category=Category.UNVERIFIABLE,

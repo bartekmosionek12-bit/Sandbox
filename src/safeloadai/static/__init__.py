@@ -42,7 +42,9 @@ def analyze_bytes(data: bytes, file_name: str = "<memory>", extra_allowed: froze
     report["views"] = [v.describe() for v in views]
     _leading_bytes(views, data, report)
     mismatch = detect_mod.extension_mismatch(file_name, views_mod.detected_format(primary))
-    if mismatch:
+    if mismatch and report.get("unsupported"):
+        report["notes"].append(mismatch)  # implied by UNSUPPORTED: no reading in any format
+    elif mismatch:
         report["reasons"].append(mismatch)
     if report["reasons"] and report["static_risk"] == "clean":
         report["static_risk"] = "suspicious"
@@ -68,12 +70,42 @@ def _analyze_view(view: views_mod.View | None, data: bytes, file_name: str, extr
             report["notes"].append(f"HDF5 superblock at offset {view.start} (after a user block)")
         return report
     report = parse_pickle(b"", file_name, file_format=detect_mod.UNKNOWN)
-    reason = ("ZIP archive that is neither a Keras nor a PyTorch file" if fmt == views_mod.ZIP
-              else "unrecognised file format")
+    refused = _refused_archive(data) if view is None else None
+    if refused:
+        # Bytes that look like a ZIP archive the archive reader refuses (CVE-2025-1944/1945
+        # style tricks among them): a loader with a laxer reader may still open it. RISKY.
+        reason = f"ZIP archive refused: {refused}"
+        report["static_risk"] = "suspicious"
+    elif view is None:
+        # No reading at all: pickle.load fails before it can import or call anything
+        # (detect._looks_like_pickle), and the bytes are no ZIP archive or HDF5 file. Nothing
+        # can be analysed, which is its own verdict (UNSUPPORTED), never CLEAN.
+        reason = UNSUPPORTED_REASON
+        report["unsupported"] = True
+        report["static_risk"] = "unsupported"
+    else:
+        # A ZIP archive parses, and a loader can do anything with its members: RISKY.
+        reason = "ZIP archive that is neither a Keras nor a PyTorch file"
+        report["static_risk"] = "suspicious"
     report["reasons"] = [reason]
     report["error"] = reason
-    report["static_risk"] = "suspicious"
     return report
+
+
+def _refused_archive(data: bytes) -> str | None:
+    from ..parsing.zipsafe import ZIP_MAGIC, SafeZip, ZipRefused
+
+    if not (data.startswith(ZIP_MAGIC) or b"PK\x05\x06" in data[-65_557:]):
+        return None
+    try:
+        with SafeZip(data):
+            return None
+    except ZipRefused as exc:
+        return str(exc) or "invalid archive"
+
+
+UNSUPPORTED_REASON = ("unrecognised file format: no pickle, joblib, PyTorch, Keras or HDF5 reading of these "
+                      "bytes exists, so nothing could be analysed")
 
 
 MAX_TRAILING_VIEWS = 16

@@ -28,6 +28,8 @@ file is not used unless you name it.
 |---|---|---|---|
 | [`allow`](#allow) | `()` (none) | looser | high |
 | [`accept_unverified`](#accept_unverified) | `None` (none) | looser | medium |
+| [`trust_inert_from`](#trust_inert_from) | `()` (none) | looser | medium |
+| [`known_good`](#known_good) | `True` (shipped list used) | stricter when turned off | low |
 | [`deep`](#deep) | `False` | stricter (but runs the file's code) | high |
 | [`judge`](#judge) | `False` | stricter (but sends data out) | medium |
 | [`limits`](#limits) | `None` (built-in limits) | neutral (lower limits are stricter) | low |
@@ -125,6 +127,72 @@ Every entry in `Report.options` looks like this:
      `booster.save_model("model.json")` or `booster.save_model("model.ubj")`, and
      load it with `xgboost.Booster(model_file="model.json")`. That format holds no
      pickle, so no Python object is rebuilt. It is still parsed by libxgboost.
+
+## `trust_inert_from`
+
+1. **What it does.** For each named distribution that is installed where the scan
+   runs, it reads that distribution's own Python files and decides which of its classes
+   are state-only. It finds the files through the distribution's file list
+   (`importlib.metadata`) and reads them with `ast`, so nothing is imported or run.
+   - **Which classes count as state-only.** Rebuilding the class from a dict state
+     (`NEWOBJ ()` + `BUILD`) runs none of its own code. Nothing in its MRO may define
+     `__reduce__`, `__reduce_ex__`, `__setstate__`, `__new__`, `__setattr__`,
+     `__getattr__`, `__getattribute__` or `__delattr__`, or a property setter, unless
+     that exact implementation is a reviewed hook. Every base must be readable Python
+     source, and every module on its import path must be inert.
+   - **What the scan then accepts.** A pickle may rebuild such a class from a dict
+     state. It may not call the class, use a slot state, or call the rebuilt instance.
+   - **What it replaces.** For the named distributions, this analysis replaces the
+     pinned policy that ships with safeloadai (`static/upstream/policies.json`).
+   - **What it never accepts.** Classes the owner's review keeps out
+     (`excluded` in `static/upstream/policies.json`: for example scikit-learn's
+     `FunctionTransformer` and `TransformedTargetRegressor`, which store a callable,
+     and xgboost's `Booster`) stay outside, whatever the installed source says.
+2. **Risk you accept.** The decision relies on the source installed on your machine.
+   If that installation was tampered with, or a hook does something the analysis
+   cannot see, loading may run that code. Only distributions you name are affected.
+3. **When to use it, and when not to.**
+   - **Use it** for files produced by a library you have installed in a newer or
+     older version than the pinned one, for example your own scikit-learn version.
+   - **Do not use it** for distributions you did not install from a source you trust.
+4. **How to use it.**
+   ```python
+   report = scan("model.pkl", trust_inert_from=["scikit-learn"])
+   ```
+   ```bash
+   safeloadai scan model.pkl --trust-inert-from scikit-learn --trust-inert-from torch
+   ```
+5. **How to check it in the report.** Look at:
+   - `report.options[*]` with `name == "trust_inert_from"`;
+   - `report.cleared[*]` with `mechanism == "inert-class"`, whose `detail` reads
+     `CLEAN by inert-class rule (scikit-learn X.Y.Z)`.
+6. **Safer alternative.** Leave it off. The pinned policies cover the versions listed
+   in `static/upstream/REVIEW.md`.
+
+## `known_good`
+
+1. **What it does.** It controls the shipped list of reviewed benign files: exact
+   sha256 values of files from the evaluation's tune split, each with a reviewer note.
+   - **When it is on (the default).** A file whose sha256 is on the list is CLEAN,
+     with the reason `known reviewed file <repo/file>`. Only RISKY or UNVERIFIABLE
+     findings are cleared this way. A MALICIOUS finding or an UNSUPPORTED file is
+     never cleared.
+   - **When it is turned off.** Nothing is cleared by hash.
+2. **Risk you accept.** None beyond trusting the review: a file that differs by even
+   one byte does not match.
+3. **When to use it, and when not to.**
+   - **Turn it off** for measurements, or if you want verdicts from analysis alone.
+4. **How to use it.**
+   ```python
+   report = scan("model.pkl", known_good=False)
+   ```
+   ```bash
+   safeloadai scan model.pkl --no-known-good
+   ```
+5. **How to check it in the report.** Look at:
+   - `report.options[*]` with `name == "known_good"`;
+   - `report.cleared[*]` with `mechanism == "known-file"`.
+6. **Safer alternative.** Not applicable: turning it off is the stricter setting.
 
 ## `deep`
 

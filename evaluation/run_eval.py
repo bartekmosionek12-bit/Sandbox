@@ -22,6 +22,15 @@ safeloadai only ever calls ``scan()``. The other scanners run as their own
 processes; modelscan is not run on ``.h5`` files, because it reads them with h5py
 on the host (counted as "skipped").
 
+Next to the default run the results carry three more safeloadai columns: the default with
+the reviewed known-file list off, the opt-in (``--trust-inert-from`` for ``--opt-in-trust``
+distributions, by default scikit-learn, transformers and torch; ``--opt-in-site DIR`` finds
+them unpacked in DIR without making them importable; ``--no-opt-in`` leaves it out), and
+the upper bound (every UNVERIFIABLE item of every file accepted; not recommended). For
+benign files each column is split into CLEAN, soft block (UNVERIFIABLE only), hard block
+(RISKY or MALICIOUS) and UNSUPPORTED, and a Pareto table lists the rules that unblocked
+Hub files and the entries still missing, on tune and on held-out.
+
 Results go to ``<out>/eval-<label>-<UTC timestamp>.json`` and a Markdown summary
 next to it: detection rate and false-positive rate overall and per format, how many
 flagged files are UNVERIFIABLE only (a user could accept them with an informed
@@ -58,9 +67,20 @@ from safeloadai import __version__, override, scan  # noqa: E402
 from safeloadai.parsing.detect import EXTENSION_HINTS  # noqa: E402
 
 MODEL_EXTENSIONS = tuple(EXTENSION_HINTS)
-# safeloadai with the one looser option a user can apply per file: every UNVERIFIABLE
-# item accepted (docs/OPTIONS.md, accept_unverified). Reported next to the default run.
-OPT_IN = "safeloadai opt-in"
+# Columns next to the default run (each a result per file, like another tool):
+# * UPPER_BOUND: every UNVERIFIABLE item accepted (accept_unverified for all of them). An
+#   upper bound on what overrides can do, not a recommendation: it lets malicious lab
+#   files whose every reason is UNVERIFIABLE through. Called "safeloadai opt-in" before 0.7.0.
+# * TRUST: the real opt-in, default + trust_inert_from for the distributions named with
+#   --opt-in-trust (scikit-learn, transformers and torch unless given).
+# * NO_KNOWN_GOOD: default with the reviewed known-file list turned off (known_good=False).
+UPPER_BOUND = "safeloadai upper bound"
+OLD_UPPER_BOUND = "safeloadai opt-in"
+TRUST = "safeloadai trust-inert-from"
+NO_KNOWN_GOOD = "safeloadai without known-file list"
+COLUMN_TITLES = {UPPER_BOUND: "upper bound: accept all unverifiable (not recommended)",
+                 TRUST: "opt-in: --trust-inert-from", NO_KNOWN_GOOD: "default without the known-file list"}
+DEFAULT_TRUST = ("scikit-learn", "transformers", "torch")
 TOOL_TIMEOUT_S = 300
 ERROR_MARKERS = ("Traceback", "NotImplementedError", "Parsing errors", "Error:")
 
@@ -165,33 +185,122 @@ def _missing_entries(report) -> list[str]:
     return sorted(set(out))
 
 
-def run_safeloadai(path: str) -> dict:
+def block_of(verdict: str | None, unverifiable_only: bool) -> str:
+    """What a user experiences: clean, soft (UNVERIFIABLE only: overridable item by item),
+    hard (RISKY or MALICIOUS), unsupported, or error."""
+    if verdict is None:
+        return "error"
+    if verdict.startswith("CLEAN"):
+        return "clean"
+    if verdict == "UNSUPPORTED":
+        return "unsupported"
+    return "soft" if verdict == "SUSPICIOUS" and unverifiable_only else "hard"
+
+
+def _column(report, seconds: float) -> dict:
+    return {"outcome": "clean" if report.clean else "flagged", "verdict": report.verdict.value,
+            "category": report.category, "unverifiable_only": report.unverifiable_only, "seconds": seconds,
+            "block": block_of(report.verdict.value, report.unverifiable_only),
+            "cleared": sorted({c["mechanism"] for c in report.cleared})}
+
+
+def run_safeloadai(path: str, trust: tuple[str, ...] = ()) -> dict:
     started = time.perf_counter()
     try:
         report = scan(path)
     except Exception as exc:  # noqa: BLE001 - a crash is a result to report
         return {"outcome": "error", "error": f"{type(exc).__name__}: {exc}",
                 "seconds": time.perf_counter() - started}
+    seconds = time.perf_counter() - started
     layers = {layer.name: layer.verdict.value for layer in report.layers}
     result = {"outcome": "clean" if report.clean else "flagged", "verdict": report.verdict.value,
               "file_format": report.file_format, "layers": layers, "timings_ms": report.timings_ms,
-              "reasons": report.reasons[:8], "seconds": time.perf_counter() - started,
-              "category": report.category, "unverifiable_only": report.unverifiable_only}
+              "reasons": report.reasons[:8], "seconds": seconds,
+              "category": report.category, "unverifiable_only": report.unverifiable_only,
+              "block": block_of(report.verdict.value, report.unverifiable_only),
+              # what accepted the imports outside the allowlist, by rule (Part 1-4)
+              "cleared": [{"item": c["item"], "mechanism": c["mechanism"]} for c in report.cleared]}
+    known = next((c for c in report.cleared if c["mechanism"] == "known-file"), None)
     if not report.clean:
         result["missing"] = _missing_entries(report)
         result["unverifiable_items"] = report.unverifiable_items if report.unverifiable_only else []
-    # The opt-in run: the same report with every UNVERIFIABLE item accepted, as a user who
+    # Without the known-file list: the verdict the list replaced (recorded in the entry).
+    if known:
+        only = known["category"] == "UNVERIFIABLE"
+        result["missing"] = sorted({f"{p[0]}.{p[1]}" for p in known["pairs"]})
+        result["no_known_good"] = {"outcome": "flagged", "verdict": "SUSPICIOUS", "category": known["category"],
+                                   "unverifiable_only": only, "seconds": seconds,
+                                   "block": block_of("SUSPICIOUS", only)}
+    else:
+        result["no_known_good"] = {k: result[k] for k in ("outcome", "verdict", "category", "unverifiable_only",
+                                                          "seconds", "block")}
+    # The real opt-in: trust_inert_from for the named distributions. A file CLEAN by default
+    # is not scanned again: with the installed versions equal to the pins, the option only
+    # widens the pinned analysis (docs/OPTIONS.md).
+    if trust:
+        if report.clean:
+            result["trust"] = dict(result["no_known_good"], outcome="clean", verdict=report.verdict.value,
+                                   category=None, unverifiable_only=False, block="clean")
+        else:
+            t = time.perf_counter()
+            try:
+                result["trust"] = _column(scan(path, trust_inert_from=trust), time.perf_counter() - t)
+            except Exception as exc:  # noqa: BLE001
+                result["trust"] = {"outcome": "error", "error": f"{type(exc).__name__}: {exc}", "seconds": 0.0,
+                                   "block": "error"}
+    # The upper bound: the same report with every UNVERIFIABLE item accepted, as a user who
     # passes --accept-unverified for each of them would (refused on any RISKY or MALICIOUS reason).
     accepted = override.apply(report, report.unverifiable_items, how="api") if not report.clean else False
-    result["opt_in"] = {"outcome": "clean" if report.clean or accepted else "flagged",
-                        "verdict": "CLEAN (accepted)" if accepted else report.verdict.value,
-                        "category": report.category, "seconds": result["seconds"]}
+    result["upper_bound"] = {"outcome": "clean" if report.clean or accepted else "flagged",
+                             "verdict": "CLEAN (accepted)" if accepted else report.verdict.value,
+                             "category": report.category, "seconds": seconds,
+                             "block": "clean" if report.clean or accepted else result["block"]}
     return result
 
 
-def _init_worker(allowed: tuple) -> None:
+def _init_worker(allowed: tuple, site: str | None = None) -> None:
     platform.uname()
+    use_site(site)
     activate(allowed)
+
+
+def use_site(site: str | None) -> None:
+    """Let importlib.metadata find the distributions unpacked in ``site`` (``*.dist-info``
+    next to the sources) for --trust-inert-from, without putting ``site`` on sys.path:
+    nothing there can be imported. Evaluation only: the library itself finds installed
+    distributions."""
+    if not site:
+        return
+    from importlib import metadata
+
+    original = metadata.distribution
+
+    def distribution(name: str):
+        for dist in metadata.distributions(path=[site]):
+            if dist.metadata["Name"] and _norm(dist.metadata["Name"]) == _norm(name):
+                return dist
+        return original(name)
+
+    metadata.distribution = distribution
+
+
+def _norm(name: str) -> str:
+    return name.lower().replace("_", "-").replace(".", "-")
+
+
+def trust_available(names: tuple[str, ...], site: str | None) -> tuple[str, ...]:
+    """The named distributions importlib.metadata can find (installed or in ``site``)."""
+    from importlib import metadata
+
+    use_site(site)
+    found = []
+    for name in names:
+        try:
+            metadata.distribution(name)
+            found.append(name)
+        except metadata.PackageNotFoundError:
+            print(f"--opt-in-trust: {name} is neither installed nor in --opt-in-site; left out", file=sys.stderr)
+    return tuple(found)
 
 
 def _ready(_i: int) -> bool:
@@ -199,9 +308,10 @@ def _ready(_i: int) -> bool:
     return True
 
 
-def _evaluate(job: tuple[str, tuple[str, ...], str | None]) -> dict:
-    path, tools, tool_bin = job
-    results = {"safeloadai": run_safeloadai(path)}
+def _evaluate(job: tuple) -> dict:
+    path, tools, tool_bin = job[:3]
+    trust = job[3] if len(job) > 3 else ()
+    results = {"safeloadai": run_safeloadai(path, trust)}
     for tool in tools:
         results[tool] = run_tool(tool, path, tool_bin)
     return results
@@ -263,7 +373,12 @@ def _stats(rows: list[tuple[dict, dict]]) -> dict:
     unverifiable_detected = sum(r["outcome"] == "flagged" and bool(r.get("unverifiable_only")) for _, r in mal)
     seconds = [r["seconds"] for _, r in rows if r["outcome"] != "skipped"]
     flagged_ben = [r for _, r in ben if r["outcome"] == "flagged"]
+    # What a user meets on benign files (safeloadai columns only; other tools have no "block")
+    blocks = Counter(_block(r) for _, r in ben)
     return {
+        "benign_clean": blocks["clean"], "benign_soft": blocks["soft"], "benign_hard": blocks["hard"],
+        "benign_unsupported": blocks["unsupported"],
+        "missed": sum(_block(r) == "clean" for _, r in mal),
         "unclear": sum(e["label"] not in ("malicious", "benign") for e, _ in rows),
         # safeloadai only: how its benign false positives split by category.
         "fp_malicious_verdict": sum(r.get("verdict") == "MALICIOUS" for r in flagged_ben),
@@ -279,6 +394,16 @@ def _stats(rows: list[tuple[dict, dict]]) -> dict:
         "seconds_median": round(statistics.median(seconds), 4) if seconds else None,
         "seconds_p95": _percentile(seconds, 0.95), "seconds_max": round(max(seconds), 4) if seconds else None,
     }
+
+
+def _block(result: dict) -> str:
+    if "block" in result:
+        return result["block"]
+    if result.get("outcome") == "clean":
+        return "clean"
+    if result.get("outcome") != "flagged":
+        return result.get("outcome", "error")
+    return block_of(result.get("verdict"), bool(result.get("unverifiable_only")))
 
 
 GROUP_ORDER = ("lab", "mutations", "hf-malicious", "hf-tune", "hf-heldout", "benign")
@@ -354,6 +479,109 @@ def false_positives(entries: list[dict]) -> dict:
             "other_reasons": dict(other.most_common())}
 
 
+MECHANISM_PART = {"referenced": "Part 1: referenced only", "policy": "Part 2: source policy",
+                  "inert-class": "Part 2: --trust-inert-from", "torch-weights-only": "Part 2: torch weights_only",
+                  "profile": "Part 3: profile", "known-file": "Part 4: known file"}
+HUB_SPLITS = {"hf-tune": "tune", "hf-heldout": "heldout"}
+
+
+def pareto(entries: list[dict], limit: int = 25) -> list[dict]:
+    """Rules that unblocked benign Hub files (what accepted their imports) and entries still
+    missing, with the files each unblocks on tune and on held-out. A missing entry unblocks
+    a file only when it is the file's last missing entry; ``needed`` counts every file."""
+    rows: dict[tuple[str, str], dict] = {}
+
+    def row(kind: str, item: str) -> dict:
+        return rows.setdefault((kind, item), {"rule": kind, "item": item, "tune": 0, "heldout": 0,
+                                              "needed_tune": 0, "needed_heldout": 0})
+
+    for e in entries:
+        split = HUB_SPLITS.get(e.get("group"))
+        if e["label"] != "benign" or split is None:
+            continue
+        r = e["results"]["safeloadai"]
+        if r.get("outcome") == "clean":
+            for c in r.get("cleared") or []:
+                item = "reviewed file list" if c["mechanism"] == "known-file" else c["item"]
+                found = row(c["mechanism"], item)
+                found[split] += 1
+                found["needed_" + split] += 1
+        elif r.get("outcome") == "flagged":
+            missing = r.get("missing") or []
+            for item in missing:
+                found = row("missing", item)
+                found["needed_" + split] += 1
+                found[split] += len(missing) == 1
+    ordered = sorted(rows.values(), key=lambda x: (-x["tune"], -x["heldout"], -x["needed_tune"], x["item"]))
+    return ordered[:limit]
+
+
+def cleared_files(entries: list[dict]) -> list[dict]:
+    """Benign Hub files CLEAN only because a 0.7.0 rule accepted something, with the rules."""
+    out = []
+    for e in entries:
+        r = e["results"]["safeloadai"]
+        if e["label"] == "benign" and e.get("group") in HUB_SPLITS and r.get("outcome") == "clean" and r.get("cleared"):
+            out.append({"file": e["file"], "group": e["group"],
+                        "mechanisms": sorted({c["mechanism"] for c in r["cleared"]})})
+    return out
+
+
+def user_view(groups: dict, columns: list[str]) -> list[str]:
+    lines = ["", "## What users meet", "",
+             "Benign files: CLEAN loads; a soft block (UNVERIFIABLE only) can be accepted item by item; a hard "
+             "block (RISKY or MALICIOUS) cannot; UNSUPPORTED is a format safeloadai cannot read.", "",
+             "| group | configuration | CLEAN | soft block | hard block | UNSUPPORTED | benign |",
+             "|---|---|---|---|---|---|---|"]
+    for group, per_tool in groups.items():
+        if not per_tool["safeloadai"]["benign"]:
+            continue
+        for column in columns:
+            p = per_tool[column]
+            lines.append(f"| {group} | {COLUMN_TITLES.get(column, 'default')} | {p['benign_clean']} | "
+                         f"{p['benign_soft']} | {p['benign_hard']} | {p['benign_unsupported']} | {p['benign']} |")
+    lines += ["", "| group | configuration | detected / malicious | let through |", "|---|---|---|---|"]
+    for group, per_tool in groups.items():
+        if not per_tool["safeloadai"]["malicious"]:
+            continue
+        for column in columns:
+            p = per_tool[column]
+            lines.append(f"| {group} | {COLUMN_TITLES.get(column, 'default')} | {p['detected']} / {p['malicious']} "
+                         f"| {p['missed']} |")
+    upper = sum(per_tool[UPPER_BOUND]["missed"] for g, per_tool in groups.items()
+                if g == "lab" and UPPER_BOUND in per_tool)
+    if "lab" in groups and UPPER_BOUND in groups["lab"]:
+        lines += ["", f"The upper bound accepts every UNVERIFIABLE item of every file. It lets {upper} lab "
+                  "file(s) through, which is why an override must name each item of one file and is not "
+                  "recommended in bulk."]
+    return lines
+
+
+def pareto_markdown(rows: list[dict], files: list[dict]) -> list[str]:
+    lines = ["", "## Pareto: rules and missing entries", "",
+             "Benign Hub files a rule unblocked (it accepted an import the file needed), and entries still "
+             "missing (unblocked = the file's last missing entry; needed = every file that lacks it). Held-out "
+             "counts are measurement only: no rule or entry was chosen from them.", "",
+             "| rule / missing entry | mechanism | unblocked tune | unblocked held-out | needed tune | "
+             "needed held-out |", "|---|---|---|---|---|---|"]
+    for r in rows:
+        mechanism = MECHANISM_PART.get(r["rule"], "missing")
+        lines.append(f"| `{r['item']}` | {mechanism} | {r['tune']} | {r['heldout']} | {r['needed_tune']} | "
+                     f"{r['needed_heldout']} |")
+    counts: Counter = Counter()
+    for f in files:
+        for m in f["mechanisms"]:
+            counts[(f["group"], m)] += 1
+    lines += ["", "### Which rule cleared each file", "",
+              "| group | mechanism | files |", "|---|---|---|"]
+    for (group, m), n in sorted(counts.items()):
+        lines.append(f"| {group} | {MECHANISM_PART.get(m, m)} | {n} |")
+    lines += ["", "| file | group | mechanisms |", "|---|---|---|"]
+    lines += [f"| {f['file']} | {f['group']} | {', '.join(MECHANISM_PART.get(m, m) for m in f['mechanisms'])} |"
+              for f in files]
+    return lines
+
+
 def _group_table(title: str, rows: dict[str, dict], tools: list[str], first: str) -> list[str]:
     lines = ["", f"### {title}", "",
              f"| {first} | tool | detected / malicious | FP / benign | FP rate | FP MALICIOUS | FP RISKY | "
@@ -391,6 +619,7 @@ def group_markdown(groups: dict, tools: list[str]) -> list[str]:
 
 def markdown(summary: dict, fps: dict, entries: list[dict], tools: list[str], meta: dict,
              groups: dict | None = None) -> str:
+    columns = ["safeloadai", *[t for t in (NO_KNOWN_GOOD, TRUST, UPPER_BOUND) if t in tools]]
     lines = [f"# Evaluation {meta['label']} ({meta['created']})", "",
              f"safeloadai {meta['safeloadai']}, Python {meta['python']}, {meta['platform']}. "
              f"{len(entries)} files.", "",
@@ -414,6 +643,9 @@ def markdown(summary: dict, fps: dict, entries: list[dict], tools: list[str], me
             unv = p.get("unverifiable_fp", 0) if tool == "safeloadai" else "-"
             lines.append(f"| {fmt} | {tool} | {p['detected']} / {p['malicious']} | {p['false_positives']} / "
                          f"{p['benign']} | {unv} | {p['fp_rate']} | {p['seconds_median']} |")
+    if groups:
+        lines += user_view(groups, columns)
+    lines += pareto_markdown(pareto(entries), cleared_files(entries))
     if groups:
         lines += group_markdown(groups, tools)
     c = summary["safeloadai"]["layer_contribution"]
@@ -453,13 +685,17 @@ def resummarise(path: str, labels: str | None, label: str, out: str) -> int:
             lab, reason = reviewed[(e["repo_id"], e["file"][len(e["repo_id"]) + 1:])]
             e.update(label=lab, label_reason=reason,
                      expected={"malicious": "MALICIOUS", "benign": "CLEAN"}.get(lab, "SUSPICIOUS"))
-    tools = run["tools"]
+    for e in entries:  # "safeloadai opt-in" before 0.7.0 is the upper bound
+        if OLD_UPPER_BOUND in e["results"]:
+            e["results"][UPPER_BOUND] = e["results"].pop(OLD_UPPER_BOUND)
+    tools = [UPPER_BOUND if t == OLD_UPPER_BOUND else t for t in run["tools"]]
     summary, groups, fps = summarise(entries, tools), summarise_groups(entries, tools), false_positives(entries)
     meta = {k: run[k] for k in ("created", "python", "safeloadai", "platform")}
     meta["label"] = label
     base = os.path.join(out, f"eval-{label}-{run['created']}")
     with open(base + ".json", "w", encoding="utf-8") as fh:
-        json.dump({**run, "label": label, "summary": summary, "groups": groups, "false_positives": fps,
+        json.dump({**run, "label": label, "tools": tools, "summary": summary, "groups": groups,
+                   "false_positives": fps, "pareto": pareto(entries), "cleared_files": cleared_files(entries),
                    "relabelled_from": os.path.basename(path)}, fh, indent=2)
     with open(base + ".md", "w", encoding="utf-8") as fh:
         fh.write(markdown(summary, fps, entries, tools, meta, groups))
@@ -481,6 +717,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--tools", help="comma-separated subset of: " + ",".join(TOOLS))
     parser.add_argument("--label", default="run", help="name of this run, e.g. before / after")
     parser.add_argument("--out", default=os.path.join(ROOT, "evaluation", "results"))
+    parser.add_argument("--opt-in-trust", action="append", metavar="DIST",
+                        help="distribution for the opt-in column (--trust-inert-from); repeatable; "
+                             f"default: {', '.join(DEFAULT_TRUST)}")
+    parser.add_argument("--opt-in-site", metavar="DIR",
+                        help="directory with unpacked distributions (*.dist-info next to the sources) for the "
+                             "opt-in column; found through importlib.metadata only, never importable")
+    parser.add_argument("--no-opt-in", action="store_true", help="leave out the opt-in column")
     args = parser.parse_args(argv)
     if args.from_json:
         return resummarise(args.from_json, args.labels, args.label, args.out)
@@ -493,13 +736,15 @@ def main(argv: list[str] | None = None) -> int:
     platform.uname()  # cached before the guard (Windows Python 3.11 runs "ver" for it)
     allowed = tuple(_tool_exe(t, args.tool_bin) for t in tools)
     entries = load_entries(args.lab, args.hf, args.benign, args.mutations, args.hf_malicious, args.labels)
-    jobs = [(entry["path"], tuple(tools), args.tool_bin) for entry in entries]
+    trust = () if args.no_opt_in else trust_available(tuple(args.opt_in_trust or DEFAULT_TRUST), args.opt_in_site)
+    COLUMN_TITLES[TRUST] = f"opt-in: --trust-inert-from {' '.join(trust)}"
+    jobs = [(entry["path"], tuple(tools), args.tool_bin, trust) for entry in entries]
     if args.jobs > 1:
         import multiprocessing
         from concurrent.futures import ProcessPoolExecutor
 
         pool = ProcessPoolExecutor(args.jobs, mp_context=multiprocessing.get_context("spawn"),
-                                   initializer=_init_worker, initargs=(allowed,))
+                                   initializer=_init_worker, initargs=(allowed, args.opt_in_site))
         list(pool.map(_ready, range(args.jobs)))  # workers exist (and are guarded) before the guard goes up here
         activate(allowed)
         results = pool.map(_evaluate, jobs)
@@ -508,15 +753,18 @@ def main(argv: list[str] | None = None) -> int:
         results = map(_evaluate, jobs)
     for i, (entry, result) in enumerate(zip(entries, results, strict=True), 1):
         entry["results"] = result
-        if "opt_in" in result["safeloadai"]:
-            result[OPT_IN] = result["safeloadai"].pop("opt_in")
+        for key, column in (("no_known_good", NO_KNOWN_GOOD), ("trust", TRUST), ("upper_bound", UPPER_BOUND)):
+            if key in result["safeloadai"]:
+                result[column] = result["safeloadai"].pop(key)
+            elif key != "trust" or trust:
+                result[column] = dict(result["safeloadai"])  # an error: the same in every column
         print(f"[{i}/{len(entries)}] {entry['file']}: "
               + ", ".join(f"{k}={v.get('verdict', v['outcome'])}" for k, v in entry["results"].items()),
               file=sys.stderr)
     if args.jobs > 1:
         pool.shutdown()
 
-    tools = [OPT_IN, *tools]
+    tools = [NO_KNOWN_GOOD, *([TRUST] if trust else []), UPPER_BOUND, *tools]
     summary = summarise(entries, tools)
     groups = summarise_groups(entries, tools)
     fps = false_positives(entries)
@@ -524,7 +772,9 @@ def main(argv: list[str] | None = None) -> int:
     meta = {"label": args.label, "created": stamp, "python": sys.version.split()[0], "safeloadai": __version__,
             "platform": f"{platform.system()} {platform.machine()}"}
     os.makedirs(args.out, exist_ok=True)
+    meta["opt_in_trust"] = list(trust)
     result = {**meta, "tools": tools, "summary": summary, "groups": groups, "false_positives": fps,
+              "pareto": pareto(entries), "cleared_files": cleared_files(entries),
               "entries": [{k: v for k, v in e.items() if k != "path"} for e in entries]}
     base = os.path.join(args.out, f"eval-{args.label}-{stamp}")
     with open(base + ".json", "w", encoding="utf-8") as fh:

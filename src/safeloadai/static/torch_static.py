@@ -48,8 +48,10 @@ def parse_torch_zip(data: bytes, file_name: str = "<memory>", extra_allowed: fro
 
     combined = None
     for member, raw in members.items():
+        # the object torch.save wrote is data.pkl; a profile is looked up by the archive's name
+        is_data = member == "data.pkl" or member.endswith("/data.pkl")
         part = parse_pickle(raw, f"{file_name}:{member}", torch=True, file_format="torch",
-                            extra_allowed=extra_allowed)
+                            extra_allowed=extra_allowed, profile_name=file_name if is_data else "")
         if combined is None:
             combined = part
             combined["file_name"] = file_name
@@ -57,11 +59,12 @@ def parse_torch_zip(data: bytes, file_name: str = "<memory>", extra_allowed: fro
         else:
             for key in ("opcodes", "flagged_opcodes", "suspicious_imports", "unknown_imports",
                         "imports", "suspicious_strings", "reasons", "notes", "embedded_keras", "dill_code",
-                        "code_malicious"):
+                        "code_malicious", "cleared"):
                 combined[key].extend(part[key])
             combined.setdefault("_embedded", []).extend(part.get("_embedded") or [])
             combined["raw_disasm"] += f"\n--- {member} ---\n" + part["raw_disasm"]
             combined["error"] = combined["error"] or part["error"]
+            combined["profile"] = combined.get("profile") or part.get("profile")
             if _SEVERITY[part["static_risk"]] > _SEVERITY[combined["static_risk"]]:
                 combined["static_risk"] = part["static_risk"]
         combined["members"].append({"name": member, "static_risk": part["static_risk"]})
@@ -71,14 +74,14 @@ def parse_torch_zip(data: bytes, file_name: str = "<memory>", extra_allowed: fro
         combined["members"] = []
     for member, raw in hidden.items():
         part = parse_pickle(raw, f"{file_name}:{member}", torch=True, file_format="torch",
-                            extra_allowed=extra_allowed)
+                            extra_allowed=extra_allowed, profile_name="")
         if part["error"] or not part["imports"]:
             continue  # tensor bytes that happen to start like a pickle
         imported = ", ".join(sorted({f"{i['module']}.{i['symbol']}" for i in part["imports"]}))
         combined["reasons"].append(f"member {member!r} is a pickle outside the .pkl members "
                                    f"(imports {imported[:300]})")
         for key in ("suspicious_imports", "unknown_imports", "reasons", "embedded_keras", "dill_code",
-                    "code_malicious"):
+                    "code_malicious", "cleared"):
             combined[key].extend(part[key])
         combined.setdefault("_embedded", []).extend(part.get("_embedded") or [])
         combined["members"].append({"name": member, "static_risk": part["static_risk"], "hidden": True})

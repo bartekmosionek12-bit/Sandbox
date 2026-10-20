@@ -9,6 +9,11 @@ behaviour, or UNVERIFIABLE (the scanner cannot know what code a named object wou
 run). The category never changes the verdict; it only decides whether an informed,
 per-file override is possible (``override.py``): only when every reason is
 UNVERIFIABLE.
+
+UNSUPPORTED is a verdict of its own: the bytes are in no format safeloadai reads
+(no pickle, joblib, PyTorch, Keras or HDF5 reading exists), so nothing was analysed.
+It is never CLEAN, never loadable by ``safe_load`` and never overridable; any other
+finding on the same file makes it SUSPICIOUS.
 """
 from __future__ import annotations
 
@@ -22,6 +27,7 @@ SCHEMA_VERSION = "2.2"
 
 class Verdict(StrEnum):
     CLEAN = "CLEAN"
+    UNSUPPORTED = "UNSUPPORTED"  # no reading in a supported format; nothing analysed
     SUSPICIOUS = "SUSPICIOUS"
     MALICIOUS = "MALICIOUS"
 
@@ -30,7 +36,7 @@ class Verdict(StrEnum):
         return _RANK[self]
 
 
-_RANK = {Verdict.CLEAN: 0, Verdict.SUSPICIOUS: 1, Verdict.MALICIOUS: 2}
+_RANK = {Verdict.CLEAN: 0, Verdict.UNSUPPORTED: 1, Verdict.SUSPICIOUS: 2, Verdict.MALICIOUS: 3}
 
 
 def worst(*verdicts: Verdict) -> Verdict:
@@ -43,13 +49,14 @@ class Category(StrEnum):
     MALICIOUS = "MALICIOUS"  # evidence of a known sink or of tampering
     RISKY = "RISKY"  # behaviour or a structure the scanner refuses (anomaly, error, limit, code)
     UNVERIFIABLE = "UNVERIFIABLE"  # a named object whose code the scanner cannot see
+    UNSUPPORTED = "UNSUPPORTED"  # a file in no format the scanner reads (only for UNSUPPORTED verdicts)
 
     @property
     def rank(self) -> int:
         return _CATEGORY_RANK[self]
 
 
-_CATEGORY_RANK = {Category.UNVERIFIABLE: 0, Category.RISKY: 1, Category.MALICIOUS: 2}
+_CATEGORY_RANK = {Category.UNVERIFIABLE: 0, Category.UNSUPPORTED: 1, Category.RISKY: 2, Category.MALICIOUS: 3}
 
 
 @dataclass
@@ -69,13 +76,17 @@ class LayerResult:
 
         ``category`` defaults to MALICIOUS for a MALICIOUS reason and RISKY otherwise.
         UNVERIFIABLE needs the exact ``item`` a user would have to accept, and is never
-        kept for a MALICIOUS reason.
+        kept for a MALICIOUS reason. UNSUPPORTED goes with an UNSUPPORTED verdict only.
         """
         self.verdict = worst(self.verdict, verdict)
         text = f"{verdict.value}: {reason}"
         self.reasons.append(text)
         if verdict is Verdict.MALICIOUS:
             category = Category.MALICIOUS
+        elif verdict is Verdict.UNSUPPORTED:
+            category = Category.UNSUPPORTED
+        elif category is Category.UNSUPPORTED:
+            category = Category.RISKY
         elif category is None or category is Category.MALICIOUS or (category is Category.UNVERIFIABLE and not item):
             category = Category.RISKY
         finding = {"layer": self.name, "verdict": verdict.value, "category": category.value, "text": text}
@@ -104,6 +115,9 @@ class Report:
     override: dict | None = None
     # non-default options: {"name", "value", "source", "direction"} (options.py)
     options: list[dict] = field(default_factory=list)
+    # imports outside the allowlist a rule accepted: {"item", "mechanism", "detail", "layer"}
+    # (static/clearance.py: "referenced", "policy", "inert-class"; profiles; known files)
+    cleared: list[dict] = field(default_factory=list)
 
     @property
     def clean(self) -> bool:

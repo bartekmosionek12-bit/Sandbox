@@ -389,6 +389,9 @@ DANGEROUS_SYMBOLS = frozenset({
     "pipe_pager", "timeit", "runctx", "runcode", "run_path", "run_module",
     "import_module", "write_file", "write_text", "write_bytes", "urlopen",
     "FortranFile", "memmap", "tofile", "save", "savez", "savetxt",
+    # loaders that deserialise another file or buffer (pandas.read_pickle reads a pickle,
+    # read_hdf can; a nested load is a second, unanalysed pickle)
+    "read_pickle", "read_hdf", "load_pickle", "unpickle", "load_model",
 })
 
 # --- Keras ------------------------------------------------------------------

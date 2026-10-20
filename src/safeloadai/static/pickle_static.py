@@ -29,6 +29,7 @@ import re
 from typing import Any
 
 from .. import override
+from . import clearance as clearance_mod
 from .allowlists import (
     ARGUMENT_CHECKED,
     DANGEROUS_MODULES,
@@ -140,6 +141,10 @@ def _empty_report(file_name: str, file_format: str) -> dict:
         # dill code objects to emulate, and sink names found in them (_dill_code)
         "dill_code": [],
         "code_malicious": [],
+        # imports outside the allowlist accepted by static/clearance.py:
+        # {"item", "pair", "pos", "mechanism" ("referenced", "policy", "inert-class", ...), "detail"}
+        "cleared": [],
+        "profile": None,
     }
 
 
@@ -179,7 +184,8 @@ def _recorders(report: dict, index_ref: list):
 
 def parse_pickle(data: bytes, file_name: str = "<memory>", *, torch: bool = False,
                  file_format: str = "pickle", extra_allowed: frozenset = frozenset(),
-                 joblib: bool = True, trailing: str = "nested", depth: int = 0) -> dict:
+                 joblib: bool = True, trailing: str = "nested", depth: int = 0,
+                 clearance: clearance_mod.Clearance | None = None, profile_name: str | None = None) -> dict:
     """Analyse pickle bytes and return the parser contract (dict).
 
     The reading ends at the first STOP, where ``pickle.load`` stops (a legacy PyTorch
@@ -192,12 +198,17 @@ def parse_pickle(data: bytes, file_name: str = "<memory>", *, torch: bool = Fals
 
     ``torch=True`` widens the allowlist with the globals a PyTorch checkpoint
     needs and accepts persistent ids (torch stores tensor data out of band).
+    ``clearance`` says which classes outside the allowlist are state-only (the pinned
+    source policies by default; see static/clearance.py).
+    ``profile_name`` is the file name a profile (safeloadai.profiles) is looked up by;
+    ``None`` uses ``file_name``, ``""`` looks up none (nested and hidden pickles).
     ``joblib=True`` (the default) reads joblib's NumpyArrayWrapper layout: the raw
     array bytes after each wrapper are skipped, object arrays are walked as nested
     pickles, and the bytes joblib reads as array data are checked for what a plain
     ``pickle.load`` would import from them (parser differential).
     """
     report = _empty_report(file_name, file_format)
+    clearance = clearance or clearance_mod.ACTIVE.get()
     legacy_torch = False
     base = PICKLE_GLOBALS | frozenset(extra_allowed)
     allow = base | TORCH_GLOBALS if torch else base
@@ -233,17 +244,57 @@ def parse_pickle(data: bytes, file_name: str = "<memory>", *, torch: bool = Fals
     report["pickle_count"] = index_ref[0]
     if not report["error"] and machine.stream.tell() < len(data) and not legacy_torch:
         _trailing(report, data, machine.stream.tell(), trailing, depth,
-                  dict(torch=torch, file_format=file_format, extra_allowed=extra_allowed, joblib=joblib))
+                  dict(torch=torch, file_format=file_format, extra_allowed=extra_allowed, joblib=joblib,
+                       clearance=clearance, profile_name=""))
     _joblib_findings(report, machine, data, allow)
     handled = _embedded_keras(report, calls, machine.refs)
     _dill_code(report, calls)
-    report["reasons"].extend(_check_guarded_calls(calls))
+    state_only = clearance.is_state_only
+    report["reasons"].extend(_check_guarded_calls(calls, state_only))
     report["getattr_malicious"], risky = _check_getattr(calls, allow, _imports_getattr(report), handled)
     report["reasons"].extend(risky)
 
+    def stores_only(obj) -> bool:
+        pair = class_of(obj)
+        return pair is not None and pair not in GETATTR and (pair in allow or state_only(pair))
+
+    used = clearance_mod.used_globals(calls, machine.uses, stores_only)
+    extra = {}
+    if torch and not legacy_torch:
+        why = clearance_mod.weights_only_ok(report, calls, machine.uses)
+        report["weights_only"] = why or "accepted"
+        if why is None:
+            from .upstream.torch_weights_only import TORCH_VERSION
+
+            detail = f"the stream passes torch {TORCH_VERSION} weights_only rules"
+            extra = {(i["module"], i["symbol"]): ("torch-weights-only", detail) for i in report["imports"]}
+    if not report["error"] and depth == 0:
+        _profile(report, file_name if profile_name is None else profile_name, machine, calls, legacy_torch, extra)
     report["raw_disasm"] = _disasm(data)
-    _score(report, allow, torch)
+    _score(report, allow, torch, clearance, machine.globals, used, extra)
     return report
+
+
+def _profile(report: dict, name: str, machine: Machine, calls: list[tuple], legacy_torch: bool,
+             extra: dict) -> None:
+    """Apply a profile for a well-known file (safeloadai.profiles): it accepts its globals
+    at their allowed positions, or makes a file that has the name but not the shape RISKY."""
+    from .. import profiles
+
+    results = machine.results
+    root = (results[3] if len(results) > 3 else None) if legacy_torch else (results[0] if results else None)
+    outcome = profiles.evaluate(name, report["imports"], root, calls, machine.uses)
+    if outcome is None:
+        return
+    profile = outcome.profile
+    if outcome.mismatch is not None:
+        report["reasons"].append(f"file name matches the {profile.name} profile ({profile.producer}), "
+                                 f"but its structure does not: {outcome.mismatch}")
+        return
+    report["profile"] = profile.name
+    report["notes"].append(f"matches the {profile.name} profile ({profile.producer})")
+    for pair, note in profile.clears.items():
+        extra.setdefault(pair, ("profile", f"{profile.name} profile: {note}"))
 
 
 def _trailing(report: dict, data: bytes, start: int, mode: str, depth: int, options: dict) -> None:
@@ -357,15 +408,17 @@ def _joblib_findings(report: dict, machine: Machine, data: bytes, allow: frozens
 MAX_VALUE_WALK = 10_000_000
 
 
-def _guarded(value) -> bool:
+def _guarded(value, state_only=None) -> bool:
     return isinstance(value, Global) and (value.pair in GUARDED_CALLS or value.pair in ARGUMENT_CHECKED
-                                          or value.pair in GETATTR)
+                                          or value.pair in GETATTR
+                                          or (state_only is not None and state_only(value.pair)))
 
 
-def _argument_check(how: str, pair: tuple[str, str], args) -> tuple[str | None, int | None]:
+def _argument_check(how: str, pair: tuple[str, str], args, state_only=None) -> tuple[str | None, int | None]:
     """(reason or None, top-level argument position exempt from the value walk) for one
-    call of an ARGUMENT_CHECKED pair (allowlists.py says what each check allows)."""
-    if pair in STATE_ONLY_CLASSES:
+    call of an ARGUMENT_CHECKED pair (allowlists.py says what each check allows) or of a
+    class ``state_only`` accepts."""
+    if pair in STATE_ONLY_CLASSES or (state_only is not None and state_only(pair)):
         if how == "newobj" and args == ():
             return None, None
         return (f"is called ({how.upper()} with arguments {_short(args)}); it is accepted only when rebuilt "
@@ -401,14 +454,15 @@ def _is_zero_arg_instance(value) -> bool:
     return isinstance(value, Obj) and value.how == "reduce" and class_of(value) in ZERO_ARG_CLASSES
 
 
-def _rebuilt_instance_use(how: str, func, args) -> str | None:
+def _rebuilt_instance_use(how: str, func, args, state_only=None) -> str | None:
     """An instance of a state-only or zero-arg class may only receive one BUILD with a
     plain dict state. A (dict, slotstate) state makes pickle call setattr() per slot item,
     and calling the instance runs its __call__."""
     if not isinstance(func, Obj):
         return None
     pair = class_of(func)
-    if pair not in STATE_ONLY_CLASSES and pair not in ZERO_ARG_CLASSES:
+    if pair not in STATE_ONLY_CLASSES and pair not in ZERO_ARG_CLASSES and not (
+            state_only is not None and pair is not None and pair not in GETATTR and state_only(pair)):
         return None
     name = f"an instance of {pair[0]}.{pair[1]}"
     if how != "build":
@@ -452,7 +506,8 @@ def _generator_args_ok(args) -> bool:
     return len(args) == 1 or (isinstance(args[1], Global) and args[1].pair == NUMPY_BIT_GENERATOR_CTOR)
 
 
-def _guarded_values(value, skip_top: int | None = None, walk: dict | None = None) -> list[Global]:
+def _guarded_values(value, skip_top: int | None = None, walk: dict | None = None,
+                    state_only=None) -> list[Global]:
     """Guarded globals reachable inside ``value`` (tuples, lists, dicts, sets).
     ``skip_top`` exempts one top-level tuple position (the permitted ctor argument).
     An Obj is not entered: its callable, arguments and state were checked at its own call.
@@ -470,7 +525,7 @@ def _guarded_values(value, skip_top: int | None = None, walk: dict | None = None
         if walk["steps"] > MAX_VALUE_WALK:
             found.append(Global("<undecided>", "<walk limit>"))
             break
-        if _guarded(item):
+        if _guarded(item, state_only):
             found.append(item)
             continue
         if isinstance(item, tuple) and depth == 0 and skip_top is not None:
@@ -486,7 +541,7 @@ def _guarded_values(value, skip_top: int | None = None, walk: dict | None = None
     return found
 
 
-def _check_guarded_calls(calls: list[tuple]) -> list[str]:
+def _check_guarded_calls(calls: list[tuple], state_only=None) -> list[str]:
     """Reasons for every call that uses numpy's ctor helpers other than the way numpy does.
 
     Values are checked after the walk, so a list or dict filled in after it was passed
@@ -497,7 +552,7 @@ def _check_guarded_calls(calls: list[tuple]) -> list[str]:
     zero_walk = {"seen": set(), "steps": 0}
     for how, func, args, pos in calls:
         exempt = None
-        reason = _rebuilt_instance_use(how, func, args)
+        reason = _rebuilt_instance_use(how, func, args, state_only)
         if reason:
             reasons.append(f"{reason} at {pos}")
         if how != "build":
@@ -510,8 +565,9 @@ def _check_guarded_calls(calls: list[tuple]) -> list[str]:
             # there (getattr(Detect, "forward"), how pickle writes a function stored on a class)
             # is not a value handed to a caller; the name is still walked.
             exempt = 0 if isinstance(args, tuple) and args and isinstance(args[0], Global) else None
-        elif isinstance(func, Global) and func.pair in ARGUMENT_CHECKED:
-            reason, exempt = _argument_check(how, func.pair, args)
+        elif isinstance(func, Global) and (func.pair in ARGUMENT_CHECKED
+                                           or (state_only is not None and state_only(func.pair))):
+            reason, exempt = _argument_check(how, func.pair, args, state_only)
             if reason:
                 reasons.append(f"{func.module}.{func.name} at {pos} {reason}")
         elif _guarded(func):
@@ -527,7 +583,7 @@ def _check_guarded_calls(calls: list[tuple]) -> list[str]:
                                "second argument; only a numpy bit generator and __bit_generator_ctor are accepted)")
             else:
                 exempt = 1
-        for value in _guarded_values(args, skip_top=exempt, walk=walk):
+        for value in _guarded_values(args, skip_top=exempt, walk=walk, state_only=state_only):
             reasons.append(f"{value.module}.{value.name} is passed as a value at {pos} "
                            f"({how.upper()}); it may only be called directly")
     return reasons
@@ -882,8 +938,29 @@ def _disasm(data: bytes) -> str:
     return out.getvalue()[:MAX_DISASM_CHARS]
 
 
-def _score(report: dict, allow: frozenset, torch: bool) -> None:
+def _cleared_import(imp: dict, clearance, globals_at: dict | None, used: set[int] | None, error=None,
+                    extra: dict | None = None):
+    """(mechanism, detail) when an import outside the allowlist is accepted (clearance.py)."""
+    pair = (imp["module"], imp["symbol"])
+    if extra and pair in extra:
+        return extra[pair]
+    found = clearance.state_only(pair)
+    if found:
+        return found  # its uses are checked by _check_guarded_calls like STATE_ONLY_CLASSES
+    value = (globals_at or {}).get(imp["pos"])
+    if used is None or value is None or id(value) in used or error:
+        return None
+    if clearance_mod.referenced_ok(*pair):
+        return ("referenced", "only referenced (stored, never called) global of an inert library module")
+    return None
+
+
+def _score(report: dict, allow: frozenset, torch: bool,
+           clearance: clearance_mod.Clearance | None = None, globals_at: dict | None = None,
+           used: set[int] | None = None, extra: dict | None = None) -> None:
     reasons: list[str] = report["reasons"]
+    clearance = clearance or clearance_mod.DEFAULT
+    cleared: list[dict] = report.setdefault("cleared", [])
     names = {o["name"] for o in report["flagged_opcodes"]}
     has_call = bool(names & CALL_OPCODES)
 
@@ -901,8 +978,14 @@ def _score(report: dict, allow: frozenset, torch: bool) -> None:
             continue  # only used to load an embedded Keras model (_embedded_keras)
         if is_dangerous_import(module, qualname):
             report["suspicious_imports"].append({"module": module, "symbol": qualname, "pos": imp["pos"]})
-        else:
-            report["unknown_imports"].append(imp)
+            continue
+        if imp["opcode"] in IMPORT_OPCODES:
+            how = _cleared_import(imp, clearance, globals_at, used, report["error"], extra)
+            if how:
+                cleared.append({"item": f"{module}.{qualname}", "pair": [module, qualname], "pos": imp["pos"],
+                                "mechanism": how[0], "detail": how[1]})
+                continue
+        report["unknown_imports"].append(imp)
 
     if names & EXT_OPCODES:
         reasons.append("copyreg extension opcode (EXT1/2/4) imports through a global registry")

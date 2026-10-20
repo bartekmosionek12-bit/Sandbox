@@ -113,6 +113,14 @@ class Machine:
         # id -> number of extra references (GET, DUP) to a Global or Obj: a value pushed once
         # and never fetched again is used exactly where it was pushed.
         self.refs: dict[int, int] = {}
+        # Every Global the stream creates, by the position of its import opcode, and every
+        # way a value reaches code other than a call (on_call): (kind, value, target, pos)
+        # with kind "append" or "setitem" (into an Obj, so a method of its class runs),
+        # "key" (a dict key or set member is hashed) or "persid" (persistent_load gets it).
+        self.globals: dict[int, Global] = {}
+        self.uses: list[tuple] = []
+        # The value each pickle returns (what STOP pops), in reading order.
+        self.results: list = []
 
     # --- one pickle ---------------------------------------------------------------
 
@@ -134,7 +142,7 @@ class Machine:
             if opcode.name == "STOP":
                 if state["frame_end"] is not None and end < state["frame_end"]:
                     raise VMError(f"STOP at {pos} before the end of its frame (bytes would be skipped)")
-                self._pop(stack)
+                self.results.append(self._pop(stack))
                 if stack:
                     pass  # leftover items: real unpicklers ignore them
                 return True, state["first_int"]
@@ -236,22 +244,30 @@ class Machine:
                 raise VMError("odd number of items for DICT")
             stack.append(self._dict(items))
         elif name == "FROZENSET":
-            stack.append(self._hashable(frozenset, pop_mark(stack)))
+            items = pop_mark(stack)
+            self.uses.append(("key", tuple(items), None, pos))
+            stack.append(self._hashable(frozenset, items))
         elif name == "APPEND":
             value = pop(stack)
             target = top(stack)
             if isinstance(target, list):
                 target.append(value)
+            else:
+                self.uses.append(("append", (value,), target, pos))
         elif name == "APPENDS":
             items = pop_mark(stack)
             target = top(stack)
             if isinstance(target, list):
                 target.extend(items)
+            else:
+                self.uses.append(("append", tuple(items), target, pos))
         elif name == "SETITEM":
             value, key = pop(stack), pop(stack)
             target = top(stack)
             if isinstance(target, dict):
                 self._setitem(target, key, value)
+            else:
+                self.uses.append(("setitem", (key, value), target, pos))
         elif name == "SETITEMS":
             items = pop_mark(stack)
             if len(items) % 2:
@@ -260,9 +276,12 @@ class Machine:
             if isinstance(target, dict):
                 for i in range(0, len(items), 2):
                     self._setitem(target, items[i], items[i + 1])
+            else:
+                self.uses.append(("setitem", tuple(items), target, pos))
         elif name == "ADDITEMS":
             items = pop_mark(stack)
             target = top(stack)
+            self.uses.append(("key", tuple(items), target, pos))
             if isinstance(target, set):
                 for item in items:
                     self._hashable(target.add, item)
@@ -282,6 +301,7 @@ class Machine:
             module, qualname = (parts if resolved else (None, None))
             self.on_import(module, qualname, pos, name, resolved)
             func = Global(module, qualname)
+            self.globals[pos] = func
             if name == "GLOBAL":
                 stack.append(func)
             else:
@@ -294,7 +314,9 @@ class Machine:
             self.on_import(module if resolved else None, qualname if resolved else None, pos, name, resolved)
             if not resolved:
                 raise VMError("STACK_GLOBAL requires str")
-            stack.append(Global(module, qualname))
+            func = Global(module, qualname)
+            self.globals[pos] = func
+            stack.append(func)
         elif name == "REDUCE":
             args, func = pop(stack), pop(stack)
             if not isinstance(args, tuple):
@@ -327,7 +349,9 @@ class Machine:
         elif name == "PERSID":
             stack.append(Obj("persid", None, (arg,)))
         elif name == "BINPERSID":
-            stack.append(Obj("persid", None, (pop(stack),)))
+            pid = pop(stack)
+            self.uses.append(("persid", (pid,), None, pos))
+            stack.append(Obj("persid", None, (pid,)))
         else:
             raise VMError(f"opcode {name} is not modelled")
 
@@ -342,8 +366,9 @@ class Machine:
             self._setitem(out, items[i], items[i + 1])
         return out
 
-    @staticmethod
-    def _setitem(target, key, value):
+    def _setitem(self, target, key, value):
+        if isinstance(key, (Global, Obj, tuple, frozenset)):
+            self.uses.append(("key", (key,), target, None))
         try:
             target[key] = value
         except TypeError as exc:

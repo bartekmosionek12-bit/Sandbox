@@ -6,10 +6,11 @@ the worst of them (see report.combine), so no layer can lower another.
 from __future__ import annotations
 
 from .report import Category, LayerResult, Verdict, combine
+from .static import UNSUPPORTED_REASON
 
 M, S, C = Verdict.MALICIOUS, Verdict.SUSPICIOUS, Verdict.CLEAN
 
-_STATIC = {"clean": C, "suspicious": S, "malicious": M}
+_STATIC = {"clean": C, "suspicious": S, "malicious": M, "unsupported": Verdict.UNSUPPORTED}
 _JUDGE = {"malicious": M, "suspicious": S}
 # Docker detonation events that only code execution produces.
 HARD_EVENT_TYPES = frozenset({"os_system", "subprocess", "network"})
@@ -50,7 +51,9 @@ def static_layer(parser_report: dict, *, defer_lambdas: bool = False) -> LayerRe
     unverifiable = parser_report.get("unverifiable") or {}
     for reason in reasons or [f"static risk {risk!r}"]:
         meta = unverifiable.get(reason) if verdict is S else None
-        if meta:
+        if verdict is Verdict.UNSUPPORTED and reason != UNSUPPORTED_REASON:
+            layer.raise_to(S, reason)  # anything else found next to it is RISKY
+        elif meta:
             layer.raise_to(verdict, reason, category=Category.UNVERIFIABLE, item=meta.get("item"),
                            explanation=meta.get("explanation"), pair=meta.get("pair"))
         else:

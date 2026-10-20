@@ -13,12 +13,14 @@ import time
 from collections.abc import Callable, Iterable, Mapping
 
 from . import behaviour, verdict
+from . import known_good as known_good_mod
 from . import options as options_mod
 from . import static as static_mod
 from .parsing import detect as detect_mod
 from .parsing.zipsafe import SafeZip, ZipRefused
 from .report import LayerResult, Report, Verdict, combine, combine_findings
 from .sandbox import Limits, emulate_keras_lambdas, emulate_pickle
+from .static import clearance as clearance_mod
 from .static.torch_static import MAX_PICKLE_MEMBER_BYTES
 
 Progress = Callable[[str], None] | None
@@ -32,9 +34,21 @@ def _is_legacy_torch(parser_report: dict) -> bool:
     return any("legacy PyTorch" in str(n) for n in parser_report.get("notes") or [])
 
 
+def cleared_pairs(parser_report: dict) -> tuple[frozenset, frozenset]:
+    """(pairs the static layer accepted as state-only or by another rule, pairs it found
+    only referenced) for one reading (static/clearance.py)."""
+    allowed, referenced = set(), set()
+    for entry in parser_report.get("cleared") or []:
+        pair = tuple(entry["pair"])
+        (referenced if entry["mechanism"] == "referenced" else allowed).add(pair)
+    return frozenset(allowed), frozenset(referenced - allowed)
+
+
 def emulation_layer(data: bytes, parser_report: dict, extra_allowed: frozenset,
                     limits: Limits | None = None) -> LayerResult:
     fmt = parser_report.get("file_format")
+    cleared, referenced = cleared_pairs(parser_report)
+    extra_allowed = frozenset(extra_allowed) | cleared
     if fmt == detect_mod.JOBLIB:
         stream = parser_report.get("_stream", data if not parser_report.get("compression") else None)
         if stream is None:
@@ -43,11 +57,12 @@ def emulation_layer(data: bytes, parser_report: dict, extra_allowed: frozenset,
             return layer
         run = emulate_pickle([stream], max_pickles=parser_report.get("pickle_count") or 1, joblib=True,
                              limits=limits)
-        return behaviour.classify(run, extra_allowed=extra_allowed, framework=False)
+        return behaviour.classify(run, extra_allowed=extra_allowed, framework=False, referenced=referenced)
     if fmt == detect_mod.PICKLE:
         torch = _is_legacy_torch(parser_report)
         run = emulate_pickle([data], max_pickles=parser_report.get("pickle_count") or 1, limits=limits)
-        return behaviour.classify(run, torch=torch, extra_allowed=extra_allowed, framework=False)
+        return behaviour.classify(run, torch=torch, extra_allowed=extra_allowed, framework=False,
+                                  referenced=referenced)
     if fmt == detect_mod.TORCH:
         try:
             with SafeZip(data, max_member_bytes=MAX_PICKLE_MEMBER_BYTES) as zf:
@@ -61,7 +76,8 @@ def emulation_layer(data: bytes, parser_report: dict, extra_allowed: frozenset,
             layer.raise_to(Verdict.SUSPICIOUS, "torch archive without a pickle member")
             return layer
         run = emulate_pickle(streams, max_pickles=1, limits=limits)
-        return behaviour.classify(run, torch=True, extra_allowed=extra_allowed, framework=False)
+        return behaviour.classify(run, torch=True, extra_allowed=extra_allowed, framework=False,
+                                  referenced=referenced)
     if fmt in (detect_mod.KERAS, detect_mod.H5):
         if parser_report.get("error") and fmt == detect_mod.H5:
             layer = LayerResult(name="emulation", verdict=Verdict.CLEAN, ran=False)
@@ -73,6 +89,9 @@ def emulation_layer(data: bytes, parser_report: dict, extra_allowed: frozenset,
                                reasons=["no executable content in the Keras config; nothing to emulate"])
         return behaviour.classify(emulate_keras_lambdas(lambdas, limits=limits))
     layer = LayerResult(name="emulation", verdict=Verdict.CLEAN, ran=False)
+    if parser_report.get("unsupported"):
+        layer.reasons.append("nothing to emulate: the file is in no supported format (UNSUPPORTED)")
+        return layer
     layer.raise_to(Verdict.SUSPICIOUS, f"no emulator for format {fmt!r}")
     return layer
 
@@ -128,7 +147,7 @@ def _embedded(parser_report: dict, extra_views: list, extra_allowed: frozenset):
         if report.get("file_format") != detect_mod.KERAS:
             report["reasons"].append(f"the embedded bytes the Keras loader reads are not a Keras archive "
                                      f"(detected {report.get('file_format')})")
-            if report["static_risk"] == "clean":
+            if report["static_risk"] in ("clean", "unsupported"):
                 report["static_risk"] = "suspicious"
         view = report.get("_view")
         yield label, view.slice(blob) if view else blob, report
@@ -154,13 +173,13 @@ def _judge_layer(parser_report: dict, emulation: LayerResult) -> LayerResult | N
 
 def scan(path: str | os.PathLike, *, judge: bool = False, deep: bool = False,
          allow: Iterable[tuple[str, str]] = (), limits: Limits | None = None,
-         progress: Progress = None, option_sources: Mapping[str, str] | None = None) -> Report:
+         progress: Progress = None, option_sources: Mapping[str, str] | None = None,
+         trust_inert_from: Iterable[str] = (), known_good: bool = True) -> Report:
     """Scan one model file. Never deserialises it on the host.
 
     Every keyword defaults to the strictest behaviour (docs/OPTIONS.md). Non-default
     options are recorded in ``Report.options`` with their source (``option_sources``
     maps an option name to where it came from; the default is "argument")."""
-    from . import __version__
 
     def step(message: str) -> None:
         if progress:
@@ -168,24 +187,39 @@ def scan(path: str | os.PathLike, *, judge: bool = False, deep: bool = False,
 
     path = os.fspath(path)
     allow = options_mod.validate_allow(allow)
+    trust_inert_from = options_mod.validate_trust_inert_from(trust_inert_from)
     extra_allowed = frozenset(allow)
     used_options = options_mod.scan_options(allow=allow, judge=judge, deep=deep, limits=limits,
-                                            sources=option_sources)
+                                            sources=option_sources, trust_inert_from=trust_inert_from,
+                                            known_good=known_good)
+    with clearance_mod.active(clearance_mod.for_distributions(trust_inert_from)):
+        report = _scan(path, judge=judge, deep=deep, extra_allowed=extra_allowed, limits=limits, step=step)
+    if known_good:
+        known_good_mod.apply(report)
+    report.options = used_options
+    return report
+
+
+def _scan(path: str, *, judge: bool, deep: bool, extra_allowed: frozenset, limits: Limits | None,
+          step: Callable[[str], None]) -> Report:
+    from . import __version__
+
     started = time.perf_counter()
     timings: dict[str, float] = {}
 
     size = os.path.getsize(path)
-    if size > static_mod.MAX_FILE_BYTES:
+    too_large = size > static_mod.MAX_FILE_BYTES
+    if too_large:
         parser_report = static_mod.analyze_file(path)
         data = b""
     else:
         with open(path, "rb") as fh:
             data = fh.read()
-    sha256 = hashlib.sha256(data).hexdigest() if data else _sha256_file(path)
+    sha256 = _sha256_file(path) if too_large else hashlib.sha256(data).hexdigest()
 
     step("static analysis")
     t = time.perf_counter()
-    if data:
+    if not too_large:
         parser_report = static_mod.analyze_bytes(data, os.path.basename(path), extra_allowed)
     file_format = str(parser_report.get("file_format"))
     layers = [verdict.static_layer(parser_report, defer_lambdas=True)]
@@ -194,7 +228,7 @@ def scan(path: str | os.PathLike, *, judge: bool = False, deep: bool = False,
 
     step("emulation in the WASI sandbox")
     t = time.perf_counter()
-    if data:
+    if not too_large:
         view = parser_report.get("_view")
         emulation = emulation_layer(view.slice(data) if view else data, parser_report, extra_allowed, limits)
     else:
@@ -236,7 +270,20 @@ def scan(path: str | os.PathLike, *, judge: bool = False, deep: bool = False,
     return Report(path=path, file_name=os.path.basename(path), sha256=sha256, size=size,
                   file_format=file_format, verdict=final, reasons=reasons, layers=layers,
                   timings_ms=timings, version=__version__, findings=findings, category=category,
-                  options=used_options)
+                  cleared=_cleared(layers))
+
+
+def _cleared(layers: list[LayerResult]) -> list[dict]:
+    """Imports outside the allowlist that a rule accepted (static/clearance.py), once each."""
+    seen, out = set(), []
+    for layer in layers:
+        for entry in (layer.details or {}).get("cleared") or []:
+            key = (entry["item"], entry["mechanism"])
+            if key not in seen:
+                seen.add(key)
+                out.append({"item": entry["item"], "pair": entry["pair"], "mechanism": entry["mechanism"],
+                            "detail": entry["detail"], "layer": layer.name})
+    return out
 
 
 def _sha256_file(path: str) -> str:

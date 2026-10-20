@@ -34,6 +34,23 @@ The defaults are the strictest settings. Every option that loosens a verdict is 
 by default, is announced on the command line, is recorded in `Report.options`, and is
 documented with its risk in [docs/OPTIONS.md](docs/OPTIONS.md).
 
+### Install
+
+`pip install safeloadai` also installs `safeloadai-runtime`, the pinned CPython-on-WASI
+runtime. Nothing is downloaded at run time. Compiling that runtime takes a few seconds,
+so the compiled module is cached in your per-user cache directory:
+
+| platform | cache directory | fallbacks, in order |
+|---|---|---|
+| Windows | `%LOCALAPPDATA%\safeloadai` | `%APPDATA%\safeloadai`, `%TEMP%\safeloadai-<user>` |
+| macOS | `~/Library/Caches/safeloadai` | none |
+| Linux and others | `$XDG_CACHE_HOME/safeloadai` | `~/.cache/safeloadai` (never a shared `/tmp`) |
+
+`SAFELOADAI_HOME` overrides all of them. If no location can be used, the runtime is
+compiled in memory for every scan: slower, with the same verdicts. `safeloadai doctor`
+shows the location in use, or each location it tried with the error it got. Details:
+[docs/OPTIONS.md](docs/OPTIONS.md#compiled-module-cache).
+
 ## How it works
 
 ```

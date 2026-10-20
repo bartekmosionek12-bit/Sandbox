@@ -29,6 +29,15 @@ ACCELERATOR_CONFIG = ("transformers.trainer_pt_utils", "AcceleratorConfig")
 _TRAINING_ARGS_POSITIONS = {"distributed_state": PARTIAL_STATE, "accelerator_config": ACCELERATOR_CONFIG}
 
 
+def _beyond_weights_only(imports: list[dict]) -> bool:
+    """The producer signature of training_args.bin: an import torch's weights-only loader
+    would refuse. A stream whose every import that loader accepts (a plain dict of
+    arguments, say) needs nothing from the profile and is left to the default rules."""
+    from ..static.upstream import torch_weights_only as wo
+
+    return any(i.get("module") is None or f"{i['module']}.{i.get('symbol')}" not in wo.ALLOWED for i in imports)
+
+
 def _training_args(root):
     if not rebuilt_instance(root):
         return {}, "the root is not an object rebuilt from a dict state (NEWOBJ () + BUILD)"
@@ -51,6 +60,7 @@ TRAINING_ARGS = Profile(
     clears={PARTIAL_STATE: "TrainingArguments.distributed_state (accelerate PartialState, no hooks but a "
                            "raising __getattr__)",
             ACCELERATOR_CONFIG: "TrainingArguments.accelerator_config (a hook-free dataclass)"},
+    engaged=_beyond_weights_only,
 )
 
 

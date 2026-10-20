@@ -210,6 +210,20 @@ def test_ultralytics_payload_stays_malicious():
     assert static(ultra(u("train_args"), SINK), "best.pt")["static_risk"] == "malicious"
 
 
+def test_training_args_with_only_weights_only_globals_is_not_engaged():
+    # a plain dict of arguments saved under the name: torch's weights-only loader accepts
+    # every import, so the profile has nothing to allow and judges nothing
+    data = P2 + g("collections", "OrderedDict") + b")R" + d(u("output_dir"), u("out")) + b"b" + STOP
+    report = static(data)
+    assert report["profile"] is None and not profile_reasons(report)
+
+
+def test_training_args_dict_holding_partial_state_is_still_risky():
+    report = static(P2 + d(u("distributed_state"), PARTIAL) + STOP)
+    assert report["profile"] is None
+    assert profile_reasons(report) and report["static_risk"] == "suspicious"
+
+
 def test_a_generic_name_without_the_producer_signature_is_not_engaged():
     data = P2 + d(u("weights"), b"]", u("payload"), u("x")) + STOP
     report = static(data, "best.pt")

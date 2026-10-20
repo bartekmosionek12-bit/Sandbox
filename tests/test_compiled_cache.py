@@ -127,6 +127,17 @@ def test_posix_privacy_rules_are_unchanged(tmp_path, monkeypatch):
     assert "not private" in cache.attempts[0].error
 
 
+@pytest.mark.skipif(os.name == "nt", reason="POSIX permission bits")
+def test_fresh_cache_is_private_under_a_group_writable_umask(tmp_path, monkeypatch):
+    _candidates(monkeypatch, tmp_path / "fresh" / "safeloadai")
+    old = os.umask(0o002)
+    try:
+        cache = runtime.compiled_cache_dir()
+    finally:
+        os.umask(old)
+    assert cache.path == tmp_path / "fresh" / "safeloadai" / "compiled" and cache.attempts == ()
+
+
 def test_no_usable_candidate_compiles_in_memory(tmp_path, monkeypatch):
     _candidates(monkeypatch, _blocked(tmp_path, "a"), _blocked(tmp_path, "b"))
     seen = {}

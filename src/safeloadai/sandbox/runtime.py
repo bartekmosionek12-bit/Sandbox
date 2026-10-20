@@ -236,7 +236,10 @@ def _describe(exc: OSError) -> str:
 def _try_cache_dir(base: Path) -> tuple[Path | None, str | None]:
     path = base / "compiled"
     try:
-        path.mkdir(parents=True, exist_ok=True, mode=0o700)
+        # Both directories the privacy check looks at are created 0700, so a umask such
+        # as 002 (Ubuntu's default for users) does not make a fresh cache group-writable.
+        base.mkdir(parents=True, exist_ok=True, mode=0o700)
+        path.mkdir(exist_ok=True, mode=0o700)
     except OSError as exc:
         return None, _describe(exc)
     if not (private_dir(path) and private_dir(path.parent)):

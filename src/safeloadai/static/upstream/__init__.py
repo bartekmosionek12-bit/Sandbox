@@ -12,12 +12,12 @@ from __future__ import annotations
 
 import json
 import os
-from functools import lru_cache
+from functools import cache
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 
 
-@lru_cache(maxsize=None)
+@cache
 def _load(name: str) -> dict:
     with open(os.path.join(_HERE, name), encoding="utf-8") as fh:
         return json.load(fh)
@@ -28,7 +28,7 @@ def distributions() -> dict[str, dict]:
     return _load("policies.json")["distributions"]
 
 
-@lru_cache(maxsize=None)
+@cache
 def _inert() -> dict[str, frozenset[str]]:
     return {module: frozenset(names) for module, names in _load("inert_modules.json")["modules"].items()}
 
@@ -40,7 +40,7 @@ def inert_definition(module: str, name: str) -> bool:
     return names is not None and "." not in name and name in names
 
 
-@lru_cache(maxsize=None)
+@cache
 def _state_only() -> dict[tuple[str, str], dict]:
     out = {}
     for key, entry in _load("policies.json")["state_only"].items():

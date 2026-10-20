@@ -151,5 +151,10 @@
     "ultralytics",
     "pandas",
     "statsmodels"
-  ]
+  ],
+  "policy_exclude": {
+    "sklearn.preprocessing._function_transformer:FunctionTransformer": "owner decision A1 (DECISIONS.md): holds an arbitrary function and stays out",
+    "sklearn.compose._target:TransformedTargetRegressor": "holds arbitrary func/inverse_func callables like FunctionTransformer (same reasoning as A1)",
+    "xgboost.core:Booster": "decision A4: hands raw bytes to a native parser; pending the owner's decision"
+  }
 }

@@ -182,13 +182,37 @@ def load_joblib(path: str, allowed: frozenset[tuple[str, str]]) -> Any:
     return RestrictedJoblibUnpickler(io.BytesIO(inner), allowed).load()
 
 
-def load_torch(path: str, **kwargs) -> Any:
+def load_torch(path: str, extra: Iterable[tuple[str, str]] = (), **kwargs) -> Any:
+    """torch.load(weights_only=True). ``extra``: exact pairs the scan cleared (static/clearance.py),
+    added only for this call through torch.serialization.safe_globals."""
     try:
         import torch
     except ImportError as exc:
         raise ImportError("loading a PyTorch file needs the 'torch' package") from exc
     kwargs["weights_only"] = True
-    return torch.load(path, **kwargs)
+    extra = sorted(set(extra))
+    if not extra:
+        return torch.load(path, **kwargs)
+    import importlib
+
+    objects = []
+    for module, name in extra:
+        value = importlib.import_module(module)
+        for part in name.split("."):
+            value = getattr(value, part)
+        objects.append(value)
+    with torch.serialization.safe_globals(objects):
+        return torch.load(path, **kwargs)
+
+
+def cleared_pairs(report) -> frozenset[tuple[str, str]]:
+    """Pairs outside the allowlist that the scan's static layers accepted (only referenced,
+    state-only by policy, ...): the restricted loaders must resolve them too."""
+    pairs = set()
+    for layer in report.layers:
+        for entry in (layer.details or {}).get("cleared") or []:
+            pairs.add(tuple(entry["pair"]))
+    return frozenset(pairs)
 
 
 def load_keras(path: str, **kwargs) -> Any:
@@ -228,17 +252,17 @@ def safe_load(path: str | os.PathLike, *, judge: bool = False, deep: bool = Fals
                 )
         if _sha256(staged) != report.sha256:
             raise UnsafeModelError("file changed between scan and load", report)
-        allow = allow + tuple(override.accepted_pickle_pairs(report))
+        allow = allow + tuple(override.accepted_pickle_pairs(report)) + tuple(cleared_pairs(report))
         fmt = report.file_format
         if fmt == detect_mod.JOBLIB:
             return load_joblib(staged, PICKLE_GLOBALS | frozenset(allow))
         if fmt == detect_mod.PICKLE:
             allowed = PICKLE_GLOBALS | frozenset(allow)
             if any("legacy PyTorch" in str(n) for n in report.layer("static").details.get("notes", [])):
-                return load_torch(staged, **loader_kwargs)
+                return load_torch(staged, cleared_pairs(report), **loader_kwargs)
             return load_pickle(staged, allowed, **loader_kwargs)
         if fmt == detect_mod.TORCH:
-            return load_torch(staged, **loader_kwargs)
+            return load_torch(staged, cleared_pairs(report), **loader_kwargs)
         if fmt == detect_mod.KERAS:
             return load_keras(staged, **loader_kwargs)
         raise UnsafeModelError(f"no loader for format {fmt!r}", report)

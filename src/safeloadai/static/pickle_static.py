@@ -29,6 +29,7 @@ import re
 from typing import Any
 
 from .. import override
+from . import clearance as clearance_mod
 from .allowlists import (
     ARGUMENT_CHECKED,
     DANGEROUS_MODULES,
@@ -52,7 +53,6 @@ from .allowlists import (
     TORCH_GLOBALS,
     ZERO_ARG_CLASSES,
 )
-from . import clearance as clearance_mod
 from .lookalike import imitates
 from .lookalike import reason as lookalike_reason
 from .pickle_vm import Global, Machine, Obj, class_of, identifier_path, plain_reading_imports

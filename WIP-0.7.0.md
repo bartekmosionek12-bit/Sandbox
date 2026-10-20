@@ -13,13 +13,10 @@ This file is temporary. Delete it before the PR is marked ready.
   - `pickle_static.py`: `_cleared_import` and `report["cleared"]`. Policy classes are checked like `STATE_ONLY_CLASSES` (NEWOBJ () + dict BUILD only).
   - `pipeline.cleared_pairs`: adds cleared pairs to the emulation allowlist. `behaviour.classify(referenced=...)`: the import of a referenced pair is no finding, but a call to it is still RISKY.
 
-## Known failing (1 test)
-- `tests/test_allowlist_growth.py::test_function_transformer_with_marker_function_stays_flagged`. The file is still SUSPICIOUS, but FunctionTransformer is now cleared by policy. The owner's decision A1 (DECISIONS.md) keeps FunctionTransformer out.
-  - Fix: add a `policy_exclude` list to `upstream_pins.json`, with FunctionTransformer and anything else that DECISIONS keeps out, and have the generator honour it.
+## Fixed
+- FunctionTransformer, TransformedTargetRegressor and Booster are excluded via `policy_exclude`; adversarial tests are in tests/test_clearance.py; safe_load resolves cleared pairs (750 tests green).
 
 ## Next steps
-1. Fix the above. Write adversarial tests for Part 1 and Part 2 (see the script at `tools/_wip_clearance_cases.py` for the cases) and commit.
-2. `safe_load`: pass cleared pairs to RestrictedUnpickler and, for torch, to `torch.serialization.safe_globals`.
 3. The `trust_inert_from` option: options.py, api, CLI `--trust-inert-from`, docs/OPTIONS.md, using `sources.installed_reader`.
 4. `tools/gen_torch_safe_globals.py` (torch 2.14.1 `_weights_only_unpickler.py`) and the weights_only semantics checker.
 5. Part 3 (profiles: training_args.bin needs accelerate.state.PartialState and the TrainingArguments classes), Part 4 (known-good hashes, tune only), Part 6 (run_eval), Part 7 (release, LICENSE).

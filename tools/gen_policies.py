@@ -17,6 +17,7 @@ Writes three files, each reviewed and committed like an allowlist change:
 * ``policies.json``: the classes of the libraries in ``policy_scope`` that are
   state-only (sources.SourceIndex.state_only), with their MRO and reviewed hooks. A
   pickle may rebuild them from a dict state (NEWOBJ () + BUILD), never call them.
+  Classes named in ``policy_exclude`` (owner decisions, DECISIONS.md) are never emitted.
 * ``REVIEW.md``: what was generated, every hook implementation that keeps a class from
   being state-only (with its sha256, for review), and the skops trusted types, which
   are candidates only: trusted in the skops format, not in pickle.
@@ -121,6 +122,7 @@ def generate(pins: dict, wheels: dict[str, str]) -> dict[str, str]:
         modules[module] = sorted(index.module(module).names)
 
     scope = tuple(pins["policy_scope"])
+    exclude = pins.get("policy_exclude", {})
     state_only: dict[str, dict] = {}
     blocked_by: collections.Counter = collections.Counter()
     totals: collections.Counter = collections.Counter()
@@ -130,6 +132,9 @@ def generate(pins: dict, wheels: dict[str, str]) -> dict[str, str]:
         for cls in index.classes(module):
             totals["classes"] += 1
             verdict = index.state_only(module, cls.name)
+            if verdict.state_only and f"{cls.pickled_module}:{cls.name}" in exclude:
+                totals["excluded"] += 1
+                continue
             if verdict.state_only:
                 if cls.pickled_module != module and cls.pickled_module not in modules:
                     totals["pickled elsewhere"] += 1
@@ -202,7 +207,8 @@ def _review(versions, modules, not_inert, not_inert_why, totals, state_only, blo
     lines += ["",
               "## State-only classes (Part 2)", "",
               f"{len(state_only)} of {totals['classes']} classes in scope are state-only "
-              f"({totals['pickled elsewhere']} more record a `__module__` outside the inert modules and are left out).",
+              f"({totals['pickled elsewhere']} more record a `__module__` outside the inert modules and are left out; "
+              f"{totals['excluded']} are excluded by `policy_exclude` in tools/upstream_pins.json).",
               "", "Why the others are not, most frequent first (a hook line is one implementation, by sha256; "
               "reviewing it as benign for a dict-state BUILD means adding it to "
               "`sources.REVIEWED_HOOKS`):", "", "| reason | classes |", "|---|---|"]

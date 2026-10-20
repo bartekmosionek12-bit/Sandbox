@@ -61,6 +61,7 @@ include = ["safeloadai*"]
 
 [tool.setuptools.package-data]
 "safeloadai.sandbox" = ["guest/*.py"]
+"safeloadai.static.upstream" = ["*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

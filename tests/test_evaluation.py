@@ -256,3 +256,77 @@ def test_run_eval_reviewed_labels_override_the_proposal(tmp_path):
     entries = run_eval.load_entries(None, None, [], hf_malicious=str(tmp_path), labels=str(labels))
     assert [(e["label"], e["expected"]) for e in entries] == [("malicious", "MALICIOUS"), ("benign", "CLEAN")]
     assert {e["group"] for e in entries} == {"hf-malicious"}
+
+
+# --- 0.7.0 Part 6: what users meet, Pareto, columns ----------------------------------------
+
+def _hub(name, group, verdict, *, unverifiable=False, missing=(), cleared=(), label="benign"):
+    e = _entry(name, label, "pickle", verdict, missing)
+    e["group"] = group
+    r = e["results"]["safeloadai"]
+    r["unverifiable_only"] = unverifiable
+    r["cleared"] = [{"item": i, "mechanism": m} for m, i in cleared]
+    return e
+
+
+def test_block_kinds():
+    run_eval = _load("run_eval")
+    assert run_eval.block_of("CLEAN", False) == "clean"
+    assert run_eval.block_of("CLEAN (accepted)", False) == "clean"
+    assert run_eval.block_of("SUSPICIOUS", True) == "soft"
+    assert run_eval.block_of("SUSPICIOUS", False) == "hard"
+    assert run_eval.block_of("MALICIOUS", False) == "hard"
+    assert run_eval.block_of("UNSUPPORTED", False) == "unsupported"
+
+
+def test_user_view_splits_benign_files_and_counts_what_gets_through():
+    run_eval = _load("run_eval")
+    entries = [_hub("a", "hf-heldout", "CLEAN"), _hub("b", "hf-heldout", "SUSPICIOUS", unverifiable=True),
+               _hub("c", "hf-heldout", "SUSPICIOUS"), _hub("d", "hf-heldout", "UNSUPPORTED"),
+               _hub("m", "lab", "SUSPICIOUS", unverifiable=True, label="malicious")]
+    for e in entries:
+        r = e["results"]["safeloadai"]
+        accepted = r["verdict"] == "SUSPICIOUS" and r["unverifiable_only"]
+        e["results"][run_eval.UPPER_BOUND] = dict(r, outcome="clean" if accepted else r["outcome"],
+                                                  verdict="CLEAN (accepted)" if accepted else r["verdict"])
+    tools = [run_eval.UPPER_BOUND]
+    groups = run_eval.summarise_groups(entries, tools)
+    held = groups["hf-heldout"]["safeloadai"]
+    assert (held["benign_clean"], held["benign_soft"], held["benign_hard"], held["benign_unsupported"]) == (1, 1, 1, 1)
+    assert groups["lab"][run_eval.UPPER_BOUND]["missed"] == 1
+    text = "\n".join(run_eval.user_view(groups, ["safeloadai", run_eval.UPPER_BOUND]))
+    assert "| hf-heldout | default | 1 | 1 | 1 | 1 | 4 |" in text
+    assert "upper bound: accept all unverifiable (not recommended)" in text
+    assert "It lets 1 lab file(s) through" in text
+
+
+def test_pareto_counts_rules_and_last_missing_entries_per_split():
+    run_eval = _load("run_eval")
+    entries = [_hub("t1", "hf-tune", "CLEAN", cleared=[("profile", "accelerate.state.PartialState")]),
+               _hub("h1", "hf-heldout", "CLEAN", cleared=[("profile", "accelerate.state.PartialState")]),
+               _hub("t2", "hf-tune", "CLEAN", cleared=[("known-file", "org/r/m.pkl")]),
+               _hub("t3", "hf-tune", "SUSPICIOUS", missing=["x.Y"]),
+               _hub("t4", "hf-tune", "SUSPICIOUS", missing=["x.Y", "z.W"])]
+    rows = {(r["rule"], r["item"]): r for r in run_eval.pareto(entries)}
+    ps = rows[("profile", "accelerate.state.PartialState")]
+    assert (ps["tune"], ps["heldout"]) == (1, 1)
+    assert rows[("known-file", "reviewed file list")]["tune"] == 1
+    xy = rows[("missing", "x.Y")]
+    assert (xy["tune"], xy["needed_tune"]) == (1, 2)  # unblocks t3 alone; t4 also needs z.W
+    files = run_eval.cleared_files(entries)
+    assert {f["file"] for f in files} == {"t1", "h1", "t2"}
+    assert "Part 3: profile" in "\n".join(run_eval.pareto_markdown(run_eval.pareto(entries), files))
+
+
+def test_resummarise_renames_the_old_opt_in_column(tmp_path):
+    run_eval = _load("run_eval")
+    entry = _hub("b", "hf-tune", "SUSPICIOUS", unverifiable=True)
+    entry["results"]["safeloadai opt-in"] = {"outcome": "clean", "verdict": "CLEAN (accepted)", "seconds": 0.1}
+    run = {"label": "old", "created": "t", "python": "3", "safeloadai": "0.5.0", "platform": "x",
+           "tools": ["safeloadai opt-in"], "entries": [entry]}
+    path = tmp_path / "old.json"
+    path.write_text(json.dumps(run))
+    assert run_eval.resummarise(str(path), None, "again", str(tmp_path)) == 0
+    [out] = [p for p in tmp_path.glob("eval-again-*.json")]
+    data = json.loads(out.read_text())
+    assert data["tools"] == [run_eval.UPPER_BOUND] and run_eval.UPPER_BOUND in data["summary"]

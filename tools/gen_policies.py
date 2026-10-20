@@ -154,7 +154,7 @@ def generate(pins: dict, wheels: dict[str, str]) -> dict[str, str]:
     skops = _skops_candidates(index, state_only)
     header = {"generated_by": "tools/gen_policies.py", "distributions": versions}
     inert_json = json.dumps({**header, "modules": modules}, sort_keys=True, separators=(",", ":")) + "\n"
-    policies_json = json.dumps({**header, "scope": list(scope), "state_only": state_only},
+    policies_json = json.dumps({**header, "scope": list(scope), "state_only": state_only, "excluded": exclude},
                                sort_keys=True, separators=(",", ":")) + "\n"
     review = _review(versions, modules, not_inert, not_inert_why, totals, state_only, blocked_by, skops)
     return {"inert_modules.json": inert_json, "policies.json": policies_json, "REVIEW.md": review}

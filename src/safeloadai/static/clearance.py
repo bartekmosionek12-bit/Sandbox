@@ -78,6 +78,8 @@ def _installed_state_only(index, pair, dist: str, version: str):
     module, name = pair
     if "." in name or index.module(module) is None or not sources_library_module(module):
         return None
+    if upstream.excluded(pair):
+        return None  # an owner decision keeps it out, whatever the installed source says
     parts = module.split(".")
     for i in range(len(parts), 1, -1):
         sub = ".".join(parts[:i])

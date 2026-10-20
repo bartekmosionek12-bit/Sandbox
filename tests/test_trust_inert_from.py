@@ -138,3 +138,15 @@ def test_scan_records_the_option_and_the_rule(fake_dists, tmp_path, capsys):
     out, err = capsys.readouterr()
     assert "non-default option trust_inert_from=['fakelib']" in err
     assert "CLEAN by inert-class rule (fakelib 1.0)" in out
+
+
+
+def test_owner_excluded_classes_stay_out_of_the_installed_analysis(fake_dists, monkeypatch):
+    # FunctionTransformer is state-only by its source, but decision A1 keeps it out; naming
+    # its distribution must not bring it back (static/upstream policies.json "excluded").
+    from safeloadai.static import upstream
+
+    assert upstream.excluded(("sklearn.preprocessing._function_transformer", "FunctionTransformer"))
+    monkeypatch.setattr(upstream, "excluded", lambda pair: "test" if pair == ("fakelib.models", "Plain") else None)
+    report = check(rebuilt("fakelib.models", "Plain"), ("fakelib",))
+    assert report["static_risk"] != "clean" and not report["cleared"]

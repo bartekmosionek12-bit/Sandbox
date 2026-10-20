@@ -54,6 +54,12 @@ def state_only(pair: tuple[str, str]) -> dict | None:
     return _state_only().get(pair)
 
 
+def excluded(pair: tuple[str, str]) -> str | None:
+    """Why a class is kept out of every state-only rule, the pinned policies and
+    ``trust_inert_from`` alike (owner decisions, ``policy_exclude`` in tools/upstream_pins.json)."""
+    return _load("policies.json").get("excluded", {}).get(f"{pair[0]}:{pair[1]}")
+
+
 def label(distribution: str) -> str:
     entry = distributions().get(distribution) or {}
     return f"{distribution} {entry.get('version', '?')}"

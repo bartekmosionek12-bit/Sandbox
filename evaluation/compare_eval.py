@@ -15,7 +15,11 @@ import json
 
 def _load(path: str) -> dict:
     with open(path, encoding="utf-8") as fh:
-        return json.load(fh)
+        run = json.load(fh)
+    # "safeloadai opt-in" before 0.7.0 is what run_eval now calls the upper bound
+    if "safeloadai opt-in" in run.get("summary", {}) and "safeloadai upper bound" not in run["summary"]:
+        run["summary"]["safeloadai upper bound"] = run["summary"].pop("safeloadai opt-in")
+    return run
 
 
 def _cell(s: dict | None, key: str) -> str:

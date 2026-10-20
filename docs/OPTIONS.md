@@ -144,6 +144,10 @@ Every entry in `Report.options` looks like this:
      state. It may not call the class, use a slot state, or call the rebuilt instance.
    - **What it replaces.** For the named distributions, this analysis replaces the
      pinned policy that ships with safeloadai (`static/upstream/policies.json`).
+   - **What it never accepts.** Classes the owner's review keeps out
+     (`excluded` in `static/upstream/policies.json`: for example scikit-learn's
+     `FunctionTransformer` and `TransformedTargetRegressor`, which store a callable,
+     and xgboost's `Booster`) stay outside, whatever the installed source says.
 2. **Risk you accept.** The decision relies on the source installed on your machine.
    If that installation was tampered with, or a hook does something the analysis
    cannot see, loading may run that code. Only distributions you name are affected.

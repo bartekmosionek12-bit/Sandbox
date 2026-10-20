@@ -6,8 +6,8 @@ safeloadai decides whether a model file is safe to load. A file it calls CLEAN t
 
 | version | supported |
 |---|---|
-| 0.3.x | yes |
-| < 0.3 | no |
+| 0.7.x (beta) | yes |
+| < 0.7 | no |
 
 ## Reporting a vulnerability
 

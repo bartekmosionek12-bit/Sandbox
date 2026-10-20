@@ -157,7 +157,7 @@ def run_guest(task: dict, artefacts: dict[str, bytes], limits: Limits | None = N
             target.write_bytes(data)
         _make_readonly(inbox)
 
-        cache = runtime.compiled_cache_dir()
+        cache = runtime.compiled_cache_dir().path
         job = {
             "wasm_path": str(wasm),
             "wasm_sha256": runtime.PINNED.sha256,

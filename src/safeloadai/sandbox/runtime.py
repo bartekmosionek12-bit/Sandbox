@@ -22,12 +22,19 @@ Compiled modules are cached because compiling the 26 MB runtime takes seconds
 (AUDIT.md section 5). A compiled module is native code that wasmtime loads
 without verification, so the cache is used only when the directory is owned by
 the current user and not writable by anyone else; otherwise we compile in memory.
+The cache lives in the platform's per-user cache directory (see
+:func:`cache_candidates`); when one candidate cannot be created, written or is not
+private, the next one is tried, and the errors are kept for ``safeloadai doctor``.
 """
 from __future__ import annotations
 
+import getpass
 import hashlib
 import os
+import re
 import stat
+import sys
+import tempfile
 import threading
 from dataclasses import dataclass
 from pathlib import Path
@@ -73,14 +80,6 @@ class RuntimeIntegrityError(RuntimeError):
 
 _verified: dict[tuple, str] = {}
 _lock = threading.Lock()
-
-
-def home_dir() -> Path:
-    base = os.environ.get(HOME_ENV)
-    if base:
-        return Path(base).expanduser()
-    xdg = os.environ.get("XDG_CACHE_HOME")
-    return (Path(xdg) if xdg else Path.home() / ".cache") / "safeloadai"
 
 
 def sha256_file(path: Path) -> str:
@@ -172,11 +171,100 @@ def private_dir(path: Path) -> bool:
     return not st.st_mode & (stat.S_IWGRP | stat.S_IWOTH)
 
 
-def compiled_cache_dir() -> Path | None:
-    """Directory for compiled modules, created 0700, or None if it is not private."""
-    path = home_dir() / "compiled"
+@dataclass(frozen=True)
+class CacheAttempt:
+    """A cache location that could not be used, and why."""
+
+    path: Path
+    error: str
+
+
+@dataclass(frozen=True)
+class CompiledCache:
+    """Where compiled modules go: ``path`` is None when every candidate failed."""
+
+    path: Path | None
+    attempts: tuple[CacheAttempt, ...] = ()
+
+
+def _username() -> str:
     try:
-        path.mkdir(parents=True, exist_ok=True, mode=0o700)
-    except OSError:
-        return None
-    return path if private_dir(path) and private_dir(path.parent) else None
+        name = getpass.getuser()
+    except Exception:  # noqa: BLE001 - no user name in the environment or the password database
+        name = ""
+    return re.sub(r"[^A-Za-z0-9._-]", "_", name) or "user"
+
+
+def cache_candidates(platform: str | None = None) -> list[Path]:
+    """Base directories to try for the cache, in order (each gets a ``compiled`` subdirectory).
+
+    ``$SAFELOADAI_HOME`` overrides everything and is then the only candidate.
+    Windows: %LOCALAPPDATA%, %APPDATA%, then %TEMP%\\safeloadai-<user> (TEMP is per user
+    on Windows). macOS: ~/Library/Caches. Elsewhere: $XDG_CACHE_HOME, then ~/.cache.
+    POSIX never falls back to a shared temporary directory.
+    """
+    override = os.environ.get(HOME_ENV)
+    if override:
+        return [Path(override).expanduser()]
+    platform = platform or sys.platform
+    found: list[Path] = []
+    if platform == "win32":
+        for var in ("LOCALAPPDATA", "APPDATA"):
+            if os.environ.get(var):
+                found.append(Path(os.environ[var]) / "safeloadai")
+        temp = os.environ.get("TEMP") or os.environ.get("TMP")
+        if temp:
+            found.append(Path(temp) / f"safeloadai-{_username()}")
+    elif platform == "darwin":
+        found.append(Path.home() / "Library" / "Caches" / "safeloadai")
+    else:
+        xdg = os.environ.get("XDG_CACHE_HOME")
+        if xdg and os.path.isabs(xdg):  # the XDG spec says to ignore a relative path
+            found.append(Path(xdg) / "safeloadai")
+        found.append(Path.home() / ".cache" / "safeloadai")
+    unique: list[Path] = []
+    for path in found:
+        if path not in unique:
+            unique.append(path)
+    return unique
+
+
+def _describe(exc: OSError) -> str:
+    return f"{type(exc).__name__} {exc}"
+
+
+def _try_cache_dir(base: Path) -> tuple[Path | None, str | None]:
+    path = base / "compiled"
+    try:
+        # Both directories the privacy check looks at are created 0700, so a umask such
+        # as 002 (Ubuntu's default for users) does not make a fresh cache group-writable.
+        base.mkdir(parents=True, exist_ok=True, mode=0o700)
+        path.mkdir(exist_ok=True, mode=0o700)
+    except OSError as exc:
+        return None, _describe(exc)
+    if not (private_dir(path) and private_dir(path.parent)):
+        return None, "not private: it and its parent must be owned by you and not writable by group or others"
+    try:
+        fd, probe = tempfile.mkstemp(dir=path, prefix=".probe-")
+        os.close(fd)
+        os.unlink(probe)
+    except OSError as exc:
+        return None, _describe(exc)
+    return path, None
+
+
+def compiled_cache_dir() -> CompiledCache:
+    """The first usable cache directory (created 0700), with the candidates that failed.
+
+    A directory is usable when it can be created, is private (see :func:`private_dir`)
+    and a file can be written in it. With no usable candidate ``path`` is None and
+    modules are compiled in memory. The location never affects verdicts: entries are
+    keyed by the runtime's sha256, the engine config and the wasmtime version.
+    """
+    attempts: list[CacheAttempt] = []
+    for base in cache_candidates():
+        path, error = _try_cache_dir(base)
+        if path is not None:
+            return CompiledCache(path, tuple(attempts))
+        attempts.append(CacheAttempt(base / "compiled", error or "unusable"))
+    return CompiledCache(None, tuple(attempts))

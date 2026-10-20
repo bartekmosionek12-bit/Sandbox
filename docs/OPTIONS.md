@@ -400,3 +400,28 @@ Every entry in `Report.options` looks like this:
    `report.override.how == "config"`.
 6. **Safer alternative.** Name the exact items on the command line in the CI job
    itself, where the review happens.
+
+## Compiled-module cache
+
+This is not a scan option: it never changes a verdict and is not recorded in
+`Report.options`. It only decides where the compiled WASI runtime is kept so that
+scans after the first one start fast.
+
+- **Where it lives.** In `compiled/` under the first usable directory of:
+  - `$SAFELOADAI_HOME`, when set (then the only candidate);
+  - Windows: `%LOCALAPPDATA%\safeloadai`, then `%APPDATA%\safeloadai`, then
+    `%TEMP%\safeloadai-<user>` (`%TEMP%` is per user on Windows);
+  - macOS: `~/Library/Caches/safeloadai`;
+  - Linux and others: `$XDG_CACHE_HOME/safeloadai` (an absolute path only), then
+    `~/.cache/safeloadai`. A shared temporary directory such as `/tmp` is never used.
+- **What makes a location usable.** It can be created and written, and on POSIX it
+  and its parent are owned by you and not writable by group or others (a compiled
+  module is native code that wasmtime loads without verification).
+- **When none is usable.** Every scan compiles the runtime in memory. Verdicts are the
+  same; scans are slower.
+- **How to check it.** `safeloadai doctor` prints the directory in use, or `warn` with
+  each location it tried and the error it got, for example
+  `C:\Users\me\AppData\Local\safeloadai\compiled: PermissionError [WinError 5] Access is denied`.
+  The cache never makes the doctor fail.
+- **Cache entries** are keyed by the runtime's sha256, the engine configuration and the
+  wasmtime version, so an entry from another runtime or wasmtime version is never used.

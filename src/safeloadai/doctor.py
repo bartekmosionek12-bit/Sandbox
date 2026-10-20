@@ -24,6 +24,11 @@ class Check:
     ok: bool
     detail: str
     fix: str | None = None
+    status: str = ""  # "ok", "warn" (does not fail the doctor) or "fail"
+
+    def __post_init__(self):
+        if not self.status:
+            self.status = "ok" if self.ok else "fail"
 
 
 def _wasmtime() -> Check:
@@ -69,14 +74,17 @@ def _file() -> Check:
 
 
 def _cache() -> Check:
-    path = runtime.compiled_cache_dir()
-    if path is None:
-        where = runtime.home_dir() / "compiled"
+    cache = runtime.compiled_cache_dir()
+    failed = "".join(f"\n      - {a.path}: {a.error}" for a in cache.attempts)
+    if cache.path is None:
+        tried = failed or " none (no candidate location: check LOCALAPPDATA, APPDATA, TEMP or HOME)"
         return Check("compiled cache", False,
-                     f"{where} is missing or writable by others; every scan recompiles the runtime (slow, still safe)",
-                     f"make {where} and its parent owned by you and not group/other-writable, "
-                     f"or set {runtime.HOME_ENV} to a private directory")
-    return Check("compiled cache", True, str(path))
+                     f"no usable directory, every scan recompiles the runtime (slow, still safe); tried:{tried}",
+                     f"fix the error above, or set {runtime.HOME_ENV} to a private directory you can write",
+                     status="warn")
+    if failed:
+        return Check("compiled cache", True, f"{cache.path} (fallback; not usable:{failed})")
+    return Check("compiled cache", True, str(cache.path))
 
 
 def _selftest() -> Check:
@@ -90,6 +98,9 @@ def _selftest() -> Check:
         return Check("sandbox self-test", True, f"guest ran in {run.timings_ms.get('total')} ms")
     return Check("sandbox self-test", False, f"status {run.status}: " + "; ".join(run.problems[:3]),
                  "fix the failures above first; if they all pass, report this as a bug")
+
+
+_LABELS = {"ok": "ok  ", "warn": "warn", "fail": "FAIL"}
 
 
 def run_checks() -> list[Check]:
@@ -110,7 +121,7 @@ def main(as_json: bool = False) -> int:
         print(json.dumps({"ok": healthy, "checks": [asdict(c) for c in checks]}, indent=2))
     else:
         for check in checks:
-            print(f"{'ok  ' if check.ok else 'FAIL'}  {check.name}: {check.detail}")
+            print(f"{_LABELS[check.status]}  {check.name}: {check.detail}")
             if not check.ok and check.fix:
                 print(f"      fix: {check.fix}")
         print("all checks passed" if healthy else

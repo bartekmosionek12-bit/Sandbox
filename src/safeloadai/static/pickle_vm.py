@@ -119,6 +119,8 @@ class Machine:
         # "key" (a dict key or set member is hashed) or "persid" (persistent_load gets it).
         self.globals: dict[int, Global] = {}
         self.uses: list[tuple] = []
+        # The value each pickle returns (what STOP pops), in reading order.
+        self.results: list = []
 
     # --- one pickle ---------------------------------------------------------------
 
@@ -140,7 +142,7 @@ class Machine:
             if opcode.name == "STOP":
                 if state["frame_end"] is not None and end < state["frame_end"]:
                     raise VMError(f"STOP at {pos} before the end of its frame (bytes would be skipped)")
-                self._pop(stack)
+                self.results.append(self._pop(stack))
                 if stack:
                     pass  # leftover items: real unpicklers ignore them
                 return True, state["first_int"]

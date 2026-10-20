@@ -144,6 +144,7 @@ def _empty_report(file_name: str, file_format: str) -> dict:
         # imports outside the allowlist accepted by static/clearance.py:
         # {"item", "pair", "pos", "mechanism" ("referenced", "policy", "inert-class", ...), "detail"}
         "cleared": [],
+        "profile": None,
     }
 
 
@@ -184,7 +185,7 @@ def _recorders(report: dict, index_ref: list):
 def parse_pickle(data: bytes, file_name: str = "<memory>", *, torch: bool = False,
                  file_format: str = "pickle", extra_allowed: frozenset = frozenset(),
                  joblib: bool = True, trailing: str = "nested", depth: int = 0,
-                 clearance: clearance_mod.Clearance | None = None) -> dict:
+                 clearance: clearance_mod.Clearance | None = None, profile_name: str | None = None) -> dict:
     """Analyse pickle bytes and return the parser contract (dict).
 
     The reading ends at the first STOP, where ``pickle.load`` stops (a legacy PyTorch
@@ -199,6 +200,8 @@ def parse_pickle(data: bytes, file_name: str = "<memory>", *, torch: bool = Fals
     needs and accepts persistent ids (torch stores tensor data out of band).
     ``clearance`` says which classes outside the allowlist are state-only (the pinned
     source policies by default; see static/clearance.py).
+    ``profile_name`` is the file name a profile (safeloadai.profiles) is looked up by;
+    ``None`` uses ``file_name``, ``""`` looks up none (nested and hidden pickles).
     ``joblib=True`` (the default) reads joblib's NumpyArrayWrapper layout: the raw
     array bytes after each wrapper are skipped, object arrays are walked as nested
     pickles, and the bytes joblib reads as array data are checked for what a plain
@@ -242,7 +245,7 @@ def parse_pickle(data: bytes, file_name: str = "<memory>", *, torch: bool = Fals
     if not report["error"] and machine.stream.tell() < len(data) and not legacy_torch:
         _trailing(report, data, machine.stream.tell(), trailing, depth,
                   dict(torch=torch, file_format=file_format, extra_allowed=extra_allowed, joblib=joblib,
-                       clearance=clearance))
+                       clearance=clearance, profile_name=""))
     _joblib_findings(report, machine, data, allow)
     handled = _embedded_keras(report, calls, machine.refs)
     _dill_code(report, calls)
@@ -265,9 +268,33 @@ def parse_pickle(data: bytes, file_name: str = "<memory>", *, torch: bool = Fals
 
             detail = f"the stream passes torch {TORCH_VERSION} weights_only rules"
             extra = {(i["module"], i["symbol"]): ("torch-weights-only", detail) for i in report["imports"]}
+    if not report["error"] and depth == 0:
+        _profile(report, file_name if profile_name is None else profile_name, machine, calls, legacy_torch, extra)
     report["raw_disasm"] = _disasm(data)
     _score(report, allow, torch, clearance, machine.globals, used, extra)
     return report
+
+
+def _profile(report: dict, name: str, machine: Machine, calls: list[tuple], legacy_torch: bool,
+             extra: dict) -> None:
+    """Apply a profile for a well-known file (safeloadai.profiles): it accepts its globals
+    at their allowed positions, or makes a file that has the name but not the shape RISKY."""
+    from .. import profiles
+
+    results = machine.results
+    root = (results[3] if len(results) > 3 else None) if legacy_torch else (results[0] if results else None)
+    outcome = profiles.evaluate(name, report["imports"], root, calls, machine.uses)
+    if outcome is None:
+        return
+    profile = outcome.profile
+    if outcome.mismatch is not None:
+        report["reasons"].append(f"file name matches the {profile.name} profile ({profile.producer}), "
+                                 f"but its structure does not: {outcome.mismatch}")
+        return
+    report["profile"] = profile.name
+    report["notes"].append(f"matches the {profile.name} profile ({profile.producer})")
+    for pair, note in profile.clears.items():
+        extra.setdefault(pair, ("profile", f"{profile.name} profile: {note}"))
 
 
 def _trailing(report: dict, data: bytes, start: int, mode: str, depth: int, options: dict) -> None:

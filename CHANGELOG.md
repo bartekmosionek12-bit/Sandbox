@@ -13,6 +13,7 @@ This file follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Vers
 - **Referenced-only globals.** A global the pickle only stores (never calls or hands to code), from an inert module of a known library, is no longer UNVERIFIABLE (`Report.cleared`, mechanism `referenced`).
 - **Source-derived state-only policies.** 1,881 classes of scikit-learn, transformers' Trainer modules, torch.nn, torchvision, ultralytics, pandas and statsmodels, derived from the pinned library source with `ast` (`tools/gen_policies.py`, `static/upstream/`), are accepted when rebuilt from a dict state.
 - **torch weights_only rules.** A PyTorch stream that `torch.load(weights_only=True)` of torch 2.14.1 accepts is CLEAN (`tools/gen_torch_safe_globals.py`).
+- **Profiles for well-known files** (`src/safeloadai/profiles/`, docs/PROFILES.md): transformers Trainer files (`training_args.bin`, `optimizer.pt`, `scheduler.pt`, `rng_state*.pth`) and Ultralytics checkpoints. A profile accepts its globals only where the producer puts them (for `training_args.bin`: accelerate's `PartialState` and `AcceleratorConfig`). A file with the name and producer signature but another structure is SUSPICIOUS (RISKY).
 - **`trust_inert_from` / `--trust-inert-from DIST`** (off by default): the same state-only analysis on the installed source of the named distributions.
 - **`known_good` / `--no-known-good`.** See below.
 - `Report.cleared` lists every import outside the allowlist that one of these rules accepted, with the rule.

@@ -98,6 +98,12 @@ jobs:
           "$BIN/python" -m pip list
           echo "BIN=$BIN" >> "$GITHUB_ENV"
 
+      # Before the suite touches anything: on a fresh runner the doctor must find the
+      # compiled cache in the platform's default location (on Windows: %LOCALAPPDATA%).
+      - name: Doctor reports the compiled cache as ok
+        shell: bash
+        run: '"$BIN/python" tools/ci_check_cache.py'
+
       # From here on the test process has no network: the suite must pass offline.
       - name: Test offline (Linux, network namespace)
         if: runner.os == 'Linux'

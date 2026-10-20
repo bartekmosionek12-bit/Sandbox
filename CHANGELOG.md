@@ -10,6 +10,13 @@ This file follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Vers
 ### Added
 - **UNSUPPORTED verdict.** A file in no format safeloadai reads (no pickle, joblib, PyTorch, Keras or HDF5 reading of its bytes exists, such as OpenVINO or CTranslate2 `.bin` weights) is UNSUPPORTED instead of SUSPICIOUS. It is never CLEAN, never loadable by `safe_load` and never overridable, and `safeloadai scan` exits with code 5 for it. Files that parse but look odd stay SUSPICIOUS.
 
+- **Referenced-only globals.** A global the pickle only stores (never calls or hands to code), from an inert module of a known library, is no longer UNVERIFIABLE (`Report.cleared`, mechanism `referenced`).
+- **Source-derived state-only policies.** 1,881 classes of scikit-learn, transformers' Trainer modules, torch.nn, torchvision, ultralytics, pandas and statsmodels, derived from the pinned library source with `ast` (`tools/gen_policies.py`, `static/upstream/`), are accepted when rebuilt from a dict state.
+- **torch weights_only rules.** A PyTorch stream that `torch.load(weights_only=True)` of torch 2.14.1 accepts is CLEAN (`tools/gen_torch_safe_globals.py`).
+- **`trust_inert_from` / `--trust-inert-from DIST`** (off by default): the same state-only analysis on the installed source of the named distributions.
+- **`known_good` / `--no-known-good`.** See below.
+- `Report.cleared` lists every import outside the allowlist that one of these rules accepted, with the rule.
+
 ### Fixed
 - Scanning an empty file no longer crashes (`UnboundLocalError`); it is UNSUPPORTED.
 

@@ -115,6 +115,9 @@ class Report:
     override: dict | None = None
     # non-default options: {"name", "value", "source", "direction"} (options.py)
     options: list[dict] = field(default_factory=list)
+    # imports outside the allowlist a rule accepted: {"item", "mechanism", "detail", "layer"}
+    # (static/clearance.py: "referenced", "policy", "inert-class"; profiles; known files)
+    cleared: list[dict] = field(default_factory=list)
 
     @property
     def clean(self) -> bool:

@@ -205,7 +205,7 @@ def parse_pickle(data: bytes, file_name: str = "<memory>", *, torch: bool = Fals
     ``pickle.load`` would import from them (parser differential).
     """
     report = _empty_report(file_name, file_format)
-    clearance = clearance or clearance_mod.DEFAULT
+    clearance = clearance or clearance_mod.ACTIVE.get()
     legacy_torch = False
     base = PICKLE_GLOBALS | frozenset(extra_allowed)
     allow = base | TORCH_GLOBALS if torch else base
@@ -256,8 +256,17 @@ def parse_pickle(data: bytes, file_name: str = "<memory>", *, torch: bool = Fals
         return pair is not None and pair not in GETATTR and (pair in allow or state_only(pair))
 
     used = clearance_mod.used_globals(calls, machine.uses, stores_only)
+    extra = {}
+    if torch and not legacy_torch:
+        why = clearance_mod.weights_only_ok(report, calls, machine.uses)
+        report["weights_only"] = why or "accepted"
+        if why is None:
+            from .upstream.torch_weights_only import TORCH_VERSION
+
+            detail = f"the stream passes torch {TORCH_VERSION} weights_only rules"
+            extra = {(i["module"], i["symbol"]): ("torch-weights-only", detail) for i in report["imports"]}
     report["raw_disasm"] = _disasm(data)
-    _score(report, allow, torch, clearance, machine.globals, used)
+    _score(report, allow, torch, clearance, machine.globals, used, extra)
     return report
 
 
@@ -902,9 +911,12 @@ def _disasm(data: bytes) -> str:
     return out.getvalue()[:MAX_DISASM_CHARS]
 
 
-def _cleared_import(imp: dict, clearance, globals_at: dict | None, used: set[int] | None, error=None):
+def _cleared_import(imp: dict, clearance, globals_at: dict | None, used: set[int] | None, error=None,
+                    extra: dict | None = None):
     """(mechanism, detail) when an import outside the allowlist is accepted (clearance.py)."""
     pair = (imp["module"], imp["symbol"])
+    if extra and pair in extra:
+        return extra[pair]
     found = clearance.state_only(pair)
     if found:
         return found  # its uses are checked by _check_guarded_calls like STATE_ONLY_CLASSES
@@ -918,7 +930,7 @@ def _cleared_import(imp: dict, clearance, globals_at: dict | None, used: set[int
 
 def _score(report: dict, allow: frozenset, torch: bool,
            clearance: clearance_mod.Clearance | None = None, globals_at: dict | None = None,
-           used: set[int] | None = None) -> None:
+           used: set[int] | None = None, extra: dict | None = None) -> None:
     reasons: list[str] = report["reasons"]
     clearance = clearance or clearance_mod.DEFAULT
     cleared: list[dict] = report.setdefault("cleared", [])
@@ -941,7 +953,7 @@ def _score(report: dict, allow: frozenset, torch: bool,
             report["suspicious_imports"].append({"module": module, "symbol": qualname, "pos": imp["pos"]})
             continue
         if imp["opcode"] in IMPORT_OPCODES:
-            how = _cleared_import(imp, clearance, globals_at, used, report["error"])
+            how = _cleared_import(imp, clearance, globals_at, used, report["error"], extra)
             if how:
                 cleared.append({"item": f"{module}.{qualname}", "pair": [module, qualname], "pos": imp["pos"],
                                 "mechanism": how[0], "detail": how[1]})

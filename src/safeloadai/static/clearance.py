@@ -27,6 +27,8 @@ never called, never passed around as a value.
 """
 from __future__ import annotations
 
+import contextlib
+import contextvars
 from dataclasses import dataclass, field
 
 from . import upstream
@@ -34,6 +36,7 @@ from .allowlists import GETATTR, KNOWN_GADGETS, STATE_ONLY_CLASSES
 from .lookalike import imitates
 from .pickle_vm import Global, Obj, class_of
 from .sources import DENIED_MODULES
+from .sources import library_module as sources_library_module
 
 # Obj targets whose SETITEM/APPEND only store (their classes are allowlisted containers).
 PLAIN_CONTAINERS = frozenset({("collections", "OrderedDict"), ("collections", "defaultdict"),
@@ -73,7 +76,7 @@ class Clearance:
 
 def _installed_state_only(index, pair, dist: str, version: str):
     module, name = pair
-    if "." in name or index.module(module) is None:
+    if "." in name or index.module(module) is None or not sources_library_module(module):
         return None
     parts = module.split(".")
     for i in range(len(parts), 1, -1):
@@ -87,6 +90,45 @@ def _installed_state_only(index, pair, dist: str, version: str):
 
 
 DEFAULT = Clearance()
+# The clearance of the scan in progress (pipeline.scan sets it for trust_inert_from).
+ACTIVE: contextvars.ContextVar[Clearance] = contextvars.ContextVar("safeloadai_clearance", default=DEFAULT)
+
+
+def for_distributions(names: tuple[str, ...]) -> Clearance:
+    """A Clearance that judges the classes of the named installed distributions from
+    their installed source (one index over all of them, so a base class from another
+    named distribution resolves). Nothing is imported: files come from each
+    distribution's RECORD via importlib.metadata."""
+    if not names:
+        return DEFAULT
+    from . import sources
+
+    readers, versions, tops = [], {}, {}
+    for name in names:
+        read, version, modules = sources.installed_reader(name)
+        readers.append(read)
+        versions[name] = version
+        tops[name] = frozenset(m.split(".")[0] for m in modules)
+
+    def read(module: str):
+        for reader in readers:
+            found = reader(module)
+            if found is not None:
+                return found
+        return None
+
+    known = {t for pin in upstream.distributions().values() for t in pin.get("top_level", ())}
+    index = sources.SourceIndex(read, known_tops=known | {t for ts in tops.values() for t in ts})
+    return Clearance(installed={name: (index, versions[name], tops[name]) for name in names})
+
+
+@contextlib.contextmanager
+def active(value: Clearance):
+    token = ACTIVE.set(value)
+    try:
+        yield value
+    finally:
+        ACTIVE.reset(token)
 
 
 def referenced_ok(module: str, name: str) -> bool:
@@ -151,3 +193,59 @@ def used_globals(calls: list[tuple], uses: list[tuple], stores_only) -> set[int]
         if not ok:
             return None
     return used
+
+
+# --- torch.load(weights_only=True) ------------------------------------------------------
+
+_WO_BUILD = frozenset({"torch.Tensor", "torch.nn.parameter.Parameter", "collections.OrderedDict"})
+_WO_SETITEM = frozenset({("collections", "OrderedDict"), ("collections", "Counter")})
+
+
+def _full(pair) -> str:
+    return f"{pair[0]}.{pair[1]}"
+
+
+def weights_only_ok(report: dict, calls: list[tuple], uses: list[tuple]) -> str | None:
+    """None when torch's weights-only unpickler (the pinned version,
+    upstream/torch_weights_only.py) would accept this stream: only its opcodes, only its
+    globals (compared as full paths, never from a blocked module), NEWOBJ and REDUCE only
+    on those globals, BUILD only on Tensor, Parameter, OrderedDict or an allowed type,
+    APPEND only to a list, SETITEM only to a dict, OrderedDict or Counter, and persistent
+    ids that are a ("storage", ...) tuple or an int. Otherwise the first rule it breaks."""
+    from .upstream import torch_weights_only as wo
+
+    if report["error"]:
+        return "the walk failed"
+    ops = {o["name"] for o in report["opcodes"]} - wo.OPCODES
+    if ops:
+        return f"opcodes torch does not implement: {', '.join(sorted(ops))}"
+    for imp in report["imports"]:
+        if imp["module"] is None or imp["module"] in wo.BLOCKED_MODULES:
+            return f"blocked or unresolved import at {imp['pos']}"
+        if f"{imp['module']}.{imp['symbol']}" not in wo.ALLOWED:
+            return f"{imp['module']}.{imp['symbol']} is not a torch weights-only global"
+    for how, func, _args, pos in calls:
+        if how in ("newobj", "reduce"):
+            if not (isinstance(func, Global) and _full(func.pair) in wo.ALLOWED):
+                return f"{how.upper()} at {pos} on something that is not an allowed global"
+        elif how == "build":
+            pair = class_of(func)
+            if pair is None or (_full(pair) not in wo.ALLOWED and _full(pair) not in _WO_BUILD):
+                return f"BUILD at {pos} on something torch does not build"
+        else:
+            return f"{how.upper()} at {pos}"
+    for kind, items, target, pos in uses:
+        if kind == "append":
+            return f"APPEND at {pos} to something that is not a list"
+        if kind == "setitem" and class_of(target) not in _WO_SETITEM:
+            return f"SETITEM at {pos} on something that is not a dict, OrderedDict or Counter"
+        if kind == "persid":
+            pid = items[0]
+            if isinstance(pid, int) and not isinstance(pid, bool):
+                continue
+            head = pid[0] if isinstance(pid, tuple) and pid else None
+            if isinstance(head, bytes):
+                head = head.decode("ascii", "replace")
+            if not (isinstance(pid, tuple) and (not pid or head == "storage")):
+                return f"persistent id at {pos} is not a storage reference"
+    return None

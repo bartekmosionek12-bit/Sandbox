@@ -19,6 +19,7 @@ from .parsing import detect as detect_mod
 from .parsing.zipsafe import SafeZip, ZipRefused
 from .report import LayerResult, Report, Verdict, combine, combine_findings
 from .sandbox import Limits, emulate_keras_lambdas, emulate_pickle
+from .static import clearance as clearance_mod
 from .static.torch_static import MAX_PICKLE_MEMBER_BYTES
 
 Progress = Callable[[str], None] | None
@@ -171,13 +172,13 @@ def _judge_layer(parser_report: dict, emulation: LayerResult) -> LayerResult | N
 
 def scan(path: str | os.PathLike, *, judge: bool = False, deep: bool = False,
          allow: Iterable[tuple[str, str]] = (), limits: Limits | None = None,
-         progress: Progress = None, option_sources: Mapping[str, str] | None = None) -> Report:
+         progress: Progress = None, option_sources: Mapping[str, str] | None = None,
+         trust_inert_from: Iterable[str] = (), known_good: bool = True) -> Report:
     """Scan one model file. Never deserialises it on the host.
 
     Every keyword defaults to the strictest behaviour (docs/OPTIONS.md). Non-default
     options are recorded in ``Report.options`` with their source (``option_sources``
     maps an option name to where it came from; the default is "argument")."""
-    from . import __version__
 
     def step(message: str) -> None:
         if progress:
@@ -185,9 +186,21 @@ def scan(path: str | os.PathLike, *, judge: bool = False, deep: bool = False,
 
     path = os.fspath(path)
     allow = options_mod.validate_allow(allow)
+    trust_inert_from = options_mod.validate_trust_inert_from(trust_inert_from)
     extra_allowed = frozenset(allow)
     used_options = options_mod.scan_options(allow=allow, judge=judge, deep=deep, limits=limits,
-                                            sources=option_sources)
+                                            sources=option_sources, trust_inert_from=trust_inert_from,
+                                            known_good=known_good)
+    with clearance_mod.active(clearance_mod.for_distributions(trust_inert_from)):
+        report = _scan(path, judge=judge, deep=deep, extra_allowed=extra_allowed, limits=limits, step=step)
+    report.options = used_options
+    return report
+
+
+def _scan(path: str, *, judge: bool, deep: bool, extra_allowed: frozenset, limits: Limits | None,
+          step: Callable[[str], None]) -> Report:
+    from . import __version__
+
     started = time.perf_counter()
     timings: dict[str, float] = {}
 
@@ -254,7 +267,20 @@ def scan(path: str | os.PathLike, *, judge: bool = False, deep: bool = False,
     return Report(path=path, file_name=os.path.basename(path), sha256=sha256, size=size,
                   file_format=file_format, verdict=final, reasons=reasons, layers=layers,
                   timings_ms=timings, version=__version__, findings=findings, category=category,
-                  options=used_options)
+                  cleared=_cleared(layers))
+
+
+def _cleared(layers: list[LayerResult]) -> list[dict]:
+    """Imports outside the allowlist that a rule accepted (static/clearance.py), once each."""
+    seen, out = set(), []
+    for layer in layers:
+        for entry in (layer.details or {}).get("cleared") or []:
+            key = (entry["item"], entry["mechanism"])
+            if key not in seen:
+                seen.add(key)
+                out.append({"item": entry["item"], "mechanism": entry["mechanism"], "detail": entry["detail"],
+                            "layer": layer.name})
+    return out
 
 
 def _sha256_file(path: str) -> str:

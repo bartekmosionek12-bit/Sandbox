@@ -23,7 +23,10 @@ def _clean(tmp_path, name="m.pkl"):
 # --- every default is the safe one -------------------------------------------------------
 
 SAFE_API_DEFAULTS = {"judge": False, "deep": False, "allow": (), "limits": None, "progress": None,
-                     "option_sources": None, "accept_unverified": None}
+                     "option_sources": None, "accept_unverified": None,
+                     # off: no installed distribution is trusted; on: the shipped reviewed-hash list
+                     # (turning it off is the stricter setting, docs/OPTIONS.md)
+                     "trust_inert_from": (), "known_good": True}
 
 
 @pytest.mark.parametrize("func", [pipeline.scan, api.safe_load])
@@ -38,7 +41,8 @@ def test_every_api_option_defaults_to_the_safe_value(func):
 
 def test_every_cli_option_defaults_to_the_safe_value():
     args = _build_parser().parse_args(["scan", "x.pkl"])
-    assert args.allow == [] and args.accept_unverified == []
+    assert args.allow == [] and args.accept_unverified == [] and args.trust_inert_from == []
+    assert args.no_known_good is False
     assert args.judge is False and args.deep is False
     assert args.config is None  # no config file is read unless named
     assert args.no_input is False  # the prompt's default answer is No (test_override)
@@ -85,6 +89,9 @@ def test_no_allow_all_switch_exists():
     flags = {a for action in _build_parser()._subparsers._group_actions[0].choices["scan"]._actions
              for a in action.option_strings}
     words = {"all", "disable", "skip", "unsafe", "trust", "insecure", "everything", "any"}
+    # --trust-inert-from is the owner's name for an option that names exact distributions
+    # (DECISIONS F6); it is no blanket switch
+    flags -= {"--trust-inert-from"}
     assert not any(words & set(flag.strip("-").split("-")) for flag in flags), flags
 
 

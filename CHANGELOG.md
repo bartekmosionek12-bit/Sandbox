@@ -5,7 +5,7 @@ This file follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Vers
 - `safeloadai` (the scanner);
 - `safeloadai-runtime` (the pinned sandbox runtime). It has its own version and changes only when the runtime does.
 
-## safeloadai 0.7.0 (unreleased)
+## safeloadai 0.7.0 (2026-10-20)
 
 ### Added
 - **UNSUPPORTED verdict.** A file in no format safeloadai reads (no pickle, joblib, PyTorch, Keras or HDF5 reading of its bytes exists, such as OpenVINO or CTranslate2 `.bin` weights) is UNSUPPORTED instead of SUSPICIOUS. It is never CLEAN, never loadable by `safe_load` and never overridable, and `safeloadai scan` exits with code 5 for it. Files that parse but look odd stay SUSPICIOUS.

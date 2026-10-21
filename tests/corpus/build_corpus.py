@@ -138,6 +138,33 @@ def bypass_payloads() -> list[tuple[str, str, str, bytes]]:
         ("x_zip_flag_bits.pt", "bypass", SUSPICIOUS, _zip_flag_bits(_torch_zip(evil))),
         # CVE-2025-1889 (picklescan): a pickle hidden in a member without a .pkl name.
         ("x_zip_hidden_pickle.pt", "bypass", SUSPICIOUS, _torch_zip(P2 + b"}" + STOP, extra={"archive/data/0": evil})),
+        # safeloadai 0.7.0 (fixed in 0.7.1): a BUILD state stores a library function as the
+        # object's __setstate__, and a second BUILD calls it with an argument of the file's.
+        *_stored_setstate_payloads(),
+    ]
+
+
+def _stored_setstate(target: bytes, func: bytes, arg: str, slot: bool = False) -> bytes:
+    state = b"}" + s("__setstate__") + func + b"s"
+    state = b"N" + state + b"\x86" if slot else state
+    return P2 + target + state + b"b" + s(arg) + b"b" + STOP
+
+
+def _stored_setstate_payloads() -> list[tuple[str, str, str, bytes]]:
+    estimator = g("sklearn.linear_model._logistic", "LogisticRegression") + b")\x81"
+    ordered = g("collections", "OrderedDict") + b")R"
+    remove = g("sklearn.datasets._lfw", "remove")  # os.remove, re-exported
+    return [
+        ("x_setstate_estimator_remove.pkl", "bypass", MALICIOUS, _stored_setstate(estimator, remove, MARKER_FILE)),
+        ("x_setstate_ordereddict_remove.pkl", "bypass", MALICIOUS, _stored_setstate(ordered, remove, MARKER_FILE)),
+        ("x_setstate_slotstate_remove.pkl", "bypass", MALICIOUS,
+         _stored_setstate(estimator, remove, MARKER_FILE, slot=True)),
+        ("x_setstate_rmtree.pkl", "bypass", MALICIOUS,
+         _stored_setstate(ordered, g("keras.src.utils.file_utils", "rmtree"), MARKER_FILE)),
+        # the same shape with a function no list names: the pattern itself is the finding
+        ("x_setstate_policy_class.pkl", "bypass", SUSPICIOUS,
+         _stored_setstate(g("sklearn.ensemble._voting", "VotingRegressor") + b")\x81",
+                          g("sklearn.metrics._ranking", "average_precision_score"), "MARKER")),
     ]
 
 

@@ -1,6 +1,6 @@
 """safeloadai: decide whether a model file is safe to load, without loading it."""
 
-__version__ = "0.7.0"
+__version__ = "0.7.1"
 
 from . import override  # noqa: E402
 from .api import UnsafeModelError, safe_load, scan  # noqa: E402

@@ -4,7 +4,7 @@
 **safeloadai tells you whether a model file is safe to load before you load it.**
 It reads pickle, joblib, PyTorch, Keras and legacy Keras HDF5 files without running
 them, and runs whatever code they would run inside a WebAssembly sandbox with fake
-APIs. It is beta software (0.7.0): see [LIMITATIONS](#limitations) before relying on it.
+APIs. It is beta software (0.7.1): see [LIMITATIONS](#limitations) before relying on it.
 
 ## Quick start
 

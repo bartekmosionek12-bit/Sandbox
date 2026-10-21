@@ -5,7 +5,12 @@ This file follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Vers
 - `safeloadai` (the scanner);
 - `safeloadai-runtime` (the pinned sandbox runtime). It has its own version and changes only when the runtime does.
 
-## safeloadai 0.7.0 (unreleased)
+## safeloadai 0.7.1 (unreleased)
+
+### Security
+- **A crafted pickle could be reported CLEAN while it ran a library function when loaded,** through `safe_load` as well. A BUILD state that sets a hook attribute (`__setstate__`, `__reduce__`, `__class__`, ...) and a second BUILD on the same object are now RISKY; neither is something pickle writes. The referenced-only rule counts the globals in every earlier BUILD state of a rebuilt object as used, the emulation's fake objects store a dict state the way real classes do, and file-system re-exports (`remove`, `unlink`, `rmtree`, `copyfile`, ...) are sinks. Users of 0.7.0 should upgrade. Regression tests: `tests/test_build_hooks.py`.
+
+## safeloadai 0.7.0
 
 ### Added
 - **UNSUPPORTED verdict.** A file in no format safeloadai reads (no pickle, joblib, PyTorch, Keras or HDF5 reading of its bytes exists, such as OpenVINO or CTranslate2 `.bin` weights) is UNSUPPORTED instead of SUSPICIOUS. It is never CLEAN, never loadable by `safe_load` and never overridable, and `safeloadai scan` exits with code 5 for it. Files that parse but look odd stay SUSPICIOUS.

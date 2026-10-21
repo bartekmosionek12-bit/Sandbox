@@ -392,6 +392,18 @@ DANGEROUS_SYMBOLS = frozenset({
     # loaders that deserialise another file or buffer (pandas.read_pickle reads a pickle,
     # read_hdf can; a nested load is a second, unanalysed pickle)
     "read_pickle", "read_hdf", "load_pickle", "unpickle", "load_model",
+    # file-system and process changes re-exported under their own names by library modules
+    # (sklearn.datasets._lfw.remove is os.remove, keras.src.utils.file_utils.rmtree is shutil's)
+    "remove", "unlink", "rmtree", "rmdir", "removedirs", "copyfile", "copytree", "symlink",
+    "chmod", "chown", "truncate", "kill", "killpg",
+})
+
+# Attributes Python or pickle look up on an instance or set through a slot state. A BUILD
+# state that sets one turns a later BUILD (inst.__setstate__(state)), a copy or a class
+# switch into a call of whatever value it stored; pickle itself never writes one.
+BUILD_HOOK_KEYS = frozenset({
+    "__setstate__", "__getstate__", "__reduce__", "__reduce_ex__", "__class__", "__dict__",
+    "__new__", "__init__", "__setattr__", "__getattr__", "__getattribute__", "__delattr__",
 })
 
 # --- Keras ------------------------------------------------------------------

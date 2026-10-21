@@ -32,6 +32,7 @@ from .. import override
 from . import clearance as clearance_mod
 from .allowlists import (
     ARGUMENT_CHECKED,
+    BUILD_HOOK_KEYS,
     DANGEROUS_MODULES,
     DANGEROUS_SYMBOLS,
     DEFAULTDICT,
@@ -541,13 +542,37 @@ def _guarded_values(value, skip_top: int | None = None, walk: dict | None = None
     return found
 
 
+def _check_builds(calls: list[tuple]) -> list[str]:
+    """pickle writes one BUILD per object, and its state never sets a hook attribute. A
+    state that stores ``__setstate__`` (or another hook) makes the next BUILD on that object,
+    or a later copy, call the stored value with an argument the file chooses."""
+    reasons = []
+    built: set[int] = set()
+    for how, func, args, pos in calls:
+        if how != "build":
+            continue
+        state = args[0] if isinstance(args, tuple) and args else args
+        if clearance_mod.sets_hook(state):
+            parts = state if isinstance(state, tuple) and len(state) == 2 else (state,)
+            keys = sorted({key for part in parts if isinstance(part, dict) for key in part
+                           if isinstance(key, str) and key in BUILD_HOOK_KEYS})
+            reasons.append(f"BUILD at {pos} sets {', '.join(keys)} on the object it rebuilds; "
+                           "a later BUILD or lookup would call the stored value")
+        if isinstance(func, (Global, Obj)):
+            if id(func) in built:
+                reasons.append(f"BUILD at {pos} rebuilds the same object a second time (pickle writes one "
+                               "BUILD per object; the second calls the object's __setstate__ again)")
+            built.add(id(func))
+    return reasons
+
+
 def _check_guarded_calls(calls: list[tuple], state_only=None) -> list[str]:
     """Reasons for every call that uses numpy's ctor helpers other than the way numpy does.
 
     Values are checked after the walk, so a list or dict filled in after it was passed
     to a call is seen with its final contents.
     """
-    reasons = []
+    reasons = _check_builds(calls)
     walk = {"seen": set(), "steps": 0}
     zero_walk = {"seen": set(), "steps": 0}
     for how, func, args, pos in calls:

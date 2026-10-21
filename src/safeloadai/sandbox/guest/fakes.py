@@ -56,6 +56,19 @@ def record_anomaly(what, **fields):
 
 # --- generic recording objects -------------------------------------------------
 
+def _apply_state(obj, state):
+    """Store a dict state the way object.__setstate__ and most libraries do, so a later
+    BUILD on the same object finds a __setstate__ the state stored, as the real load would.
+    The fakes' own bookkeeping names are never overwritten."""
+    parts = state if isinstance(state, tuple) and len(state) == 2 else (state,)
+    target = object.__getattribute__(obj, "__dict__")
+    for part in parts:
+        if isinstance(part, dict):
+            for key, value in part.items():
+                if isinstance(key, str) and not key.startswith("_fake"):
+                    target[key] = value
+
+
 class FakeObject:
     """Any attribute is another FakeObject; any call is recorded."""
 
@@ -76,6 +89,7 @@ class FakeObject:
 
     def __setstate__(self, state):
         record_call(self._fake_name + ".__setstate__", (state,))
+        _apply_state(self, state)
 
     def __reduce__(self):
         return (FakeObject, (self._fake_name,))
@@ -154,6 +168,7 @@ class _FakeInstance:
 
     def __setstate__(self, state):
         record_call(type(self)._fake_name + ".__setstate__", (state,))
+        _apply_state(self, state)
 
     def __setitem__(self, key, value):
         record_call(type(self)._fake_name + ".__setitem__", (key, value))

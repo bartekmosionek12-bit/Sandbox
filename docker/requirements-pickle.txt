@@ -11,6 +11,6 @@
 # scikit-learn z innej wersji potrafi się nie wczytać, a wtedy bramka
 # odmówi (load_succeeded = false). Po zmianie tego pliku obraz przebuduje
 # się sam przy następnym skanie (etykieta ze skrótem źródeł).
-numpy>=1.26,<3
+numpy>=2.4.6,<3
 scikit-learn>=1.4,<2
 joblib>=1.3,<2

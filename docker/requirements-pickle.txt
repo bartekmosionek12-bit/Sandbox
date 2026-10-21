@@ -13,4 +13,4 @@
 # się sam przy następnym skanie (etykieta ze skrótem źródeł).
 numpy>=2.4.6,<3
 scikit-learn>=1.4,<2
-joblib>=1.3,<2
+joblib>=1.6.0,<2

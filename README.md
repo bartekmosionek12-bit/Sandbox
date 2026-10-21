@@ -1,6 +1,11 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # safeloadai
 
+[![PyPI](https://img.shields.io/pypi/v/safeloadai)](https://pypi.org/project/safeloadai/)
+[![Python versions](https://img.shields.io/pypi/pyversions/safeloadai)](https://pypi.org/project/safeloadai/)
+[![License](https://img.shields.io/pypi/l/safeloadai)](LICENSE)
+[![CI](https://github.com/bartekmosionek12-bit/Sandbox/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/bartekmosionek12-bit/Sandbox/actions/workflows/ci.yml)
+
 **safeloadai tells you whether a model file is safe to load before you load it.**
 It reads pickle, joblib, PyTorch, Keras and legacy Keras HDF5 files without running
 them, and runs whatever code they would run inside a WebAssembly sandbox with fake
@@ -36,7 +41,12 @@ documented with its risk in [docs/OPTIONS.md](docs/OPTIONS.md).
 
 ### Install
 
-`pip install safeloadai` also installs `safeloadai-runtime`, the pinned CPython-on-WASI
+```bash
+pip install safeloadai
+```
+
+The package is on [PyPI](https://pypi.org/project/safeloadai/) for Python 3.11 to 3.13.
+It also installs `safeloadai-runtime`, the pinned CPython-on-WASI
 runtime. Nothing is downloaded at run time. Compiling that runtime takes a few seconds,
 so the compiled module is cached in your per-user cache directory:
 

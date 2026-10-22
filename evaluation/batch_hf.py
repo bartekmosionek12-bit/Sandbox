@@ -383,6 +383,11 @@ def merge(works: list[str], out: str, column: str = "after", add: list[str] | No
         print("no batch results", file=sys.stderr)
         return 1
     planned = {w: plan_labels(w) for w in works}
+    rescans = {}  # rescan_tool.py: one tool run again after its setup changed (after column only)
+    for w in works if column == "after" else []:
+        for path in glob.glob(os.path.join(w, "results", "*", "rescan-*.jsonl")):
+            for row in _jsonl(path):
+                rescans.setdefault(row["file"], {})[row["tool"]] = row["result"]
     entries, meta = [], None
     for work, path in files:
         with open(path, encoding="utf-8") as fh:
@@ -391,7 +396,8 @@ def merge(works: list[str], out: str, column: str = "after", add: list[str] | No
                                                                      "false_positives", "pareto", "cleared_files")}
         for e in run_["entries"]:
             group, label, reason = planned[work][e["file"]]
-            entries.append(dict(e, path=None, group=group, label=label, label_reason=reason))
+            results = dict(e["results"], **rescans.get(e["file"], {}))
+            entries.append(dict(e, path=None, group=group, label=label, label_reason=reason, results=results))
     for path in add or []:
         with open(path, encoding="utf-8") as fh:
             entries.extend(json.load(fh)["entries"])

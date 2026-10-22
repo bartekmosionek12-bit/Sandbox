@@ -35,7 +35,9 @@ def supported(tool: str, entry: dict) -> bool:
     """Does ``tool`` analyse the reading a loader makes of this file?"""
     fmt = (entry["results"].get("safeloadai") or {}).get("file_format") or entry.get("format")
     ext = os.path.splitext(entry["file"])[1].lower()
-    if fmt in ("h5", "hdf5", "keras", "unknown", None):
+    if fmt == "keras" or ext == ".keras":  # modelscan with its tensorflow extra reads config.json
+        return tool == "modelscan" and ext == ".keras"
+    if fmt in ("h5", "hdf5", "unknown", None):  # modelscan's .h5 scan is not run on the host (run_eval.SKIP)
         return False
     if fmt == "joblib":  # a compressed joblib container; a plain joblib file is detected as pickle
         return False

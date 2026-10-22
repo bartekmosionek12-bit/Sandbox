@@ -365,11 +365,11 @@ def test_scan_reads_hdf5_only_inside_the_sandbox(monkeypatch):
     assert tasks == ["h5_meta"]
 
 
-def test_missing_runtime_makes_h5_suspicious(tmp_path, monkeypatch):
+def test_missing_runtime_makes_h5_an_error(tmp_path, monkeypatch):
     monkeypatch.setenv(runtime.RUNTIME_ENV, str(tmp_path / "absent.wasm"))
     report = scan(FIXTURES / "k2_sequential.h5")
-    assert report.verdict is Verdict.SUSPICIOUS
-    assert any("sandbox unavailable" in r for r in report.reasons)
+    assert report.status == "error" and report.verdict is None and not report.clean
+    assert report.error["code"] == "E301" and "sandbox unavailable" in report.error["message"]
 
 
 @wasi

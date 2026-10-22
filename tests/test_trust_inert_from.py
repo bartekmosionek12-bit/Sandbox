@@ -9,7 +9,7 @@ import pytest
 
 from safeloadai import Verdict, scan
 from safeloadai.__main__ import main
-from safeloadai.options import OptionError
+from safeloadai.options import OptionError, validate_trust_inert_from
 from safeloadai.static import clearance
 from safeloadai.static.pickle_static import parse_pickle
 
@@ -118,10 +118,11 @@ def test_accepted_class_used_otherwise_stays_flagged(fake_dists, body):
 def test_unknown_distribution_is_an_option_error(fake_dists, tmp_path):
     path = tmp_path / "m.pkl"
     path.write_bytes(rebuilt("fakelib.models", "Plain"))
-    with pytest.raises(OptionError):
-        scan(path, trust_inert_from=["no-such-distribution-xyz"])
-    with pytest.raises(OptionError):
-        scan(path, trust_inert_from=["fake*"])
+    for names in (["no-such-distribution-xyz"], ["fake*"]):
+        with pytest.raises(OptionError):
+            validate_trust_inert_from(names)
+        report = scan(path, trust_inert_from=names)
+        assert report.status == "error" and report.error["code"] == "E501" and not report.clean
 
 
 @pytest.mark.wasi

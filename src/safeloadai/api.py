@@ -29,7 +29,7 @@ import tempfile
 from collections.abc import Iterable, Iterator, Mapping
 from typing import Any
 
-from . import override
+from . import errors, override
 from .parsing import decompress
 from .parsing import detect as detect_mod
 from .pipeline import scan
@@ -44,7 +44,8 @@ class UnsafeModelError(Exception):
     def __init__(self, message: str, report: Report | None = None):
         super().__init__(message)
         self.report = report
-        self.verdict = report.verdict if report is not None else None
+        self.verdict = report.verdict if report is not None else None  # None for a tool error
+        self.error = report.error if report is not None else None
 
 
 class RestrictedUnpickler(pickle.Unpickler):
@@ -67,8 +68,17 @@ def _private_copy(path: str | os.PathLike) -> Iterator[str]:
     directory = tempfile.mkdtemp(prefix="safeloadai-")
     try:
         staged = os.path.join(directory, os.path.basename(source))
-        with open(source, "rb") as src, open(staged, "xb") as dst:
-            shutil.copyfileobj(src, dst)
+        try:
+            with open(source, "rb") as src, open(staged, "xb") as dst:
+                shutil.copyfileobj(src, dst)
+        except OSError as exc:
+            # The file could not be read: a tool error (E1xx), refused like any other.
+            from .pipeline import error_report
+
+            code = "E101" if isinstance(exc, FileNotFoundError) else "E102"
+            report = error_report(source, errors.error(code, f"{type(exc).__name__}: {exc}"))
+            raise UnsafeModelError(f"{os.path.basename(source)}: ERROR; {report.error['message']}",
+                                   report) from exc
         os.chmod(staged, 0o400)
         yield staged
     finally:
@@ -249,7 +259,8 @@ def safe_load(path: str | os.PathLike, *, judge: bool = False, deep: bool = Fals
             if not report.accepted:
                 refused = (report.override or {}).get("refused_because")
                 raise UnsafeModelError(
-                    f"{name}: {report.verdict.value}; " + "; ".join(report.reasons[:5])
+                    f"{name}: {report.outcome}; "
+                    + "; ".join(([report.error["message"]] if report.error else []) + report.reasons[:5])
                     + (f" (override refused: {refused})" if refused else ""),
                     report,
                 )

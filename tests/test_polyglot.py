@@ -120,7 +120,7 @@ def test_pickle_then_benign_zip_reports_the_sink_first(tmp_path):
     assert static["trailing"]["start"] == len(EVIL)
     pickle_view = next(v for v in static["views"] if v["format"] == "pickle")
     assert pickle_view["end"] == len(EVIL)
-    assert not any("opcode walk failed" in r for r in report.reasons), report.reasons
+    assert not any("pickle is not readable" in r for r in report.reasons), report.reasons
 
 
 @pytest.mark.wasi

@@ -8,6 +8,7 @@ from __future__ import annotations
 import dataclasses
 import os
 
+from .. import errors
 from ..parsing import decompress
 from ..parsing import detect as detect_mod
 from ..parsing import views as views_mod
@@ -51,8 +52,30 @@ def analyze_bytes(data: bytes, file_name: str = "<memory>", extra_allowed: froze
     return report
 
 
+# The tool error code for an unexpected exception while reading each format (errors.py).
+INTERNAL_CODES = {detect_mod.KERAS: "E202", detect_mod.H5: "E203", detect_mod.TORCH: "E204",
+                  detect_mod.PICKLE: "E201", detect_mod.JOBLIB: "E205"}
+
+
 def _analyze_view(view: views_mod.View | None, data: bytes, file_name: str, extra_allowed: frozenset) -> dict:
+    """The static report of one reading. An exception the readers do not expect is a bug
+    in safeloadai, never a statement about the file: it becomes a tool error (E2xx) in
+    ``report["tool_errors"]``, and the reading is not CLEAN."""
+    from ..sandbox.runtime import RuntimeIntegrityError
+
     fmt = view.fmt if view else detect_mod.UNKNOWN
+    try:
+        return _read_view(view, fmt, data, file_name, extra_allowed)
+    except RuntimeIntegrityError:
+        raise
+    except Exception as exc:  # noqa: BLE001 - a reader bug fails closed as a tool error
+        report = parse_pickle(b"", file_name, file_format=fmt)
+        report["tool_errors"].append(errors.internal(INTERNAL_CODES.get(fmt, "E200"), exc))
+        report["static_risk"] = "suspicious"
+        return report
+
+
+def _read_view(view, fmt: str, data: bytes, file_name: str, extra_allowed: frozenset) -> dict:
     part = view.slice(data) if view else data
     if fmt == detect_mod.KERAS:
         return parse_keras(part, file_name)

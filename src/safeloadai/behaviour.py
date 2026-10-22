@@ -3,7 +3,9 @@
 The guest only records; this module decides. Rules, all fail-closed:
 
 * tampering with the evidence channel -> MALICIOUS;
-* emulation unavailable, incomplete, timed out or out of fuel -> SUSPICIOUS;
+* emulation unavailable, crashed, timed out or out of fuel -> a tool error (errors.py,
+  E301-E304), never a verdict; evidence recorded before that still counts;
+* a guest that ends normally without finishing its work -> SUSPICIOUS;
 * any anomaly record (marshal error, foreign bytecode, missing stub, emulation
   exception, introspection, tensor values read, sleep) -> SUSPICIOUS;
 * a call to a known sink -> MALICIOUS or SUSPICIOUS by sink category;
@@ -17,7 +19,7 @@ else stays RISKY or MALICIOUS.
 """
 from __future__ import annotations
 
-from . import override
+from . import errors, override
 from .report import Category, LayerResult, Verdict
 from .sandbox.host import GuestRun
 from .static.allowlists import (
@@ -154,13 +156,18 @@ def classify(run: GuestRun, *, name: str = "emulation", torch: bool = False,
     layer = LayerResult(name=name, verdict=Verdict.CLEAN, timings_ms=dict(run.timings_ms),
                         details={"status": run.status, "completed": run.completed, "runtime": run.runtime,
                                  "problems": run.problems[:50]})
+    failure = errors.guest_error(run.status, run.problems, layer=name)
     if run.status == "unavailable":
         layer.ran = False
-        layer.raise_to(S, "emulation layer could not run: " + "; ".join(run.problems))
+        layer.errors.append(failure)
         return layer
     if run.tampered:
         layer.raise_to(M, "write to the evidence channel that did not come from the recorder")
-    if not run.completed:
+    if failure is not None:
+        # The sandbox crashed or ran out of time: a tool error, never a verdict. What the
+        # guest recorded before that still counts (MALICIOUS evidence decides).
+        layer.errors.append(failure)
+    elif not run.completed:
         layer.raise_to(S, f"emulation did not complete (status {run.status}): " + "; ".join(run.problems[:5]))
 
     allow_pairs = PICKLE_GLOBALS | frozenset(extra_allowed) | (TORCH_GLOBALS if torch else frozenset())

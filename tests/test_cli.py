@@ -43,8 +43,9 @@ def test_directory_and_report(tmp_path, fake_emulation):
     assert len(fake_emulation.calls) == 2 and len(json.loads(out.read_text())) == 2
 
 
-def test_missing_path_exit_2(tmp_path):
-    assert main(["scan", str(tmp_path / "missing")]) == 2
+def test_missing_path_is_an_error_result(tmp_path, capsys):
+    assert main(["scan", str(tmp_path / "missing")]) == 6
+    assert "E101" in capsys.readouterr().err
 
 
 def test_bad_allow_exit_2(tmp_path):

@@ -3,7 +3,7 @@ import pytest
 from conftest import sandbox_report
 
 from safeloadai import behaviour, verdict
-from safeloadai.report import LayerResult, Verdict, combine
+from safeloadai.report import LayerResult, Verdict, combine, settle
 from safeloadai.sandbox.host import GuestRun
 
 CLEAN_PARSER = {"static_risk": "clean"}
@@ -42,13 +42,25 @@ def test_judge_can_escalate():
     assert verdict.final_verdict(CLEAN_PARSER, dict(JUDGE_SAFE, verdict="malicious"), None)[0] is Verdict.MALICIOUS
 
 
-@pytest.mark.parametrize("overrides", [
-    {"detonated": False, "skipped_reason": "no Docker"},
-    {"timed_out": True},
-    {"load_succeeded": False, "error": "ModuleNotFoundError"},
+def test_failed_load_in_deep_detonation_is_suspicious():
+    # the loader rejected the file: a statement about the file
+    report = sandbox_report(load_succeeded=False, error="ModuleNotFoundError")
+    assert verdict.final_verdict(CLEAN_PARSER, None, report)[0] is Verdict.SUSPICIOUS
+
+
+@pytest.mark.parametrize("overrides, code", [
+    ({"detonated": False, "skipped_reason": "no Docker"}, "E310"),
+    ({"timed_out": True}, "E311"),
 ])
-def test_incomplete_deep_detonation_is_suspicious(overrides):
-    assert verdict.final_verdict(CLEAN_PARSER, None, sandbox_report(**overrides))[0] is Verdict.SUSPICIOUS
+def test_deep_detonation_that_did_not_finish_is_a_tool_error(overrides, code):
+    report = sandbox_report(**overrides)
+    assert verdict.final_verdict(CLEAN_PARSER, None, report)[0] is None
+    assert [e["code"] for e in verdict.docker_layer(report).errors] == [code]
+
+
+def test_malicious_deep_evidence_decides_despite_a_timeout():
+    report = sandbox_report(timed_out=True, events=EXEC_EVENT)
+    assert verdict.final_verdict(CLEAN_PARSER, None, report)[0] is Verdict.MALICIOUS
 
 
 def test_unknown_static_risk_is_suspicious():
@@ -82,14 +94,28 @@ def test_tampered_channel_is_malicious():
     assert behaviour.classify(_run(tampered=True)).verdict is Verdict.MALICIOUS
 
 
-@pytest.mark.parametrize("status", ["timeout", "fuel_exhausted", "exit", "trap"])
-def test_incomplete_emulation_is_suspicious(status):
-    assert behaviour.classify(_run(status=status, completed=False)).verdict is Verdict.SUSPICIOUS
+@pytest.mark.parametrize("status, code", [("timeout", "E303"), ("fuel_exhausted", "E304"), ("exit", "E302"),
+                                          ("trap", "E302"), ("runner_error", "E302")])
+def test_sandbox_crash_or_timeout_is_a_tool_error(status, code):
+    layer = behaviour.classify(_run(status=status, completed=False))
+    assert [e["code"] for e in layer.errors] == [code]
+    assert settle([layer])[:2] == ("error", None)
 
 
-def test_unavailable_emulation_is_suspicious():
+def test_guest_that_ends_without_finishing_is_suspicious():
+    layer = behaviour.classify(_run(status="ok", completed=False))
+    assert layer.verdict is Verdict.SUSPICIOUS and not layer.errors
+
+
+def test_evidence_before_a_crash_still_decides():
+    layer = behaviour.classify(_run(_call("posix.system", "'echo MARKER'"), status="trap", completed=False))
+    assert layer.errors and settle([layer])[:2] == ("ok", Verdict.MALICIOUS)
+
+
+def test_unavailable_emulation_is_a_tool_error():
     layer = behaviour.classify(GuestRun(status="unavailable", problems=["no runtime"]))
-    assert layer.verdict is Verdict.SUSPICIOUS and not layer.ran
+    assert [e["code"] for e in layer.errors] == ["E301"] and not layer.ran
+    assert layer.verdict is Verdict.CLEAN and settle([layer])[:2] == ("error", None)
 
 
 def test_any_anomaly_is_suspicious():

@@ -84,6 +84,8 @@ def _empty_report(file_name: str) -> dict:
         "reasons": [],
         "notes": [],
         "error": None,
+        # failures of safeloadai itself (errors.error dicts); never a verdict
+        "tool_errors": [],
         # reason text -> {"item", "explanation"} for the reasons that are UNVERIFIABLE
         "unverifiable": {},
     }

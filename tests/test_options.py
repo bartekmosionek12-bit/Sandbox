@@ -82,7 +82,9 @@ def test_plain_scan_records_no_options(tmp_path, fake_emulation):
                                   ("mypkg", "*"), ("", "x"), ("subprocess", "Popen")])
 def test_allow_refuses_sinks_gadgets_and_wildcards(pair, tmp_path, fake_emulation):
     with pytest.raises(options.OptionError):
-        pipeline.scan(_clean(tmp_path), allow=[pair])
+        options.validate_allow([pair])
+    report = pipeline.scan(_clean(tmp_path), allow=[pair])
+    assert report.status == "error" and report.error["code"] == "E501" and not report.clean
 
 
 def test_no_allow_all_switch_exists():

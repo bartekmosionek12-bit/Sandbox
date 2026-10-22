@@ -33,6 +33,11 @@ class VMError(Exception):
     """The stream is one a real unpickler would reject (or read differently)."""
 
 
+class VMUnmodelled(VMError):
+    """The machine has no model for something a real unpickler accepts: a gap in
+    safeloadai, not a property of the file (a tool error, errors.py E201)."""
+
+
 class Global:
     __slots__ = ("module", "name")
 
@@ -353,7 +358,7 @@ class Machine:
             self.uses.append(("persid", (pid,), None, pos))
             stack.append(Obj("persid", None, (pid,)))
         else:
-            raise VMError(f"opcode {name} is not modelled")
+            raise VMUnmodelled(f"opcode {name} is not modelled")
 
     def _ref(self, value):
         if isinstance(value, (Global, Obj)):

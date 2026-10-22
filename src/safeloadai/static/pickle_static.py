@@ -28,7 +28,7 @@ import pickletools
 import re
 from typing import Any
 
-from .. import override
+from .. import errors, override
 from . import clearance as clearance_mod
 from .allowlists import (
     ARGUMENT_CHECKED,
@@ -56,7 +56,16 @@ from .allowlists import (
 )
 from .lookalike import imitates
 from .lookalike import reason as lookalike_reason
-from .pickle_vm import Global, Machine, Obj, class_of, identifier_path, plain_reading_imports
+from .pickle_vm import (
+    Global,
+    Machine,
+    Obj,
+    VMError,
+    VMUnmodelled,
+    class_of,
+    identifier_path,
+    plain_reading_imports,
+)
 
 SCHEMA_VERSION = "1.1"
 
@@ -130,6 +139,8 @@ def _empty_report(file_name: str, file_format: str) -> dict:
         "reasons": [],
         "notes": [],
         "error": None,
+        # failures of safeloadai itself (errors.error dicts); never a verdict
+        "tool_errors": [],
         "pickle_count": 0,
         # reason text -> {"item", "pair", "explanation"} for the reasons that are UNVERIFIABLE
         "unverifiable": {},
@@ -181,6 +192,43 @@ def _recorders(report: dict, index_ref: list):
         )
 
     return on_opcode, on_import
+
+
+WALK_PROBLEM = "pickle is not readable"
+_WALK_WORDS = (
+    (re.compile(r"memo key (.+) not found"),
+     "it refers to stored object {0} that it never stored (pickle.load fails there)"),
+    (re.compile(r"unpickling stack underflow|could not find MARK"),
+     "it takes more values off its stack than it put on (pickle.load fails there)"),
+    (re.compile(r"not enough data|exhausted before|ends without STOP|truncated"),
+     "it is truncated: the stream ends in the middle of an opcode or before STOP (pickle.load fails there)"),
+    (re.compile(r"at position (\d+), opcode (.+) unknown"),
+     "byte {1} at offset {0} is no pickle opcode (pickle.load fails there)"),
+    (re.compile(r"frame|FRAME"),
+     "its framing is inconsistent ({raw}); a real unpickler fails there or reads different bytes"),
+    (re.compile(r"more than (\d+) opcodes"),
+     "it has more than {0} opcodes, more than safeloadai reads; the rest is not analysed"),
+    (re.compile(r"more than (\d+) pickles"),
+     "it holds more than {0} pickles, more than safeloadai reads; the rest is not analysed"),
+    (re.compile(r"unsupported pickle protocol"),
+     "it asks for a pickle protocol no Python supports (pickle.load fails there)"),
+    (re.compile(r"NumpyArrayWrapper|array (data )?at|object array"),
+     "a joblib array header or its data is laid out in a way safeloadai cannot verify ({raw})"),
+)
+
+
+def walk_problem(exc: BaseException) -> str | None:
+    """A walk failure in plain words, when it says something about the bytes: the stream is
+    one a real unpickler rejects or reads differently, or it exceeds a reading limit
+    (SUSPICIOUS). ``None`` when the exception is a gap or bug in safeloadai (a tool error)."""
+    if isinstance(exc, VMUnmodelled) or not isinstance(exc, (VMError, ValueError)):
+        return None
+    raw = str(exc)
+    for pattern, words in _WALK_WORDS:
+        match = pattern.search(raw)
+        if match:
+            return f"{WALK_PROBLEM}: " + words.format(*match.groups(), raw=raw[:200])
+    return f"{WALK_PROBLEM}: it is malformed ({raw[:200]}); a real unpickler rejects it or reads it differently"
 
 
 def parse_pickle(data: bytes, file_name: str = "<memory>", *, torch: bool = False,
@@ -241,7 +289,14 @@ def parse_pickle(data: bytes, file_name: str = "<memory>", *, torch: bool = Fals
             if machine.stream.tell() == start or not legacy_torch:
                 break
     except Exception as exc:  # noqa: BLE001 - any parse failure must surface
-        report["error"] = f"opcode walk failed: {type(exc).__name__}: {exc}"
+        problem = walk_problem(exc)
+        if problem is None:
+            # Not a property of the bytes: an exception the walker does not expect is a bug in
+            # safeloadai (a tool error, never a verdict). Nothing after this point was read.
+            report["tool_errors"].append(errors.internal("E201", exc))
+            report["error"] = "the pickle walker failed (tool error E201); the stream was not fully read"
+        else:
+            report["error"] = problem
     report["pickle_count"] = index_ref[0]
     if not report["error"] and machine.stream.tell() < len(data) and not legacy_torch:
         _trailing(report, data, machine.stream.tell(), trailing, depth,
@@ -322,6 +377,7 @@ def _trailing(report: dict, data: bytes, start: int, mode: str, depth: int, opti
     report["reasons"].extend(prefix + r for r in sub["reasons"])
     report["unverifiable"].update({prefix + k: v for k, v in sub["unverifiable"].items()})
     report["suspicious_strings"].extend(sub["suspicious_strings"])
+    report["tool_errors"].extend(sub["tool_errors"])
     report["notes"].extend(prefix + n for n in sub["notes"])
     for key in ("embedded_keras", "dill_code", "code_malicious"):
         report[key].extend(sub[key])

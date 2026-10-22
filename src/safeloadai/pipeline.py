@@ -12,14 +12,14 @@ import os
 import time
 from collections.abc import Callable, Iterable, Mapping
 
-from . import behaviour, verdict
+from . import behaviour, errors, verdict
 from . import known_good as known_good_mod
 from . import options as options_mod
 from . import static as static_mod
 from .parsing import detect as detect_mod
 from .parsing.zipsafe import SafeZip, ZipRefused
-from .report import LayerResult, Report, Verdict, combine, combine_findings
-from .sandbox import Limits, emulate_keras_lambdas, emulate_pickle
+from .report import LayerResult, Report, Verdict, settle
+from .sandbox import Limits, RuntimeIntegrityError, emulate_keras_lambdas, emulate_pickle
 from .static import clearance as clearance_mod
 from .static.torch_static import MAX_PICKLE_MEMBER_BYTES
 
@@ -103,7 +103,7 @@ MAX_EMBEDDED_DEPTH = 4
 def _reading_layers(label: str, data: bytes, report: dict, extra_allowed: frozenset,
                     limits: Limits | None) -> list[LayerResult]:
     static = verdict.static_layer(report, defer_lambdas=True)
-    emulation = emulation_layer(data, report, extra_allowed, limits)
+    emulation = _guarded("emulation", "E300", emulation_layer, data, report, extra_allowed, limits)
     static.name, emulation.name = f"static[{label}]", f"emulation[{label}]"
     out = [static, emulation] + _code_layers(label, report, limits)
     for layer in out:
@@ -118,7 +118,7 @@ def _code_layers(label: str, report: dict, limits: Limits | None) -> list[LayerR
     entries = report.get("dill_code") or []
     if not entries:
         return []
-    layer = behaviour.classify(emulate_keras_lambdas(entries, limits=limits))
+    layer = _guarded("emulation", "E300", lambda: behaviour.classify(emulate_keras_lambdas(entries, limits=limits)))
     layer.name = f"emulation[{label + '/' if label else ''}dill code]"
     for finding in layer.findings:
         finding["layer"] = layer.name
@@ -186,18 +186,64 @@ def scan(path: str | os.PathLike, *, judge: bool = False, deep: bool = False,
             progress(message)
 
     path = os.fspath(path)
-    allow = options_mod.validate_allow(allow)
-    trust_inert_from = options_mod.validate_trust_inert_from(trust_inert_from)
+    try:
+        allow = options_mod.validate_allow(allow)
+        trust_inert_from = options_mod.validate_trust_inert_from(trust_inert_from)
+        used_options = options_mod.scan_options(allow=allow, judge=judge, deep=deep, limits=limits,
+                                                sources=option_sources, trust_inert_from=trust_inert_from,
+                                                known_good=known_good)
+        trust = clearance_mod.for_distributions(trust_inert_from)
+    except options_mod.OptionError as exc:
+        return error_report(path, errors.error("E501", str(exc)))
     extra_allowed = frozenset(allow)
-    used_options = options_mod.scan_options(allow=allow, judge=judge, deep=deep, limits=limits,
-                                            sources=option_sources, trust_inert_from=trust_inert_from,
-                                            known_good=known_good)
-    with clearance_mod.active(clearance_mod.for_distributions(trust_inert_from)):
-        report = _scan(path, judge=judge, deep=deep, extra_allowed=extra_allowed, limits=limits, step=step)
+    try:
+        with clearance_mod.active(trust):
+            report = _scan(path, judge=judge, deep=deep, extra_allowed=extra_allowed, limits=limits, step=step)
+    except RuntimeIntegrityError as exc:
+        # The runtime is not the pinned one: no result of this scan is trusted, not even
+        # MALICIOUS evidence from the sandbox.
+        return error_report(path, errors.error("E401", str(exc)), options=used_options)
+    except _ReadFailed as failed:
+        return error_report(path, failed.error, options=used_options)
     if known_good:
         known_good_mod.apply(report)
     report.options = used_options
     return report
+
+
+class _ReadFailed(Exception):
+    def __init__(self, error: dict):
+        super().__init__(error["message"])
+        self.error = error
+
+
+def _read(path: str) -> tuple[int, bytes]:
+    """(size, bytes) of the file, or _ReadFailed with an E1xx tool error."""
+    try:
+        if not os.path.exists(path):
+            raise _ReadFailed(errors.error("E101", path))
+        if not os.path.isfile(path):
+            raise _ReadFailed(errors.error("E104", path))
+        size = os.path.getsize(path)
+        if size > static_mod.MAX_FILE_BYTES:
+            raise _ReadFailed(errors.error("E103", f"{size} bytes, the limit is {static_mod.MAX_FILE_BYTES}"))
+        with open(path, "rb") as fh:
+            data = fh.read(static_mod.MAX_FILE_BYTES + 1)
+    except OSError as exc:
+        code = "E101" if isinstance(exc, FileNotFoundError) else "E102"
+        raise _ReadFailed(errors.error(code, f"{type(exc).__name__}: {exc}")) from exc
+    if len(data) > static_mod.MAX_FILE_BYTES:
+        raise _ReadFailed(errors.error("E103", f"the file grew past {static_mod.MAX_FILE_BYTES} bytes while read"))
+    return len(data), data
+
+
+def error_report(path: str, error: dict, *, options: list[dict] | None = None) -> Report:
+    """The report of a scan that failed before any layer could run: status "error", no verdict."""
+    from . import __version__
+
+    return Report(path=path, file_name=os.path.basename(path), sha256="", size=-1, file_format="unknown",
+                  verdict=None, reasons=[], layers=[], timings_ms={}, version=__version__,
+                  options=list(options or []), status="error", error=error, errors=[error])
 
 
 def _scan(path: str, *, judge: bool, deep: bool, extra_allowed: frozenset, limits: Limits | None,
@@ -207,20 +253,19 @@ def _scan(path: str, *, judge: bool, deep: bool, extra_allowed: frozenset, limit
     started = time.perf_counter()
     timings: dict[str, float] = {}
 
-    size = os.path.getsize(path)
-    too_large = size > static_mod.MAX_FILE_BYTES
-    if too_large:
-        parser_report = static_mod.analyze_file(path)
-        data = b""
-    else:
-        with open(path, "rb") as fh:
-            data = fh.read()
-    sha256 = _sha256_file(path) if too_large else hashlib.sha256(data).hexdigest()
+    size, data = _read(path)
+    sha256 = hashlib.sha256(data).hexdigest()
 
     step("static analysis")
     t = time.perf_counter()
-    if not too_large:
+    try:
         parser_report = static_mod.analyze_bytes(data, os.path.basename(path), extra_allowed)
+    except RuntimeIntegrityError:
+        raise
+    except Exception as exc:  # noqa: BLE001 - a bug in safeloadai fails closed as a tool error
+        parser_report = static_mod.parse_pickle(b"", os.path.basename(path), file_format="unknown")
+        parser_report["tool_errors"].append(errors.internal("E200", exc))
+        parser_report["static_risk"] = "suspicious"
     file_format = str(parser_report.get("file_format"))
     layers = [verdict.static_layer(parser_report, defer_lambdas=True)]
     layers[0].timings_ms["total"] = timings["static"] = _ms(t)
@@ -228,12 +273,9 @@ def _scan(path: str, *, judge: bool, deep: bool, extra_allowed: frozenset, limit
 
     step("emulation in the WASI sandbox")
     t = time.perf_counter()
-    if not too_large:
-        view = parser_report.get("_view")
-        emulation = emulation_layer(view.slice(data) if view else data, parser_report, extra_allowed, limits)
-    else:
-        emulation = LayerResult(name="emulation", verdict=Verdict.CLEAN, ran=False)
-        emulation.raise_to(Verdict.SUSPICIOUS, "file too large to emulate")
+    view = parser_report.get("_view")
+    emulation = _guarded("emulation", "E300", emulation_layer, view.slice(data) if view else data, parser_report,
+                         extra_allowed, limits)
     timings["emulation"] = _ms(t)
     layers.append(emulation)
     layers += _code_layers("", parser_report, limits)
@@ -253,7 +295,7 @@ def _scan(path: str, *, judge: bool, deep: bool, extra_allowed: frozenset, limit
     if deep:
         step("deep detonation")
         t = time.perf_counter()
-        layers.append(_deep_layer(path, file_format))
+        layers.append(_guarded("deep", "E310", _deep_layer, path, file_format))
         timings["deep"] = _ms(t)
 
     if judge:
@@ -264,13 +306,26 @@ def _scan(path: str, *, judge: bool, deep: bool, extra_allowed: frozenset, limit
             layers.append(judged)
         timings["judge"] = _ms(t)
 
-    final, reasons = combine(layers)
-    findings, category = combine_findings(layers)
+    status, final, reasons, findings, category, tool_errors = settle(layers)
     timings["total"] = _ms(started)
     return Report(path=path, file_name=os.path.basename(path), sha256=sha256, size=size,
                   file_format=file_format, verdict=final, reasons=reasons, layers=layers,
                   timings_ms=timings, version=__version__, findings=findings, category=category,
-                  cleared=_cleared(layers))
+                  cleared=_cleared(layers), status=status, error=tool_errors[0] if status == "error" else None,
+                  errors=tool_errors)
+
+
+def _guarded(name: str, code: str, build: Callable[..., LayerResult], *args) -> LayerResult:
+    """``build(*args)``; an exception it does not expect becomes a tool error in a layer of its
+    own (never a verdict). A runtime integrity failure still ends the scan."""
+    try:
+        return build(*args)
+    except RuntimeIntegrityError:
+        raise
+    except Exception as exc:  # noqa: BLE001 - a bug in safeloadai fails closed as a tool error
+        layer = LayerResult(name=name, verdict=Verdict.CLEAN, ran=False)
+        layer.errors.append(errors.internal(code, exc, name))
+        return layer
 
 
 def _cleared(layers: list[LayerResult]) -> list[dict]:
@@ -284,11 +339,3 @@ def _cleared(layers: list[LayerResult]) -> list[dict]:
                 out.append({"item": entry["item"], "pair": entry["pair"], "mechanism": entry["mechanism"],
                             "detail": entry["detail"], "layer": layer.name})
     return out
-
-
-def _sha256_file(path: str) -> str:
-    digest = hashlib.sha256()
-    with open(path, "rb") as fh:
-        for chunk in iter(lambda: fh.read(1 << 20), b""):
-            digest.update(chunk)
-    return digest.hexdigest()

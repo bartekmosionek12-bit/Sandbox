@@ -14,6 +14,11 @@ UNSUPPORTED is a verdict of its own: the bytes are in no format safeloadai reads
 (no pickle, joblib, PyTorch, Keras or HDF5 reading exists), so nothing was analysed.
 It is never CLEAN, never loadable by ``safe_load`` and never overridable; any other
 finding on the same file makes it SUSPICIOUS.
+
+A failure of safeloadai itself is not a verdict: the report gets ``status == "error"``,
+an ``error`` ({code, message, layer}, see errors.py and docs/ERRORS.md) and no verdict.
+Only MALICIOUS evidence found before the failure still decides (``status == "ok"``, the
+failure listed under ``errors``).
 """
 from __future__ import annotations
 
@@ -22,7 +27,7 @@ import re
 from dataclasses import asdict, dataclass, field
 from enum import StrEnum
 
-SCHEMA_VERSION = "2.2"
+SCHEMA_VERSION = "3.0"
 
 
 class Verdict(StrEnum):
@@ -69,6 +74,8 @@ class LayerResult:
     timings_ms: dict = field(default_factory=dict)
     details: dict = field(default_factory=dict)
     findings: list[dict] = field(default_factory=list)
+    # failures of safeloadai itself in this layer (errors.error); never a verdict
+    errors: list[dict] = field(default_factory=list)
 
     def raise_to(self, verdict: Verdict, reason: str, *, category: Category | None = None,
                  item: str | None = None, explanation: str | None = None, pair: tuple | None = None) -> None:
@@ -104,7 +111,7 @@ class Report:
     sha256: str
     size: int
     file_format: str
-    verdict: Verdict
+    verdict: Verdict | None  # None exactly when status == "error"
     reasons: list[str]
     layers: list[LayerResult]
     timings_ms: dict
@@ -118,15 +125,29 @@ class Report:
     # imports outside the allowlist a rule accepted: {"item", "mechanism", "detail", "layer"}
     # (static/clearance.py: "referenced", "policy", "inert-class"; profiles; known files)
     cleared: list[dict] = field(default_factory=list)
+    # "ok": the verdict stands. "error": safeloadai failed (``error``); there is no verdict.
+    status: str = "ok"
+    error: dict | None = None
+    # every tool failure seen, also when MALICIOUS evidence decided despite one
+    errors: list[dict] = field(default_factory=list)
+
+    @property
+    def ok(self) -> bool:
+        return self.status == "ok"
+
+    @property
+    def outcome(self) -> str:
+        """The verdict's name, or "ERROR" when safeloadai failed."""
+        return self.verdict.value if self.ok and self.verdict is not None else "ERROR"
 
     @property
     def clean(self) -> bool:
-        return self.verdict is Verdict.CLEAN
+        return self.ok and self.verdict is Verdict.CLEAN
 
     @property
     def unverifiable_only(self) -> bool:
         """SUSPICIOUS, and every reason is UNVERIFIABLE: the only case an override can apply to."""
-        return (self.verdict is Verdict.SUSPICIOUS and bool(self.findings)
+        return (self.ok and self.verdict is Verdict.SUSPICIOUS and bool(self.findings)
                 and all(f["category"] == Category.UNVERIFIABLE for f in self.findings))
 
     @property
@@ -144,7 +165,7 @@ class Report:
 
     def to_dict(self) -> dict:
         data = asdict(self)
-        data["verdict"] = self.verdict.value
+        data["verdict"] = self.verdict.value if self.verdict is not None else None
         for layer in data["layers"]:
             layer["verdict"] = Verdict(layer["verdict"]).value
         return data
@@ -194,3 +215,16 @@ def combine_findings(layers: list[LayerResult]) -> tuple[list[dict], str | None]
     if not findings:
         return findings, None
     return findings, max((Category(f["category"]) for f in findings), key=lambda c: c.rank).value
+
+
+def settle(layers: list[LayerResult]) -> tuple[str, Verdict | None, list[str], list[dict], str | None, list[dict]]:
+    """(status, verdict, reasons, findings, category, tool errors) from the layers.
+
+    A tool error in any layer makes the status "error" and leaves no verdict, unless a
+    layer found MALICIOUS evidence anyway: that decides (errors.py)."""
+    final, reasons = combine(layers)
+    findings, category = combine_findings(layers)
+    tool_errors = [e for layer in layers for e in layer.errors]
+    if tool_errors and final is not Verdict.MALICIOUS:
+        return "error", None, reasons, findings, None, tool_errors
+    return "ok", final, reasons, findings, category, tool_errors

@@ -59,7 +59,7 @@ def parse_torch_zip(data: bytes, file_name: str = "<memory>", extra_allowed: fro
         else:
             for key in ("opcodes", "flagged_opcodes", "suspicious_imports", "unknown_imports",
                         "imports", "suspicious_strings", "reasons", "notes", "embedded_keras", "dill_code",
-                        "code_malicious", "cleared"):
+                        "code_malicious", "cleared", "tool_errors"):
                 combined[key].extend(part[key])
             combined.setdefault("_embedded", []).extend(part.get("_embedded") or [])
             combined["raw_disasm"] += f"\n--- {member} ---\n" + part["raw_disasm"]
@@ -75,6 +75,7 @@ def parse_torch_zip(data: bytes, file_name: str = "<memory>", extra_allowed: fro
     for member, raw in hidden.items():
         part = parse_pickle(raw, f"{file_name}:{member}", torch=True, file_format="torch",
                             extra_allowed=extra_allowed, profile_name="")
+        combined["tool_errors"].extend(part["tool_errors"])
         if part["error"] or not part["imports"]:
             continue  # tensor bytes that happen to start like a pickle
         imported = ", ".join(sorted({f"{i['module']}.{i['symbol']}" for i in part["imports"]}))

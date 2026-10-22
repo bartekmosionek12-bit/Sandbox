@@ -251,14 +251,17 @@ def batches(entries: list[dict], max_files: int, max_bytes: int) -> list[list[di
 
 
 def run(work: str, which: str, max_files: int, max_gb: float, eval_args: list[str], limit: int | None,
-        final: bool = False, before: str | None = None, skip_before: frozenset[str] = frozenset()) -> int:
+        final: bool = False, before: str | None = None, skip_before: frozenset[str] = frozenset(),
+        skip: frozenset[str] = frozenset()) -> int:
     """Download, scan and delete one batch after another. A batch whose results file
     exists is skipped, so an interrupted run continues where it stopped. ``before`` is a
     checkout of the previous release: its run_eval.py and src/ scan the same files first
     (results/<plan>/before; this tree's results go to results/<plan>/after). While the plan
     may still grow, the last batch is left for later unless it is full (``final`` runs it).
     ``skip_before`` names files (``repo/file``) the previous release cannot scan in this
-    machine's memory: they are left out of its run, so before/after pairs leave them out."""
+    machine's memory: they are left out of its run, so before/after pairs leave them out.
+    ``skip`` leaves files out of both runs (this release cannot scan them here either); each
+    is recorded in ``WORK/skipped.jsonl`` and reported apart."""
     import huggingface_hub as hub
 
     entries = _jsonl(os.path.join(work, f"plan-{which}.jsonl"))
@@ -305,7 +308,8 @@ def run(work: str, which: str, max_files: int, max_gb: float, eval_args: list[st
                                 ["--jobs", eval_args[1], "--tools", "", *site]))
             started = time.time()
             for name, evaluation, run_args in runs:
-                files = [source[0], _without(directory, skip_before)] if name == "before" and skip_before else source
+                left_out = skip | (skip_before if name == "before" else frozenset())
+                files = [source[0], _without(directory, left_out, name)] if left_out else source
                 out = os.path.join(results, name)
                 os.makedirs(out, exist_ok=True)
                 env = dict(os.environ, PYTHONPATH=os.path.join(os.path.dirname(evaluation), "src"))
@@ -320,21 +324,25 @@ def run(work: str, which: str, max_files: int, max_gb: float, eval_args: list[st
             for entry in fetched:  # the manifest outlives the files
                 _append(os.path.join(work, "manifest.jsonl"), {k: v for k, v in entry.items() if k != "path"})
         shutil.rmtree(directory)
-        shutil.rmtree(directory + "-before", ignore_errors=True)
+        for name in ("before", "after"):
+            shutil.rmtree(f"{directory}-{name}", ignore_errors=True)
         done += 1
     return 0
 
 
-def _without(directory: str, skip: frozenset[str]) -> str:
+def _without(directory: str, skip: frozenset[str], name: str) -> str:
     """A copy of a batch directory (hard links) whose manifest leaves out ``skip``."""
-    copy = directory + "-before"
+    copy = f"{directory}-{name}"
     if os.path.exists(copy):
         shutil.rmtree(copy)
     os.makedirs(copy)
     with open(os.path.join(copy, "manifest.jsonl"), "w", encoding="utf-8") as fh:
         for e in _jsonl(os.path.join(directory, "manifest.jsonl")):
             if f"{e['repo_id']}/{e['filename']}" in skip:
-                print(f"{e['repo_id']}/{e['filename']}: left out of the before run", file=sys.stderr)
+                print(f"{e['repo_id']}/{e['filename']}: left out of the {name} run", file=sys.stderr)
+                _append(os.path.join(os.path.dirname(directory), "skipped.jsonl"),
+                        {"file": f"{e['repo_id']}/{e['filename']}", "run": name, "size": e["size"],
+                         "reason": "out of memory on this machine"})
                 continue
             target = os.path.join(copy, e["path"])
             os.makedirs(os.path.dirname(target), exist_ok=True)
@@ -453,6 +461,8 @@ def main(argv: list[str] | None = None) -> int:
             p.add_argument("--before", help="checkout of the previous release (git worktree) for the before column")
             p.add_argument("--skip-before", action="append", default=[], metavar="REPO/FILE",
                            help="a file the previous release cannot scan here (out of memory); repeatable")
+            p.add_argument("--skip", action="append", default=[], metavar="REPO/FILE",
+                           help="a file left out of both runs (out of memory here too); repeatable")
             p.add_argument("--jobs", default="4")
             p.add_argument("--tool-bin", help="directory with picklescan, fickling and modelscan")
             p.add_argument("--opt-in-site", help="unpacked distributions for the --trust-inert-from column")
@@ -482,7 +492,7 @@ def main(argv: list[str] | None = None) -> int:
         extra += ["--opt-in-site", os.path.abspath(args.opt_in_site)] if args.opt_in_site else []
         before = os.path.abspath(args.before) if args.before else None
         return run(work, args.plan, args.batch_files, args.batch_gb, extra, args.batches, args.final, before,
-                   frozenset(args.skip_before))
+                   frozenset(args.skip_before), frozenset(args.skip))
     elif args.cmd == "labels":
         write_labels(work, args.out)
     else:

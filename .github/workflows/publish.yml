@@ -7,6 +7,10 @@
 #      Sandbox, workflow publish.yml, environment "pypi" (or "testpypi").
 #   2. In the repository settings, create the environments "pypi" and "testpypi"; adding
 #      a required reviewer to "pypi" makes every real upload wait for approval.
+#   docs/RELEASING.md has the full release procedure and the protection settings.
+#
+# Every upload carries PEP 740 attestations (Sigstore-signed provenance that ties each
+# file to this workflow run); users verify them as docs/RELEASING.md describes.
 #
 # Order: the runtime first (safeloadai pins it exactly). An already published runtime
 # version is skipped, so a safeloadai-only release re-uses safeloadai-runtime 0.1.0.
@@ -42,6 +46,10 @@ jobs:
           python -m build . --outdir dist/safeloadai
           python -m twine check --strict dist/runtime/* dist/safeloadai/*
           ls -l dist/*
+      - name: Refuse a real upload from anywhere but main
+        if: inputs.target == 'pypi' && github.ref != 'refs/heads/main'
+        run: |
+          echo "pypi uploads run only from main (this run is on ${GITHUB_REF})"; exit 1
       - name: Refuse development versions
         run: |
           if ls dist/*/* | grep -E '[0-9]\.?(dev|a|b|rc)[0-9]+'; then
@@ -69,6 +77,7 @@ jobs:
           packages-dir: dist/runtime
           repository-url: ${{ inputs.target == 'testpypi' && 'https://test.pypi.org/legacy/' || 'https://upload.pypi.org/legacy/' }}
           skip-existing: true
+          attestations: true
 
   publish-safeloadai:
     needs: publish-runtime
@@ -85,3 +94,4 @@ jobs:
         with:
           packages-dir: dist/safeloadai
           repository-url: ${{ inputs.target == 'testpypi' && 'https://test.pypi.org/legacy/' || 'https://upload.pypi.org/legacy/' }}
+          attestations: true

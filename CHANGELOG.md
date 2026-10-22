@@ -13,6 +13,12 @@ This file follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Vers
 - **CLI:** a failure on one file no longer aborts a multi-file scan; every file gets its own result (a path that does not exist is an E101 result; it was exit 2 before). New exit code **6** for ERROR; 4 stays for a runtime integrity failure. Precedence: MALICIOUS > ERROR > SUSPICIOUS > UNSUPPORTED > CLEAN.
 - `scan()` returns an ERROR report instead of raising `RuntimeIntegrityError` or `OptionError`. `safe_load()` raises `UnsafeModelError` (with `.error`) for a file it cannot read.
 
+### Added
+- **Threat model** ([docs/THREAT_MODEL.md](docs/THREAT_MODEL.md)): assets, attackers, trust boundaries (host, WASI guest, judge, deep mode, `safe_load`, release path), in-scope and out-of-scope threats mapped to OWASP Top 10 for LLM Applications 2025 (LLM03 core scope; LLM04 out of scope, with why), OWASP ML Security Top 10 (ML06) and MITRE ATLAS (2026.09 IDs). A Scope box at the top of the README; each rule family in docs/HOW_IT_WORKS.md lists its mapping; CONTRIBUTING.md asks for a standard tag on detection changes.
+- **Vulnerability handling** (SECURITY.md): 72 h acknowledgement, 7-day triage, 90-day fix target (14 days Critical, 30 High), CVSS 4.0, coordinated disclosure, CVEs through GitHub Security Advisories, OSV and the PyPA advisory database. [docs/INCIDENT_RESPONSE.md](docs/INCIDENT_RESPONSE.md) is the checklist for a confirmed bypass.
+- **Release path** ([docs/RELEASING.md](docs/RELEASING.md)): OpenSSF Scorecard workflow; PEP 740 attestations explicitly on in `publish.yml`, and how users verify them; a real upload only from `main`; owner steps for the `pypi` environment reviewer (second maintainer with "Prevent self-review" as the target), `v*` tag and `main` rulesets.
+- **docs/EVALUATION.md**, generated from the result JSON by `evaluation/make_evaluation_doc.py`: confusion matrix (TP/FN/FP/TN) per group and format with precision, recall and FPR and 95 % Wilson intervals, UNSUPPORTED and ERROR in their own columns, the data distribution and label origin, the tune/held-out split by repository, and the share of malicious files that are our own lab payloads. A test fails when the page is stale.
+
 ### Fixed
 - joblib files written with old numpy, which pickled an array's dtype as `numpy.dtype('f8', 0, 1)` instead of `numpy.dtype('f8', False, True)`, were SUSPICIOUS ("opcode walk failed: ... unexpected numpy.dtype arguments"). Both forms are read now (static walker and emulation); any other flags stay SUSPICIOUS.
 

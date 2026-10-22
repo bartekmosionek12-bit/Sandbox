@@ -24,8 +24,22 @@ def test_every_action_is_pinned_by_commit_sha():
         for line in path.read_text(encoding="utf-8").splitlines():
             match = re.search(r"uses:\s*(\S+)", line)
             if match:
-                assert re.fullmatch(r"[\w.-]+/[\w.-]+@[0-9a-f]{40}", match.group(1)), (path.name, line)
+                assert re.fullmatch(r"[\w.-]+/[\w.-]+(/[\w.-]+)*@[0-9a-f]{40}", match.group(1)), (path.name, line)
                 assert re.search(r"# v\d+\.\d+\.\d+$", line), (path.name, line)
+
+
+def test_publish_uses_trusted_publishing_with_attestations():
+    text = (ROOT / ".github" / "workflows" / "publish.yml").read_text(encoding="utf-8")
+    assert text.count("attestations: true") == 2  # PEP 740, both packages
+    assert text.count("environment: ${{ inputs.target }}") == 2  # the "pypi" environment's reviewer gates uploads
+    assert "password:" not in text and "PYPI_API_TOKEN" not in text  # OIDC only, no stored token
+    assert "github.ref != 'refs/heads/main'" in text
+
+
+def test_scorecard_is_read_only_apart_from_its_results():
+    text = (ROOT / ".github" / "workflows" / "scorecard.yml").read_text(encoding="utf-8")
+    assert "permissions: read-all" in text and "persist-credentials: false" in text
+    assert re.findall(r"^\s+(\S+): write", text, re.M) == ["security-events", "id-token"]
 
 
 def test_monitoring_workflows_cannot_change_the_repository():

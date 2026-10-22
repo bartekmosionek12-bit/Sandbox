@@ -42,6 +42,7 @@ import argparse
 import glob
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -351,6 +352,19 @@ def _without(directory: str, skip: frozenset[str], name: str) -> str:
     return copy
 
 
+DECLARED_POC = re.compile(r"(^|[-_/])(poc|exploits?|bypass|malicious|backdoor|mfv|rce|evil|payloads?|"
+                          r"huntr|hfscanner)([-_/]|$)")
+
+
+def declared_poc(label: str, reason: str, repo_id: str) -> tuple[str, str]:
+    """A file labelled benign from a repository whose name declares a vulnerability proof of
+    concept or a scanner test is ``unclear``: being in a popular-library stratum and not
+    flagged by the Hub says nothing about it. Decided from the name, never from a verdict."""
+    if label == "benign" and DECLARED_POC.search(repo_id.lower()):
+        return "unclear", "repository name declares a proof of concept or scanner test; contents not reviewed"
+    return label, reason
+
+
 def write_labels(work: str, path: str) -> None:
     """Labels for run_eval: the reviewed file (WORK/reviewed-labels.tsv) when a file has a
     row there, else the label the Hub's evidence proposes. A held-out-2 file the Hub does
@@ -366,15 +380,16 @@ def write_labels(work: str, path: str) -> None:
     with open(path, "w", encoding="utf-8") as fh:
         fh.write("# repo\tfile\tcommit\tsha256\tlabel\treason (Hub evidence, then manual review)\n")
         for e in _jsonl(os.path.join(work, "plan-pinned.jsonl")):  # labels as reviewed before
-            fh.write("\t".join([e["repo_id"], e["filename"], e["revision"], e["lfs_sha256"], e["label"],
-                                e["label_reason"].replace("\t", " ")]) + "\n")
+            label, reason = declared_poc(e["label"], e["label_reason"], e["repo_id"])
+            fh.write("\t".join([e["repo_id"], e["filename"], e["revision"], e["lfs_sha256"], label,
+                                reason.replace("\t", " ")]) + "\n")
         for name in ("plan-benign.jsonl", "plan-unsafe.jsonl"):
             for e in _jsonl(os.path.join(work, name)):
                 flagged = "proposed_label" in e
                 default = (e["proposed_label"], e["label_reason"]) if flagged else ("benign", "")
                 if flagged and e.get("split") == SPLIT and default[0] != "malicious":
                     default = ("unclear", "Hub flags it; benign only after review: " + default[1])
-                label, reason = reviewed.get((e["repo_id"], e["filename"]), default)
+                label, reason = declared_poc(*reviewed.get((e["repo_id"], e["filename"]), default), e["repo_id"])
                 fh.write("\t".join([e["repo_id"], e["filename"], e["revision"], e.get("lfs_sha256") or "-",
                                     label, reason.replace("\t", " ")]) + "\n")
 
@@ -408,7 +423,11 @@ def merge(works: list[str], out: str, column: str = "after", add: list[str] | No
     """One results file from every batch of every working directory (entries concatenated;
     group and label from the plans and the current review), plus whole results files
     (``add``: the lab, mutation and hf-malicious run), taken as they are."""
-    files = [(w, p) for w in works for p in sorted(glob.glob(os.path.join(w, "results", "*", column, "eval-*.json")))]
+    latest = {}  # a batch retried after a failed run has several files: the last one counts
+    for w in works:
+        for p in sorted(glob.glob(os.path.join(w, "results", "*", column, "eval-*.json"))):
+            latest[(os.path.dirname(p), os.path.basename(p).rsplit("-", 1)[0])] = (w, p)
+    files = sorted(latest.values(), key=lambda item: item[1])
     if not files:
         print("no batch results", file=sys.stderr)
         return 1

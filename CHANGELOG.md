@@ -35,6 +35,16 @@ This file follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Vers
 - **Polyglot and trailing-data reasons are RISKY, not MALICIOUS.** In a file whose static layer found a sink, every other static reason (trailing data, "readable as more than one format", an unknown import) used to be a MALICIOUS finding as well. Only the sink evidence is MALICIOUS now; the rest are RISKY findings. Verdicts are unchanged: a polyglot without a sink is SUSPICIOUS (RISKY), with a sink MALICIOUS.
 - joblib files written with old numpy, which pickled an array's dtype as `numpy.dtype('f8', 0, 1)` instead of `numpy.dtype('f8', False, True)`, were SUSPICIOUS ("opcode walk failed: ... unexpected numpy.dtype arguments"). Both forms are read now (static walker and emulation); any other flags stay SUSPICIOUS.
 
+### Evaluation
+- **Final 0.8.0 measurement** ([docs/EVALUATION.md](docs/EVALUATION.md), README "Results", both generated from `evaluation/results/eval-v080-*.json`): lab 66/66, mutations 774/774, hf-malicious 49/49 detected (0 let through); held-out and a new **held-out-2** (2806 benign files from repositories no earlier corpus used, never used for tuning) measured before (0.7.1) and after on the same files for the default, `--trust-inert-from` and the upper bound; `--malicious-only` detection and false positives on every set. Hub files were downloaded, scanned and deleted in batches (`evaluation/batch_hf.py`); labels of Hub-flagged files come from the Hub's evidence and a manual review written as rules (`evaluation/review_heldout2_labels.py`, `evaluation/hf_batches_labels.tsv`), never from safeloadai. A benign file from a repository whose name declares a proof of concept or scanner test is `unclear`.
+- The committed results compare other scanners only as one all-files table; the detailed comparison is kept private until coordinated disclosure (`evaluation/redact_results.py`, `evaluation/private_comparison.py`). modelscan now runs with its tensorflow extra for `.keras` (`evaluation/rescan_tool.py`); its `.h5` scan still does not run on the host.
+
+### Known issues (found in the final measurement, not fixed here: the files are held-out)
+- **Peak memory on large pickles.** One 211 MiB dill pickle took over 13 GB in the evaluation (7.5 GB for a single default scan; 0.7.1 ran out of memory too); it is left out of the measurement and listed in the evaluation page. A memory bound is needed.
+- **A cloudpickle class pickle is MALICIOUS** (`builtins.type`, `builtins.staticmethod`, `cloudpickle._builtin_type` as known sinks): one benign held-out-2 file. 0.7.1 gave the same verdict.
+- **A dill pickle's `_create_array` is reported as `code_exec`** by the emulation, and a `MemoryError` in the pickle walker reads "no pickle found" next to its E201.
+- **46 held-out-2 files are ERROR (E304, emulation compute budget)** where 0.7.1 said SUSPICIOUS: the same runs; 0.8.0 reports an exhausted budget as a tool error instead of a verdict (see "Changed").
+
 ## safeloadai 0.7.1 (unreleased)
 
 ### Security

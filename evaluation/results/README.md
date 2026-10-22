@@ -111,6 +111,8 @@ Files: `eval-hf-20261019T121001Z.*` (93 Hub files) and `eval-hf-full-20261019T12
 
 Files:
 - `eval-v071-20261021T165118Z.{json,md}`: safeloadai 0.7.1 (this branch), the same inputs as `eval-v070-20261020T063605Z`.
+- `eval-v080-20261022T132827Z.{json,md}`: safeloadai 0.8.0, the final measurement: lab, mutations, hf-malicious, hf-unsafe, the pinned tune and held-out files, and held-out-2 (`evaluation/batch_hf.py merge`). Source of docs/EVALUATION.md and the README results.
+- `eval-v080-before-v071-20261022T132812Z.{json,md}`: safeloadai 0.7.1 on the same Hub files (the before column).
 - `compare-v070-v071-20261021.md`: before/after table from `compare_eval.py`.
 
 Setup: Python 3.13.16 host, under the evaluation guard, `--jobs 4`. Other tools: picklescan 1.0.5, fickling 0.1.12 and modelscan 0.8.8 (Python 3.12 venv). The Hub files were re-downloaded with `fetch_pinned_hf.py --from-json eval-v070-...json`, pinned to the same commits and checked by sha256.

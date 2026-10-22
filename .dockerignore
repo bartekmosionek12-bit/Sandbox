@@ -5,4 +5,5 @@
 !src/safeloadai/detonate.py
 !src/safeloadai/detonate_keras.py
 !docker/trace_entry.sh
+!docker/requirements-pickle.txt
 !docker/requirements-keras.txt

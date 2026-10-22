@@ -166,3 +166,16 @@ fails on any non-zero exit therefore fails on every ERROR.
 With `--sarif FILE` an ERROR is a result of its own (rule `safeloadai/error`, level
 `error`, the code in its message and in `properties.errorCode`), never a missing
 result: a code-scanning view never shows an unscanned file as passed.
+
+### `--malicious-only` (binary output)
+
+For integrations that need a yes/no answer, `safeloadai scan --malicious-only` prints
+`MALICIOUS` or `NOT-MALICIOUS` per file and exits **1** when a file is MALICIOUS, **4**
+or **6** when safeloadai could not scan a file (an ERROR is never reported as
+NOT-MALICIOUS), and **0** otherwise. SUSPICIOUS and UNSUPPORTED files therefore exit 0.
+
+It is an output mode only. The verdict does not change: `--json` and `--report` carry
+the full Report, a warning on stderr says what the mode hides, and `safe_load` still
+refuses every file that is not CLEAN. Use it only where a SUSPICIOUS file is handled
+some other way (it is still not loadable). Measured on the evaluation sets with
+`evaluation/malicious_only.py`.

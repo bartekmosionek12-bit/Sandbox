@@ -162,3 +162,7 @@ The exit code of `safeloadai scan` is the first that applies:
 
 Precedence: **MALICIOUS > ERROR > SUSPICIOUS > UNSUPPORTED > CLEAN.** A CI job that
 fails on any non-zero exit therefore fails on every ERROR.
+
+With `--sarif FILE` an ERROR is a result of its own (rule `safeloadai/error`, level
+`error`, the code in its message and in `properties.errorCode`), never a missing
+result: a code-scanning view never shows an unscanned file as passed.

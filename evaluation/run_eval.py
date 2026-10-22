@@ -684,7 +684,9 @@ def markdown(summary: dict, fps: dict, entries: list[dict], tools: list[str], me
               "|---|---|---|---|---|" + "---|" * len(tools)]
     for e in entries:
         res = e["results"]
-        cells = [res["safeloadai"].get("verdict", res["safeloadai"]["outcome"])] + [res[t]["outcome"] for t in tools]
+        # an ERROR has verdict None (docs/ERRORS.md)
+        cells = [res["safeloadai"].get("verdict") or str(res["safeloadai"]["outcome"]).upper()]
+        cells += [str(res.get(t, {}).get("outcome")) for t in tools]
         lines.append(f"| {e['file']} | {e.get('group', e.get('source'))} | {e['label']} | {e['expected']} | "
                      + " | ".join(cells) + " |")
     return "\n".join(lines) + "\n"

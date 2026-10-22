@@ -196,8 +196,8 @@ def plan_unsafe(work: str, max_bytes: int) -> int:
         except Exception as exc:  # noqa: BLE001
             print(f"{repo_id}: {exc}", file=sys.stderr)
             continue
-        if info is None:
-            continue
+        if info is None or getattr(info, "gated", False) or getattr(info, "private", False):
+            continue  # files of a gated repo cannot be downloaded without an account
         files = [f for f in flagged_files(info, max_bytes) if (repo_id, f[0]) not in have | planned]
         if not files:
             continue
@@ -225,9 +225,11 @@ def batches(entries: list[dict], max_files: int, max_bytes: int) -> list[list[di
 
 
 def run(work: str, which: str, max_files: int, max_gb: float, eval_args: list[str], limit: int | None,
-        final: bool = False) -> int:
+        final: bool = False, before: str | None = None) -> int:
     """Download, scan and delete one batch after another. A batch whose results file
-    exists is skipped, so an interrupted run continues where it stopped. While the plan
+    exists is skipped, so an interrupted run continues where it stopped. ``before`` is a
+    checkout of the previous release: its run_eval.py and src/ scan the same files first
+    (results/<plan>/before; this tree's results go to results/<plan>/after). While the plan
     may still grow, the last batch is left for later unless it is full (``final`` runs it)."""
     import huggingface_hub as hub
 
@@ -245,7 +247,7 @@ def run(work: str, which: str, max_files: int, max_gb: float, eval_args: list[st
         if number == len(todo) and not (full or final):
             print(f"{label}: {len(batch)} files, not full; left for a later run (--final runs it)", file=sys.stderr)
             break
-        if glob.glob(os.path.join(results, f"eval-{label}-*.json")):
+        if glob.glob(os.path.join(results, "after", f"eval-{label}-*.json")):
             continue
         directory = os.path.join(work, "batch")
         if os.path.exists(directory):
@@ -268,13 +270,21 @@ def run(work: str, which: str, max_files: int, max_gb: float, eval_args: list[st
             labels = os.path.join(work, f"labels-{which}.tsv")
             write_labels(work, labels)
             source = ["--hf-malicious", directory] if which == "unsafe" else ["--hf", directory]
-            command = [sys.executable, os.path.join(HERE, "run_eval.py"), *source, "--labels", labels,
-                       "--label", label, "--out", results, *eval_args]
+            runs = [("after", HERE, eval_args)]
+            if before:  # the same files with the release before this one, safeloadai only
+                runs.insert(0, ("before", os.path.join(before, "evaluation"), ["--jobs", eval_args[1], "--tools", ""]))
             started = time.time()
-            code = subprocess.call(command, cwd=REPO_ROOT)
-            if code != 0 or not glob.glob(os.path.join(results, f"eval-{label}-*.json")):
-                print(f"{label}: run_eval exited {code}; files kept in {directory} for a retry", file=sys.stderr)
-                return 1
+            for name, evaluation, run_args in runs:
+                out = os.path.join(results, name)
+                os.makedirs(out, exist_ok=True)
+                env = dict(os.environ, PYTHONPATH=os.path.join(os.path.dirname(evaluation), "src"))
+                command = [sys.executable, os.path.join(evaluation, "run_eval.py"), *source, "--labels", labels,
+                           "--label", label, "--out", out, *run_args]
+                code = subprocess.call(command, cwd=os.path.dirname(evaluation), env=env)
+                if code != 0 or not glob.glob(os.path.join(out, f"eval-{label}-*.json")):
+                    print(f"{label} ({name}): run_eval exited {code}; files kept in {directory} for a retry",
+                          file=sys.stderr)
+                    return 1
             print(f"{label}: scanned in {time.time() - started:.0f} s", file=sys.stderr)
             for entry in fetched:  # the manifest outlives the files
                 _append(os.path.join(work, "manifest.jsonl"), {k: v for k, v in entry.items() if k != "path"})
@@ -308,9 +318,9 @@ def write_labels(work: str, path: str) -> None:
                                     label, reason.replace("\t", " ")]) + "\n")
 
 
-def merge(work: str, out: str) -> int:
+def merge(work: str, out: str, column: str = "after") -> int:
     """One results file from every batch (entries concatenated, labels as reviewed)."""
-    files = sorted(glob.glob(os.path.join(work, "results", "*", "eval-*.json")))
+    files = sorted(glob.glob(os.path.join(work, "results", "*", column, "eval-*.json")))
     if not files:
         print("no batch results", file=sys.stderr)
         return 1
@@ -345,11 +355,14 @@ def main(argv: list[str] | None = None) -> int:
             p.add_argument("--batch-gb", type=float, default=4.0)
             p.add_argument("--batches", type=int, help="stop after this many batches")
             p.add_argument("--final", action="store_true", help="also run the last batch when it is not full")
+            p.add_argument("--before", help="checkout of the previous release (git worktree) for the before column")
             p.add_argument("--jobs", default="4")
             p.add_argument("--tool-bin", help="directory with picklescan, fickling and modelscan")
             p.add_argument("--opt-in-site", help="unpacked distributions for the --trust-inert-from column")
         if name in ("labels", "merge"):
             p.add_argument("--out", required=True)
+        if name == "merge":
+            p.add_argument("--column", choices=("before", "after"), default="after")
     args = parser.parse_args(argv)
     work = os.path.abspath(args.work)
     if os.path.commonpath([work, REPO_ROOT]) == REPO_ROOT:
@@ -366,11 +379,12 @@ def main(argv: list[str] | None = None) -> int:
         else:
             extra += ["--tools", ""]
         extra += ["--opt-in-site", os.path.abspath(args.opt_in_site)] if args.opt_in_site else []
-        return run(work, args.plan, args.batch_files, args.batch_gb, extra, args.batches, args.final)
+        before = os.path.abspath(args.before) if args.before else None
+        return run(work, args.plan, args.batch_files, args.batch_gb, extra, args.batches, args.final, before)
     elif args.cmd == "labels":
         write_labels(work, args.out)
     else:
-        return merge(work, args.out)
+        return merge(work, args.out, args.column)
     return 0
 
 

@@ -56,6 +56,8 @@ test = [
     "joblib",
     "scikit-learn",
     "lz4>=4.0,<5",
+    # property tests of the parsers (tests/test_fuzz.py); fuzz/run.py uses atheris when present
+    "hypothesis",
 ]
 dev = [
     "safeloadai[test]",

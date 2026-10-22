@@ -50,3 +50,21 @@ def test_missing_path_is_an_error_result(tmp_path, capsys):
 
 def test_bad_allow_exit_2(tmp_path):
     assert main(["scan", "--allow", "nocolon", _clean(tmp_path)]) == 2
+
+
+def test_malicious_only_binary_output(tmp_path, fake_emulation, capsys):
+    target = tmp_path / "evil.pkl"
+    target.write_bytes(P2 + call(g("posix", "system"), s(MARKER_CMD)) + STOP)
+    assert main(["scan", "--malicious-only", str(target)]) == 1
+    assert capsys.readouterr().out.startswith("MALICIOUS ")
+    fake_emulation.verdict = Verdict.SUSPICIOUS
+    assert main(["scan", "--malicious-only", _clean(tmp_path)]) == 0
+    captured = capsys.readouterr()
+    assert captured.out.startswith("NOT-MALICIOUS ") and "--malicious-only" in captured.err
+
+
+def test_malicious_only_keeps_the_verdict_and_errors(tmp_path, fake_emulation, capsys):
+    fake_emulation.verdict = Verdict.SUSPICIOUS
+    assert main(["scan", "--malicious-only", "--json", _clean(tmp_path)]) == 0
+    assert json.loads(capsys.readouterr().out)["verdict"] == "SUSPICIOUS"
+    assert main(["scan", "--malicious-only", str(tmp_path / "missing")]) == 6

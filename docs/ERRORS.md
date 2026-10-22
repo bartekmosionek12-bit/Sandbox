@@ -162,3 +162,16 @@ The exit code of `safeloadai scan` is the first that applies:
 
 Precedence: **MALICIOUS > ERROR > SUSPICIOUS > UNSUPPORTED > CLEAN.** A CI job that
 fails on any non-zero exit therefore fails on every ERROR.
+
+### `--malicious-only` (binary output)
+
+For integrations that need a yes/no answer, `safeloadai scan --malicious-only` prints
+`MALICIOUS` or `NOT-MALICIOUS` per file and exits **1** when a file is MALICIOUS, **4**
+or **6** when safeloadai could not scan a file (an ERROR is never reported as
+NOT-MALICIOUS), and **0** otherwise. SUSPICIOUS and UNSUPPORTED files therefore exit 0.
+
+It is an output mode only. The verdict does not change: `--json` and `--report` carry
+the full Report, a warning on stderr says what the mode hides, and `safe_load` still
+refuses every file that is not CLEAN. Use it only where a SUSPICIOUS file is handled
+some other way (it is still not loadable). Measured on the evaluation sets with
+`evaluation/malicious_only.py`.

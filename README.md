@@ -6,6 +6,15 @@ It reads pickle, joblib, PyTorch, Keras and legacy Keras HDF5 files without runn
 them, and runs whatever code they would run inside a WebAssembly sandbox with fake
 APIs. It is beta software (0.7.1): see [LIMITATIONS](#limitations) before relying on it.
 
+> **Scope.** safeloadai checks whether *loading* a model file runs code or touches the
+> system: the model-file part of the AI supply chain (OWASP **LLM03:2025 Supply Chain**,
+> OWASP ML Top 10 **ML06 AI Supply Chain Attacks**, MITRE ATLAS **AML.T0010.003**,
+> **AML.T0011.000**, **AML.T0018.002**). It does **not** detect model backdoors or
+> poisoned weights (OWASP **LLM04:2025 Data and Model Poisoning**): those live in the
+> weight values and leave the file's structure untouched. A CLEAN verdict says nothing
+> about what the model predicts. Full threat model, trust boundaries and out-of-scope
+> threats: [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md).
+
 ## Quick start
 
 ```bash
@@ -136,7 +145,9 @@ MALICIOUS > ERROR > SUSPICIOUS > UNSUPPORTED > CLEAN. Codes and rules:
 
 Run of 2026-10-20, safeloadai 0.7.0, in a disposable cloud container with
 `evaluation/guard.py` on and no `--deep`. Full tables:
-[eval-v070](evaluation/results/eval-v070-20261020T063605Z.md).
+[eval-v070](evaluation/results/eval-v070-20261020T063605Z.md). Confusion matrices
+(TP/FP/TN/FN with 95 % intervals), the data distribution and the tune/held-out split:
+[docs/EVALUATION.md](docs/EVALUATION.md).
 
 **Detection.** "Detected" means any verdict other than CLEAN. safeloadai's verdict was
 MALICIOUS on every one of these by default.
@@ -311,8 +322,13 @@ python evaluation/run_eval.py --lab /tmp/corpus --hf /path/to/hf_corpus   # --he
   issue on drift, and `runtime-watch` for new WASI CPython and wasmtime releases
   ([docs/UPDATING_RUNTIME.md](docs/UPDATING_RUNTIME.md)).
 - **Releasing:** `.github/workflows/publish.yml` uploads both packages with PyPI
-  Trusted Publishing, started by hand, to testpypi or pypi. Changes are in
-  [CHANGELOG.md](CHANGELOG.md).
+  Trusted Publishing and PEP 740 attestations, started by hand, to testpypi or pypi,
+  behind a required reviewer ([docs/RELEASING.md](docs/RELEASING.md), including how to
+  verify a release). Changes are in [CHANGELOG.md](CHANGELOG.md).
+- **Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md). Changes to detection carry a
+  standard tag such as `[LLM03]` in the title.
+- **Evaluation:** [docs/EVALUATION.md](docs/EVALUATION.md), generated from the result
+  files: confusion matrices, data distribution, the tune/held-out split.
 
 The report viewer runs with `flask --app app.server run --host 127.0.0.1`; it renders
 Report JSON and does not scan files. The audit that started this rewrite is in

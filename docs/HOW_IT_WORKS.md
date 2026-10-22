@@ -122,3 +122,24 @@ lowers a MALICIOUS or RISKY finding, and each accepted import is listed in
 
 Every list above is generated or written at development time, reviewed and committed.
 Nothing is added to any list while scanning.
+
+## Rule families and standards
+
+Every detection rule belongs to one family, and every family is mapped to the
+standards in [THREAT_MODEL.md](THREAT_MODEL.md) (threat IDs T1 to T15 there). A pull
+request or commit that changes a family carries its tag in the title (see
+[CONTRIBUTING.md](../CONTRIBUTING.md)).
+
+| Family | Where | What it flags | Threat | Tags |
+|---|---|---|---|---|
+| Sink imports and calls | `static/pickle_static.py`, `behaviour.py` (`SINKS`) | a known sink imported and called; in emulation, any call to a sink | T1 | `[LLM03]` `[ML06]` `[AML.T0011.000]` `[AML.T0018.002]` |
+| Exact allowlist | `static/allowlists.py`, `static/clearance.py`, `profiles/`, `known_good.py` | any import outside exact `(module, qualname)` pairs (and the rules that accept some) | T1, T15 | `[LLM03]` `[ML06]` `[AML.T0010.003]` |
+| Gadgets and indirection | `static/pickle_static.py` (`_check_getattr`, guarded calls, BUILD hooks), `allowlists.KNOWN_GADGETS` | getattr chains, `partial`, `methodcaller`, hook attributes in BUILD states, re-exported sinks | T2 | `[LLM03]` `[ML06]` `[AML.T0018.002]` |
+| Keras code and custom objects | `static/keras_static.py`, `static/h5_static.py`, Lambda emulation | Lambda bytecode, functions named by module, custom objects, non-built-in training config | T3 | `[LLM03]` `[ML06]` `[AML.T0011.000]` |
+| Readings and parser differentials | `parsing/views.py`, `static/__init__.py`, `parsing/zipsafe.py`, joblib differential | polyglots, trailing or leading data, refused archives, CRC mismatches, hidden pickles, joblib array bytes a plain `pickle.load` would read | T4 | `[LLM03]` `[ML06]` `[AML.T0011.000]` |
+| Corrupt and over-limit streams | `static/pickle_vm.py`, `static/pickle_static.py: walk_problem`, `parsing/decompress.py`, `shared/hdf5_meta.py` | streams a loader rejects or reads differently, limits on size, opcodes, depth, ratio | T5, T10 | `[LLM03]` `[ML06]` `[AML.T0076]` |
+| Look-alike names | `static/lookalike.py` | module names imitating allowlisted ones | T6 | `[LLM03]` `[ML06]` `[AML.T0010.003]` |
+| Evidence integrity | `sandbox/host.py`, `behaviour.py` | writes without the nonce, broken sequences (tampering) | T9 | `[LLM03]` `[AML.T0011.000]` |
+| Judge escalation | `judge.py`, `verdict.judge_layer` | injection attempts in the evidence | T11 | `[LLM01]` |
+| Runtime integrity | `sandbox/runtime.py` | a WASI runtime that is not the pinned build (E401) | T13 | `[LLM03]` `[AML.T0010.001]` |
+

@@ -13,6 +13,9 @@ This file follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Vers
 - **CLI:** a failure on one file no longer aborts a multi-file scan; every file gets its own result (a path that does not exist is an E101 result; it was exit 2 before). New exit code **6** for ERROR; 4 stays for a runtime integrity failure. Precedence: MALICIOUS > ERROR > SUSPICIOUS > UNSUPPORTED > CLEAN.
 - `scan()` returns an ERROR report instead of raising `RuntimeIntegrityError` or `OptionError`. `safe_load()` raises `UnsafeModelError` (with `.error`) for a file it cannot read.
 
+### Fixed
+- joblib files written with old numpy, which pickled an array's dtype as `numpy.dtype('f8', 0, 1)` instead of `numpy.dtype('f8', False, True)`, were SUSPICIOUS ("opcode walk failed: ... unexpected numpy.dtype arguments"). Both forms are read now (static walker and emulation); any other flags stay SUSPICIOUS.
+
 ## safeloadai 0.7.1 (unreleased)
 
 ### Security

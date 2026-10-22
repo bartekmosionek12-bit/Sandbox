@@ -47,6 +47,17 @@ differently. Where it stops decides the outcome:
 The same split applies to the HDF5 reader: a structure it refuses is a SUSPICIOUS
 reason, an exception that escapes it is `E203`.
 
+Every walk failure in the 0.7.0/0.7.1 evaluation (`evaluation/results/eval-v07*-*.json`)
+was decided case by case:
+
+| Failure as 0.7.x reported it | Files | Decision |
+|---|---|---|
+| `ValueError: not enough data in stream to read uint4` | 3 Hub malicious | file: truncated pickle, SUSPICIOUS (`pickle.load` fails there too) |
+| `VMError: GLOBAL at N crosses the end of its frame` | 3 Hub malicious | file: inconsistent framing, SUSPICIOUS |
+| `ValueError: at position N, opcode b'\xff' unknown` | 1 lab | file: not a pickle opcode, SUSPICIOUS |
+| `VMError: NumpyArrayWrapper at N: unexpected numpy.dtype arguments` | 1 Hub benign (held-out) | **tool gap, fixed**: old numpy pickled `dtype('f8', 0, 1)` instead of `dtype('f8', False, True)`; both are read now |
+| `VMError: memo key N not found` | (none in 0.7.x; seen in earlier runs) | file: refers to a memo entry it never stored, SUSPICIOUS |
+
 ## Report fields
 
 Every report (`Report.to_dict()`, `safeloadai scan --json`) has:

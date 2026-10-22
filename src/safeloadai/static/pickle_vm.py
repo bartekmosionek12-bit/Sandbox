@@ -84,7 +84,7 @@ def dtype_value(value):
             and value.func.pair == joblib_layout.DTYPE):
         raise joblib_layout.LayoutError("array dtype is not a numpy.dtype reconstruction")
     args = value.args
-    if not (isinstance(args, tuple) and len(args) == 3 and args[1] is False and args[2] is True):
+    if not (isinstance(args, tuple) and len(args) == 3 and joblib_layout.dtype_flags_ok(args[1], args[2])):
         raise joblib_layout.LayoutError("unexpected numpy.dtype arguments")
     return args[0], value.state
 

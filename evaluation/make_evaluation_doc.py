@@ -59,10 +59,10 @@ LABEL_ORIGIN = {
     "hf-tune": "benign by selection (popular repositories of known libraries); files the Hub flags were reviewed "
                "by hand and relabelled",
     "hf-heldout": "same as hf-tune",
-    "hf-unsafe": "Hub scanner evidence plus manual review (`evaluation/hf_unsafe_labels.tsv`); never safeloadai's "
+    "hf-unsafe": "Hub scanner evidence plus manual review (`evaluation/hf_batches_labels.tsv`); never safeloadai's "
                  "verdict; unclear until reviewed",
     "hf-heldout2": "benign by selection; files the Hub flags are unclear until reviewed by hand "
-                   "(`evaluation/hf_heldout2_labels.tsv`)",
+                   "(`evaluation/hf_batches_labels.tsv`, rules in `evaluation/review_heldout2_labels.py`)",
 }
 POSITIVE = {"SUSPICIOUS", "MALICIOUS"}
 
@@ -252,6 +252,17 @@ def malicious_only_section(entries: list[dict]) -> list[str]:
     return lines + [""]
 
 
+def skipped_note(data: dict) -> list[str]:
+    """Files planned but not scanned because this machine ran out of memory on them."""
+    rows = data.get("skipped_files") or []
+    if not rows:
+        return []
+    return [f"- {len(rows)} planned file(s) could not be scanned on the evaluation machine (15 GB of memory; "
+            "safeloadai ran out of memory) and are left out of every table: " +
+            ", ".join(f"`{r['file']}` ({r['size'] // 2 ** 20} MiB)" for r in rows) +
+            ". Peak memory on large pickles is a known issue."]
+
+
 def frac(k: int, n: int) -> str:
     return f"{k} / {n}" if n else "-"
 
@@ -378,6 +389,7 @@ def render(data: dict, source: str, before: dict | None = None) -> str:
         "",
         "- The other scanners are measured on every file here, including formats they do not read; their "
         "errors, unsupported and skipped columns show that part. " + COMPARISON_NOTE,
+        *skipped_note(data),
         "- Model backdoors and poisoned weights (OWASP LLM04) are not measured: a file scanner cannot see them "
         "([THREAT_MODEL.md](THREAT_MODEL.md)).",
         "- Regenerate this page after a new run: `python evaluation/make_evaluation_doc.py RESULT.json`.",

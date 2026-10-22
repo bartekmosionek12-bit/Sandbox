@@ -432,6 +432,9 @@ def merge(works: list[str], out: str, column: str = "after", add: list[str] | No
         with open(path, encoding="utf-8") as fh:
             entries.extend(json.load(fh)["entries"])
     meta["batches"] = [os.path.basename(p) for _, p in files] + [os.path.basename(p) for p in add or []]
+    skipped = {row["file"]: row for w in works for row in _jsonl(os.path.join(w, "skipped.jsonl"))
+               if row["run"] == column}
+    meta["skipped_files"] = sorted(skipped.values(), key=lambda row: row["file"])
     with open(out, "w", encoding="utf-8") as fh:
         json.dump(dict(meta, entries=entries), fh, indent=1, sort_keys=True)
     print(f"merged {len(files)} batches, {len(entries)} entries into {out}; "

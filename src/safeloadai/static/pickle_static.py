@@ -33,6 +33,7 @@ from . import clearance as clearance_mod
 from .allowlists import (
     ARGUMENT_CHECKED,
     BUILD_HOOK_KEYS,
+    BUILD_STATE_KEYS,
     DANGEROUS_MODULES,
     DANGEROUS_SYMBOLS,
     DEFAULTDICT,
@@ -46,10 +47,18 @@ from .allowlists import (
     NUMPY_BIT_GENERATOR_CLASSES,
     NUMPY_BIT_GENERATOR_CTOR,
     NUMPY_BIT_GENERATOR_NAMES,
+    PANDAS_BLOCK_MANAGER,
+    PANDAS_CATEGORICAL_DTYPE,
+    PANDAS_DATAFRAME,
     PANDAS_INDEX_CLASSES,
     PANDAS_INDEX_KEYS,
     PANDAS_NEW_INDEX,
+    PANDAS_SERIES,
+    PANDAS_SINGLE_BLOCK_MANAGER,
+    PANDAS_UNPICKLE_BLOCK,
     PICKLE_GLOBALS,
+    SCORER_FUNCTIONS,
+    SKLEARN_THRESHOLD_SCORER,
     STATE_ONLY_CLASSES,
     TF_DANGEROUS,
     TORCH_GLOBALS,
@@ -509,7 +518,131 @@ def _argument_check(how: str, pair: tuple[str, str], args, state_only=None) -> t
         if not args or (len(args) == 1 and (args[0] is None or isinstance(args[0], Global))):
             return None, None  # not exempt: an argument-checked global is no factory either
         return f"is given {_short(args)}; only no factory or one imported global is accepted", None
+    if pair == PANDAS_UNPICKLE_BLOCK:
+        if (len(args) == 3 and _is_ndarray(args[0]) and _is_block_locs(args[1])
+                and type(args[2]) is int and args[2] in (1, 2)):
+            return None, None
+        return (f"is called with {_short(args)}; only (numpy array, slice, ndim 1 or 2) as pandas "
+                "writes a block is accepted"), None
+    if pair == PANDAS_BLOCK_MANAGER:
+        if (len(args) == 2 and isinstance(args[0], tuple) and args[0]
+                and all(_is_unpickled_block(b) for b in args[0])
+                and isinstance(args[1], list) and len(args[1]) == 2 and all(_is_pandas_index(a) for a in args[1])):
+            return None, None
+        return (f"is called with {_short(args)}; only (blocks from _unpickle_block, [two pandas Index]) "
+                "as pandas writes a DataFrame's manager is accepted"), None
+    if pair in SCORER_FUNCTIONS:
+        return ("is called; it is accepted only as the score function a scikit-learn scorer stores, "
+                "which is not called while loading"), None
     return "has no argument check", None
+
+
+# --- pandas and scorer shapes (allowlists.py, Phase 5 tune review) -----------------------
+
+NUMPY_RECONSTRUCT = frozenset({("numpy._core.multiarray", "_reconstruct"), ("numpy.core.multiarray", "_reconstruct")})
+SLICE = frozenset({("builtins", "slice"), ("__builtin__", "slice")})
+PLAIN_SCALARS = (str, int, float, bool, type(None))
+
+
+def _reduce_of(value, pairs) -> bool:
+    return (isinstance(value, Obj) and value.how == "reduce" and isinstance(value.func, Global)
+            and value.func.pair in pairs)
+
+
+def _is_ndarray(value) -> bool:
+    """A numpy array as numpy pickles it (_reconstruct(ndarray, ...) + BUILD) or as joblib reads it."""
+    if isinstance(value, Obj) and value.how == "array":
+        return True
+    return (_reduce_of(value, NUMPY_RECONSTRUCT) and isinstance(value.args, tuple) and value.args
+            and isinstance(value.args[0], Global) and value.args[0].pair == ("numpy", "ndarray"))
+
+
+def _is_block_locs(value) -> bool:
+    """A block's placement as pandas writes it: mgr_locs.indexer, a slice of ints or an int array."""
+    if _reduce_of(value, SLICE):
+        return (isinstance(value.args, tuple) and len(value.args) == 3
+                and all(a is None or type(a) is int for a in value.args))
+    return (type(value) is int) or _is_ndarray(value)
+
+
+def _is_pandas_index(value) -> bool:
+    return _reduce_of(value, {PANDAS_NEW_INDEX})  # its arguments are checked at its own call
+
+
+def _is_unpickled_block(value) -> bool:
+    return _reduce_of(value, {PANDAS_UNPICKLE_BLOCK})  # its arguments are checked at its own call
+
+
+def _manager_state_ok(state) -> bool:
+    """BaseBlockManager.__getstate__ for a SingleBlockManager: (axes, values, items,
+    {"0.14.1": {"axes": [Index], "blocks": [{"values": array, "mgr_locs": slice}]}})."""
+    if not (isinstance(state, tuple) and len(state) == 4 and isinstance(state[3], dict)
+            and set(state[3]) == {"0.14.1"}):
+        return False
+    first = state[3]["0.14.1"]
+    if not (isinstance(first, dict) and set(first) == {"axes", "blocks"}):
+        return False
+    axes, blocks = first["axes"], first["blocks"]
+    if not (isinstance(axes, list) and len(axes) == 1 and _is_pandas_index(axes[0])):
+        return False
+    if not (isinstance(blocks, list) and len(blocks) == 1 and isinstance(blocks[0], dict)
+            and set(blocks[0]) == {"values", "mgr_locs"}):
+        return False
+    if not (_is_ndarray(blocks[0]["values"]) and _is_block_locs(blocks[0]["mgr_locs"])):
+        return False
+    old_axes, old_values, old_items = state[:3]  # the 0.13.1 copy, which __setstate__ ignores
+    return (isinstance(old_axes, list) and all(_is_pandas_index(a) for a in old_axes)
+            and isinstance(old_values, list) and all(_is_ndarray(v) for v in old_values)
+            and isinstance(old_items, list) and all(_is_pandas_index(i) for i in old_items))
+
+
+def _plain_label(value, depth: int = 0) -> bool:
+    """A Series name or scorer keyword value: a scalar or a tuple of scalars."""
+    if isinstance(value, tuple) and depth == 0:
+        return all(_plain_label(v, 1) for v in value)
+    return type(value) in PLAIN_SCALARS
+
+
+def _build_state_problem(pair, state) -> str | None:
+    """What is wrong with the BUILD state of an instance of a class in BUILD_STATE_KEYS, or None."""
+    keys = BUILD_STATE_KEYS.get(pair)
+    if keys is None:
+        return None
+    extra = sorted(str(k) for k in state if k not in keys)
+    if extra:
+        return f"has state keys its class never writes ({', '.join(extra)[:120]})"
+    if pair in (PANDAS_DATAFRAME, PANDAS_SERIES):
+        manager_ok = (_reduce_of(state.get("_mgr"), {PANDAS_BLOCK_MANAGER}) if pair == PANDAS_DATAFRAME
+                      else class_of(state.get("_mgr")) == PANDAS_SINGLE_BLOCK_MANAGER
+                      and state["_mgr"].how == "newobj")
+        flags = state.get("_flags", {})
+        if not (manager_ok and state.get("_typ") in ("dataframe", "series")
+                and isinstance(state.get("_metadata", []), list)
+                and all(type(m) is str for m in state.get("_metadata", []))
+                and isinstance(state.get("attrs", {}), dict)
+                and isinstance(flags, dict) and set(flags) <= {"allows_duplicate_labels"}
+                and all(type(v) is bool for v in flags.values())
+                and _plain_label(state.get("name"))):
+            return "has a state pandas never writes (manager, _typ, _metadata, attrs, _flags or name)"
+    elif pair == PANDAS_CATEGORICAL_DTYPE:
+        categories = state.get("categories")
+        if not ((categories is None or _is_pandas_index(categories)) and state.get("ordered") in (True, False, None)):
+            return "has a state pandas never writes (categories must be an Index, ordered a bool)"
+    elif pair == SKLEARN_THRESHOLD_SCORER:
+        func, kwargs = state.get("_score_func"), state.get("_kwargs", {})
+        if not (isinstance(func, Global) and func.pair in SCORER_FUNCTIONS and state.get("_sign") in (1, -1)
+                and isinstance(kwargs, dict) and all(type(k) is str and _plain_label(v) for k, v in kwargs.items())):
+            return ("has a state scikit-learn never writes (_score_func must be a reviewed score function, "
+                    "_sign 1 or -1, _kwargs plain values)")
+    return None
+
+
+def _stored_score_function(how: str, func, args) -> bool:
+    """A BUILD of a _ThresholdScorer whose state passes _build_state_problem: its _score_func
+    is stored, not called, so the value walk skips it."""
+    return (how == "build" and class_of(func) == SKLEARN_THRESHOLD_SCORER and isinstance(args, tuple)
+            and len(args) == 1 and isinstance(args[0], dict)
+            and _build_state_problem(SKLEARN_THRESHOLD_SCORER, args[0]) is None)
 
 
 def _is_zero_arg_instance(value) -> bool:
@@ -530,15 +663,37 @@ def _rebuilt_instance_use(how: str, func, args, state_only=None) -> str | None:
     if how != "build":
         return f"{name} is called ({how.upper()}); it may only be rebuilt from a dict state"
     state = args[0] if isinstance(args, tuple) and args else None
+    if pair == PANDAS_SINGLE_BLOCK_MANAGER:
+        if _manager_state_ok(state):
+            return None
+        return f"{name} is given a BUILD state pandas never writes (only the 0.14.1 manager tuple is accepted)"
     if not isinstance(state, dict):
         return (f"{name} is given a {type(state).__name__} BUILD state; only a dict state is accepted "
                 "(a slot state makes pickle call setattr)")
+    problem = _build_state_problem(pair, state)
+    if problem:
+        return f"{name} {problem}"
     return None
 
 
+class _Shown(str):
+    def __repr__(self) -> str:
+        return str(self)
+
+
+def _shown(value):
+    if isinstance(value, Global):
+        return f"{value.module}.{value.name}"
+    if isinstance(value, Obj):
+        pair = class_of(value)
+        return _Shown(f"<{pair[0]}.{pair[1]} {value.how}>" if pair else f"<{value.how}>")
+    if isinstance(value, (tuple, list)):
+        return type(value)(_shown(v) for v in value)
+    return value
+
+
 def _short(args) -> str:
-    text = repr(tuple(f"{a.module}.{a.name}" if isinstance(a, Global) else a for a in args)
-                if isinstance(args, tuple) else args)
+    text = repr(tuple(_shown(a) for a in args) if isinstance(args, tuple) else _shown(args))
     return text if len(text) <= 120 else text[:117] + "..."
 
 
@@ -669,6 +824,8 @@ def _check_guarded_calls(calls: list[tuple], state_only=None) -> list[str]:
                                "second argument; only a numpy bit generator and __bit_generator_ctor are accepted)")
             else:
                 exempt = 1
+        if _stored_score_function(how, func, args):
+            args = ({k: v for k, v in args[0].items() if k != "_score_func"},)
         for value in _guarded_values(args, skip_top=exempt, walk=walk, state_only=state_only):
             reasons.append(f"{value.module}.{value.name} is passed as a value at {pos} "
                            f"({how.upper()}); it may only be called directly")

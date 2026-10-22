@@ -30,6 +30,7 @@ from .static.allowlists import (
     GETATTR,
     KNOWN_GADGETS,
     PICKLE_GLOBALS,
+    SCORER_FUNCTIONS,
     TORCH_GLOBALS,
 )
 from .static.lookalike import imitates
@@ -140,7 +141,9 @@ def _classify_call(event: dict, allowed_names: frozenset[str], framework: bool) 
 
 
 def allowed_names(extra_allowed: frozenset = frozenset(), torch: bool = False) -> frozenset[str]:
-    pairs = PICKLE_GLOBALS | frozenset(extra_allowed) | (TORCH_GLOBALS if torch else frozenset())
+    """Call targets that are no finding. A scorer's score function may be imported and stored
+    (allowlists.SCORER_FUNCTIONS) but is never called while loading, so a call to it is."""
+    pairs = (PICKLE_GLOBALS - SCORER_FUNCTIONS) | frozenset(extra_allowed) | (TORCH_GLOBALS if torch else frozenset())
     return frozenset(f"{module}.{name}" for module, name in pairs)
 
 

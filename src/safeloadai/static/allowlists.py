@@ -299,7 +299,74 @@ ZERO_ARG_CLASSES = frozenset({
     ("ultralytics.utils", "IterableSimpleNamespace"),
     ("ultralytics.yolo.utils", "IterableSimpleNamespace"),
 })
-ARGUMENT_CHECKED = STATE_ONLY_CLASSES | ENUM_CLASSES | ZERO_ARG_CLASSES | {PANDAS_NEW_INDEX, DEFAULTDICT}
+
+# --- pandas objects, dabl estimators and a scikit-learn scorer (Phase 5 tune review) ----
+# evaluation/results/source-review-3-20261022.md: sources read from PyPI wheels and sdists
+# (pandas 1.4.4 and 3.1.0, dabl 0.2.6.2 and 0.3.2, scikit-learn 1.1.3 and 1.9.1), never
+# installed or imported. Enforced by pickle_static (_argument_check, _build_state_problem),
+# with an adversarial test per entry in tests/test_allowlist_review_20261022.py. Each form
+# below is the only one accepted; anything else stays SUSPICIOUS.
+PANDAS_DATAFRAME = ("pandas.core.frame", "DataFrame")
+PANDAS_SERIES = ("pandas.core.series", "Series")
+PANDAS_BLOCK_MANAGER = ("pandas.core.internals.managers", "BlockManager")
+PANDAS_SINGLE_BLOCK_MANAGER = ("pandas.core.internals.managers", "SingleBlockManager")
+PANDAS_UNPICKLE_BLOCK = ("pandas._libs.internals", "_unpickle_block")
+PANDAS_CATEGORICAL_DTYPE = ("pandas.core.dtypes.dtypes", "CategoricalDtype")
+SKLEARN_THRESHOLD_SCORER = ("sklearn.metrics._scorer", "_ThresholdScorer")
+# Score functions a scorer stores in _score_func: accepted only as that stored value,
+# never called and never passed to a call while loading (the scorer calls it later).
+SCORER_FUNCTIONS = frozenset({
+    ("sklearn.metrics._ranking", "average_precision_score"),  # numeric metric, 1.1.3 and 1.9.1
+})
+# The keys each class's own __getstate__ writes; its __setstate__ (or __dict__ update) sets
+# every key it is given, so a BUILD state with any other key is refused.
+BUILD_STATE_KEYS = {
+    # NDFrame.__getstate__/__setstate__ (pandas 1.4.4 generic.py:2107, 3.1.0 generic.py:2012):
+    # _mgr, _typ, _metadata, attrs, _flags and one key per _metadata name (Series: "name").
+    # __setstate__ sets each key with object.__setattr__ and builds Flags(self, **_flags).
+    PANDAS_DATAFRAME: frozenset({"_mgr", "_typ", "_metadata", "attrs", "_flags"}),
+    PANDAS_SERIES: frozenset({"_mgr", "_typ", "_metadata", "attrs", "_flags", "name"}),
+    # CategoricalDtype.__setstate__ pops "categories" and "ordered" into private attributes
+    # (pandas 1.4.4 dtypes.py:342, 3.1.0 dtypes.py:398)
+    PANDAS_CATEGORICAL_DTYPE: frozenset({"categories", "ordered"}),
+    # _BaseScorer.__init__(score_func, sign, kwargs) stores _score_func, _sign, _kwargs; no
+    # pickling hooks (scikit-learn 1.1.3 metrics/_scorer.py:144; the class is gone in 1.9.1,
+    # where importing it fails)
+    SKLEARN_THRESHOLD_SCORER: frozenset({"_kwargs", "_score_func", "_sign"}),
+}
+PANDAS_STATE_ONLY = frozenset({
+    # rebuilt by NEWOBJ () + BUILD; the state is checked against BUILD_STATE_KEYS and
+    # pickle_static._build_state_problem (what each key may hold)
+    PANDAS_DATAFRAME,
+    PANDAS_SERIES,
+    PANDAS_CATEGORICAL_DTYPE,
+    # BaseBlockManager.__getstate__ writes (axes, values, items, {"0.14.1": {"axes": [...],
+    # "blocks": [{"values", "mgr_locs"}]}}); __setstate__ reads only the "0.14.1" part, makes
+    # each axis an Index (ensure_index) and each block with new_block(values, mgr_locs, ndim)
+    # (pandas 1.4.4 managers.py:1764-1800, 3.1.0 managers.py:2118-2160). Accepted only with
+    # that tuple state, numpy arrays as values and slices as block locations.
+    PANDAS_SINGLE_BLOCK_MANAGER,
+})
+STATE_ONLY_CLASSES = STATE_ONLY_CLASSES | PANDAS_STATE_ONLY | frozenset({
+    # dabl 0.2.6.2 and 0.3.2: BaseEstimator subclasses with no pickling hooks, __setattr__,
+    # __getattr__ or properties (available_if descriptors only run on attribute access)
+    ("dabl.preprocessing", "EasyPreprocessor"),
+    ("dabl.models", "SimpleClassifier"),
+    ("dabl.models", "SimpleRegressor"),
+    SKLEARN_THRESHOLD_SCORER,
+})
+# Called only through REDUCE, each with its argument check in pickle_static._argument_check:
+# * BlockManager(blocks, axes): libinternals.BlockManager.__reduce__ returns (type(self),
+#   (self.blocks, self.axes)); __cinit__ stores the tuple and axes.copy() (pandas 1.4.4
+#   internals.pyx:677-742, 3.1.0 internals.pyx:745-864). Accepted: a tuple of blocks made by
+#   _unpickle_block and a list of two pandas Index objects.
+# * _unpickle_block(values, placement, ndim): Block.__reduce__ returns (_unpickle_block,
+#   (values, mgr_locs.indexer, ndim)); it calls new_block (1.4.4 internals.pyx:568, 3.1.0
+#   internals.pyx:629, which also calls maybe_coerce_values and BlockPlacement). Accepted: a
+#   numpy array, a slice or int, and ndim 1 or 2.
+PANDAS_CALLS = frozenset({PANDAS_BLOCK_MANAGER, PANDAS_UNPICKLE_BLOCK})
+ARGUMENT_CHECKED = (STATE_ONLY_CLASSES | ENUM_CLASSES | ZERO_ARG_CLASSES | PANDAS_CALLS | SCORER_FUNCTIONS
+                    | {PANDAS_NEW_INDEX, DEFAULTDICT})
 PICKLE_GLOBALS = PICKLE_GLOBALS | ARGUMENT_CHECKED
 
 # builtins.getattr is how pickle writes a bound method: getattr(obj, "name"). It is never

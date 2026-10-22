@@ -200,7 +200,7 @@ _WALK_WORDS = (
      "it refers to stored object {0} that it never stored (pickle.load fails there)"),
     (re.compile(r"unpickling stack underflow|could not find MARK"),
      "it takes more values off its stack than it put on (pickle.load fails there)"),
-    (re.compile(r"not enough data|exhausted before|ends without STOP|truncated"),
+    (re.compile(r"not enough data|exhausted before|ends without STOP|truncated|past the end of the file"),
      "it is truncated: the stream ends in the middle of an opcode or before STOP (pickle.load fails there)"),
     (re.compile(r"at position (\d+), opcode (.+) unknown"),
      "byte {1} at offset {0} is no pickle opcode (pickle.load fails there)"),

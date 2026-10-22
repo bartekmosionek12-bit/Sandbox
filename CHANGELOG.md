@@ -5,6 +5,14 @@ This file follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Vers
 - `safeloadai` (the scanner);
 - `safeloadai-runtime` (the pinned sandbox runtime). It has its own version and changes only when the runtime does.
 
+## safeloadai 0.8.0 (unreleased)
+
+### Changed
+- **Tool errors are no longer verdicts** ([docs/ERRORS.md](docs/ERRORS.md)). When safeloadai itself fails (file missing, unreadable or over 4 GiB; an exception a parser does not expect; the WASI sandbox unavailable, crashed, timed out or out of fuel; the deep sandbox did not run; runtime integrity failure; invalid options passed to `scan()`), the report has `status: "error"`, an `error` `{code, message, layer}` with a stable code (E1xx I/O, E2xx parser, E3xx sandbox, E4xx runtime integrity, E5xx options) and `verdict: null`. These were SUSPICIOUS reasons before (or exceptions, for runtime integrity and options). An ERROR is never CLEAN, never loadable by `safe_load`, never overridable and never changed by the known-file list. MALICIOUS evidence found before a failure still decides; the failure is then listed under `errors`. Report schema 3.0.
+- A pickle the walker cannot read because of the file (truncated, a memo entry it never stored, a bad frame, an unknown opcode) stays SUSPICIOUS, now explained in plain words ("pickle is not readable: ..."). An opcode the walker does not model is a tool error (E201).
+- **CLI:** a failure on one file no longer aborts a multi-file scan; every file gets its own result (a path that does not exist is an E101 result; it was exit 2 before). New exit code **6** for ERROR; 4 stays for a runtime integrity failure. Precedence: MALICIOUS > ERROR > SUSPICIOUS > UNSUPPORTED > CLEAN.
+- `scan()` returns an ERROR report instead of raising `RuntimeIntegrityError` or `OptionError`. `safe_load()` raises `UnsafeModelError` (with `.error`) for a file it cannot read.
+
 ## safeloadai 0.7.1 (unreleased)
 
 ### Security

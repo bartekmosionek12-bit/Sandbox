@@ -10,7 +10,7 @@ APIs. It is beta software (0.7.1): see [LIMITATIONS](#limitations) before relyin
 
 ```bash
 pip install safeloadai              # Python 3.11+, Linux, macOS or Windows; nothing is downloaded at run time
-safeloadai scan model.pkl           # exit 0 CLEAN, 1 MALICIOUS, 3 SUSPICIOUS, 5 UNSUPPORTED
+safeloadai scan model.pkl           # exit 0 CLEAN, 1 MALICIOUS, 3 SUSPICIOUS, 5 UNSUPPORTED, 6 ERROR
 safeloadai scan models/ --json      # a whole directory, JSON reports
 safeloadai doctor                   # checks the sandbox runtime and runs it once
 ```
@@ -19,7 +19,7 @@ safeloadai doctor                   # checks the sandbox runtime and runs it onc
 from safeloadai import scan, safe_load, UnsafeModelError
 
 report = scan("model.pkl")          # never loads the file on this machine
-print(report.verdict)               # CLEAN, SUSPICIOUS, MALICIOUS or UNSUPPORTED
+print(report.verdict)               # CLEAN, SUSPICIOUS, MALICIOUS or UNSUPPORTED (None on ERROR)
 print(report.reasons)               # why, in plain words
 
 model = safe_load("model.pkl")      # loads only a CLEAN file, else raises UnsafeModelError
@@ -120,6 +120,17 @@ safeloadai scan model.pkl --trust-inert-from scikit-learn        # judge your in
 
 Accepting an UNVERIFIABLE item means trusting that class's code; see
 [docs/OPTIONS.md](docs/OPTIONS.md#accept_unverified).
+
+### Errors are not verdicts
+
+When safeloadai itself fails (the file cannot be read, a parser hits a bug, the
+sandbox crashes or times out, the runtime fails its integrity check), the report says
+`status: "error"` with a stable code such as `E302` and has **no verdict**. An ERROR is
+never CLEAN and never loadable, and the CLI exits 6 (4 for a runtime integrity
+failure). A corrupt file that a loader would also reject is a verdict (SUSPICIOUS), not
+an ERROR. With several files, each gets its own result and the exit code follows
+MALICIOUS > ERROR > SUSPICIOUS > UNSUPPORTED > CLEAN. Codes and rules:
+[docs/ERRORS.md](docs/ERRORS.md).
 
 ## Results
 

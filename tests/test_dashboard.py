@@ -23,3 +23,10 @@ def test_renders_report_and_escapes_text():
 def test_rejects_non_report_json():
     resp = app.test_client().post("/", data={"text": json.dumps({"hello": 1})})
     assert "Could not read the report" in resp.get_data(as_text=True)
+
+
+def test_renders_an_error_report_without_a_verdict():
+    report = dict(REPORT, verdict=None, status="error", layers=[],
+                  error={"code": "E302", "message": "WASI sandbox crashed: <b>trap</b>", "layer": "emulation"})
+    body = app.test_client().post("/", data={"text": json.dumps(report)}).get_data(as_text=True)
+    assert "ERROR E302" in body and "there is no verdict" in body and "<b>trap</b>" not in body

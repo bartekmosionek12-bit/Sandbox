@@ -115,6 +115,10 @@ lowers a MALICIOUS or RISKY finding, and each accepted import is listed in
   file gets nothing. `--no-known-good` turns it off.
 - **UNSUPPORTED.** A file with no pickle, joblib, ZIP or HDF5 reading at all is
   UNSUPPORTED: not CLEAN, not loadable, not overridable, CLI exit code 5.
+- **ERROR is not a verdict.** When safeloadai itself fails (I/O, a parser bug, a
+  sandbox crash or timeout, runtime integrity, invalid options), the report has
+  `status: "error"` and a code, and no verdict ([ERRORS.md](ERRORS.md)). Only MALICIOUS
+  evidence found before the failure still decides.
 
 Every list above is generated or written at development time, reviewed and committed.
 Nothing is added to any list while scanning.

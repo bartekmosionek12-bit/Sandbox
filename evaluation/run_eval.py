@@ -197,7 +197,16 @@ def block_of(verdict: str | None, unverifiable_only: bool) -> str:
     return "soft" if verdict == "SUSPICIOUS" and unverifiable_only else "hard"
 
 
+def _error_column(report, seconds: float) -> dict:
+    """A tool error (docs/ERRORS.md): its own outcome, never a detection or a miss."""
+    return {"outcome": "error", "verdict": None, "error": f"{report.error['code']}: {report.error['message']}",
+            "error_code": report.error["code"], "category": None, "unverifiable_only": False,
+            "seconds": seconds, "block": "error", "cleared": []}
+
+
 def _column(report, seconds: float) -> dict:
+    if not report.ok:
+        return _error_column(report, seconds)
     return {"outcome": "clean" if report.clean else "flagged", "verdict": report.verdict.value,
             "category": report.category, "unverifiable_only": report.unverifiable_only, "seconds": seconds,
             "block": block_of(report.verdict.value, report.unverifiable_only),
@@ -212,6 +221,14 @@ def run_safeloadai(path: str, trust: tuple[str, ...] = ()) -> dict:
         return {"outcome": "error", "error": f"{type(exc).__name__}: {exc}",
                 "seconds": time.perf_counter() - started}
     seconds = time.perf_counter() - started
+    if not report.ok:
+        result = _error_column(report, seconds)
+        result.update(file_format=report.file_format, timings_ms=report.timings_ms, reasons=report.reasons[:8])
+        for column in ("no_known_good", "upper_bound"):
+            result[column] = _error_column(report, seconds)
+        if trust:
+            result["trust"] = _error_column(report, seconds)
+        return result
     layers = {layer.name: layer.verdict.value for layer in report.layers}
     result = {"outcome": "clean" if report.clean else "flagged", "verdict": report.verdict.value,
               "file_format": report.file_format, "layers": layers, "timings_ms": report.timings_ms,

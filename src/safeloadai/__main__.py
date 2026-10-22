@@ -52,18 +52,18 @@ EXIT_ERROR = 6
 SUPPORTED = tuple(EXTENSION_HINTS)
 
 
-def _collect(paths: list[str]) -> tuple[list[str], list[str]]:
-    files, missing = [], []
+def _collect(paths: list[str]) -> list[str]:
+    """Files to scan, in the order given. A path that is neither a directory nor a regular
+    file stays in the list: its scan reports it (ERROR E101 or E104), the others go on."""
+    files = []
     for path in paths:
         if os.path.isdir(path):
             for root, dirs, names in os.walk(path):
                 dirs[:] = sorted(d for d in dirs if not d.startswith("."))
                 files.extend(os.path.join(root, n) for n in sorted(names) if n.lower().endswith(SUPPORTED))
-        elif os.path.isfile(path):
-            files.append(path)
         else:
-            missing.append(path)
-    return files, missing
+            files.append(path)
+    return files
 
 
 def _allow_pair(text: str) -> tuple[str, str]:
@@ -214,9 +214,7 @@ def main(argv: list[str] | None = None) -> int:
     except (options_mod.OptionError, OSError, argparse.ArgumentTypeError) as exc:
         print(f"safeloadai: {exc}", file=sys.stderr)
         return EXIT_USAGE
-    files, missing = _collect(args.paths)
-    # A path that does not exist is that path's own result (ERROR E101), not the end of the run.
-    files += missing
+    files = _collect(args.paths)
     if not files:
         print("safeloadai: nothing to scan", file=sys.stderr)
         return EXIT_USAGE

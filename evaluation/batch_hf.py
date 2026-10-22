@@ -63,7 +63,7 @@ from fetch_malicious_hf import _security, candidate_repos, flagged_files, propos
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.dirname(HERE)
 SPLIT = "heldout2"
-FLAGGED_LEVELS = frozenset({"unsafe", "suspicious", "issue", "caution"})
+FLAGGED_LEVELS = frozenset({"unsafe", "suspicious", "caution", "error", "issue"})
 DEFAULT_MAX_MB = 100
 
 
@@ -224,9 +224,11 @@ def batches(entries: list[dict], max_files: int, max_bytes: int) -> list[list[di
     return out
 
 
-def run(work: str, which: str, max_files: int, max_gb: float, eval_args: list[str], limit: int | None) -> int:
+def run(work: str, which: str, max_files: int, max_gb: float, eval_args: list[str], limit: int | None,
+        final: bool = False) -> int:
     """Download, scan and delete one batch after another. A batch whose results file
-    exists is skipped, so an interrupted run continues where it stopped."""
+    exists is skipped, so an interrupted run continues where it stopped. While the plan
+    may still grow, the last batch is left for later unless it is full (``final`` runs it)."""
     import huggingface_hub as hub
 
     entries = _jsonl(os.path.join(work, f"plan-{which}.jsonl"))
@@ -238,6 +240,11 @@ def run(work: str, which: str, max_files: int, max_gb: float, eval_args: list[st
         if limit is not None and done >= limit:
             break
         label = f"{which}-{number:03d}"
+        size = sum(e["size"] for e in batch)
+        full = len(batch) >= max_files or size + max(e["size"] for e in batch) > max_gb * 1024 ** 3
+        if number == len(todo) and not (full or final):
+            print(f"{label}: {len(batch)} files, not full; left for a later run (--final runs it)", file=sys.stderr)
+            break
         if glob.glob(os.path.join(results, f"eval-{label}-*.json")):
             continue
         directory = os.path.join(work, "batch")
@@ -337,6 +344,7 @@ def main(argv: list[str] | None = None) -> int:
             p.add_argument("--batch-files", type=int, default=200)
             p.add_argument("--batch-gb", type=float, default=4.0)
             p.add_argument("--batches", type=int, help="stop after this many batches")
+            p.add_argument("--final", action="store_true", help="also run the last batch when it is not full")
             p.add_argument("--jobs", default="4")
             p.add_argument("--tool-bin", help="directory with picklescan, fickling and modelscan")
             p.add_argument("--opt-in-site", help="unpacked distributions for the --trust-inert-from column")
@@ -354,11 +362,11 @@ def main(argv: list[str] | None = None) -> int:
     elif args.cmd == "run":
         extra = ["--jobs", args.jobs]
         if args.tool_bin:
-            extra += ["--tool-bin", args.tool_bin, "--tools", "picklescan,fickling,modelscan"]
+            extra += ["--tool-bin", os.path.abspath(args.tool_bin), "--tools", "picklescan,fickling,modelscan"]
         else:
             extra += ["--tools", ""]
-        extra += ["--opt-in-site", args.opt_in_site] if args.opt_in_site else []
-        return run(work, args.plan, args.batch_files, args.batch_gb, extra, args.batches)
+        extra += ["--opt-in-site", os.path.abspath(args.opt_in_site)] if args.opt_in_site else []
+        return run(work, args.plan, args.batch_files, args.batch_gb, extra, args.batches, args.final)
     elif args.cmd == "labels":
         write_labels(work, args.out)
     else:

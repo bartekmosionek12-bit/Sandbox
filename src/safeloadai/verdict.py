@@ -53,10 +53,16 @@ def static_layer(parser_report: dict, *, defer_lambdas: bool = False) -> LayerRe
     if verdict is C:
         return layer
     unverifiable = parser_report.get("unverifiable") or {}
+    # A MALICIOUS reading has evidence reasons (a sink); the reasons next to them (trailing
+    # data, a second reading, an unknown import) are RISKY findings, not MALICIOUS ones.
+    # The verdict is the same; the categories say which reason proves what.
+    evidence = set(parser_report.get("evidence") or ()) if verdict is M else set()
     for reason in reasons or [f"static risk {risk!r}"]:
         meta = unverifiable.get(reason) if verdict is S else None
         if verdict is Verdict.UNSUPPORTED and reason != UNSUPPORTED_REASON:
             layer.raise_to(S, reason)  # anything else found next to it is RISKY
+        elif evidence and reason not in evidence:
+            layer.raise_to(S, reason)
         elif meta:
             layer.raise_to(verdict, reason, category=Category.UNVERIFIABLE, item=meta.get("item"),
                            explanation=meta.get("explanation"), pair=meta.get("pair"))

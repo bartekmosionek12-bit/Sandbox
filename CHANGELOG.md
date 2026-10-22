@@ -20,6 +20,7 @@ This file follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Vers
 - **docs/EVALUATION.md**, generated from the result JSON by `evaluation/make_evaluation_doc.py`: confusion matrix (TP/FN/FP/TN) per group and format with precision, recall and FPR and 95 % Wilson intervals, UNSUPPORTED and ERROR in their own columns, the data distribution and label origin, the tune/held-out split by repository, and the share of malicious files that are our own lab payloads. A test fails when the page is stale.
 
 ### Fixed
+- **Polyglot and trailing-data reasons are RISKY, not MALICIOUS.** In a file whose static layer found a sink, every other static reason (trailing data, "readable as more than one format", an unknown import) used to be a MALICIOUS finding as well. Only the sink evidence is MALICIOUS now; the rest are RISKY findings. Verdicts are unchanged: a polyglot without a sink is SUSPICIOUS (RISKY), with a sink MALICIOUS.
 - joblib files written with old numpy, which pickled an array's dtype as `numpy.dtype('f8', 0, 1)` instead of `numpy.dtype('f8', False, True)`, were SUSPICIOUS ("opcode walk failed: ... unexpected numpy.dtype arguments"). Both forms are read now (static walker and emulation); any other flags stay SUSPICIOUS.
 
 ## safeloadai 0.7.1 (unreleased)

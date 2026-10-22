@@ -141,6 +141,8 @@ def _empty_report(file_name: str, file_format: str) -> dict:
         "error": None,
         # failures of safeloadai itself (errors.error dicts); never a verdict
         "tool_errors": [],
+        # the reasons that are evidence of a sink (MALICIOUS findings); the rest are RISKY
+        "evidence": [],
         "pickle_count": 0,
         # reason text -> {"item", "pair", "explanation"} for the reasons that are UNVERIFIABLE
         "unverifiable": {},
@@ -385,6 +387,7 @@ def _trailing(report: dict, data: bytes, start: int, mode: str, depth: int, opti
     report["trailing"]["report"] = {"static_risk": sub["static_risk"], "pickle_count": sub["pickle_count"]}
     if sub["static_risk"] == "malicious":
         report["trailing_malicious"] = True
+        report.setdefault("evidence", []).extend(prefix + r for r in sub.get("evidence") or [])
 
 
 # Top-level packages a model-loading environment commonly has, besides the
@@ -1096,6 +1099,13 @@ def _score(report: dict, allow: frozenset, torch: bool,
 
     getattr_malicious = (report.get("getattr_malicious") or []) + (report.get("code_malicious") or [])
     reasons.extend(getattr_malicious)
+    # The reasons that are evidence of a sink: only these are MALICIOUS findings. Everything
+    # else next to them (trailing data, a second reading, an unknown import) stays RISKY.
+    evidence = report.setdefault("evidence", [])
+    if report["suspicious_imports"] and has_call:
+        evidence.extend(f"import of a known sink: {imp['module']}.{imp['symbol']}"
+                        for imp in report["suspicious_imports"])
+    evidence.extend(getattr_malicious)
     if (report["suspicious_imports"] and has_call) or getattr_malicious or report.get("trailing_malicious"):
         report["static_risk"] = "malicious"
     elif reasons:

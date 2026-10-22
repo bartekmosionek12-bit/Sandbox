@@ -21,8 +21,8 @@ STATIC_DETAIL_DROP = ("raw_disasm",)
 def lambdas_only(parser_report: dict) -> bool:
     """True when the only static findings are Lambda layers with bytecode and no sink names.
 
-    Owner rule: such a model is CLEAN only if emulation then completes without any
-    anomaly or dangerous behaviour, so the static layer defers to emulation.
+    Such a model is SUSPICIOUS (RISKY) with one explanatory reason; emulation decides
+    whether it is MALICIOUS (owner decision L1, 2026-10-22; before 0.8.0 it could be CLEAN).
     """
     lambdas = parser_report.get("lambdas") or []
     if parser_report.get("file_format") not in ("keras", "h5") or not lambdas or parser_report.get("error"):
@@ -46,8 +46,13 @@ def static_layer(parser_report: dict, *, defer_lambdas: bool = False) -> LayerRe
     if layer.errors and not reasons:
         return layer  # the reader failed (a tool error), it found nothing about the file
     if risk == "suspicious" and defer_lambdas and lambdas_only(parser_report):
-        layer.reasons.append("Lambda bytecode without sink names; deferred to emulation: "
-                             + "; ".join(reasons))
+        # Owner decision of 2026-10-22 (DECISIONS.md L1): code the file carries runs in the
+        # same guest interpreter as the recorder, so emulation can show it is dangerous but
+        # never that it is safe (docs/EVIDENCE_CHANNEL.md). Emulation still runs and can
+        # raise this to MALICIOUS; the file is never CLEAN.
+        layer.raise_to(S, "Lambda layer carries Python bytecode (no sink names found); it runs when the "
+                          "model is loaded with safe_mode=False, and emulation cannot prove it harmless: "
+                       + "; ".join(reasons))
         return layer
     verdict = _STATIC.get(str(risk), S)
     if verdict is C:

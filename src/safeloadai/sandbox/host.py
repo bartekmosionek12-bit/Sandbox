@@ -10,7 +10,11 @@ Evidence integrity rules (owner decision, DECISIONS.md):
   not come from the recorder: ``tampered = True`` (the verdict layer maps that to
   MALICIOUS).
 * Sequence numbers must be 0, 1, 2, ... with no gaps or repeats, and the last
-  record must be ``done``. Anything else is an incomplete run (SUSPICIOUS).
+  record must be ``done``. Anything else is an incomplete run.
+* The guest must return from ``_start``. A guest that calls ``proc_exit`` (even with
+  status 0) did not run to the end of the bootstrap, whatever records it wrote: the
+  run is incomplete (status ``exit``). This is observed by the runner, outside the
+  guest, so guest code cannot forge it (0.8.0, docs/EVIDENCE_CHANNEL.md).
 
 What this cannot prevent: the payload shares the guest interpreter with the
 recorder, so it can find the nonce and append well-formed records of its own. It
@@ -218,7 +222,9 @@ def run_guest(task: dict, artefacts: dict[str, bytes], limits: Limits | None = N
         completed = False
     status = result.get("status", "runner_error")
     if status != "ok":
-        problems.append(f"guest ended with status {status}" + (f": {result.get('trap')}" if result.get("trap") else ""))
+        detail = result.get("trap") or (f"proc_exit({result.get('exit_code')}) called inside the guest"
+                                         if status == "exit" else "")
+        problems.append(f"guest ended with status {status}" + (f": {detail}" if detail else ""))
         completed = False
     timings = dict(result.get("timings_ms", {}), total=elapsed)
     info = _runtime_info(wasm)

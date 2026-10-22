@@ -218,17 +218,22 @@ non-CLEAN benign file, soft blocks included).
     `_getframe`, dunder `getattr`), sleeping, reading tensor values and
     unknown globals are recorded as anomalies and make the file SUSPICIOUS.
   - **Not covered:** other ways of detecting the emulator are not.
-- **The Lambda rule.** A Keras Lambda layer is CLEAN only if static analysis
-  succeeds, emulation completes, and neither records a dangerous behaviour or an
-  anomaly. The Python version that wrote the bytecode is never guessed, because Keras
+- **The Lambda rule.** Since 0.8.0 a Keras Lambda layer with bytecode is never CLEAN:
+  at best SUSPICIOUS (RISKY), because code that runs in the sandbox can hide from the
+  recorder (see "Evidence channel"). Emulation still runs and makes it MALICIOUS when it
+  sees a dangerous behaviour or an anomaly. The Python version that wrote the bytecode is never guessed, because Keras
   files do not record it. One case stays undetectable: bytecode from another CPython
   version that happens to be byte-identical to valid 3.12 bytecode (for example
   `lambda x: x` from 3.11) passes every check and is emulated as 3.12 bytecode.
-- **Evidence channel.** The payload runs in the same guest interpreter as the
-  recorder. It can find the nonce and append well-formed records of its own, but it
-  cannot remove records the host has already received, so it can add noise but cannot
-  turn a recorded alarm into a clean log. Writes without the nonce count as tampering
-  and are MALICIOUS.
+- **Evidence channel.** Code that runs in the guest (Keras Lambda bytecode, dill code
+  objects) shares the interpreter with the recorder. It can find the nonce and append
+  well-formed records of its own, and it can keep its own later behaviour out of the
+  log or behave harmlessly when it notices the sandbox. It cannot remove records the
+  host has already received, and since 0.8.0 it cannot fake a complete run by writing
+  a `done` record and exiting early (the host sees `proc_exit`). Writes without the
+  nonce count as tampering and are MALICIOUS. Moving the recorder into host functions
+  would not help with the pinned runtime; the design and a proposal are in
+  [docs/EVIDENCE_CHANNEL.md](docs/EVIDENCE_CHANNEL.md).
 - **An override on UNVERIFIABLE means trusting that class's code.** Accepting it tells
   `safe_load` to import and run whatever the named module does, with your privileges.
   Accept only items whose source you know and trust. Look-alike names of allowlisted
@@ -266,15 +271,16 @@ non-CLEAN benign file, soft blocks included).
   in libhdf5 or h5py weight parsing are out of scope. SUSPICIOUS by design: external
   links or data files, virtual datasets, driver info, a user block, dense storage, odd
   root attributes, more than 100,000 objects and anything the reader cannot parse.
-  Keras 2 Lambda layers are rarely CLEAN.
+  Keras 2 Lambda layers are never CLEAN.
 - **Polyglot files.** Recognised readings: a pickle at offset 0, a joblib-compressed
   stream at offset 0, a ZIP archive found from its end, and the first HDF5 superblock at
   0, 512, 1024, ... A reading the scanner does not know (another archive format, data a
   custom loader reads at another offset) is not analysed.
 - **CRC-32.** A PyTorch member with a bad CRC-32 is analysed anyway and the file is
   RISKY; a `.keras` member with a bad CRC-32 is refused, as `zipfile` refuses it.
-- **CLEAN Lambda models do not load through `safe_load`,** because Keras safe mode
-  refuses Lambda bytecode. Legacy `.h5` files are never loaded by `safe_load`.
+- **Lambda models do not load through `safe_load`,** because Keras safe mode refuses
+  Lambda bytecode (and they are never CLEAN). Legacy `.h5` files are never loaded by
+  `safe_load`.
 - **Loading a CLEAN pickle imports allowlisted libraries on your machine,** such as
   numpy and scikit-learn, and runs their reconstruction code. You are trusting them.
 - **The WASI sandbox is only as strong as wasmtime** and a third-party CPython WASI

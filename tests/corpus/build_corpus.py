@@ -288,8 +288,9 @@ LAMBDAS = {
     "k_lambda_introspection.keras": ("evasion", SUSPICIOUS,
                                      "lambda x: ().__class__.__bases__[0].__subclasses__() and x"),
     "k_lambda_unknown_global.keras": ("missing_stub", SUSPICIOUS, "lambda x: helper_not_defined(x)"),
-    "b_lambda_scale.keras": ("benign", CLEAN, "lambda x: x * 2.0 + 1.0"),
-    "b_lambda_relu.keras": ("benign", CLEAN, "lambda x: tf.nn.relu(x)"),
+    # benign code, but code: never CLEAN (owner decision L1, 2026-10-22)
+    "b_lambda_scale.keras": ("benign", SUSPICIOUS, "lambda x: x * 2.0 + 1.0"),
+    "b_lambda_relu.keras": ("benign", SUSPICIOUS, "lambda x: tf.nn.relu(x)"),
 }
 
 

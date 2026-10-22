@@ -268,7 +268,8 @@ non-CLEAN benign file, soft blocks included).
   numpy and scikit-learn, and runs their reconstruction code. You are trusting them.
 - **The WASI sandbox is only as strong as wasmtime** and a third-party CPython WASI
   build (pinned by sha256). Fuel bounds CPU and the host kills the process at the
-  wall-clock limit; large or slow models can hit the limits and are then SUSPICIOUS.
+  wall-clock limit; large or slow models can hit the limits and are then ERROR (E303,
+  E304; never CLEAN).
   Files up to 4 GiB are read into memory on the host.
 - **Deep mode (`--deep`, off) runs the real loader on the real kernel** in Docker,
   bubblewrap or nsjail. Docker shares the kernel; the nsjail flags have not been

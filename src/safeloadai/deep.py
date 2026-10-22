@@ -12,7 +12,7 @@ on the real kernel, so the isolation is only as good as the backend:
 The detoner prints EVENT and RESULT lines on stdout; the payload shares that
 stdout, so the host takes the union of all EVENT lines and treats a second RESULT
 line as tampering (see ``docker_sandbox._parse_detoner_output``). Deep mode can
-only add findings: if it cannot run, the scan is SUSPICIOUS, never CLEAN.
+only add findings: if it cannot run, the scan is an ERROR (E310), never CLEAN.
 """
 from __future__ import annotations
 

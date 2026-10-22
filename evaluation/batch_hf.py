@@ -176,6 +176,31 @@ def plan_benign(work: str, target: int, max_bytes: int) -> int:
     return added
 
 
+def plan_pinned(work: str, source: str) -> int:
+    """The benign tune and held-out files of an earlier results file, pinned to their commit
+    and sha256 (``fetch_pinned_hf.py``'s rule), so held-out before/after is measured with
+    the same batches as held-out-2."""
+    with open(source, encoding="utf-8") as fh:
+        entries = json.load(fh)["entries"]
+    plan = os.path.join(work, "plan-pinned.jsonl")
+    planned = {(e["repo_id"], e["filename"]) for e in _jsonl(plan)}
+    added = 0
+    for e in entries:
+        if e.get("group") not in ("hf-tune", "hf-heldout") or not e.get("sha256"):
+            continue
+        name = e["file"][len(e["repo_id"]) + 1:]
+        if (e["repo_id"], name) in planned:
+            continue
+        fmt = {"pickle": "sklearn", "joblib": "sklearn"}.get(e["format"], e["format"])
+        _append(plan, {"repo_id": e["repo_id"], "revision": e["revision"], "filename": name, "size": e["size"],
+                       "lfs_sha256": e["sha256"], "format": fmt, "library": e.get("library"),
+                       "stratum": e.get("library"), "split": e["split"], "hub_scan": e.get("hub_scan", "unknown"),
+                       "label": e["label"], "label_reason": e.get("label_reason") or "",
+                       "pinned_from": os.path.basename(source)})
+        added += 1
+    return added
+
+
 def plan_unsafe(work: str, max_bytes: int) -> int:
     """Hub-flagged weight files of the search repos that no earlier corpus has."""
     import huggingface_hub as hub
@@ -307,6 +332,9 @@ def write_labels(work: str, path: str) -> None:
                     reviewed[(repo, name)] = (label, reason)
     with open(path, "w", encoding="utf-8") as fh:
         fh.write("# repo\tfile\tcommit\tsha256\tlabel\treason (Hub evidence, then manual review)\n")
+        for e in _jsonl(os.path.join(work, "plan-pinned.jsonl")):  # labels as reviewed before
+            fh.write("\t".join([e["repo_id"], e["filename"], e["revision"], e["lfs_sha256"], e["label"],
+                                e["label_reason"].replace("\t", " ")]) + "\n")
         for name in ("plan-benign.jsonl", "plan-unsafe.jsonl"):
             for e in _jsonl(os.path.join(work, name)):
                 flagged = "proposed_label" in e
@@ -342,15 +370,17 @@ def merge(work: str, out: str, column: str = "after") -> int:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     sub = parser.add_subparsers(dest="cmd", required=True)
-    for name in ("plan-benign", "plan-unsafe", "run", "labels", "merge"):
+    for name in ("plan-benign", "plan-unsafe", "plan-pinned", "run", "labels", "merge"):
         p = sub.add_parser(name)
         p.add_argument("--work", required=True, help="working directory outside the repository")
-        if name.startswith("plan"):
+        if name in ("plan-benign", "plan-unsafe"):
             p.add_argument("--max-mb", type=float, default=DEFAULT_MAX_MB)
+        if name == "plan-pinned":
+            p.add_argument("--from-json", required=True, help="an evaluation results file (run_eval.py output)")
         if name == "plan-benign":
             p.add_argument("--target", type=int, default=3000)
         if name == "run":
-            p.add_argument("--plan", choices=("benign", "unsafe"), required=True)
+            p.add_argument("--plan", choices=("benign", "unsafe", "pinned"), required=True)
             p.add_argument("--batch-files", type=int, default=200)
             p.add_argument("--batch-gb", type=float, default=4.0)
             p.add_argument("--batches", type=int, help="stop after this many batches")
@@ -370,6 +400,8 @@ def main(argv: list[str] | None = None) -> int:
     os.makedirs(work, exist_ok=True)
     if args.cmd == "plan-benign":
         print(f"planned {plan_benign(work, args.target, int(args.max_mb * 1024 * 1024))} files", file=sys.stderr)
+    elif args.cmd == "plan-pinned":
+        print(f"planned {plan_pinned(work, args.from_json)} files", file=sys.stderr)
     elif args.cmd == "plan-unsafe":
         print(f"planned {plan_unsafe(work, int(args.max_mb * 1024 * 1024))} files", file=sys.stderr)
     elif args.cmd == "run":

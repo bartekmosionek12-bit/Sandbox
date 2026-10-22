@@ -167,11 +167,11 @@ Run of 2026-10-20, safeloadai 0.7.0, in a disposable cloud container with
 **Detection.** "Detected" means any verdict other than CLEAN. safeloadai's verdict was
 MALICIOUS on every one of these by default.
 
-| set | safeloadai default | real opt-in | upper bound | picklescan 1.0.5 | fickling 0.1.12 | modelscan 0.8.8 |
-|---|---|---|---|---|---|---|
-| lab marker payloads (incl. 6 polyglots) | 59 / 59 | 59 / 59 | 56 / 59 | 35 / 59 | 40 / 59 | 24 / 59 |
-| mutations (`tests/corpus/mutate.py`) | 774 / 774 | 774 / 774 | 774 / 774 | 678 / 774 | 666 / 774 | 618 / 774 |
-| real Hub files flagged by the Hub's scanners, labelled malicious from that evidence | 49 / 49 | 49 / 49 | 49 / 49 | 31 / 49 | 32 / 49 | 29 / 49 |
+| set | safeloadai default | real opt-in | upper bound |
+| --- | --- | --- | --- |
+| lab marker payloads (incl. 6 polyglots) | 59 / 59 | 59 / 59 | 56 / 59 |
+| mutations (`tests/corpus/mutate.py`) | 774 / 774 | 774 / 774 | 774 / 774 |
+| real Hub files flagged by the Hub's scanners, labelled malicious from that evidence | 49 / 49 | 49 / 49 | 49 / 49 |
 
 **Benign Hugging Face files, held-out half** (501 files from repos no review looked at;
 the tune half, 432 files, is what lists, policies and profiles were built from). No
@@ -196,8 +196,7 @@ benign file is MALICIOUS in any configuration.
 - **The known-file list** clears 27 tune files and, by construction, no held-out file.
 - **UNSUPPORTED** files are OpenVINO-style `.bin` weights and similar: no pickle,
   archive or HDF5 reading exists, so safeloadai says nothing about them.
-- **Other scanners** flag 4 (picklescan), 4 (modelscan) and 183 (fickling) of the 501
-  held-out files, but miss many of the malicious files above.
+- **Other scanners**: see the all-files comparison in [docs/EVALUATION.md](docs/EVALUATION.md). A detailed per-format comparison is withheld until coordinated disclosure with the affected projects is complete.
 
 What still blocks held-out files most often: xgboost `Booster` (19 files, kept out by
 an owner decision), the authors' own Keras losses and layers, newer Ultralytics heads

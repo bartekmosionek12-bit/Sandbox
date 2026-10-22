@@ -133,6 +133,29 @@ def split_repos() -> dict[str, int]:
     return out
 
 
+COMPARISON_NOTE = ("A detailed per-format comparison is withheld until coordinated disclosure with the affected "
+                   "projects is complete.")
+
+
+def comparison(data: dict, tools: list[str]) -> list[str]:
+    """Other scanners: one table over all files, from the run's totals, and nothing finer."""
+    if not tools:
+        return []
+    summary = data.get("summary") or {}
+    lines = ["## Compared with other scanners (all files)", "",
+             "Every labelled file of the run, whatever its format; \"detected\" is any verdict other than CLEAN "
+             "(\"flagged\" for the other scanners). Errors, unsupported and skipped files are counted apart and are "
+             "neither a detection nor a miss.", "",
+             "| tool | detected / malicious | false positives / benign | errors | unsupported | skipped |",
+             "|---|---|---|---|---|---|"]
+    for tool in ["safeloadai", *tools]:
+        t = summary.get(tool)
+        if t:
+            lines.append(f"| {tool} | {t['detected']} / {t['malicious']} | {t['false_positives']} / {t['benign']} | "
+                         f"{t['errors']} | {t['unsupported']} | {t['skipped']} |")
+    return lines + ["", COMPARISON_NOTE, ""]
+
+
 def render(data: dict, source: str) -> str:
     entries = data["entries"]
     tools = [t for t in data["tools"] if not t.startswith("safeloadai")]
@@ -229,20 +252,18 @@ def render(data: dict, source: str) -> str:
               "Precision depends on each group's mix of malicious and benign files. The benign Hub groups hold "
               "only a handful of malicious files, so their precision says little; read their FPR. The lab, "
               "mutation and hf-malicious groups are mostly malicious; read their recall.", "",
-              "### all labelled files", "", MATRIX_HEAD.format(first="tool")]
-    for tool in ["safeloadai", *tools]:
-        lines.append(matrix_row(tool, matrix(entries, tool)))
-    lines.append("")
+              "### all labelled files", "", MATRIX_HEAD.format(first="tool"),
+              matrix_row("safeloadai", matrix(entries, "safeloadai")), ""]
     for group, rows in groups.items():
-        lines += [f"### {group}", "", MATRIX_HEAD.format(first="tool")]
-        for tool in ["safeloadai", *tools]:
-            lines.append(matrix_row(tool, matrix(rows, tool)))
+        lines += [f"### {group}", "", MATRIX_HEAD.format(first="tool"),
+                  matrix_row("safeloadai", matrix(rows, "safeloadai"))]
         unclear = matrix(rows, "safeloadai")
         if unclear["unclear_positive"] or unclear["unclear_other"]:
             lines.append("")
             lines.append(f"Unclear labels in this group: {unclear['unclear_positive'] + unclear['unclear_other']} "
                          f"(safeloadai positive on {unclear['unclear_positive']}).")
         lines.append("")
+    lines += comparison(data, tools)
 
     lines += ["## safeloadai per group and format", "", MATRIX_HEAD.format(first="group / format")]
     for group, rows in groups.items():
@@ -268,8 +289,7 @@ def render(data: dict, source: str) -> str:
         "## Limits of this evaluation",
         "",
         "- The other scanners are measured on every file here, including formats they do not read; their "
-        "UNSUPPORTED, ERROR and skipped columns show that part. A comparison restricted to the formats each tool "
-        "supports is a separate table (planned for 0.8.0).",
+        "errors, unsupported and skipped columns show that part. " + COMPARISON_NOTE,
         "- Model backdoors and poisoned weights (OWASP LLM04) are not measured: a file scanner cannot see them "
         "([THREAT_MODEL.md](THREAT_MODEL.md)).",
         "- Regenerate this page after a new run: `python evaluation/make_evaluation_doc.py RESULT.json`.",

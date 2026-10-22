@@ -72,36 +72,24 @@ Precision depends on each group's mix of malicious and benign files. The benign 
 | tool | TP | FN | FP | TN | precision | recall [95 % CI] | FPR [95 % CI] | UNSUPPORTED | ERROR | skipped |
 |---|---|---|---|---|---|---|---|---|---|---|
 | safeloadai | 889 | 0 | 163 | 789 | 0.845 | 1.000 [0.996, 1.000] | 0.171 [0.149, 0.196] | 52 | 0 | 0 |
-| picklescan | 745 | 126 | 7 | 908 | 0.991 | 0.855 [0.830, 0.877] | 0.008 [0.004, 0.016] | 0 | 107 | 0 |
-| fickling | 744 | 13 | 388 | 21 | 0.657 | 0.983 [0.971, 0.990] | 0.949 [0.923, 0.966] | 0 | 727 | 0 |
-| modelscan | 672 | 29 | 6 | 572 | 0.991 | 0.959 [0.941, 0.971] | 0.010 [0.005, 0.022] | 438 | 2 | 174 |
 
 ### lab
 
 | tool | TP | FN | FP | TN | precision | recall [95 % CI] | FPR [95 % CI] | UNSUPPORTED | ERROR | skipped |
 |---|---|---|---|---|---|---|---|---|---|---|
 | safeloadai | 59 | 0 | 0 | 14 | 1.000 | 1.000 [0.939, 1.000] | 0.000 [0.000, 0.215] | 0 | 0 | 0 |
-| picklescan | 35 | 21 | 0 | 14 | 1.000 | 0.625 [0.494, 0.740] | 0.000 [0.000, 0.215] | 0 | 3 | 0 |
-| fickling | 40 | 1 | 7 | 1 | 0.851 | 0.976 [0.874, 0.996] | 0.875 [0.529, 0.978] | 0 | 24 | 0 |
-| modelscan | 24 | 10 | 0 | 8 | 1.000 | 0.706 [0.538, 0.832] | 0.000 [0.000, 0.324] | 24 | 0 | 7 |
 
 ### mutations
 
 | tool | TP | FN | FP | TN | precision | recall [95 % CI] | FPR [95 % CI] | UNSUPPORTED | ERROR | skipped |
 |---|---|---|---|---|---|---|---|---|---|---|
 | safeloadai | 774 | 0 | 0 | 56 | 1.000 | 1.000 [0.995, 1.000] | 0.000 [0.000, 0.064] | 0 | 0 | 0 |
-| picklescan | 678 | 84 | 0 | 56 | 1.000 | 0.890 [0.866, 0.910] | 0.000 [0.000, 0.064] | 0 | 12 | 0 |
-| fickling | 666 | 12 | 9 | 15 | 0.987 | 0.982 [0.969, 0.990] | 0.375 [0.212, 0.573] | 0 | 128 | 0 |
-| modelscan | 618 | 12 | 0 | 32 | 1.000 | 0.981 [0.967, 0.989] | 0.000 [0.000, 0.107] | 156 | 0 | 12 |
 
 ### hf-malicious
 
 | tool | TP | FN | FP | TN | precision | recall [95 % CI] | FPR [95 % CI] | UNSUPPORTED | ERROR | skipped |
 |---|---|---|---|---|---|---|---|---|---|---|
 | safeloadai | 49 | 0 | 1 | 0 | 0.980 | 1.000 [0.927, 1.000] | 1.000 [0.207, 1.000] | 0 | 0 | 0 |
-| picklescan | 31 | 15 | 1 | 0 | 0.969 | 0.674 [0.530, 0.791] | 1.000 [0.207, 1.000] | 0 | 3 | 0 |
-| fickling | 32 | 0 | 0 | 0 | 1.000 | 1.000 [0.893, 1.000] | - | 0 | 18 | 0 |
-| modelscan | 29 | 5 | 0 | 0 | 1.000 | 0.853 [0.699, 0.936] | - | 9 | 2 | 5 |
 
 Unclear labels in this group: 25 (safeloadai positive on 11).
 
@@ -110,20 +98,27 @@ Unclear labels in this group: 25 (safeloadai positive on 11).
 | tool | TP | FN | FP | TN | precision | recall [95 % CI] | FPR [95 % CI] | UNSUPPORTED | ERROR | skipped |
 |---|---|---|---|---|---|---|---|---|---|---|
 | safeloadai | 3 | 0 | 66 | 347 | 0.043 | 1.000 [0.438, 1.000] | 0.160 [0.128, 0.198] | 19 | 0 | 0 |
-| picklescan | 0 | 3 | 2 | 381 | 0.000 | 0.000 [0.000, 0.562] | 0.005 [0.001, 0.019] | 0 | 49 | 0 |
-| fickling | 2 | 0 | 189 | 3 | 0.010 | 1.000 [0.342, 1.000] | 0.984 [0.955, 0.995] | 0 | 241 | 0 |
-| modelscan | 0 | 1 | 2 | 253 | 0.000 | 0.000 [0.000, 0.793] | 0.008 [0.002, 0.028] | 116 | 0 | 63 |
 
 ### hf-heldout
 
 | tool | TP | FN | FP | TN | precision | recall [95 % CI] | FPR [95 % CI] | UNSUPPORTED | ERROR | skipped |
 |---|---|---|---|---|---|---|---|---|---|---|
 | safeloadai | 4 | 0 | 96 | 372 | 0.040 | 1.000 [0.510, 1.000] | 0.205 [0.171, 0.244] | 33 | 0 | 0 |
-| picklescan | 1 | 3 | 4 | 457 | 0.200 | 0.250 [0.046, 0.699] | 0.009 [0.003, 0.022] | 0 | 40 | 0 |
-| fickling | 4 | 0 | 183 | 2 | 0.021 | 1.000 [0.510, 1.000] | 0.989 [0.961, 0.997] | 0 | 316 | 0 |
-| modelscan | 1 | 1 | 4 | 279 | 0.200 | 0.500 [0.095, 0.905] | 0.014 [0.006, 0.036] | 133 | 0 | 87 |
 
 Unclear labels in this group: 3 (safeloadai positive on 3).
+
+## Compared with other scanners (all files)
+
+Every labelled file of the run, whatever its format; "detected" is any verdict other than CLEAN ("flagged" for the other scanners). Errors, unsupported and skipped files are counted apart and are neither a detection nor a miss.
+
+| tool | detected / malicious | false positives / benign | errors | unsupported | skipped |
+|---|---|---|---|---|---|
+| safeloadai | 889 / 889 | 215 / 1004 | 0 | 0 | 0 |
+| picklescan | 745 / 889 | 7 / 1004 | 107 | 0 | 0 |
+| fickling | 744 / 889 | 388 / 1004 | 753 | 0 | 0 |
+| modelscan | 672 / 889 | 6 / 1004 | 2 | 442 | 174 |
+
+A detailed per-format comparison is withheld until coordinated disclosure with the affected projects is complete.
 
 ## safeloadai per group and format
 
@@ -165,6 +160,6 @@ A false positive is not one thing. A *soft block* has only UNVERIFIABLE reasons 
 
 ## Limits of this evaluation
 
-- The other scanners are measured on every file here, including formats they do not read; their UNSUPPORTED, ERROR and skipped columns show that part. A comparison restricted to the formats each tool supports is a separate table (planned for 0.8.0).
+- The other scanners are measured on every file here, including formats they do not read; their errors, unsupported and skipped columns show that part. A detailed per-format comparison is withheld until coordinated disclosure with the affected projects is complete.
 - Model backdoors and poisoned weights (OWASP LLM04) are not measured: a file scanner cannot see them ([THREAT_MODEL.md](THREAT_MODEL.md)).
 - Regenerate this page after a new run: `python evaluation/make_evaluation_doc.py RESULT.json`.

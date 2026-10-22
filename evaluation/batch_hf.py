@@ -10,7 +10,8 @@ scan and delete in batches.
         --tool-bin DIR --opt-in-site DIR
     # 3. the labels for review, and one results file from all batches
     python evaluation/batch_hf.py labels --work /tmp/hf_batches --out evaluation/hf_heldout2_labels.tsv
-    python evaluation/batch_hf.py merge --work /tmp/hf_batches --out evaluation/results/eval-NAME.json
+    python evaluation/batch_hf.py merge --work /tmp/hf_batches --work /tmp/hf_pinned \\
+        --add private/eval-080/eval-final-corpora-STAMP.json --out private/eval-080/eval-NAME.json
 
 **held-out-2** is a third benign split: repos that no earlier corpus used (not in
 ``evaluation/splits/hf-tune.txt`` or ``hf-heldout.txt``, nor in any committed results
@@ -296,8 +297,10 @@ def run(work: str, which: str, max_files: int, max_gb: float, eval_args: list[st
             write_labels(work, labels)
             source = ["--hf-malicious", directory] if which == "unsafe" else ["--hf", directory]
             runs = [("after", HERE, eval_args)]
-            if before:  # the same files with the release before this one, safeloadai only
-                runs.insert(0, ("before", os.path.join(before, "evaluation"), ["--jobs", eval_args[1], "--tools", ""]))
+            if before:  # the same files with the release before this one, safeloadai only, same opt-in site
+                site = eval_args[eval_args.index("--opt-in-site"):][:2] if "--opt-in-site" in eval_args else []
+                runs.insert(0, ("before", os.path.join(before, "evaluation"),
+                                ["--jobs", eval_args[1], "--tools", "", *site]))
             started = time.time()
             for name, evaluation, run_args in runs:
                 out = os.path.join(results, name)
@@ -346,20 +349,53 @@ def write_labels(work: str, path: str) -> None:
                                     label, reason.replace("\t", " ")]) + "\n")
 
 
-def merge(work: str, out: str, column: str = "after") -> int:
-    """One results file from every batch (entries concatenated, labels as reviewed)."""
-    files = sorted(glob.glob(os.path.join(work, "results", "*", column, "eval-*.json")))
+PLAN_GROUP = {"tune": "hf-tune", "heldout": "hf-heldout", SPLIT: "hf-heldout2"}
+
+
+def plan_labels(work: str) -> dict[str, tuple[str, str, str]]:
+    """(group, label, reason) per ``repo/file``, from the plans and the labels as reviewed
+    now: a batch's results keep the label it was scanned with, which a later review may
+    have changed, and the release before this one does not know the newer groups."""
+    labels = os.path.join(work, "labels-merge.tsv")
+    write_labels(work, labels)
+    current = {}
+    with open(labels, encoding="utf-8") as fh:
+        for line in fh:
+            if line.strip() and not line.startswith("#"):
+                repo, name, _commit, _sha, label, reason = line.rstrip("\n").split("\t", 5)
+                current[f"{repo}/{name}"] = (label, reason)
+    os.remove(labels)
+    out = {}
+    for name in ("plan-pinned.jsonl", "plan-benign.jsonl", "plan-unsafe.jsonl"):
+        for e in _jsonl(os.path.join(work, name)):
+            key = f"{e['repo_id']}/{e['filename']}"
+            group = "hf-unsafe" if name == "plan-unsafe.jsonl" else PLAN_GROUP[e["split"]]
+            out[key] = (group, *current[key])
+    return out
+
+
+def merge(works: list[str], out: str, column: str = "after", add: list[str] | None = None) -> int:
+    """One results file from every batch of every working directory (entries concatenated;
+    group and label from the plans and the current review), plus whole results files
+    (``add``: the lab, mutation and hf-malicious run), taken as they are."""
+    files = [(w, p) for w in works for p in sorted(glob.glob(os.path.join(w, "results", "*", column, "eval-*.json")))]
     if not files:
         print("no batch results", file=sys.stderr)
         return 1
+    planned = {w: plan_labels(w) for w in works}
     entries, meta = [], None
-    for path in files:
+    for work, path in files:
         with open(path, encoding="utf-8") as fh:
             run_ = json.load(fh)
         meta = meta or {k: v for k, v in run_.items() if k not in ("entries", "summary", "groups",
                                                                      "false_positives", "pareto", "cleared_files")}
-        entries.extend(dict(e, path=None) for e in run_["entries"])
-    meta["batches"] = [os.path.basename(p) for p in files]
+        for e in run_["entries"]:
+            group, label, reason = planned[work][e["file"]]
+            entries.append(dict(e, path=None, group=group, label=label, label_reason=reason))
+    for path in add or []:
+        with open(path, encoding="utf-8") as fh:
+            entries.extend(json.load(fh)["entries"])
+    meta["batches"] = [os.path.basename(p) for _, p in files] + [os.path.basename(p) for p in add or []]
     with open(out, "w", encoding="utf-8") as fh:
         json.dump(dict(meta, entries=entries), fh, indent=1, sort_keys=True)
     print(f"merged {len(files)} batches, {len(entries)} entries into {out}; "
@@ -372,7 +408,8 @@ def main(argv: list[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="cmd", required=True)
     for name in ("plan-benign", "plan-unsafe", "plan-pinned", "run", "labels", "merge"):
         p = sub.add_parser(name)
-        p.add_argument("--work", required=True, help="working directory outside the repository")
+        p.add_argument("--work", required=True, action="append" if name == "merge" else "store",
+                       help="working directory outside the repository (merge: repeat for several)")
         if name in ("plan-benign", "plan-unsafe"):
             p.add_argument("--max-mb", type=float, default=DEFAULT_MAX_MB)
         if name == "plan-pinned":
@@ -393,10 +430,12 @@ def main(argv: list[str] | None = None) -> int:
             p.add_argument("--out", required=True)
         if name == "merge":
             p.add_argument("--column", choices=("before", "after"), default="after")
+            p.add_argument("--add", action="append", default=[], help="a whole results file to include as it is")
     args = parser.parse_args(argv)
-    work = os.path.abspath(args.work)
-    if os.path.commonpath([work, REPO_ROOT]) == REPO_ROOT:
+    works = [os.path.abspath(w) for w in (args.work if isinstance(args.work, list) else [args.work])]
+    if any(os.path.commonpath([w, REPO_ROOT]) == REPO_ROOT for w in works):
         parser.error("--work must be outside the repository (downloaded model files are never committed)")
+    work = works[0]
     os.makedirs(work, exist_ok=True)
     if args.cmd == "plan-benign":
         print(f"planned {plan_benign(work, args.target, int(args.max_mb * 1024 * 1024))} files", file=sys.stderr)
@@ -416,7 +455,7 @@ def main(argv: list[str] | None = None) -> int:
     elif args.cmd == "labels":
         write_labels(work, args.out)
     else:
-        return merge(work, args.out, args.column)
+        return merge(works, args.out, args.column, args.add)
     return 0
 
 

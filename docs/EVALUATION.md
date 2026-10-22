@@ -56,7 +56,7 @@ Numbers from `evaluation/results/eval-v070-20261020T063605Z.json`: safeloadai 0.
 
 ### Tune and held-out split (overfitting)
 
-The benign Hub corpus is split in two by a hash of the repository id (`evaluation/fetch_benign_hf.py: split_of`), so every file of one repository is on the same side and a repository's sibling files cannot leak into the other half. Allowlist reviews, policies, profiles and the known-file list were built from the tune half only (`evaluation/splits/hf-tune.txt`). The held-out half (`evaluation/splits/hf-heldout.txt`) is the false-positive rate we report. A large gap between the two FPRs is what overfitting to the tune half looks like.
+The benign Hub corpus is split in two by a hash of the repository id (`evaluation/fetch_benign_hf.py: split_of`), so every file of one repository is on the same side and a repository's sibling files cannot leak into the other half. Allowlist reviews, policies, profiles and the known-file list were built from the tune half only (`evaluation/splits/hf-tune.txt`). The held-out half (`evaluation/splits/hf-heldout.txt`) is the false-positive rate we report. A large gap between the two FPRs is what overfitting to the tune half looks like. hf-heldout2 is a second held-out set from repositories no earlier corpus used, measured once with the final release.
 
 | split | repositories | files | benign | FPR (safeloadai) [95 % CI] |
 |---|---|---|---|---|
@@ -152,11 +152,32 @@ A detailed per-format comparison is withheld until coordinated disclosure with t
 
 ## What a user meets on held-out benign files
 
-A false positive is not one thing. A *soft block* has only UNVERIFIABLE reasons and can be accepted item by item for that file; a *hard block* has a RISKY or MALICIOUS reason and cannot.
+A false positive is not one thing. A *soft block* has only UNVERIFIABLE reasons and can be accepted item by item for that file; a *hard block* has a RISKY or MALICIOUS reason and cannot. The FPR here is soft plus hard blocks over the files in a format safeloadai reads (CLEAN, soft or hard).
 
-| CLEAN | soft block | hard block | UNSUPPORTED | ERROR | total |
+- **default**: no options.
+- **`--trust-inert-from`**: `--trust-inert-from scikit-learn transformers torch`, reading those libraries' source (the evaluation reads unpacked distributions, `run_eval.py --opt-in-site`).
+- **upper bound**: every UNVERIFIABLE item of every file accepted. Not a switch and not recommended: it is the most any override could clear.
+
+### hf-heldout
+
+| configuration | CLEAN | soft block | hard block | UNSUPPORTED | ERROR | benign files | FPR on readable files [95 % CI] |
+|---|---|---|---|---|---|---|---|
+| default | 372 | 81 | 15 | 33 | 0 | 501 | 0.205 [0.171, 0.244] |
+| `--trust-inert-from` | 372 | 81 | 15 | 33 | 0 | 501 | 0.205 [0.171, 0.244] |
+| upper bound (not recommended) | 453 | 0 | 15 | 33 | 0 | 501 | 0.032 [0.020, 0.052] |
+
+## `--malicious-only`
+
+`safeloadai scan --malicious-only` blocks only a MALICIOUS verdict (exit 1); SUSPICIOUS, CLEAN and UNSUPPORTED pass. The verdict is the same as by default, so these numbers come from the same scans. Detection: malicious files blocked; FP: benign files blocked. ERROR exits 4 or 6 in both modes and is counted apart.
+
+| group | detection, default | detection, --malicious-only | FP, default | FP, --malicious-only | errors |
 |---|---|---|---|---|---|
-| 372 | 81 | 15 | 33 | 0 | 501 |
+| lab | 59 / 59 | 49 / 59 | 0 / 14 | 0 / 14 | 0 |
+| mutations | 774 / 774 | 774 / 774 | 0 / 56 | 0 / 56 | 0 |
+| hf-malicious | 49 / 49 | 49 / 49 | 1 / 1 | 0 / 1 | 0 |
+| hf-tune | 3 / 3 | 3 / 3 | 85 / 432 | 0 / 432 | 0 |
+| hf-heldout | 4 / 4 | 4 / 4 | 129 / 501 | 0 / 501 | 0 |
+| **all** | 889 / 889 | 879 / 889 | 215 / 1004 | 0 / 1004 | 0 |
 
 ## Limits of this evaluation
 

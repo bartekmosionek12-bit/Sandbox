@@ -354,3 +354,38 @@ def test_confusion_matrix_keeps_unsupported_and_errors_apart():
     assert (other["tp"], other["fn"], other["fp"], other["tn"]) == (0, 0, 1, 1)
     assert other["malicious_error"] == 1 and other["malicious_unsupported"] == 1
     assert doc.wilson(0, 10).startswith("[0.000, ") and doc.wilson(0, 0) == "-"
+
+
+def _held(group, file, block, verdict="SUSPICIOUS", label="benign"):
+    result = {"verdict": verdict, "block": block}
+    return {"group": group, "file": file, "label": label,
+            "results": {"safeloadai": result, "safeloadai trust-inert-from": dict(result),
+                        "safeloadai upper bound": {"verdict": "CLEAN", "block": "clean"}}}
+
+
+def test_held_out_before_and_after_pair_the_same_files():
+    doc = _load("make_evaluation_doc")
+    before = {"safeloadai": "0.7.1", "entries": [_held("hf-heldout2", "a/x.pkl", "soft"),
+                                                 _held("hf-heldout2", "b/y.pkl", "hard")]}
+    after = [_held("hf-heldout2", "a/x.pkl", "clean", "CLEAN"), _held("hf-heldout2", "b/y.pkl", "hard"),
+             _held("hf-heldout2", "c/new.pkl", "soft")]  # not in the before run: left out of the pairing
+    text = "\n".join(doc.held_out_section(after, before, "0.8.0"))
+    assert "The same 2 benign files" in text
+    assert "| before: default | 0 | 1 | 1 | 0 | 0 | 2 |" in text
+    assert "| **after: default** | 1 | 0 | 1 | 0 | 0 | 2 |" in text
+
+
+def test_malicious_only_section_counts_only_malicious_verdicts():
+    doc = _load("make_evaluation_doc")
+    entries = [_held("lab", "m1", "hard", "MALICIOUS", "malicious"),
+               _held("lab", "m2", "hard", "SUSPICIOUS", "malicious"),
+               _held("lab", "b1", "soft", "SUSPICIOUS")]
+    text = "\n".join(doc.malicious_only_section(entries))
+    assert "| lab | 2 / 2 | 1 / 2 | 1 / 1 | 0 / 1 | 0 |" in text
+
+
+def test_readme_block_replaces_only_the_marked_part():
+    doc = _load("make_evaluation_doc")
+    readme = f"intro\n{doc.README_START}\nold\n{doc.README_END}\noutro\n"
+    out = doc.with_readme_block(readme, f"{doc.README_START}\nnew\n{doc.README_END}")
+    assert out == f"intro\n{doc.README_START}\nnew\n{doc.README_END}\noutro\n"

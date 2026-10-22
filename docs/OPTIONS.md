@@ -168,6 +168,38 @@ Every entry in `Report.options` looks like this:
      `CLEAN by inert-class rule (scikit-learn X.Y.Z)`.
 6. **Safer alternative.** Leave it off. The pinned policies cover the versions listed
    in `static/upstream/REVIEW.md`.
+7. **What it changes in practice (0.8.0).** The 0.7.x evaluation showed no file whose
+   verdict changed with the option. There were three reasons:
+   - **A bug, fixed in 0.8.0.** A reviewed hook (for example scikit-learn's
+     `BaseEstimator.__setstate__`, which every estimator inherits, or torch's
+     `Module.__setstate__`) was matched by the sha256 of its source text. The pinned
+     wheels it was reviewed from are Windows builds, whose files have CRLF line
+     endings. The same function installed on Linux or macOS has LF endings, so it never
+     matched, and no scikit-learn or torch class could be cleared there. Line endings
+     are normalised now; the reviewed text is unchanged.
+   - **A rule that was too narrow, fixed in 0.8.0.** A class body that edits a dict it
+     has just made (scikit-learn's `_parameter_constraints.pop("l1_ratio")`) made its
+     whole module "not inert", so `ElasticNet`, `LassoCV`, `CountVectorizer`,
+     `RandomForestClassifier`, `LogisticRegression`, `SVC` and about 90 other classes
+     were not accepted, by the pinned policies or by the option. A builtin method of a
+     dict, list, set, tuple or constant that the class body itself made, with plain
+     data as arguments, no longer counts as a call. Any other call still does.
+   - **By design.** The evaluation named scikit-learn, transformers and torch at the
+     same versions as the pins. The option then gives the same answer as the pinned
+     policies; it only changes a verdict for a distribution that is not pinned, or for a
+     class that exists in your installed version and not in the pinned one. The
+     remaining flagged Hub files need something else: their classes come from packages
+     that were not installed or are not on PyPI (`dabl`, `tornet`, a project's own
+     `models` module, Keras custom objects in `.h5`/`.keras`, which are not pickles),
+     from classes the owner's review keeps out (`FunctionTransformer`,
+     `xgboost.core.Booster`), or they are functions or `REDUCE` calls (pandas'
+     `_unpickle_block`, `average_precision_score` inside a scorer), which the rule does
+     not cover because it only accepts classes rebuilt from a dict state.
+   `tests/test_trust_inert_from.py` shows the option changing a verdict on a lab
+   pickle that rebuilds `threadpoolctl.ThreadpoolController` (installed with
+   scikit-learn, not pinned): SUSPICIOUS by default, CLEAN with
+   `--trust-inert-from threadpoolctl`, and still SUSPICIOUS when only scikit-learn is
+   named.
 
 ## `known_good`
 

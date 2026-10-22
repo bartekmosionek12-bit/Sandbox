@@ -180,6 +180,50 @@ def test_reviewed_hooks_are_pinned_by_source_hash():
     assert index.state_only("lib", "Child").state_only
 
 
+
+def test_reviewed_hooks_match_whatever_the_line_endings():
+    # 0.8.0: the pinned wheels of scikit-learn and torch are Windows builds whose .py files
+    # have CRLF line endings; the same reviewed function installed on Linux or macOS has LF
+    # and must match, or trust_inert_from never clears an estimator there.
+    from safeloadai.static import sources
+
+    lf = ("class Base:\n    def __setstate__(self, state):\n        self.__dict__.update(state)\n"
+          "class Child(Base):\n    pass\n")
+    text = "def __setstate__(self, state):\n        self.__dict__.update(state)"
+    reviewed = {("lib", "Base", "__setstate__"): (sources.source_sha256(text.replace("\n", "\r\n")), "test")}
+    for source in (lf, lf.replace("\n", "\r\n")):
+        index = sources.SourceIndex(lambda m, src=source: {"lib": (src, False)}.get(m), reviewed_hooks=reviewed)
+        assert index.state_only("lib", "Child").state_only
+
+
+@pytest.mark.parametrize("body, inert", [
+    # a builtin method of a dict the class body made, with plain data: the class stays importable
+    ("    d = {'a': 1, 'b': 2}\n    d.pop('a')\n    for k in ('b',):\n        d.pop(k)\n"
+     "    d.update({'c': 3})\n", True),
+    # anything else on a class-local name is still a call
+    ("    def f():\n        os.system('echo MARKER')\n    x = f()\n", False),
+    ("    g = os.system\n    g('echo MARKER')\n", False),
+    ("    d = {}\n    d.update(os.environ)\n", False),
+    ("    d = {}\n    d = os\n    d.system('echo MARKER')\n", False),
+    ("    d = 'x'\n    d.format(os)\n", False),
+    ("    d = {'m': []}\n    d['m'].append(1)\n", False),
+])
+def test_class_body_calls_on_its_own_data(body, inert):
+    from safeloadai.static import sources
+
+    srcs = {"lib": ("", True), "lib.m": ("import os\nclass C:\n" + body, False)}
+    index = sources.SourceIndex(srcs.get, known_tops={"lib"})
+    assert (index.inert("lib.m") is None) is inert, index.inert("lib.m")
+
+
+def test_estimators_whose_class_body_edits_a_dict_are_policies():
+    # sklearn's Lasso does _parameter_constraints.pop("l1_ratio") in its class body
+    for pair in [("sklearn.linear_model._coordinate_descent", "ElasticNet"),
+                 ("sklearn.linear_model._coordinate_descent", "LassoCV"),
+                 ("sklearn.feature_extraction.text", "CountVectorizer"),
+                 ("sklearn.ensemble._forest", "RandomForestClassifier")]:
+        assert upstream.state_only(pair), pair
+
 @pytest.mark.wasi
 def test_scan_of_a_referenced_only_global_is_clean(tmp_path):
     path = tmp_path / "scorer.pkl"

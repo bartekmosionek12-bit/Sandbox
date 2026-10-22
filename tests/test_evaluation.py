@@ -330,3 +330,27 @@ def test_resummarise_renames_the_old_opt_in_column(tmp_path):
     [out] = [p for p in tmp_path.glob("eval-again-*.json")]
     data = json.loads(out.read_text())
     assert data["tools"] == [run_eval.UPPER_BOUND] and run_eval.UPPER_BOUND in data["summary"]
+
+
+def test_evaluation_page_is_generated_from_the_results():
+    # docs/EVALUATION.md is written by make_evaluation_doc.py; a hand edit or a stale page fails here.
+    assert _load("make_evaluation_doc").main(["--check"]) == 0
+
+
+def test_confusion_matrix_keeps_unsupported_and_errors_apart():
+    doc = _load("make_evaluation_doc")
+    entries = [{"label": "malicious", "results": {"safeloadai": {"verdict": "MALICIOUS", "block": "hard"},
+                                                    "x": {"outcome": "error"}}},
+               {"label": "malicious", "results": {"safeloadai": {"verdict": "CLEAN", "block": "clean"},
+                                                    "x": {"outcome": "unsupported"}}},
+               {"label": "benign", "results": {"safeloadai": {"verdict": "UNSUPPORTED", "block": "unsupported"},
+                                                 "x": {"outcome": "flagged"}}},
+               {"label": "benign", "results": {"safeloadai": {"verdict": None, "outcome": "error", "block": "error"},
+                                                 "x": {"outcome": "clean"}}}]
+    own = doc.matrix(entries, "safeloadai")
+    assert (own["tp"], own["fn"], own["fp"], own["tn"]) == (1, 1, 0, 0)
+    assert own["benign_unsupported"] == 1 and own["benign_error"] == 1
+    other = doc.matrix(entries, "x")
+    assert (other["tp"], other["fn"], other["fp"], other["tn"]) == (0, 0, 1, 1)
+    assert other["malicious_error"] == 1 and other["malicious_unsupported"] == 1
+    assert doc.wilson(0, 10).startswith("[0.000, ") and doc.wilson(0, 0) == "-"

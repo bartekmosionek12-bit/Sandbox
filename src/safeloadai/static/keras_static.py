@@ -42,6 +42,7 @@ from ..parsing.zipsafe import SafeZip, ZipRefused
 from .allowlists import (
     DANGEROUS_MODULES,
     DANGEROUS_SYMBOLS,
+    EXEC_GADGETS,
     KERAS2_CLASSES,
     KERAS_ACTIVATION_NAMES,
     KERAS_CLASS_PAIRS,
@@ -170,7 +171,8 @@ def _entry(module, symbol, path: str) -> dict:
 
 def _is_dangerous(module, name) -> bool:
     top = str(module).split(".")[0]
-    return top in DANGEROUS_MODULES or str(name) in TF_DANGEROUS or str(name) in DANGEROUS_SYMBOLS
+    return (top in DANGEROUS_MODULES or str(name) in TF_DANGEROUS or str(name) in DANGEROUS_SYMBOLS
+            or (str(module), str(name)) in EXEC_GADGETS)
 
 
 def _keras2_lambda(config: dict, path: str, report: dict) -> None:
@@ -462,12 +464,13 @@ def _custom_builtins_function(module: str, name: str) -> bool:
 def _promote_sinks(report: dict) -> None:
     """An unknown object that names a known sink or gadget is never UNVERIFIABLE. A class
     or function from a sink module (``subprocess.Popen``) is a known sink: Keras imports
-    it and calls it while deserialising. A sink or gadget name elsewhere stays RISKY."""
+    it and calls it while deserialising; so is an EXEC_GADGETS function. A sink or gadget
+    name elsewhere stays RISKY."""
     unknown = []
     for imp in report["unknown_imports"]:
         target = _target(imp)
         custom = bool(target) and _custom_builtins_function(*target)
-        if target and not custom and (target[0] in DANGEROUS_MODULES
+        if target and not custom and (target[0] in DANGEROUS_MODULES or tuple(target) in EXEC_GADGETS
                                       or target[0].split(".")[0] in DANGEROUS_MODULES):
             report["suspicious_imports"].append({k: v for k, v in imp.items() if k != "kind"})
             continue

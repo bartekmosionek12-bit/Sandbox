@@ -111,6 +111,8 @@ def test_acceptance_for_file_a_does_not_apply_to_file_b(fraction_a, fraction_b):
     (P2 + b"(" + FRACTION + call(g("posix", "system"), s("echo MARKER")) + b"l" + STOP, "MALICIOUS"),
     (P2 + b"(" + FRACTION + b"\x82\x01" + b"l" + STOP, "RISKY"),  # EXT1 import through copyreg
     (P2 + b"(" + FRACTION + call(g("numpy.testing._private.utils", "runstring"), s("pass"), b"}") + b"l" + STOP,
+     "MALICIOUS"),  # an exec gadget is a known sink
+    (P2 + b"(" + FRACTION + call(g("operator", "methodcaller"), s("keys")) + b"l" + STOP,
      "RISKY"),  # a known gadget is never UNVERIFIABLE
 ])
 def test_override_is_impossible_with_any_other_reason(tmp_path, data, category):

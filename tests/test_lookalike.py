@@ -99,7 +99,8 @@ def test_lookalike_pickle_global_is_risky_and_cannot_be_overridden(tmp_path, mod
     ("importlib", "import_module", None, "MALICIOUS"),
     ("shutil", "rmtree", None, "MALICIOUS"),
     ("mycompany.layers", "Foo", "subprocess>Popen", "MALICIOUS"),
-    ("numpy.testing._private.utils", "runstring", None, "RISKY"),  # known gadget
+    ("numpy.testing._private.utils", "runstring", None, "MALICIOUS"),  # exec gadget: a known sink
+    ("functools", "partial", None, "RISKY"),  # known gadget
     ("mycompany.layers", "eval", None, "RISKY"),  # sink name outside a sink module
 ])
 def test_keras_class_naming_a_sink_or_gadget_cannot_be_overridden(tmp_path, module, class_name, registered,

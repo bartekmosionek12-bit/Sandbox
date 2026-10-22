@@ -39,6 +39,7 @@ from .allowlists import (
     DILL_MODULES,
     DILL_SINKS,
     ENUM_CLASSES,
+    EXEC_GADGETS,
     GETATTR,
     GUARDED_CALLS,
     KNOWN_GADGETS,
@@ -169,6 +170,7 @@ def is_dangerous_import(module: str, name: str) -> bool:
     head = name.split(".", 1)[0]
     return (
         (module in DILL_MODULES and name in DILL_SINKS)
+        or (module, name) in EXEC_GADGETS
         or module in DANGEROUS_MODULES
         or root in DANGEROUS_MODULES
         or name in DANGEROUS_SYMBOLS

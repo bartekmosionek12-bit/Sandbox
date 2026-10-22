@@ -10,3 +10,6 @@ venv/
 
 # Untrusted model downloads (evaluation/fetch_benign_hf.py); never commit them
 hf_corpus/
+
+# private analysis output (third-party scanner results); never committed
+private/

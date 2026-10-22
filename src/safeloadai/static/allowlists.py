@@ -353,10 +353,17 @@ DANGEROUS_MODULES = frozenset({
     "http", "ftplib", "smtplib", "telnetlib", "requests", "antigravity", "tempfile",
     "io", "_io", "pathlib", "glob", "signal", "threading", "_thread",
 })
+# Library functions outside DANGEROUS_MODULES that run a string as code or a shell
+# command: known sinks (MALICIOUS), like os.system (0.8.0; they were RISKY before).
+EXEC_GADGETS = frozenset({
+    ("numpy.testing._private.utils", "runstring"),  # exec() of a string
+    ("_osx_support", "_read_output"),  # runs a shell command
+    ("_osx_support", "_find_build_tool"),  # runs a shell command
+})
 # Globals outside the two sets above that public scanner bypasses use to run code or to
-# call an argument (tests/corpus/build_corpus.py:bypass_payloads). They do not change the
-# verdict; they only keep the reason RISKY instead of UNVERIFIABLE, because the scanner
-# does know what they do, so no override can accept them.
+# call an argument (tests/corpus/build_corpus.py:bypass_payloads). EXEC_GADGETS are known
+# sinks; the others do not change the verdict, they only keep the reason RISKY instead of
+# UNVERIFIABLE, because the scanner does know what they do, so no override can accept them.
 KNOWN_GADGETS = frozenset({
     ("numpy.testing._private.utils", "runstring"),  # exec() of a string
     ("_osx_support", "_read_output"),  # runs a shell command

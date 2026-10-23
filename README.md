@@ -194,6 +194,8 @@ Run of 2026-10-23, safeloadai 0.8.0, Python 3.13.16, in a disposable cloud conta
 
 What still blocks held-out files most often (by default; files that need the item): `xgboost.core.Booster` (109), `accelerate.utils.dataclasses.DeepSpeedPlugin` (37), `transformers.integrations.deepspeed.HfTrainerDeepSpeedConfig` (31), `transformers.integrations.deepspeed.HfDeepSpeedConfig` (26), `sklearn.compose._column_transformer._RemainderColsList` (25), `lightgbm.basic.Booster` (18).
 
+**Irreducible floor.** Some benign files can never be CLEAN by default: they need classes their author wrote (`__main__` or a module in no public package) or custom Keras objects the author registered, and rebuilding those runs code safeloadai cannot read (hf-heldout: 30 of 496 benign files, 6.0 %; hf-heldout2: 119 of 2806 benign files, 4.2 %). They stay soft blocks, accepted per file after reading the code. Root causes of every blocked benign file: [docs/EVALUATION.md](docs/EVALUATION.md#why-benign-files-are-not-clean-root-causes).
+
 **Compared with other scanners** (all files, default settings; errors, unsupported and skipped files are neither a detection nor a false positive):
 
 | | safeloadai | picklescan | fickling | modelscan |

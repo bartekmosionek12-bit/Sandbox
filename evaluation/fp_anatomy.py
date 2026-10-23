@@ -380,8 +380,8 @@ def main(argv: list[str] | None = None) -> int:
         summary, rows = analyse(data["entries"], group, classifier)
         out["groups"][group] = summary
         private_rows[group] = rows
-    out["public_check"] = {"keras_api": keras_versions,
-                           "distributions": {d: v for d, v in sorted(public.checked.items())},
+    # which distributions were looked up comes from held-out file contents: private
+    out["public_check"] = {"keras_api": keras_versions, "distributions_looked_up": len(public.checked),
                            "versions_checked_per_distribution": VERSIONS_CHECKED}
     with open(args.out, "w", encoding="utf-8") as fh:
         json.dump(out, fh, indent=1, sort_keys=True)
@@ -391,6 +391,8 @@ def main(argv: list[str] | None = None) -> int:
         base = os.path.join(args.private, os.path.splitext(os.path.basename(args.out))[0])
         with open(base + "-files.json", "w", encoding="utf-8") as fh:
             json.dump(private_rows, fh, indent=1, sort_keys=True)
+        with open(base + "-public-check.json", "w", encoding="utf-8") as fh:
+            json.dump({d: v for d, v in sorted(public.checked.items())}, fh, indent=1, sort_keys=True)
     for group, s in out["groups"].items():
         print(f"{group}: {s['not_clean']} of {s['benign_files']} benign files not CLEAN", file=sys.stderr)
         for c in CLASSES:

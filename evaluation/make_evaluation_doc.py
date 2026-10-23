@@ -32,6 +32,7 @@ from collections import Counter, defaultdict
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEFAULT_RESULT = os.path.join(ROOT, "evaluation", "results", "eval-v080-20261023T061458Z.json")
 DEFAULT_BEFORE = os.path.join(ROOT, "evaluation", "results", "eval-v080-before-v071-20261022T132812Z.json")
+DEFAULT_ANATOMY = os.path.join(ROOT, "evaluation", "results", "fp-anatomy-v080-20261023.json")
 OUT = os.path.join(ROOT, "docs", "EVALUATION.md")
 README = os.path.join(ROOT, "README.md")
 README_START, README_END = "<!-- evaluation:start -->", "<!-- evaluation:end -->"
@@ -270,6 +271,66 @@ def held_out_section(entries: list[dict], before: dict | None, version: str) -> 
     return lines
 
 
+ANATOMY_CLASSES = ("a", "b", "c", "d", "e", "f")
+
+
+def anatomy_section(anatomy: dict | None) -> list[str]:
+    """Why benign files are not CLEAN, by root cause (evaluation/fp_anatomy.py): aggregates only."""
+    if not anatomy:
+        return []
+    groups = [g for g in ("hf-heldout2", "hf-heldout", "hf-tune") if g in anatomy["groups"]]
+    lines = ["## Why benign files are not CLEAN (root causes)", "",
+             f"Every benign file that was not CLEAN in [`{anatomy['source']}`](../evaluation/results/"
+             f"{anatomy['source']}) (safeloadai {anatomy['safeloadai']}), classified from the scan evidence alone "
+             "by `evaluation/fp_anatomy.py`: the recorded reasons and the items outside the allowlist, never the "
+             "file. A file with several causes counts once, under the first that applies in the order a, b, f, e, "
+             "c, d (a file that also needs code its author wrote stays in the floor whatever else it needs). "
+             "Whether a module belongs to a public library is checked against PyPI releases (archives read, never "
+             "installed). Shares are of all benign files of the set.", "",
+             "| cause | " + " | ".join(groups) + " |", "|---|" + "---|" * len(groups)]
+    for c in ANATOMY_CLASSES:
+        cells = []
+        for g in groups:
+            row = anatomy["groups"][g]["classes"][c]
+            cells.append(f"{row['files']} ({100 * row['share_of_benign']:.1f} %)")
+        text = anatomy["groups"][groups[0]]["classes"][c]["text"].replace("__main__", "`__main__`")
+        lines.append(f"| **{c}** {text} | " + " | ".join(cells) + " |")
+    totals = []
+    for key, label in (("floor", "**irreducible floor (a + b)**"),
+                       ("reducible_by_allowlist", "reducible by review (c + d)")):
+        cells = []
+        for g in groups:
+            s = anatomy["groups"][g]
+            n = s[key]["files"]
+            cells.append(f"{n} ({100 * n / s['benign_files']:.1f} %)")
+        totals.append(f"| {label} | " + " | ".join(cells) + " |")
+    lines += totals
+    lines.append("| benign files not CLEAN / benign files | " + " | ".join(
+        f"{anatomy['groups'][g]['not_clean']} / {anatomy['groups'][g]['benign_files']}" for g in groups) + " |")
+    first = anatomy["groups"][groups[0]]
+    native = first["reducible_by_allowlist"].get("only_native_parser_classes")
+    lines += ["", "**The irreducible floor.** Classes the model author wrote (a: `__main__` or a module in no public "
+              "package) and custom Keras objects the author registered (b) exist only in the author's code. "
+              "Rebuilding them runs that code, which safeloadai cannot read, so no allowlist can make such a file "
+              "CLEAN without accepting arbitrary code. These files stay blocked by design, almost all as soft "
+              "blocks that their owner can accept item by item (`--allow`, `safeloadai override`) after reading "
+              "the code. On "
+              f"{groups[0]} the floor is {first['floor']['files']} of {first['benign_files']} benign files "
+              f"({100 * first['floor']['share_of_benign']:.1f} %).", "",
+              "**Reducible causes.** c (classes of public libraries the allowlist does not have yet) and d (older "
+              "module paths of reviewed classes) are what allowlist review and the historical-path generator work "
+              "on; e (formats safeloadai did not parse) is what the data-only validators address; f is everything "
+              "else (code carried in the file, emulation limits, structural findings, tool errors)."
+              + (f" Of the c + d files on {groups[0]}, {native} need only classes whose state a native parser reads "
+                 "(XGBoost, LightGBM and CatBoost boosters); they stay off the allowlist (DECISIONS.md, "
+                 "Booster under A2)." if native else ""), ""]
+    sub = first.get("f_subtypes") or {}
+    if sub:
+        kinds = sorted(sub.items(), key=lambda kv: (-kv[1], kv[0]))
+        lines += [f"f on {groups[0]} by kind: " + ", ".join(f"{k} {v}" for k, v in kinds) + ".", ""]
+    return lines
+
+
 def malicious_only_section(entries: list[dict]) -> list[str]:
     """``--malicious-only`` prints MALICIOUS or NOT-MALICIOUS from the same verdict, so its
     numbers follow from the recorded verdicts (``evaluation/malicious_only.py``)."""
@@ -373,7 +434,7 @@ def frac(k: int, n: int) -> str:
     return f"{k} / {n}" if n else "-"
 
 
-def render(data: dict, source: str, before: dict | None = None) -> str:
+def render(data: dict, source: str, before: dict | None = None, anatomy: dict | None = None) -> str:
     entries = data["entries"]
     tools = [t for t in data["tools"] if not t.startswith("safeloadai")]
     groups = by_group(entries)
@@ -494,7 +555,8 @@ def render(data: dict, source: str, before: dict | None = None) -> str:
         for fmt in sorted({e["format"] for e in rows}):
             lines += matrix_rows(f"{group} / {fmt}", [e for e in rows if e["format"] == fmt])
 
-    lines += [""] + held_out_section(entries, before, data["safeloadai"]) + malicious_only_section(entries) + [
+    lines += [""] + held_out_section(entries, before, data["safeloadai"]) + anatomy_section(anatomy) \
+        + malicious_only_section(entries) + [
         "## Limits of this evaluation",
         "",
         "- The other scanners are measured on every file here, including formats they do not read; their "
@@ -513,7 +575,7 @@ def day(created: str) -> str:
     return f"{created[:4]}-{created[4:6]}-{created[6:8]}" if created[:8].isdigit() else created[:10]
 
 
-def readme_block(data: dict, source: str, before: dict | None) -> str:
+def readme_block(data: dict, source: str, before: dict | None, anatomy: dict | None = None) -> str:
     """The results section of README.md: headline numbers only, every one from the JSON."""
     entries = data["entries"]
     groups = by_group(entries)
@@ -560,8 +622,24 @@ def readme_block(data: dict, source: str, before: dict | None) -> str:
         top = sorted(missing.items(), key=lambda item: (-item[1], item[0]))[:6]
         lines += ["", "What still blocks held-out files most often (by default; files that need the item): " +
                   ", ".join(f"`{name}` ({n})" for name, n in top) + "."]
-    lines += [""] + side_by_side(data) + rerun_note(data) + [README_END]
+    lines += [""] + floor_note(anatomy) + side_by_side(data) + rerun_note(data) + [README_END]
     return "\n".join(lines)
+
+
+def floor_note(anatomy: dict | None) -> list[str]:
+    if not anatomy:
+        return []
+    parts = []
+    for g in HELD_OUT:
+        s = anatomy["groups"].get(g)
+        if s:
+            parts.append(f"{g}: {s['floor']['files']} of {s['benign_files']} benign files, "
+                         f"{100 * s['floor']['share_of_benign']:.1f} %")
+    return ["**Irreducible floor.** Some benign files can never be CLEAN by default: they need classes their "
+            "author wrote (`__main__` or a module in no public package) or custom Keras objects the author "
+            "registered, and rebuilding those runs code safeloadai cannot read (" + "; ".join(parts) + "). They stay "
+            "soft blocks, accepted per file after reading the code. Root causes of every blocked benign file: "
+            "[docs/EVALUATION.md](docs/EVALUATION.md#why-benign-files-are-not-clean-root-causes).", ""]
 
 
 def side_by_side(data: dict) -> list[str]:
@@ -632,6 +710,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--before", default=DEFAULT_BEFORE,
                         help="run_eval.py JSON of the release before, on the same held-out files")
     parser.add_argument("--readme", default=README, help="README with the evaluation markers")
+    parser.add_argument("--anatomy", default=DEFAULT_ANATOMY, help="evaluation/fp_anatomy.py JSON (aggregates)")
     parser.add_argument("--check", action="store_true", help="exit 1 if a page differs from what would be written")
     args = parser.parse_args(argv)
     with open(args.result, encoding="utf-8") as fh:
@@ -640,13 +719,17 @@ def main(argv: list[str] | None = None) -> int:
     if args.before:
         with open(args.before, encoding="utf-8") as fh:
             before = json.load(fh)
+    anatomy = None
+    if args.anatomy and os.path.exists(args.anatomy):
+        with open(args.anatomy, encoding="utf-8") as fh:
+            anatomy = json.load(fh)
     source = os.path.relpath(args.result, ROOT).replace(os.sep, "/")
-    pages = {args.out: render(data, source, before)}
+    pages = {args.out: render(data, source, before, anatomy)}
     if args.readme and os.path.exists(args.readme):
         with open(args.readme, encoding="utf-8") as fh:
             readme = fh.read()
         if README_START in readme:
-            pages[args.readme] = with_readme_block(readme, readme_block(data, source, before))
+            pages[args.readme] = with_readme_block(readme, readme_block(data, source, before, anatomy))
     stale = False
     for path, text in pages.items():
         current = open(path, encoding="utf-8").read() if os.path.exists(path) else ""

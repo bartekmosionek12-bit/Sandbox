@@ -287,6 +287,28 @@ The same 2806 benign files (same commit and sha256) with safeloadai 0.7.1 (befor
 | before: upper bound (not recommended) | 2567 | 0 | 125 | 114 | 0 | 2806 | 0.046 [0.039, 0.055] | 2814 | 0.049 [0.041, 0.058] |
 | **after: upper bound (not recommended)** | 2597 | 0 | 94 | 114 | 1 | 2806 | 0.035 [0.029, 0.043] | 2814 | 0.037 [0.031, 0.045] |
 
+## Why benign files are not CLEAN (root causes)
+
+Every benign file that was not CLEAN in [`eval-v080-20261023T061458Z.json`](../evaluation/results/eval-v080-20261023T061458Z.json) (safeloadai 0.8.0), classified from the scan evidence alone by `evaluation/fp_anatomy.py`: the recorded reasons and the items outside the allowlist, never the file. A file with several causes counts once, under the first that applies in the order a, b, f, e, c, d (a file that also needs code its author wrote stays in the floor whatever else it needs). Whether a module belongs to a public library is checked against PyPI releases (archives read, never installed). Shares are of all benign files of the set.
+
+| cause | hf-heldout2 | hf-heldout | hf-tune |
+|---|---|---|---|
+| **a** user-defined classes (`__main__`, modules in no public package) | 46 (1.6 %) | 10 (2.0 %) | 4 (0.9 %) |
+| **b** custom Keras objects registered by the model author | 73 (2.6 %) | 20 (4.0 %) | 20 (4.7 %) |
+| **c** classes from known public libraries missing from the allowlist | 236 (8.4 %) | 45 (9.1 %) | 24 (5.6 %) |
+| **d** old module paths of already reviewed classes | 34 (1.2 %) | 2 (0.4 %) | 1 (0.2 %) |
+| **e** data-only formats safeloadai does not parse (UNSUPPORTED) | 114 (4.1 %) | 33 (6.7 %) | 19 (4.4 %) |
+| **f** other (code in the file, emulation limits, structure, tool errors) | 66 (2.4 %) | 7 (1.4 %) | 6 (1.4 %) |
+| **irreducible floor (a + b)** | 119 (4.2 %) | 30 (6.0 %) | 24 (5.6 %) |
+| reducible by review (c + d) | 270 (9.6 %) | 47 (9.5 %) | 25 (5.8 %) |
+| benign files not CLEAN / benign files | 569 / 2806 | 117 / 496 | 74 / 430 |
+
+**The irreducible floor.** Classes the model author wrote (a: `__main__` or a module in no public package) and custom Keras objects the author registered (b) exist only in the author's code. Rebuilding them runs that code, which safeloadai cannot read, so no allowlist can make such a file CLEAN without accepting arbitrary code. These files stay blocked by design, almost all as soft blocks that their owner can accept item by item (`--allow`, `safeloadai override`) after reading the code. On hf-heldout2 the floor is 119 of 2806 benign files (4.2 %).
+
+**Reducible causes.** c (classes of public libraries the allowlist does not have yet) and d (older module paths of reviewed classes) are what allowlist review and the historical-path generator work on; e (formats safeloadai did not parse) is what the data-only validators address; f is everything else (code carried in the file, emulation limits, structural findings, tool errors). Of the c + d files on hf-heldout2, 66 need only classes whose state a native parser reads (XGBoost, LightGBM and CatBoost boosters); they stay off the allowlist (DECISIONS.md, Booster under A2).
+
+f on hf-heldout2 by kind: structure 22, emulation-incomplete 20, keras-lambda 10, serialized-code 10, emulation-anomaly 8, call-gadget-or-code-module 7, argument-check 3, risky-reason-next-to-library-classes 1, tool-error 1.
+
 ## `--malicious-only`
 
 `safeloadai scan --malicious-only` blocks only a MALICIOUS verdict (exit 1); SUSPICIOUS, CLEAN and UNSUPPORTED pass. The verdict is the same as by default, so these numbers come from the same scans. Detection: malicious files blocked; FP: benign files blocked. ERROR exits 4 or 6 in both modes and is counted apart.

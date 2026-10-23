@@ -1,0 +1,514 @@
+{
+ "created": "20261023T061458Z",
+ "generated_by": "evaluation/fp_anatomy.py",
+ "groups": {
+  "hf-heldout": {
+   "any": {
+    "a": {
+     "files": 10,
+     "share_of_benign": 0.0202
+    },
+    "b": {
+     "files": 20,
+     "share_of_benign": 0.0403
+    },
+    "c": {
+     "files": 56,
+     "share_of_benign": 0.1129
+    },
+    "d": {
+     "files": 2,
+     "share_of_benign": 0.004
+    },
+    "e": {
+     "files": 33,
+     "share_of_benign": 0.0665
+    },
+    "f": {
+     "files": 9,
+     "share_of_benign": 0.0181
+    }
+   },
+   "benign_files": 496,
+   "by_block": {
+    "ERROR": 0,
+    "MALICIOUS": 0,
+    "RISKY": 11,
+    "UNSUPPORTED": 33,
+    "UNVERIFIABLE": 73
+   },
+   "classes": {
+    "a": {
+     "by_block": {
+      "ERROR": 0,
+      "MALICIOUS": 0,
+      "RISKY": 1,
+      "UNSUPPORTED": 0,
+      "UNVERIFIABLE": 9
+     },
+     "by_format": {
+      "joblib": 2,
+      "pickle": 1,
+      "torch": 7
+     },
+     "files": 10,
+     "share_of_benign": 0.0202,
+     "share_of_not_clean": 0.0855,
+     "text": "user-defined classes (__main__, modules in no public package)"
+    },
+    "b": {
+     "by_block": {
+      "ERROR": 0,
+      "MALICIOUS": 0,
+      "RISKY": 2,
+      "UNSUPPORTED": 0,
+      "UNVERIFIABLE": 18
+     },
+     "by_format": {
+      "h5": 8,
+      "keras": 12
+     },
+     "files": 20,
+     "share_of_benign": 0.0403,
+     "share_of_not_clean": 0.1709,
+     "text": "custom Keras objects registered by the model author"
+    },
+    "c": {
+     "by_block": {
+      "ERROR": 0,
+      "MALICIOUS": 0,
+      "RISKY": 1,
+      "UNSUPPORTED": 0,
+      "UNVERIFIABLE": 44
+     },
+     "by_format": {
+      "h5": 1,
+      "joblib": 16,
+      "keras": 10,
+      "pickle": 12,
+      "torch": 6
+     },
+     "files": 45,
+     "share_of_benign": 0.0907,
+     "share_of_not_clean": 0.3846,
+     "text": "classes from known public libraries missing from the allowlist"
+    },
+    "d": {
+     "by_block": {
+      "ERROR": 0,
+      "MALICIOUS": 0,
+      "RISKY": 0,
+      "UNSUPPORTED": 0,
+      "UNVERIFIABLE": 2
+     },
+     "by_format": {
+      "joblib": 1,
+      "pickle": 1
+     },
+     "files": 2,
+     "share_of_benign": 0.004,
+     "share_of_not_clean": 0.0171,
+     "text": "old module paths of already reviewed classes"
+    },
+    "e": {
+     "by_block": {
+      "ERROR": 0,
+      "MALICIOUS": 0,
+      "RISKY": 0,
+      "UNSUPPORTED": 33,
+      "UNVERIFIABLE": 0
+     },
+     "by_format": {
+      "torch": 33
+     },
+     "files": 33,
+     "share_of_benign": 0.0665,
+     "share_of_not_clean": 0.2821,
+     "text": "data-only formats safeloadai does not parse (UNSUPPORTED)"
+    },
+    "f": {
+     "by_block": {
+      "ERROR": 0,
+      "MALICIOUS": 0,
+      "RISKY": 7,
+      "UNSUPPORTED": 0,
+      "UNVERIFIABLE": 0
+     },
+     "by_format": {
+      "joblib": 1,
+      "keras": 2,
+      "torch": 4
+     },
+     "files": 7,
+     "share_of_benign": 0.0141,
+     "share_of_not_clean": 0.0598,
+     "text": "other (code in the file, emulation limits, structure, tool errors)"
+    }
+   },
+   "distinct_c_items": 27,
+   "f_subtypes": {
+    "call-gadget-or-code-module": 1,
+    "emulation-incomplete": 1,
+    "risky-reason-next-to-library-classes": 4,
+    "serialized-code": 1,
+    "structure": 1
+   },
+   "floor": {
+    "files": 30,
+    "share_of_benign": 0.0605,
+    "share_of_not_clean": 0.2564
+   },
+   "group": "hf-heldout",
+   "not_clean": 117,
+   "not_clean_share": 0.2359,
+   "reducible_by_allowlist": {
+    "files": 47,
+    "only_native_parser_classes": 19,
+    "share_of_benign": 0.0948,
+    "share_of_not_clean": 0.4017
+   }
+  },
+  "hf-heldout2": {
+   "any": {
+    "a": {
+     "files": 46,
+     "share_of_benign": 0.0164
+    },
+    "b": {
+     "files": 73,
+     "share_of_benign": 0.026
+    },
+    "c": {
+     "files": 308,
+     "share_of_benign": 0.1098
+    },
+    "d": {
+     "files": 39,
+     "share_of_benign": 0.0139
+    },
+    "e": {
+     "files": 114,
+     "share_of_benign": 0.0406
+    },
+    "f": {
+     "files": 77,
+     "share_of_benign": 0.0274
+    }
+   },
+   "benign_files": 2806,
+   "by_block": {
+    "ERROR": 1,
+    "MALICIOUS": 0,
+    "RISKY": 94,
+    "UNSUPPORTED": 114,
+    "UNVERIFIABLE": 360
+   },
+   "classes": {
+    "a": {
+     "by_block": {
+      "ERROR": 0,
+      "MALICIOUS": 0,
+      "RISKY": 7,
+      "UNSUPPORTED": 0,
+      "UNVERIFIABLE": 39
+     },
+     "by_format": {
+      "joblib": 5,
+      "pickle": 11,
+      "torch": 30
+     },
+     "files": 46,
+     "share_of_benign": 0.0164,
+     "share_of_not_clean": 0.0808,
+     "text": "user-defined classes (__main__, modules in no public package)"
+    },
+    "b": {
+     "by_block": {
+      "ERROR": 0,
+      "MALICIOUS": 0,
+      "RISKY": 7,
+      "UNSUPPORTED": 0,
+      "UNVERIFIABLE": 66
+     },
+     "by_format": {
+      "h5": 11,
+      "keras": 62
+     },
+     "files": 73,
+     "share_of_benign": 0.026,
+     "share_of_not_clean": 0.1283,
+     "text": "custom Keras objects registered by the model author"
+    },
+    "c": {
+     "by_block": {
+      "ERROR": 0,
+      "MALICIOUS": 0,
+      "RISKY": 15,
+      "UNSUPPORTED": 0,
+      "UNVERIFIABLE": 221
+     },
+     "by_format": {
+      "h5": 2,
+      "joblib": 43,
+      "keras": 42,
+      "pickle": 89,
+      "torch": 60
+     },
+     "files": 236,
+     "share_of_benign": 0.0841,
+     "share_of_not_clean": 0.4148,
+     "text": "classes from known public libraries missing from the allowlist"
+    },
+    "d": {
+     "by_block": {
+      "ERROR": 0,
+      "MALICIOUS": 0,
+      "RISKY": 0,
+      "UNSUPPORTED": 0,
+      "UNVERIFIABLE": 34
+     },
+     "by_format": {
+      "joblib": 8,
+      "pickle": 5,
+      "torch": 21
+     },
+     "files": 34,
+     "share_of_benign": 0.0121,
+     "share_of_not_clean": 0.0598,
+     "text": "old module paths of already reviewed classes"
+    },
+    "e": {
+     "by_block": {
+      "ERROR": 0,
+      "MALICIOUS": 0,
+      "RISKY": 0,
+      "UNSUPPORTED": 114,
+      "UNVERIFIABLE": 0
+     },
+     "by_format": {
+      "pickle": 5,
+      "torch": 109
+     },
+     "files": 114,
+     "share_of_benign": 0.0406,
+     "share_of_not_clean": 0.2004,
+     "text": "data-only formats safeloadai does not parse (UNSUPPORTED)"
+    },
+    "f": {
+     "by_block": {
+      "ERROR": 1,
+      "MALICIOUS": 0,
+      "RISKY": 65,
+      "UNSUPPORTED": 0,
+      "UNVERIFIABLE": 0
+     },
+     "by_format": {
+      "h5": 2,
+      "joblib": 20,
+      "keras": 19,
+      "pickle": 16,
+      "torch": 9
+     },
+     "files": 66,
+     "share_of_benign": 0.0235,
+     "share_of_not_clean": 0.116,
+     "text": "other (code in the file, emulation limits, structure, tool errors)"
+    }
+   },
+   "distinct_c_items": 156,
+   "f_subtypes": {
+    "argument-check": 3,
+    "call-gadget-or-code-module": 7,
+    "emulation-anomaly": 8,
+    "emulation-incomplete": 20,
+    "keras-lambda": 10,
+    "risky-reason-next-to-library-classes": 1,
+    "serialized-code": 10,
+    "structure": 22,
+    "tool-error": 1
+   },
+   "floor": {
+    "files": 119,
+    "share_of_benign": 0.0424,
+    "share_of_not_clean": 0.2091
+   },
+   "group": "hf-heldout2",
+   "not_clean": 569,
+   "not_clean_share": 0.2028,
+   "reducible_by_allowlist": {
+    "files": 270,
+    "only_native_parser_classes": 66,
+    "share_of_benign": 0.0962,
+    "share_of_not_clean": 0.4745
+   }
+  },
+  "hf-tune": {
+   "any": {
+    "a": {
+     "files": 4,
+     "share_of_benign": 0.0093
+    },
+    "b": {
+     "files": 20,
+     "share_of_benign": 0.0465
+    },
+    "c": {
+     "files": 27,
+     "share_of_benign": 0.0628
+    },
+    "d": {
+     "files": 1,
+     "share_of_benign": 0.0023
+    },
+    "e": {
+     "files": 19,
+     "share_of_benign": 0.0442
+    },
+    "f": {
+     "files": 7,
+     "share_of_benign": 0.0163
+    }
+   },
+   "benign_files": 430,
+   "by_block": {
+    "ERROR": 0,
+    "MALICIOUS": 0,
+    "RISKY": 9,
+    "UNSUPPORTED": 19,
+    "UNVERIFIABLE": 46
+   },
+   "classes": {
+    "a": {
+     "by_block": {
+      "ERROR": 0,
+      "MALICIOUS": 0,
+      "RISKY": 1,
+      "UNSUPPORTED": 0,
+      "UNVERIFIABLE": 3
+     },
+     "by_format": {
+      "joblib": 2,
+      "pickle": 2
+     },
+     "files": 4,
+     "share_of_benign": 0.0093,
+     "share_of_not_clean": 0.0541,
+     "text": "user-defined classes (__main__, modules in no public package)"
+    },
+    "b": {
+     "by_block": {
+      "ERROR": 0,
+      "MALICIOUS": 0,
+      "RISKY": 1,
+      "UNSUPPORTED": 0,
+      "UNVERIFIABLE": 19
+     },
+     "by_format": {
+      "h5": 4,
+      "keras": 16
+     },
+     "files": 20,
+     "share_of_benign": 0.0465,
+     "share_of_not_clean": 0.2703,
+     "text": "custom Keras objects registered by the model author"
+    },
+    "c": {
+     "by_block": {
+      "ERROR": 0,
+      "MALICIOUS": 0,
+      "RISKY": 1,
+      "UNSUPPORTED": 0,
+      "UNVERIFIABLE": 23
+     },
+     "by_format": {
+      "joblib": 19,
+      "keras": 5
+     },
+     "files": 24,
+     "share_of_benign": 0.0558,
+     "share_of_not_clean": 0.3243,
+     "text": "classes from known public libraries missing from the allowlist"
+    },
+    "d": {
+     "by_block": {
+      "ERROR": 0,
+      "MALICIOUS": 0,
+      "RISKY": 0,
+      "UNSUPPORTED": 0,
+      "UNVERIFIABLE": 1
+     },
+     "by_format": {
+      "pickle": 1
+     },
+     "files": 1,
+     "share_of_benign": 0.0023,
+     "share_of_not_clean": 0.0135,
+     "text": "old module paths of already reviewed classes"
+    },
+    "e": {
+     "by_block": {
+      "ERROR": 0,
+      "MALICIOUS": 0,
+      "RISKY": 0,
+      "UNSUPPORTED": 19,
+      "UNVERIFIABLE": 0
+     },
+     "by_format": {
+      "torch": 19
+     },
+     "files": 19,
+     "share_of_benign": 0.0442,
+     "share_of_not_clean": 0.2568,
+     "text": "data-only formats safeloadai does not parse (UNSUPPORTED)"
+    },
+    "f": {
+     "by_block": {
+      "ERROR": 0,
+      "MALICIOUS": 0,
+      "RISKY": 6,
+      "UNSUPPORTED": 0,
+      "UNVERIFIABLE": 0
+     },
+     "by_format": {
+      "joblib": 1,
+      "keras": 4,
+      "pickle": 1
+     },
+     "files": 6,
+     "share_of_benign": 0.014,
+     "share_of_not_clean": 0.0811,
+     "text": "other (code in the file, emulation limits, structure, tool errors)"
+    }
+   },
+   "distinct_c_items": 8,
+   "f_subtypes": {
+    "emulation-incomplete": 2,
+    "structure": 4
+   },
+   "floor": {
+    "files": 24,
+    "share_of_benign": 0.0558,
+    "share_of_not_clean": 0.3243
+   },
+   "group": "hf-tune",
+   "not_clean": 74,
+   "not_clean_share": 0.1721,
+   "reducible_by_allowlist": {
+    "files": 25,
+    "only_native_parser_classes": 16,
+    "share_of_benign": 0.0581,
+    "share_of_not_clean": 0.3378
+   }
+  }
+ },
+ "public_check": {
+  "distributions_looked_up": 60,
+  "keras_api": {
+   "keras": "3.15.1",
+   "tf-keras": "2.21.0"
+  },
+  "versions_checked_per_distribution": 6
+ },
+ "safeloadai": "0.8.0",
+ "source": "eval-v080-20261023T061458Z.json"
+}

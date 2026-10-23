@@ -139,7 +139,7 @@ model = safe_load("model.pkl", accept_unverified=["mypkg.models.Thing"])       #
 
 ```bash
 safeloadai scan convnext.h5 --accept-unverified LayerScale       # name every item
-safeloadai scan model.pkl --trust-inert-from scikit-learn        # judge your installed sklearn's classes
+safeloadai scan model.pkl --trust-inert-from scikit-learn        # experimental: judge your installed sklearn's classes
 ```
 
 Accepting an UNVERIFIABLE item means trusting that class's code; see

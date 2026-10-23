@@ -112,8 +112,10 @@ def _build_parser() -> argparse.ArgumentParser:
                    help="accept one UNVERIFIABLE item for one file (repeatable); with several files, "
                         "prefix the file's sha256. Refused if the file has any MALICIOUS or RISKY reason")
     s.add_argument("--trust-inert-from", action="append", default=[], metavar="DISTRIBUTION",
-                   help="judge classes of this installed distribution from its installed source (read, never "
-                        "imported); a class whose rebuild runs no code of its own is accepted (repeatable)")
+                   help="experimental: judge classes of this installed distribution from its installed source "
+                        "(read, never imported); a class whose rebuild runs no code of its own is accepted "
+                        "(repeatable). Changes no verdict in the 0.8.0 evaluation: for the pinned distributions "
+                        "it gives the same answer as the shipped policies")
     s.add_argument("--no-known-good", action="store_true",
                    help="do not use the shipped list of reviewed benign files (only makes verdicts stricter)")
     s.add_argument("--no-input", action="store_true", help="never prompt, even on a terminal")

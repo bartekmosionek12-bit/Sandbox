@@ -75,6 +75,20 @@ _PICKLE_GLOBAL_EXPLANATIONS = {
         "but the scanner cannot check that parser's memory safety against hostile bytes. Prefer a model saved "
         "with Booster.save_model('model.json') or ('model.ubj') and loaded with load_model; accept "
         "'xgboost.core.Booster' for this file only if you trust its source."),
+    # Owner decision of 2026-10-23 (DECISIONS.md A2): the same holds for LightGBM and CatBoost.
+    ("lightgbm.basic", "Booster"): (
+        "The pickle rebuilds lightgbm.basic.Booster. Its __setstate__ hands the model string from the file to "
+        "LightGBM's native C++ parser (LGBM_BoosterLoadModelFromString); no Python code is chosen by the file, "
+        "but the scanner cannot check that parser's memory safety against hostile bytes. Prefer a model saved "
+        "with Booster.save_model('model.txt') and loaded with lightgbm.Booster(model_file=...); accept "
+        "'lightgbm.basic.Booster' for this file only if you trust its source."),
+    **{("catboost.core", name): (
+        f"The pickle rebuilds catboost.core.{name}. Its __setstate__ hands the serialized model from the file to "
+        "CatBoost's native C++ library (_deserialize_model); no Python code is chosen by the file, but the "
+        "scanner cannot check that library's memory safety against hostile bytes. Prefer a model saved with "
+        "save_model('model.cbm') or ('model.json', format='json') and loaded with load_model; accept "
+        f"'catboost.core.{name}' for this file only if you trust its source.")
+       for name in ("CatBoost", "CatBoostClassifier", "CatBoostRegressor", "CatBoostRanker")},
 }
 
 

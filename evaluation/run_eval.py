@@ -215,7 +215,27 @@ def _column(report, seconds: float) -> dict:
             "cleared": sorted({c["mechanism"] for c in report.cleared})}
 
 
+def peak_rss_mb() -> dict:
+    """Peak resident memory so far of this scanning process and of its sandbox children (MiB).
+    Workers are reused, so the value is the peak over every scan the worker ran up to now; the
+    run's maximum is the peak memory of a scan (0.9.0)."""
+    try:
+        import resource
+    except ImportError:  # Windows
+        return {}
+    scale = 1024 * 1024 if sys.platform == "darwin" else 1024  # ru_maxrss: bytes on macOS, KiB on Linux
+    own = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024 / scale / 1024
+    children = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss * 1024 / scale / 1024
+    return {"rss_peak_mb": round(own, 1), "children_rss_peak_mb": round(children, 1)}
+
+
 def run_safeloadai(path: str, trust: tuple[str, ...] = ()) -> dict:
+    result = _run_safeloadai(path, trust)
+    result.update(peak_rss_mb())
+    return result
+
+
+def _run_safeloadai(path: str, trust: tuple[str, ...] = ()) -> dict:
     started = time.perf_counter()
     try:
         report = scan(path)
@@ -412,6 +432,7 @@ def _stats(rows: list[tuple[dict, dict]]) -> dict:
         "skipped": sum(r["outcome"] == "skipped" for _, r in rows),
         "seconds_median": round(statistics.median(seconds), 4) if seconds else None,
         "seconds_p95": _percentile(seconds, 0.95), "seconds_max": round(max(seconds), 4) if seconds else None,
+        "rss_peak_mb_max": max(rss) if (rss := [r["rss_peak_mb"] for _, r in rows if "rss_peak_mb" in r]) else None,
     }
 
 

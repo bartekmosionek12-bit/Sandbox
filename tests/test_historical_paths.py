@@ -85,3 +85,13 @@ def test_compiled_aliases_keep_the_current_form():
             current = tuple(entry["current"].split(":", 1))
             assert pair in allowlists.PICKLE_GLOBALS
             assert (pair in allowlists.STATE_ONLY_CLASSES) == (current in allowlists.STATE_ONLY_CLASSES)
+
+
+@pytest.mark.parametrize("pair", [("xgboost.core", "Booster"), ("lightgbm.basic", "Booster"),
+                                  ("catboost.core", "CatBoostClassifier")])
+def test_native_parser_models_stay_off(pair):
+    from safeloadai.override import pickle_global
+
+    assert pair not in allowlists.PICKLE_GLOBALS and upstream.state_only(pair) is None
+    assert "native" in pickle_global(*pair)
+    assert _risk(_rebuilt(pair))[0] != "clean"

@@ -155,6 +155,11 @@
   "policy_exclude": {
     "sklearn.preprocessing._function_transformer:FunctionTransformer": "owner decision A1 (DECISIONS.md): holds an arbitrary function and stays out",
     "sklearn.compose._target:TransformedTargetRegressor": "holds arbitrary func/inverse_func callables like FunctionTransformer (same reasoning as A1)",
-    "xgboost.core:Booster": "decision A4: hands raw bytes to a native parser; pending the owner's decision"
+    "xgboost.core:Booster": "decision A4: hands raw bytes to a native parser; pending the owner's decision",
+    "lightgbm.basic:Booster": "owner decision A2 of 2026-10-23: hands the model string to a native parser",
+    "catboost.core:CatBoost": "owner decision A2 of 2026-10-23: hands the serialized model to a native library",
+    "catboost.core:CatBoostClassifier": "owner decision A2 of 2026-10-23: hands the serialized model to a native library",
+    "catboost.core:CatBoostRegressor": "owner decision A2 of 2026-10-23: hands the serialized model to a native library",
+    "catboost.core:CatBoostRanker": "owner decision A2 of 2026-10-23: hands the serialized model to a native library"
   }
 }

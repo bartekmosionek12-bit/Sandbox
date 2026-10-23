@@ -89,6 +89,7 @@ where it happened (`io`, `static`, `emulation`, `deep`, `runtime`, `options`).
 | `E102` | file could not be read (permission denied, I/O error) | check permissions and the disk |
 | `E103` | file too large to read (over 4 GiB) | out of scope for this version |
 | `E104` | path is not a regular file (a directory, socket, device) | pass a file, or a directory to `safeloadai scan` |
+| `E105` | resource limit reached: the static analysis on the host needs more memory than one scan may hold (512 MiB plus twice the file's size, at most 4 GiB of string and bytes data plus 64 bytes per opcode) | the file asks for far more memory than its size explains; it is not loaded. Treat it as you would a SUSPICIOUS file |
 
 ### E2xx: a parser raised an exception it does not expect
 

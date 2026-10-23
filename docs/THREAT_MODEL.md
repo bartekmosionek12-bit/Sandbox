@@ -31,7 +31,7 @@ leave no trace in the file's structure (see [below](#why-a-file-scanner-cannot-f
 |---|---|---|
 | A1 | The user's machine and its data | Loading a hostile pickle runs code with the user's privileges. This is the asset everything else serves. |
 | A2 | The correctness of a verdict | A CLEAN verdict on a hostile file is the worst failure (a *bypass*); `safe_load` acts on it. |
-| A3 | The scanning host during a scan | Scanning must never run the file's code or let it touch the host. |
+| A3 | The scanning host during a scan | Scanning must never run the file's code or let it touch the host, and a file must not exhaust the host's memory or time (T10, T16). |
 | A4 | The WASI runtime (`safeloadai-runtime`) | The emulation sandbox is only as good as the pinned CPython-on-WASI build and wasmtime. |
 | A5 | The release path (GitHub repository, Actions, PyPI) | A poisoned safeloadai release would turn the scanner into the attack. |
 | A6 | The user's Anthropic API key (optional judge) | Only when `--judge` is used. |
@@ -89,6 +89,7 @@ leave no trace in the file's structure (see [below](#why-a-file-scanner-cannot-f
 | T8 | Escape from the WASI sandbox, or reaching the network or files from it | wasmtime isolation, one read-only directory, no sockets, pinned runtime checked by sha256 (E401) | LLM03 | ML06 | AML.T0011.000 |
 | T9 | Forged evidence: the payload writes records that make the log look clean | Records without the nonce are MALICIOUS; out-of-sequence records are tampering; records cannot be removed. Residual risk: appended noise (B2) | LLM03 | ML06 | AML.T0011.000 |
 | T10 | Resource exhaustion: decompression bombs, deep nesting, huge opcode counts, guest loops | Limits everywhere; a limit hit on the file is SUSPICIOUS, a sandbox timeout or fuel exhaustion is ERROR (E303, E304) | LLM10 (resource use of the scanning pipeline) | ML06 | - |
+| T16 | Availability of the scanner: a file that makes the static analysis *on the host* hold far more memory than its size, so the scan or the process that runs it is killed (a CI job, a Hub-wide sweep), and the file is never judged | Every value the host-side walk holds is charged to a per-scan budget (512 MiB plus twice the file's size, at most 4 GiB; 64 bytes per opcode plus the bytes of each string); running out is ERROR E105, never a crash and never CLEAN. Per-opcode records and the dashboard listing are capped. Found on the 0.8.0 held-out run: a 211 MB pickle took more than 13 GB of host memory in the listing for the dashboard (fixed in 0.8.0) | LLM10 | ML06 | - |
 | T11 | Prompt injection into the optional judge through strings in the file | The judge sees a structured summary, can only raise severity, and an injection attempt is itself SUSPICIOUS | LLM01 | - | - |
 | T12 | Time-of-check / time-of-use: the file changes between scan and load | `safe_load` scans and loads one private read-only copy and re-checks its sha256 | LLM03 | ML06 | AML.T0010.003 |
 | T13 | A compromised or substituted WASI runtime | Exact pin and sha256 check before every use (E401); runtime built from a pinned upstream release | LLM03 | ML06 | AML.T0010.001 *AI Supply Chain Compromise: AI Software* |

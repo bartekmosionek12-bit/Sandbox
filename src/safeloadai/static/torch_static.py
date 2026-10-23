@@ -62,6 +62,8 @@ def parse_torch_zip(data: bytes, file_name: str = "<memory>", extra_allowed: fro
                         "code_malicious", "cleared", "tool_errors", "evidence"):
                 combined[key].extend(part[key])
             combined.setdefault("_embedded", []).extend(part.get("_embedded") or [])
+            for name, count in (part.get("opcode_counts") or {}).items():
+                combined["opcode_counts"][name] = combined["opcode_counts"].get(name, 0) + count
             combined["raw_disasm"] += f"\n--- {member} ---\n" + part["raw_disasm"]
             combined["error"] = combined["error"] or part["error"]
             combined["profile"] = combined.get("profile") or part.get("profile")

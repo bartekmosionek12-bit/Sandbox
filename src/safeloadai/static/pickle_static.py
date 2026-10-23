@@ -29,6 +29,7 @@ import re
 from typing import Any
 
 from .. import errors, override
+from . import budget as budget_mod
 from . import clearance as clearance_mod
 from .allowlists import (
     ARGUMENT_CHECKED,
@@ -113,6 +114,9 @@ TORCH_LEGACY_PICKLES = 5
 MAX_PICKLES = 64
 MAX_OPCODES = 5_000_000
 MAX_DISASM_CHARS = 200_000
+# Opcodes kept one by one in the report (the listing, flagged opcodes); every opcode is
+# still counted by name. Bounded so a large pickle does not grow the report without end.
+MAX_OPCODE_RECORDS = 100_000
 
 # Strings worth showing as evidence (never used for scoring on their own).
 _SUSPICIOUS_STRING = re.compile(
@@ -130,7 +134,9 @@ def _format_arg(arg: Any) -> str | None:
         return " ".join(str(a) for a in arg)
     if isinstance(arg, (bytes, bytearray)):
         return repr(bytes(arg[:200]))
-    return str(arg)
+    if isinstance(arg, str):
+        return arg[:200]
+    return str(arg)[:200]
 
 
 def _empty_report(file_name: str, file_format: str) -> dict:
@@ -139,6 +145,7 @@ def _empty_report(file_name: str, file_format: str) -> dict:
         "file_name": file_name,
         "file_format": file_format,
         "opcodes": [],
+        "opcode_counts": {},
         "flagged_opcodes": [],
         "suspicious_imports": [],
         "unknown_imports": [],
@@ -189,13 +196,19 @@ def is_dangerous_import(module: str, name: str) -> bool:
 
 
 def _recorders(report: dict, index_ref: list):
+    counts = report["opcode_counts"]
+
     def on_opcode(opcode, arg, pos):
         name = opcode.name
-        arg_str = _format_arg(arg)
-        entry = {"name": name, "arg": arg_str, "pos": pos, "pickle": index_ref[0]}
-        report["opcodes"].append(entry)
-        if name in FLAGGED_OPCODES:
-            report["flagged_opcodes"].append(dict(entry, reason=FLAGGED_OPCODES[name]))
+        counts[name] = counts.get(name, 0) + 1
+        if len(report["opcodes"]) < MAX_OPCODE_RECORDS:
+            entry = {"name": name, "arg": _format_arg(arg), "pos": pos, "pickle": index_ref[0]}
+            report["opcodes"].append(entry)
+            if name in FLAGGED_OPCODES:
+                report["flagged_opcodes"].append(dict(entry, reason=FLAGGED_OPCODES[name]))
+        elif name in FLAGGED_OPCODES and not report["flagged_opcodes"]:
+            report["flagged_opcodes"].append({"name": name, "arg": _format_arg(arg), "pos": pos,
+                                              "pickle": index_ref[0], "reason": FLAGGED_OPCODES[name]})
         if name in STRING_PUSH_OPCODES and isinstance(arg, str) and _SUSPICIOUS_STRING.search(arg):
             report["suspicious_strings"].append({"value": arg[:200], "pos": pos})
 
@@ -301,6 +314,8 @@ def parse_pickle(data: bytes, file_name: str = "<memory>", *, torch: bool = Fals
                 break
             if machine.stream.tell() == start or not legacy_torch:
                 break
+    except budget_mod.ResourceLimit:
+        raise
     except Exception as exc:  # noqa: BLE001 - any parse failure must surface
         problem = walk_problem(exc)
         if problem is None:
@@ -1167,16 +1182,36 @@ def _check_getattr(calls: list[tuple], allow: frozenset, imported: bool,
     return malicious, risky
 
 
+class _ListingFull(Exception):
+    pass
+
+
+class _CappedListing(io.StringIO):
+    """A StringIO that stops the listing at MAX_DISASM_CHARS: pickletools.dis writes one
+    pickle in full, and a large pickle would otherwise be rendered entirely in memory."""
+
+    def write(self, text: str) -> int:
+        room = MAX_DISASM_CHARS - self.tell()
+        if len(text) > room:
+            super().write(text[:max(room, 0)])
+            raise _ListingFull
+        return super().write(text)
+
+
 def _disasm(data: bytes) -> str:
     """Human-readable listing for the dashboard (pickletools.dis does not execute)."""
-    out = io.StringIO()
+    out = _CappedListing()
     try:
         stream = io.BytesIO(data)
         for _ in range(MAX_PICKLES):
-            if stream.tell() >= len(data) or out.tell() > MAX_DISASM_CHARS:
+            if stream.tell() >= len(data):
                 break
             pickletools.dis(stream, out=out, annotate=1)
+    except _ListingFull:
+        pass
     except Exception as exc:  # noqa: BLE001
+        out = io.StringIO(out.getvalue())
+        out.seek(0, io.SEEK_END)
         out.write(f"\n[disassembly stopped: {exc}]\n")
     return out.getvalue()[:MAX_DISASM_CHARS]
 

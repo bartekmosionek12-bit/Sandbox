@@ -24,6 +24,7 @@ CODES: dict[str, tuple[str, str]] = {
     "E102": ("io", "file could not be read"),
     "E103": ("io", "file too large to read"),
     "E104": ("io", "path is not a regular file"),
+    "E105": ("static", "resource limit reached"),
     # E2xx: a parser or walker raised an exception it does not expect (a bug in safeloadai)
     "E200": ("static", "internal error in the static analysis"),
     "E201": ("static", "internal error in the pickle walker"),

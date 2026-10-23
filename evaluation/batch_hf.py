@@ -229,17 +229,20 @@ def _infos(api, models, done, chunk: int = 32, threads: int = 16):
             yield from pool.map(info, batch)
 
 
-def plan_pinned(work: str, source: str) -> int:
-    """The benign tune and held-out files of an earlier results file, pinned to their commit
-    and sha256 (``fetch_pinned_hf.py``'s rule), so held-out before/after is measured with
-    the same batches as held-out-2."""
+PINNED_GROUPS = ("hf-tune", "hf-heldout")
+
+
+def plan_pinned(work: str, source: str, groups: tuple[str, ...] = PINNED_GROUPS) -> int:
+    """The files of ``groups`` in an earlier results file (by default benign tune and held-out),
+    pinned to their commit and sha256 (``fetch_pinned_hf.py``'s rule), so before/after is
+    measured on exactly the same files. Each entry keeps its group and label."""
     with open(source, encoding="utf-8") as fh:
         entries = json.load(fh)["entries"]
     plan = os.path.join(work, "plan-pinned.jsonl")
     planned = {(e["repo_id"], e["filename"]) for e in _jsonl(plan)}
     added = 0
     for e in entries:
-        if e.get("group") not in ("hf-tune", "hf-heldout") or not e.get("sha256"):
+        if e.get("group") not in groups or not e.get("sha256"):
             continue
         name = e["file"][len(e["repo_id"]) + 1:]
         if (e["repo_id"], name) in planned:
@@ -247,9 +250,9 @@ def plan_pinned(work: str, source: str) -> int:
         fmt = {"pickle": "sklearn", "joblib": "sklearn"}.get(e["format"], e["format"])
         _append(plan, {"repo_id": e["repo_id"], "revision": e["revision"], "filename": name, "size": e["size"],
                        "lfs_sha256": e["sha256"], "format": fmt, "library": e.get("library"),
-                       "stratum": e.get("library"), "split": e["split"], "hub_scan": e.get("hub_scan", "unknown"),
+                       "stratum": e.get("library"), "split": e.get("split"), "hub_scan": e.get("hub_scan", "unknown"),
                        "label": e["label"], "label_reason": e.get("label_reason") or "",
-                       "pinned_from": os.path.basename(source)})
+                       "group": e["group"], "pinned_from": os.path.basename(source)})
         added += 1
     return added
 
@@ -476,7 +479,7 @@ def plan_labels(work: str) -> dict[str, tuple[str, str, str]]:
     for name in ("plan-pinned.jsonl", "plan-benign.jsonl", "plan-unsafe.jsonl"):
         for e in _jsonl(os.path.join(work, name)):
             key = f"{e['repo_id']}/{e['filename']}"
-            group = "hf-unsafe" if name == "plan-unsafe.jsonl" else PLAN_GROUP[e["split"]]
+            group = "hf-unsafe" if name == "plan-unsafe.jsonl" else e.get("group") or PLAN_GROUP[e["split"]]
             out[key] = (group, *current[key])
     return out
 
@@ -534,6 +537,7 @@ def main(argv: list[str] | None = None) -> int:
             p.add_argument("--max-mb", type=float, default=DEFAULT_MAX_MB)
         if name == "plan-pinned":
             p.add_argument("--from-json", required=True, help="an evaluation results file (run_eval.py output)")
+            p.add_argument("--group", action="append", help=f"groups to pin (default: {', '.join(PINNED_GROUPS)})")
         if name == "plan-benign":
             p.add_argument("--target", type=int, default=3000)
             p.add_argument("--split", choices=NEW_SPLITS, default=SPLIT)
@@ -567,7 +571,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"planned {plan_benign(work, args.target, int(args.max_mb * 1024 * 1024), args.split)} files",
               file=sys.stderr)
     elif args.cmd == "plan-pinned":
-        print(f"planned {plan_pinned(work, args.from_json)} files", file=sys.stderr)
+        groups = tuple(args.group) if args.group else PINNED_GROUPS
+        print(f"planned {plan_pinned(work, args.from_json, groups)} files", file=sys.stderr)
     elif args.cmd == "plan-unsafe":
         print(f"planned {plan_unsafe(work, int(args.max_mb * 1024 * 1024))} files", file=sys.stderr)
     elif args.cmd == "run":

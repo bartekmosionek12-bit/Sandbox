@@ -166,3 +166,21 @@ def test_dill_array_calling_something_else_is_named(tmp_path):
     report = parse_pickle(_array(g("collections", "Counter")))
     assert report["static_risk"] == "suspicious"
     assert any("_create_array at" in r and "calls its first argument" in r for r in report["reasons"])
+
+
+def test_protocol_2_bytes_in_code_fields_are_data(compiled, tmp_path):
+    # Protocol 0-2 write bytes as _codecs.encode(text, "latin1") (a held-out cloudpickle file).
+    import base64
+
+    def latin1(v):
+        if isinstance(v, dict) and "b" in v:
+            raw = base64.b64decode(v["b"]).decode("latin-1")
+            return call(g("_codecs", "encode"), s(raw), s("latin1"))
+        return _value(v)
+
+    fields = compiled["benign"]
+    code = call(call(g(CP, "_builtin_type"), s("CodeType")), *[latin1(f) for f in fields])
+    data = P4 + call(g(CP, "_make_function"), code, b"}", b"N", b"N", b"N") + STOP
+    report = parse_pickle(data)
+    assert report["dill_code"][0]["code_fields"] is not None, report["reasons"]
+    assert not any("not plain data" in r for r in report["reasons"])

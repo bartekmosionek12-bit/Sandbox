@@ -985,12 +985,26 @@ def _code_json(value, depth: int = 0):
         return {"fs": [_code_json(v, depth + 1) for v in value]}
     if _is_code(value):
         return {"code": [_code_json(v, depth + 1) for v in _code_fields(value.args)]}
+    if _is_latin1_bytes(value):  # protocol 0-2 bytes: _codecs.encode(text, "latin1")
+        return {"b": base64.b64encode(value.args[0].encode("latin-1")).decode()}
     raise _NotData(f"{_describe(value)} is not plain data")
 
 
 def _is_dill(value, name: str) -> bool:
     return isinstance(value, Obj) and value.how == "reduce" and isinstance(value.func, Global) \
         and value.func.module in DILL_MODULES and value.func.name == name
+
+
+def _is_latin1_bytes(value) -> bool:
+    if not (isinstance(value, Obj) and value.how == "reduce" and isinstance(value.func, Global)
+            and value.func.pair == ("_codecs", "encode") and isinstance(value.args, tuple)
+            and len(value.args) == 2 and isinstance(value.args[0], str) and value.args[1] in ("latin1", "latin-1")):
+        return False
+    try:
+        value.args[0].encode("latin-1")
+    except UnicodeEncodeError:
+        return False
+    return True
 
 
 def _is_cloudpickle(value, name: str) -> bool:

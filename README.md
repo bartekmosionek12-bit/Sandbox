@@ -43,6 +43,21 @@ The defaults are the strictest settings. Every option that loosens a verdict is 
 by default, is announced on the command line, is recorded in `Report.options`, and is
 documented with its risk in [docs/OPTIONS.md](docs/OPTIONS.md).
 
+### CI, pre-commit and the Hugging Face Hub
+
+- **GitHub Action** ([action.yml](action.yml)): scans the paths you give it, uploads a
+  SARIF log to code scanning (one result per file that is not CLEAN) and fails the job
+  on any verdict other than CLEAN, or with `fail-on: malicious` on MALICIOUS only. An
+  ERROR always fails. Needs `security-events: write` for the upload. Example:
+  [examples/github-actions.yml](examples/github-actions.yml).
+- **SARIF anywhere**: `safeloadai scan models/ --sarif scan.sarif`. The exit code and
+  the verdicts are the same.
+- **pre-commit** ([.pre-commit-hooks.yaml](.pre-commit-hooks.yaml)): hook id `safeloadai`
+  scans every committed model file; the commit fails unless every file is CLEAN.
+- **Hugging Face Hub**: [examples/huggingface_safe_download.py](examples/huggingface_safe_download.py)
+  downloads one file at a pinned commit, scans it, and loads it with `safe_load` only
+  if it is CLEAN.
+
 ### Install
 
 `pip install safeloadai` also installs `safeloadai-runtime`, the pinned CPython-on-WASI

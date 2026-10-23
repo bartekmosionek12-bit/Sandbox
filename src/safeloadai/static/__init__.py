@@ -13,6 +13,7 @@ from ..parsing import decompress
 from ..parsing import detect as detect_mod
 from ..parsing import views as views_mod
 from . import budget as budget_mod
+from . import data_formats
 from .h5_static import parse_h5_metadata
 from .keras_static import parse_keras
 from .pickle_static import parse_pickle
@@ -48,6 +49,8 @@ def _analyze_bytes(data: bytes, file_name: str, extra_allowed: frozenset) -> dic
     report["views"] = [v.describe() for v in views]
     report["_view"] = primary
     others = [v for v in views if v is not primary]
+    if others and report.get("data_only") and report["static_risk"] == "clean":
+        views, others = _drop_accidental(views, others, data, file_name, extra_allowed, report)
     if others:
         listed = ", ".join(f"{v.fmt} at offset {v.start} ({v.loader})" for v in views)
         report["reasons"].append(f"file is readable as more than one format: {listed}; every reading is analysed")
@@ -58,11 +61,49 @@ def _analyze_bytes(data: bytes, file_name: str, extra_allowed: frozenset) -> dic
     mismatch = detect_mod.extension_mismatch(file_name, views_mod.detected_format(primary))
     if mismatch and report.get("unsupported"):
         report["notes"].append(mismatch)  # implied by UNSUPPORTED: no reading in any format
+    elif mismatch and report.get("data_only") and report["static_risk"] == "clean" and len(views) == 1:
+        # The only reading is a valid data-only file: whatever loader the name suggests either
+        # reads it as data or fails before it can import or call anything.
+        report["notes"].append(mismatch)
     elif mismatch:
         report["reasons"].append(mismatch)
     if report["reasons"] and report["static_risk"] == "clean":
         report["static_risk"] = "suspicious"
     return report
+
+
+# Opcodes through which pickle.load imports (and so can later call) anything chosen by the
+# file: by name, or through a persistent id. (EXT1/2/4 look a class up in copyreg's
+# extension registry, which is empty unless the loading process itself filled it: the file
+# can only pick one of the classes that process registered.)
+PICKLE_IMPORT_OPCODES = frozenset({"GLOBAL", "STACK_GLOBAL", "INST", "PERSID", "BINPERSID"})
+EXT_OPCODES = frozenset({"EXT1", "EXT2", "EXT4"})
+
+
+def _drop_accidental(views: list, others: list, data: bytes, file_name: str, extra_allowed: frozenset,
+                     report: dict) -> tuple[list, list]:
+    """Next to a valid data-only reading, drop an offset-0 pickle or joblib reading that
+    imports nothing: the first bytes of a safetensors file are a header length, and they
+    decode as a few pickle opcodes or a compressor's magic number by chance in a few percent
+    of files. Without an opcode that imports a class the file names, pickle.load can call
+    nothing; it fails or returns plain data. The reading is kept (and the file is RISKY) for
+    any import or persistent id, an EXT opcode in a stream that reads to its end, data after
+    a STOP that looks like another pickle, or a stream that decompresses."""
+    kept = []
+    for view in others:
+        if view.start == 0 and view.fmt in (detect_mod.PICKLE, detect_mod.JOBLIB):
+            rep = _analyze_view(view, data, file_name, extra_allowed)
+            counts = rep.get("opcode_counts") or {}
+            fails = bool(rep.get("error"))
+            if (not rep.get("tool_errors") and not rep.get("evidence") and not rep.get("decompressed_size")
+                    and not PICKLE_IMPORT_OPCODES & set(counts) and (fails or not EXT_OPCODES & set(counts))
+                    and not (rep.get("trailing") or {}).get("looks_like_pickle")):
+                outcome = "loading fails there" if fails else "they hold plain data and import nothing"
+                report["notes"].append(f"the first bytes also decode as {sum(counts.values())} {view.fmt} "
+                                       f"opcode(s), and {outcome}: not a reading")
+                continue
+        kept.append(view)
+    return [v for v in views if v in kept or v not in others], kept
 
 
 # The tool error code for an unexpected exception while reading each format (errors.py).
@@ -105,6 +146,8 @@ def _read_view(view, fmt: str, data: bytes, file_name: str, extra_allowed: froze
         if view.start:
             report["notes"].append(f"HDF5 superblock at offset {view.start} (after a user block)")
         return report
+    if fmt in detect_mod.DATA_ONLY:
+        return _data_only(part, fmt, file_name)
     report = parse_pickle(b"", file_name, file_format=detect_mod.UNKNOWN)
     refused = _refused_archive(data) if view is None else None
     if refused:
@@ -128,6 +171,35 @@ def _read_view(view, fmt: str, data: bytes, file_name: str, extra_allowed: froze
     return report
 
 
+def _data_only(data: bytes, fmt: str, file_name: str) -> dict:
+    """A data-only reading (static/data_formats.py): CLEAN when the structure is exactly what
+    the format allows, RISKY for any inconsistency. A chat template that reaches Python
+    internals is RISKY, and MALICIOUS when it also names a command sink."""
+    report = parse_pickle(b"", file_name, file_format=fmt)
+    report["reasons"] = []
+    report["data_only"] = True
+    try:
+        facts = data_formats.CHECKS[fmt](data)
+    except data_formats.Invalid as exc:
+        reason = f"invalid {fmt} structure: {exc}"
+        report.update(static_risk="suspicious", reasons=[reason], error=reason)
+        return report
+    templates = facts.pop("templates", [])
+    report["data_format"] = facts
+    report["static_risk"] = "clean"
+    for template in templates:
+        reason, sink = data_formats.template_findings(template)
+        if reason:
+            report["reasons"].append(reason)
+            if sink:
+                report["evidence"].append(reason)
+                report["static_risk"] = "malicious"
+            elif report["static_risk"] == "clean":
+                report["static_risk"] = "suspicious"
+    report["notes"].append(f"{data_formats.DATA_ONLY_REASON} ({data_formats.LOADERS[fmt]})")
+    return report
+
+
 def _refused_archive(data: bytes) -> str | None:
     from ..parsing.zipsafe import ZIP_MAGIC, SafeZip, ZipRefused
 
@@ -140,8 +212,8 @@ def _refused_archive(data: bytes) -> str | None:
         return str(exc) or "invalid archive"
 
 
-UNSUPPORTED_REASON = ("unrecognised file format: no pickle, joblib, PyTorch, Keras or HDF5 reading of these "
-                      "bytes exists, so nothing could be analysed")
+UNSUPPORTED_REASON = ("unrecognised file format: no pickle, joblib, PyTorch, Keras, HDF5, safetensors, GGUF or "
+                      "NumPy reading of these bytes exists, so nothing could be analysed")
 
 
 MAX_TRAILING_VIEWS = 16

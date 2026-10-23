@@ -4,6 +4,7 @@ scan and delete in batches.
     pip install huggingface_hub
     # 1. plan (Hub API only, nothing downloaded)
     python evaluation/batch_hf.py plan-benign --work /tmp/hf_batches --target 3000
+    python evaluation/batch_hf.py plan-benign --work /tmp/hf_tune2 --split tune2 --target 3000
     python evaluation/batch_hf.py plan-unsafe --work /tmp/hf_batches
     # 2. download a batch, scan it with every tool, write the results, delete the files; repeat
     python evaluation/batch_hf.py run --work /tmp/hf_batches --plan benign \\
@@ -17,6 +18,11 @@ scan and delete in batches.
 ``evaluation/splits/hf-tune.txt`` or ``hf-heldout.txt``, nor in any committed results
 file or the hf-malicious manifest), with the same strata as ``fetch_benign_hf.py``. It
 is never used for tuning: no allowlist entry may be chosen from it.
+
+**tune-2** (``--split tune2``, 0.9.0) is a second tuning split planned the same way from
+repos no earlier corpus used, held-out-2 included, with the same strata scaled to its
+target plus three data-only strata (``DATA_STRATA``: safetensors, GGUF, NumPy) for the
+structural validators. Allowlist work may read it, like the tune half.
 
 **unsafe** files are Hub files the Hub's own scanners flag (``filesWithIssues``) that
 no earlier corpus has, from the repos the benign planning visited and from the
@@ -52,6 +58,7 @@ from datetime import UTC, datetime
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from fetch_benign_hf import (  # noqa: E402
+    DATA_STRATA,
     STRATA,
     _listing,
     _model_info,
@@ -65,6 +72,11 @@ from fetch_malicious_hf import _security, candidate_repos, flagged_files, propos
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.dirname(HERE)
 SPLIT = "heldout2"
+# Splits planned here (repos no earlier corpus used). A file the Hub flags is ``unclear`` in
+# them until reviewed. tune2 may be read for allowlist work; heldout2 never.
+NEW_SPLITS = (SPLIT, "tune2")
+DOWNLOAD_THREADS = 8
+LISTING_EXPAND = ["siblings", "sha", "gated", "private", "downloads"]
 FLAGGED_LEVELS = frozenset({"unsafe", "suspicious", "caution", "error", "issue"})
 DEFAULT_MAX_MB = 100
 
@@ -84,7 +96,7 @@ def _append(path: str, entry: dict) -> None:
 def used_repos(work: str) -> set[str]:
     """Every repo an earlier corpus used: the split lists, committed results, hf-malicious."""
     repos: set[str] = set()
-    for name in ("hf-tune.txt", "hf-heldout.txt"):
+    for name in ("hf-tune.txt", "hf-heldout.txt", "hf-tune2.txt"):
         path = os.path.join(HERE, "splits", name)
         if os.path.exists(path):
             with open(path, encoding="utf-8") as fh:
@@ -93,8 +105,11 @@ def used_repos(work: str) -> set[str]:
         with open(path, encoding="utf-8") as fh:
             run = json.load(fh)
         repos.update(e["repo_id"] for e in run.get("entries", []) if e.get("repo_id"))
-    with open(os.path.join(HERE, "hf_malicious_labels.tsv"), encoding="utf-8") as fh:
-        repos.update(line.split("\t", 1)[0] for line in fh if line.strip() and not line.startswith("#"))
+    for name in ("hf_malicious_labels.tsv", "hf_batches_labels.tsv", "hf_tune2_labels.tsv"):
+        path = os.path.join(HERE, name)
+        if os.path.exists(path):
+            with open(path, encoding="utf-8") as fh:
+                repos.update(line.split("\t", 1)[0] for line in fh if line.strip() and not line.startswith("#"))
     return repos
 
 
@@ -112,10 +127,10 @@ def _evidence(api, repo_id: str, revision: str, names: list[str]) -> dict:
         return {}
 
 
-def _plan_entry(info, model, name, size, lfs_sha, fmt, library, stratum, evidence=None) -> dict:
+def _plan_entry(info, model, name, size, lfs_sha, fmt, library, stratum, evidence=None, split=SPLIT) -> dict:
     level = hub_scan_level(info, name)
     entry = {"repo_id": info.id, "revision": info.sha, "filename": name, "size": size, "lfs_sha256": lfs_sha,
-             "format": fmt, "library": library, "stratum": stratum, "split": SPLIT,
+             "format": fmt, "library": library, "stratum": stratum, "split": split,
              "downloads": getattr(model, "downloads", None) if model is not None else getattr(info, "downloads", None),
              "hub_scan": level, "planned_at": datetime.now(UTC).isoformat()}
     if level in FLAGGED_LEVELS:
@@ -124,23 +139,28 @@ def _plan_entry(info, model, name, size, lfs_sha, fmt, library, stratum, evidenc
     return entry
 
 
-def plan_benign(work: str, target: int, max_bytes: int) -> int:
+def plan_benign(work: str, target: int, max_bytes: int, split: str = SPLIT) -> int:
     """Pick about ``target`` files from repos no earlier corpus used. Flagged files found on
-    the way go to the unsafe plan as well (scanned once, as held-out-2 files)."""
+    the way go to the unsafe plan as well (scanned once, as held-out-2 files). tune2 adds
+    the data-only strata (their fixed targets come out of ``target``)."""
     import huggingface_hub as hub
 
     api = hub.HfApi()
     used, planned = used_repos(work), _planned(work)
     plan = os.path.join(work, "plan-benign.jsonl")
-    have = {s: 0 for s in STRATA}
+    strata = dict(STRATA, **DATA_STRATA) if split == "tune2" else STRATA
+    have = {s: 0 for s in strata}
     for e in _jsonl(plan):
         have[e["stratum"]] = have.get(e["stratum"], 0) + 1
-    scale = target / sum(s["target"] for s in STRATA.values())
+    fixed = sum(s["target"] for s in DATA_STRATA.values()) if split == "tune2" else 0
+    scale = (target - fixed) / sum(s["target"] for s in STRATA.values())
     added = 0
-    for stratum, spec in STRATA.items():
-        goal = max(1, round(spec["target"] * scale))
+    for stratum, spec in strata.items():
+        goal = spec["target"] if stratum in DATA_STRATA else max(1, round(spec["target"] * scale))
         seen: set[str] = set()
-        for tag, listing in _listing(api, spec, goal * 4):
+        # the listing carries each repo's file names, so only repos with a file of the
+        # stratum's format cost a model_info call (sizes, LFS hashes and scan status)
+        for tag, listing in _listing(api, spec, goal * 4, LISTING_EXPAND):
             if have[stratum] >= goal:
                 break
             try:
@@ -148,17 +168,23 @@ def plan_benign(work: str, target: int, max_bytes: int) -> int:
             except Exception as exc:  # noqa: BLE001
                 print(f"listing {tag}: {exc}", file=sys.stderr)
                 continue
-            for model in models:
-                if have[stratum] >= goal:
-                    break
+
+            def wanted(model, spec=spec, seen=seen) -> bool:
                 if model.id in used or model.id in seen or getattr(model, "private", False) \
                         or getattr(model, "gated", False):
-                    continue
+                    return False
                 seen.add(model.id)
-                try:
-                    info = _model_info(api, model.id)
-                except Exception as exc:  # noqa: BLE001
-                    print(f"{model.id}: {exc}", file=sys.stderr)
+                names = [s.rfilename for s in getattr(model, "siblings", None) or []]
+                return not names or any(file_format(n) == spec["fmt"] and (not spec.get("names") or
+                                                                          os.path.basename(n) in spec["names"])
+                                        for n in names)
+
+            for model, info in _infos(api, (m for m in models if wanted(m)),
+                                      lambda stratum=stratum, goal=goal: have[stratum] >= goal):
+                if have[stratum] >= goal:
+                    break
+                if isinstance(info, Exception):
+                    print(f"{model.id}: {info}", file=sys.stderr)
                     continue
                 if info is None or getattr(info, "gated", False) or getattr(info, "disabled", False):
                     continue
@@ -169,13 +195,38 @@ def plan_benign(work: str, target: int, max_bytes: int) -> int:
                 for name, size, lfs_sha in files:
                     if have[stratum] >= goal:
                         break
-                    entry = _plan_entry(info, model, name, size, lfs_sha, spec["fmt"], tag, stratum, evidence)
+                    entry = _plan_entry(info, model, name, size, lfs_sha, spec["fmt"], tag, stratum, evidence,
+                                        split)
                     _append(plan, entry)
                     planned.add((model.id, name))
                     have[stratum] += 1
                     added += 1
         print(f"{stratum}: {have[stratum]}/{goal} planned", file=sys.stderr)
     return added
+
+
+def _infos(api, models, done, chunk: int = 32, threads: int = 16):
+    """(model, model_info or the exception) for each listed model, ``chunk`` at a time
+    fetched in parallel; stops between chunks once ``done()``."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    def info(model):
+        try:
+            return model, _model_info(api, model.id)
+        except Exception as exc:  # noqa: BLE001
+            return model, exc
+
+    batch = []
+    with ThreadPoolExecutor(threads) as pool:
+        for model in models:
+            batch.append(model)
+            if len(batch) >= chunk:
+                yield from pool.map(info, batch)
+                batch = []
+                if done():
+                    return
+        if batch:
+            yield from pool.map(info, batch)
 
 
 def plan_pinned(work: str, source: str) -> int:
@@ -253,7 +304,7 @@ def batches(entries: list[dict], max_files: int, max_bytes: int) -> list[list[di
 
 def run(work: str, which: str, max_files: int, max_gb: float, eval_args: list[str], limit: int | None,
         final: bool = False, before: str | None = None, skip_before: frozenset[str] = frozenset(),
-        skip: frozenset[str] = frozenset()) -> int:
+        skip: frozenset[str] = frozenset(), scanner: str | None = None) -> int:
     """Download, scan and delete one batch after another. A batch whose results file
     exists is skipped, so an interrupted run continues where it stopped. ``before`` is a
     checkout of the previous release: its run_eval.py and src/ scan the same files first
@@ -262,7 +313,12 @@ def run(work: str, which: str, max_files: int, max_gb: float, eval_args: list[st
     ``skip_before`` names files (``repo/file``) the previous release cannot scan in this
     machine's memory: they are left out of its run, so before/after pairs leave them out.
     ``skip`` leaves files out of both runs (this release cannot scan them here either); each
-    is recorded in ``WORK/skipped.jsonl`` and reported apart."""
+    is recorded in ``WORK/skipped.jsonl`` and reported apart. ``scanner`` is a checkout
+    (git worktree) whose run_eval.py and src/ make the after column instead of this tree,
+    so a long run keeps one scanner version while this tree changes. Up to
+    ``DOWNLOAD_THREADS`` files of a batch download at once."""
+    from concurrent.futures import ThreadPoolExecutor
+
     import huggingface_hub as hub
 
     entries = _jsonl(os.path.join(work, f"plan-{which}.jsonl"))
@@ -286,23 +342,29 @@ def run(work: str, which: str, max_files: int, max_gb: float, eval_args: list[st
             shutil.rmtree(directory)
         os.makedirs(directory)
         fetched = []
-        for e in batch:
+
+        def fetch(e: dict, directory=directory):
             try:
-                got = download(hub, directory, e["repo_id"], e["revision"], e["filename"], e.get("lfs_sha256"))
+                return e, download(hub, directory, e["repo_id"], e["revision"], e["filename"], e.get("lfs_sha256"))
             except Exception as exc:  # noqa: BLE001
-                print(f"{e['repo_id']}/{e['filename']}: {exc}", file=sys.stderr)
-                _append(os.path.join(work, "failed.jsonl"), dict(e, error=f"{type(exc).__name__}: {exc}"))
-                continue
-            entry = dict(e, **got, fetched_at=datetime.now(UTC).isoformat(), batch=label)
-            _append(os.path.join(directory, "manifest.jsonl"), entry)
-            fetched.append(entry)
+                return e, exc
+
+        with ThreadPoolExecutor(DOWNLOAD_THREADS) as threads:
+            for e, got in threads.map(fetch, batch):  # in plan order, whatever finishes first
+                if isinstance(got, Exception):
+                    print(f"{e['repo_id']}/{e['filename']}: {got}", file=sys.stderr)
+                    _append(os.path.join(work, "failed.jsonl"), dict(e, error=f"{type(got).__name__}: {got}"))
+                    continue
+                entry = dict(e, **got, fetched_at=datetime.now(UTC).isoformat(), batch=label)
+                _append(os.path.join(directory, "manifest.jsonl"), entry)
+                fetched.append(entry)
         print(f"{label}: {len(fetched)}/{len(batch)} files, "
               f"{sum(e['size'] for e in fetched) / 1024 ** 2:.0f} MiB", file=sys.stderr)
         if fetched:
             labels = os.path.join(work, f"labels-{which}.tsv")
             write_labels(work, labels)
             source = ["--hf-malicious", directory] if which == "unsafe" else ["--hf", directory]
-            runs = [("after", HERE, eval_args)]
+            runs = [("after", os.path.join(scanner, "evaluation") if scanner else HERE, eval_args)]
             if before:  # the same files with the release before this one, safeloadai only, same opt-in site
                 site = eval_args[eval_args.index("--opt-in-site"):][:2] if "--opt-in-site" in eval_args else []
                 runs.insert(0, ("before", os.path.join(before, "evaluation"),
@@ -387,14 +449,14 @@ def write_labels(work: str, path: str) -> None:
             for e in _jsonl(os.path.join(work, name)):
                 flagged = "proposed_label" in e
                 default = (e["proposed_label"], e["label_reason"]) if flagged else ("benign", "")
-                if flagged and e.get("split") == SPLIT and default[0] != "malicious":
+                if flagged and e.get("split") in NEW_SPLITS and default[0] != "malicious":
                     default = ("unclear", "Hub flags it; benign only after review: " + default[1])
                 label, reason = declared_poc(*reviewed.get((e["repo_id"], e["filename"]), default), e["repo_id"])
                 fh.write("\t".join([e["repo_id"], e["filename"], e["revision"], e.get("lfs_sha256") or "-",
                                     label, reason.replace("\t", " ")]) + "\n")
 
 
-PLAN_GROUP = {"tune": "hf-tune", "heldout": "hf-heldout", SPLIT: "hf-heldout2"}
+PLAN_GROUP = {"tune": "hf-tune", "heldout": "hf-heldout", SPLIT: "hf-heldout2", "tune2": "hf-tune2"}
 
 
 def plan_labels(work: str) -> dict[str, tuple[str, str, str]]:
@@ -474,6 +536,7 @@ def main(argv: list[str] | None = None) -> int:
             p.add_argument("--from-json", required=True, help="an evaluation results file (run_eval.py output)")
         if name == "plan-benign":
             p.add_argument("--target", type=int, default=3000)
+            p.add_argument("--split", choices=NEW_SPLITS, default=SPLIT)
         if name == "run":
             p.add_argument("--plan", choices=("benign", "unsafe", "pinned"), required=True)
             p.add_argument("--batch-files", type=int, default=200)
@@ -486,6 +549,7 @@ def main(argv: list[str] | None = None) -> int:
             p.add_argument("--skip", action="append", default=[], metavar="REPO/FILE",
                            help="a file left out of both runs (out of memory here too); repeatable")
             p.add_argument("--jobs", default="4")
+            p.add_argument("--scanner", help="checkout (git worktree) that scans the after column instead of this tree")
             p.add_argument("--tool-bin", help="directory with picklescan, fickling and modelscan")
             p.add_argument("--opt-in-site", help="unpacked distributions for the --trust-inert-from column")
         if name in ("labels", "merge"):
@@ -500,7 +564,8 @@ def main(argv: list[str] | None = None) -> int:
     work = works[0]
     os.makedirs(work, exist_ok=True)
     if args.cmd == "plan-benign":
-        print(f"planned {plan_benign(work, args.target, int(args.max_mb * 1024 * 1024))} files", file=sys.stderr)
+        print(f"planned {plan_benign(work, args.target, int(args.max_mb * 1024 * 1024), args.split)} files",
+              file=sys.stderr)
     elif args.cmd == "plan-pinned":
         print(f"planned {plan_pinned(work, args.from_json)} files", file=sys.stderr)
     elif args.cmd == "plan-unsafe":
@@ -514,7 +579,8 @@ def main(argv: list[str] | None = None) -> int:
         extra += ["--opt-in-site", os.path.abspath(args.opt_in_site)] if args.opt_in_site else []
         before = os.path.abspath(args.before) if args.before else None
         return run(work, args.plan, args.batch_files, args.batch_gb, extra, args.batches, args.final, before,
-                   frozenset(args.skip_before), frozenset(args.skip))
+                   frozenset(args.skip_before), frozenset(args.skip),
+                   os.path.abspath(args.scanner) if args.scanner else None)
     elif args.cmd == "labels":
         write_labels(work, args.out)
     else:

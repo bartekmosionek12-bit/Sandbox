@@ -94,7 +94,8 @@ TOOLS = {
 # framework library on the host.
 SKIP = {("modelscan", ".h5"): "modelscan reads .h5 with h5py on the host"}
 EXT_FORMAT = {".pkl": "pickle", ".pickle": "pickle", ".joblib": "joblib", ".pt": "torch", ".pth": "torch",
-              ".bin": "torch", ".keras": "keras", ".h5": "h5", ".hdf5": "h5"}
+              ".bin": "torch", ".keras": "keras", ".h5": "h5", ".hdf5": "h5", ".safetensors": "safetensors",
+              ".gguf": "gguf", ".npy": "numpy", ".npz": "numpy"}
 
 
 def _files(directory: str) -> list[str]:
@@ -424,7 +425,8 @@ def _block(result: dict) -> str:
     return block_of(result.get("verdict"), bool(result.get("unverifiable_only")))
 
 
-GROUP_ORDER = ("lab", "mutations", "hf-malicious", "hf-unsafe", "hf-tune", "hf-heldout", "hf-heldout2", "benign")
+GROUP_ORDER = ("lab", "mutations", "hf-malicious", "hf-unsafe", "hf-tune", "hf-tune2", "hf-heldout", "hf-heldout2",
+               "benign")
 
 
 def groups_of(entries: list[dict]) -> list[str]:

@@ -10,7 +10,9 @@ The readers disagree about where a file starts:
 * ``zipfile`` (Keras ``.keras``) finds the archive from the end-of-central-directory
   record, so any amount of data may come before it;
 * ``h5py`` looks for the HDF5 superblock at offset 0, 512, 1024, 2048, ... (a user
-  block may come before it).
+  block may come before it);
+* the data-only loaders (safetensors, GGUF, ``numpy.load`` of ``.npy`` / ``.npz`` without
+  pickle) read a header at offset 0; a ``.npz`` is a ZIP archive of ``.npy`` members.
 
 So one file can be a valid pickle for one loader and a valid ``.keras`` archive for
 another (a polyglot). ``find_views`` lists every reading that parses, and the scan
@@ -24,15 +26,21 @@ from dataclasses import dataclass
 
 from . import decompress
 from .detect import (
+    DATA_ONLY,
     EXTENSION_HINTS,
+    GGUF,
     H5,
     HDF5_MAGIC,
     JOBLIB,
     KERAS,
+    NPY,
+    NPZ,
     PICKLE,
+    SAFETENSORS,
     TORCH,
     UNKNOWN,
     _looks_like_pickle,
+    data_only_format,
 )
 from .zipsafe import ZIP_MAGIC, SafeZip, ZipRefused
 
@@ -57,7 +65,7 @@ class View:
     def slice(self, data: bytes) -> bytes:
         """The bytes this reading's analyser gets. A ZIP reading gets the whole file: the
         archive reader locates it from the end and reports any data in front of it."""
-        if self.fmt in (KERAS, TORCH, ZIP) or (self.start, self.end) == (0, len(data)):
+        if self.fmt in (KERAS, TORCH, ZIP, NPZ) or (self.start, self.end) == (0, len(data)):
             return data
         return data[self.start:self.end]
 
@@ -82,6 +90,8 @@ def _zip_view(data: bytes) -> View | None:
         fmt, loader = KERAS, "keras.saving.load_model (zipfile, end of central directory)"
     elif any(n == "data.pkl" or n.endswith("/data.pkl") for n in names):
         fmt, loader = TORCH, "torch.load (zip branch)"
+    elif names and all(n.endswith(".npy") for n in names):
+        fmt, loader = NPZ, "numpy.load (.npz, allow_pickle=False)"
     else:
         fmt, loader = ZIP, "zipfile (end of central directory)"
     return View(fmt, leading, len(data), loader)
@@ -101,6 +111,7 @@ def find_views(data: bytes) -> list[View]:
     """Every valid reading of ``data``, offset-0 readings first."""
     views: list[View] = []
     zip_view = _zip_view(data)
+    data_only = data_only_format(data)
     if decompress.detect(data) is not None:
         # joblib reads exactly one compressed stream; an archive after it is a second reading.
         cut = zip_view.start if zip_view and zip_view.start > 0 else len(data)
@@ -116,17 +127,24 @@ def find_views(data: bytes) -> list[View]:
             views.append(View(H5, offset, len(data), "h5py (superblock" + (f" after a {offset}-byte user block)"
                                                                          if offset else " at offset 0)")))
             break  # h5py uses the first superblock it finds
+    if data_only is not None:
+        views.append(View(data_only, 0, len(data), _DATA_LOADERS[data_only]))
     if zip_view is not None:
         views.append(zip_view)
     return views
+
+
+_DATA_LOADERS = {SAFETENSORS: "safetensors (header at offset 0)", GGUF: "gguf / llama.cpp (magic at offset 0)",
+                 NPY: "numpy.load (allow_pickle=False)"}
 
 
 # The view a loader picked by file extension reads first.
 _EXTENSION_ORDER = {
     ".pkl": (JOBLIB, PICKLE), ".pickle": (JOBLIB, PICKLE), ".joblib": (JOBLIB, PICKLE),
     ".keras": (KERAS,), ".h5": (H5,), ".hdf5": (H5,),
+    ".safetensors": (SAFETENSORS,), ".gguf": (GGUF,), ".npy": (NPY,), ".npz": (NPZ,),
 }
-_DEFAULT_ORDER = (H5, KERAS, TORCH, JOBLIB, PICKLE, ZIP)
+_DEFAULT_ORDER = (H5, KERAS, TORCH, JOBLIB, PICKLE, *DATA_ONLY, ZIP)
 
 
 def primary_view(views: list[View], file_name: str) -> View | None:
@@ -148,7 +166,7 @@ def primary_view(views: list[View], file_name: str) -> View | None:
 
 
 def data_starts_zip(views: list[View]) -> bool:
-    return any(v.fmt in (TORCH, KERAS, ZIP) and v.start == 0 for v in views)
+    return any(v.fmt in (TORCH, KERAS, ZIP, NPZ) and v.start == 0 for v in views)
 
 
 def detected_format(view: View | None) -> str:

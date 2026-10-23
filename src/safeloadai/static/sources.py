@@ -87,6 +87,33 @@ REVIEWED_HOOKS: dict[tuple[str, str, str], tuple[str, str]] = {
         "6ffd01d179f611273ddd45d8caf06e43c7a7c817294bbba4681d9816067092ec",
         "ultralytics 8.4.182: raises AttributeError with a help text"),
 }
+# Hooks of older library releases, read and judged benign for a dict-state BUILD by the same
+# rule (0.9.0, tools/gen_historical_paths.py): (module, class, hook) -> {sha256: note}. They
+# only let an old module path of a reviewed class be accepted (upstream/historical_paths.json)
+# and let trust_inert_from accept the same class in an installed old release.
+REVIEWED_OLD_HOOKS: dict[tuple[str, str, str], dict[str, str]] = {
+    # Each pops "_sklearn_version", may warn (the popped value is compared with __version__
+    # and formatted into the message, as in the reviewed 1.9.1 hook), then
+    # super().__setstate__ or a plain __dict__ update. Same behaviour as the reviewed one.
+    ("sklearn.base", "BaseEstimator", "__setstate__"): {
+        "53df01a877e185359278432e8fb1e04c15ab87c89694982280f47cc031cb37d8":
+            "scikit-learn 0.18 to 0.18.2: version warning, then __dict__.update",
+        "37d9581ea77618edcd46143b3e0ff09bc5e98dcea409dd661c95352859211d72":
+            "scikit-learn 0.19.0 to 0.20.4: version warning, then super(BaseEstimator, self).__setstate__ "
+            "or __dict__.update",
+        "a6176b9474b9d989e0e526b8b27c6fc1c4d75366aa924b0b07f23fc9b170eda9":
+            "scikit-learn 0.21.0 to 0.24.2: version warning, then super().__setstate__ or __dict__.update",
+        "d1a1490e41b866e2f4c3305a0f08127229abe3a73ce425aa09c88d19fe9504bc":
+            "scikit-learn 1.0 to 1.1.0: as 0.21, longer warning text",
+        "5b042d64998c26484d726caf588da9efe909946ff2e7d9bed268cd4146c0ceee":
+            "scikit-learn 1.1.1 to 1.2.2: as 1.0, another documentation link",
+    },
+    # the same source as the reviewed 1.9.1 setter, under the module it had before
+    ("sklearn.utils._estimator_html_repr", "_HTMLDocumentationLinkMixin", "_doc_link_template.setter"): {
+        "bd2e19fa5efc7035e8235fe5bd1b92a9c3d0bc12b2115be26d789c7f3c0e4250":
+            "scikit-learn 1.4.0 to 1.6.1: setattr(self, '__doc_link_template', value), a plain attribute",
+    },
+}
 # Read and left unreviewed on purpose (2026-10-19): torch.nn.modules.rnn.RNNBase.__setstate__
 # indexes and calls into objects from the state (_all_weights[0][0], weakref.ref) and
 # ultralytics.engine.model.Model.__getattr__ forwards every lookup to self.model.
@@ -711,7 +738,7 @@ class SourceIndex:
         key = (cls.module, cls.name, hook)
         reviewed = self.reviewed_hooks.get(key)
         digest = source_sha256(text)
-        if reviewed and reviewed[0] == digest:
+        if (reviewed and reviewed[0] == digest) or digest in REVIEWED_OLD_HOOKS.get(key, {}):
             verdict.reviewed_hooks.append(f"{cls.module}.{cls.name}.{hook}")
             return
         verdict.state_only = False

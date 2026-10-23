@@ -7,6 +7,11 @@ reviewed and committed. Nothing here is computed or extended at run time.
 * ``policies.json``: classes of selected libraries that are state-only: rebuilding an
   instance from a dict state (NEWOBJ () + BUILD) runs no code of the class beyond
   reviewed hooks (``sources.REVIEWED_HOOKS``).
+* ``historical_paths.json`` (0.9.0, ``tools/gen_historical_paths.py``): earlier module paths
+  of reviewed classes, read from older releases on PyPI (``sklearn.ensemble.forest`` before
+  ``sklearn.ensemble._forest``). An old path is accepted under the form of the class it
+  became (policy, state-only, zero-arg, enum or allowlist), only when the old release
+  defined the same class there and it was state-only in that release too.
 """
 from __future__ import annotations
 
@@ -50,8 +55,44 @@ def _state_only() -> dict[tuple[str, str], dict]:
 
 
 def state_only(pair: tuple[str, str]) -> dict | None:
-    """The policy entry of a state-only class ({"distribution", "mro", "reviewed_hooks"})."""
-    return _state_only().get(pair)
+    """The policy entry of a state-only class ({"distribution", "mro", "reviewed_hooks"}).
+    For an old module path of a policy class, the entry of the class it became, with
+    ``historical`` ({"current", "versions", "distribution"}) added."""
+    found = _state_only().get(pair)
+    if found is not None:
+        return found
+    old = historical(pair)
+    if old is None or old["form"] != "policy":
+        return None
+    module, _, name = old["current"].partition(":")
+    current = _state_only().get((module, name))
+    return dict(current, historical=old) if current else None
+
+
+@cache
+def _historical() -> dict[tuple[str, str], dict]:
+    out = {}
+    for key, entry in _load("historical_paths.json")["paths"].items():
+        module, _, name = key.partition(":")
+        out[(module, name)] = entry
+    return out
+
+
+def historical(pair: tuple[str, str]) -> dict | None:
+    """The entry of an old module path of a reviewed class ({"current", "distribution",
+    "form", "kind", "rename", "versions"}), or None."""
+    return _historical().get(pair)
+
+
+def historical_by_form(form: str) -> frozenset[tuple[str, str]]:
+    """Old module paths accepted under ``form`` (state-only, zero-arg, enum, allowlist)."""
+    return frozenset(pair for pair, entry in _historical().items() if entry["form"] == form)
+
+
+def span(entry: dict) -> str:
+    """'scikit-learn 0.10 to 0.13.1' for a historical entry."""
+    vs = entry["versions"]
+    return f"{entry['distribution']} {vs[0]}" + (f" to {vs[-1]}" if len(vs) > 1 else "")
 
 
 def excluded(pair: tuple[str, str]) -> str | None:

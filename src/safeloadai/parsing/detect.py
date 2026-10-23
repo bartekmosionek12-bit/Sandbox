@@ -21,6 +21,16 @@ TORCH = "torch"
 KERAS = "keras"
 H5 = "h5"
 UNKNOWN = "unknown"
+# Data-only formats (0.9.0, static/data_formats.py): their loaders run no code from the file.
+SAFETENSORS = "safetensors"
+GGUF = "gguf"
+NPY = "npy"
+NPZ = "npz"
+DATA_ONLY = (SAFETENSORS, GGUF, NPY, NPZ)
+
+GGUF_MAGIC = b"GGUF"
+NPY_MAGIC = b"\x93NUMPY"
+SAFETENSORS_MAX_HEADER = 100_000_000
 
 EXTENSION_HINTS = {
     ".pkl": {PICKLE, JOBLIB},
@@ -32,6 +42,10 @@ EXTENSION_HINTS = {
     ".keras": {KERAS},
     ".h5": {H5},
     ".hdf5": {H5},
+    ".safetensors": {SAFETENSORS},
+    ".gguf": {GGUF},
+    ".npy": {NPY},
+    ".npz": {NPZ},
 }
 
 SUPPORTED_EXTENSIONS = tuple(EXTENSION_HINTS)
@@ -71,6 +85,21 @@ def _looks_like_pickle(data: bytes) -> bool:
     except Exception:  # noqa: BLE001 - any decoding failure means "not a pickle here"
         return False
     return False
+
+
+def data_only_format(data: bytes) -> str | None:
+    """The data-only format these bytes start with (by magic number, or for safetensors by
+    a plausible header length followed by a JSON object), or None. Whether the structure
+    is valid is checked by ``static.data_formats``."""
+    if data.startswith(GGUF_MAGIC):
+        return GGUF
+    if data.startswith(NPY_MAGIC):
+        return NPY
+    if len(data) >= 9:
+        n = int.from_bytes(data[:8], "little")
+        if 2 <= n <= SAFETENSORS_MAX_HEADER and 8 + n <= len(data) and data[8:9] == b"{":
+            return SAFETENSORS
+    return None
 
 
 def detect(data: bytes) -> str:

@@ -411,3 +411,25 @@ def test_readme_block_replaces_only_the_marked_part():
     readme = f"intro\n{doc.README_START}\nold\n{doc.README_END}\noutro\n"
     out = doc.with_readme_block(readme, f"{doc.README_START}\nnew\n{doc.README_END}")
     assert out == f"intro\n{doc.README_START}\nnew\n{doc.README_END}\noutro\n"
+
+
+def test_combine_runs_takes_own_columns_from_the_new_run():
+    combine = _load("combine_runs")
+
+    def entry(file, own, other=None, label="benign"):
+        results = {"safeloadai": {"verdict": own}, "safeloadai upper bound": {"verdict": own}}
+        if other:
+            results["picklescan"] = {"outcome": other}
+        return {"group": "hf-heldout2", "file": file, "label": label, "results": results}
+
+    old = {"tools": ["safeloadai upper bound", "picklescan"],
+           "entries": [entry("a", "MALICIOUS", "flagged"), entry("gone", "CLEAN", "clean")]}
+    new = {"tools": ["safeloadai upper bound"], "skipped_files": [],
+           "entries": [entry("a", "SUSPICIOUS", label="unclear"), entry("new", "CLEAN")]}
+    out = combine.combine(old, new, "old.json", "new.json")
+    by = {e["file"]: e for e in out["entries"]}
+    assert by["a"]["results"]["safeloadai"] == {"verdict": "SUSPICIOUS"} and by["a"]["label"] == "unclear"
+    assert by["a"]["results"]["picklescan"] == {"outcome": "flagged"}
+    assert by["new"]["results"]["picklescan"]["outcome"] == "skipped"
+    assert [s["file"] for s in out["skipped_files"]] == ["gone"]
+    assert out["tools"] == ["safeloadai upper bound", "picklescan"]

@@ -66,9 +66,12 @@ def _keras_with_lambda(source: str) -> bytes:
     return buf.getvalue()
 
 
-def test_benign_lambda_model_is_clean(tmp_path):
+def test_benign_lambda_model_is_risky_never_clean(tmp_path):
+    # Owner decision L1 (2026-10-22): emulation can prove Lambda code dangerous, never safe.
     report = scan(_file(tmp_path, "m.keras", _keras_with_lambda("lambda x: x * 2.0 + 1.0")))
-    assert report.verdict is Verdict.CLEAN, report.reasons
+    assert report.verdict is Verdict.SUSPICIOUS and report.category == "RISKY", report.reasons
+    assert any("emulation cannot prove it harmless" in r for r in report.reasons)
+    assert not any("MALICIOUS" in r for r in report.reasons)
 
 
 def test_lambda_writing_marker_file_is_malicious(tmp_path):

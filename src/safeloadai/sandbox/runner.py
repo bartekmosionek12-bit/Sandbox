@@ -155,8 +155,12 @@ def run(job: dict) -> dict:
         instance = linker.instantiate(store, module)
         instance.exports(store)["_start"](store)
     except wt.ExitTrap as exc:
+        # The guest's bootstrap always returns from _start (wasi-libc then skips
+        # proc_exit for status 0). proc_exit, even with 0, means code in the guest
+        # ended the interpreter early (os._exit, sys.exit) after the recorder may have
+        # been bypassed, so the run is not complete whatever the evidence says (0.8.0).
         exit_code = exc.code
-        status = "ok" if exc.code == 0 else "exit"
+        status = "exit"
     except wt.Trap as exc:
         status, trap = "trap", str(exc).splitlines()[0][:500]
     except wt.WasmtimeError as exc:

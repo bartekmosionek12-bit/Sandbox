@@ -12,7 +12,7 @@ point open. Defaults follow the rule "most conservative, fail-closed option".
 | D3 | Sandbox runtime: CPython on WASI under wasmtime. Pyodide dropped. Memory cap, fuel, one read-only preopen, no network, no other filesystem, plus a host-side wall-clock kill of the runner subprocess. |
 | D4 | No file is deleted until the owner approves the list (asked at M8). |
 | D7 | Default branch is not changed until the owner approves (asked at M8). |
-| -- | Lambda layers: CLEAN only if static analysis succeeds AND emulation completes AND neither records dangerous behaviour. Any anomaly => SUSPICIOUS. No Python-version guessing. |
+| -- | Lambda layers: CLEAN only if static analysis succeeds AND emulation completes AND neither records dangerous behaviour. Any anomaly => SUSPICIOUS. No Python-version guessing. **Superseded by L1 (2026-10-22): Lambda bytecode is never CLEAN.** |
 
 ## Defaults picked by Claude
 
@@ -178,3 +178,4 @@ bag for exceptions"). Defaults picked by Claude are marked "default".
 | G4 | A sandbox crash, timeout or fuel exhaustion is ERROR even when a file provoked it. | Owner rule. It blocks the file just the same, and ERROR ranks above SUSPICIOUS in the exit code. |
 | G5 | CLI exit 6 for ERROR, 4 kept for E401; precedence MALICIOUS > ERROR > SUSPICIOUS > UNSUPPORTED > CLEAN. A missing path is that path's E101 result, not exit 2. | Owner rule; a CI job that fails on non-zero exit still fails on every ERROR. |
 | G6 | `scan()` returns an ERROR report (E501) for invalid options instead of raising; the CLI still validates options first and exits 2. | Every scan outcome is a Report. Default; open question in PR #24. |
+| L1 | Code a file carries (Keras Lambda bytecode; dill code objects were already RISKY by D1) is never CLEAN. A Keras model whose only static finding is Lambda bytecode without sink names is SUSPICIOUS (RISKY) with one reason ("emulation cannot prove it harmless"); emulation still runs and can make it MALICIOUS. Supersedes the Lambda rule above and the deferral in C16. | Owner decision of 2026-10-22 (decision card in the 0.8.0 thread). The code runs in the same guest interpreter as the recorder, so it can keep its later behaviour out of the log or act harmlessly in the sandbox (docs/EVIDENCE_CHANNEL.md). Measured cost: none of the 216 benign Keras files CLEAN in the tune and held-out splits needed Lambda emulation. |

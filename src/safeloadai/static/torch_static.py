@@ -59,7 +59,7 @@ def parse_torch_zip(data: bytes, file_name: str = "<memory>", extra_allowed: fro
         else:
             for key in ("opcodes", "flagged_opcodes", "suspicious_imports", "unknown_imports",
                         "imports", "suspicious_strings", "reasons", "notes", "embedded_keras", "dill_code",
-                        "code_malicious", "cleared", "tool_errors"):
+                        "code_malicious", "cleared", "tool_errors", "evidence"):
                 combined[key].extend(part[key])
             combined.setdefault("_embedded", []).extend(part.get("_embedded") or [])
             combined["raw_disasm"] += f"\n--- {member} ---\n" + part["raw_disasm"]
@@ -82,7 +82,7 @@ def parse_torch_zip(data: bytes, file_name: str = "<memory>", extra_allowed: fro
         combined["reasons"].append(f"member {member!r} is a pickle outside the .pkl members "
                                    f"(imports {imported[:300]})")
         for key in ("suspicious_imports", "unknown_imports", "reasons", "embedded_keras", "dill_code",
-                    "code_malicious", "cleared"):
+                    "code_malicious", "cleared", "evidence"):
             combined[key].extend(part[key])
         combined.setdefault("_embedded", []).extend(part.get("_embedded") or [])
         combined["members"].append({"name": member, "static_risk": part["static_risk"], "hidden": True})

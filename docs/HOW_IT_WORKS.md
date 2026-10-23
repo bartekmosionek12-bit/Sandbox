@@ -36,7 +36,8 @@ README has the short version; this page has the details.
      checks what that reading would import (parser differential).
    - **Keras:** `config.json` is walked. Exact module and class names are
      required, and Lambda bytecode is scanned for sink names. The bytecode is
-     never unmarshalled on the host.
+     never unmarshalled on the host. A Lambda with bytecode is never CLEAN (at
+     least RISKY); emulation decides whether it is MALICIOUS.
    - **Legacy HDF5:** the host does not parse HDF5 at all. A small
      standard-library HDF5 reader runs inside the WASI sandbox and returns the
      root attributes `model_config`, `training_config`, `keras_version` and

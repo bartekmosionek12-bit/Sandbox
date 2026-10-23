@@ -86,6 +86,8 @@ def _empty_report(file_name: str) -> dict:
         "error": None,
         # failures of safeloadai itself (errors.error dicts); never a verdict
         "tool_errors": [],
+        # the reasons that are evidence of a sink (MALICIOUS findings); the rest are RISKY
+        "evidence": [],
         # reason text -> {"item", "explanation"} for the reasons that are UNVERIFIABLE
         "unverifiable": {},
     }
@@ -485,8 +487,11 @@ def finalize(report: dict) -> dict:
             + (f"; sink names in bytecode: {', '.join(lam['sink_tokens'])}" if lam["sink_tokens"] else "")
         )
     _promote_sinks(report)
+    evidence = report.setdefault("evidence", [])
     for imp in report["suspicious_imports"]:
         reasons.append(f"{imp.get('path')}: known sink {imp['module']}.{imp['symbol']}")
+        evidence.append(reasons[-1])
+    evidence.extend(r for r in reasons if "; sink names in bytecode: " in r)
     unverifiable = report.setdefault("unverifiable", {})
     for imp in report["unknown_imports"]:
         reason = f"{imp.get('path')}: object outside the allowlist {imp['module']}.{imp['symbol']}"

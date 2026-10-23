@@ -1,7 +1,8 @@
 """Command line.
 
     safeloadai scan <file|dir>... [--json] [--judge] [--deep] [--allow MODULE:QUALNAME]...
-                    [--accept-unverified [SHA256:]ITEM]... [--config FILE]
+                    [--accept-unverified [SHA256:]ITEM]... [--config FILE] [--sarif FILE]
+                    [--malicious-only]
     safeloadai options [--config FILE]
     safeloadai doctor [--json]
 
@@ -16,14 +17,30 @@ for that file's sha256 only: with ``--accept-unverified``, or at an interactive
 prompt (only when stdin and stdout are a terminal; the default answer is No).
 Anything else (CI, scripts, pipes) refuses unless the flag names every item.
 
-Exit codes of ``scan`` (stable, for CI):
-    0  every file is CLEAN, or SUSPICIOUS with an accepted override
+Every file gets its own result: a file that cannot be read, or on which safeloadai
+itself fails, is reported as ERROR with a stable code (docs/ERRORS.md) and the other
+files are still scanned.
+
+Exit codes of ``scan`` (stable, for CI). With several files, the first that applies wins
+(MALICIOUS > ERROR > SUSPICIOUS > UNSUPPORTED > CLEAN):
     1  at least one file is MALICIOUS
-    2  usage error, or no file to scan
-    3  at least one file is SUSPICIOUS and none is MALICIOUS
-    4  the WASI runtime failed its integrity check; nothing was scanned
-    5  at least one file is UNSUPPORTED (in no format safeloadai reads) and none is
-       MALICIOUS or SUSPICIOUS; such a file is never loadable by safe_load
+    4  ERROR: the WASI runtime failed its integrity check (E401) for at least one file
+    6  ERROR: safeloadai failed on at least one file (any other error code)
+    3  at least one file is SUSPICIOUS (without an accepted override)
+    5  at least one file is UNSUPPORTED (in no format safeloadai reads); such a file is
+       never loadable by safe_load
+    0  every file is CLEAN, or SUSPICIOUS with an accepted override
+    2  usage error (invalid options or config file), or no file to scan; nothing scanned
+
+``--sarif FILE`` also writes a SARIF 2.1.0 log (one result per file that is not CLEAN,
+see ``sarif.py``) for code-scanning tools; the verdicts and the exit code are the same.
+
+With ``--malicious-only`` (an output mode for integrations that need a binary answer)
+each scanned file is printed as MALICIOUS or NOT-MALICIOUS and the exit code is 1 when
+a file is MALICIOUS, 4 or 6 when safeloadai could not scan a file, and 0 otherwise:
+SUSPICIOUS and UNSUPPORTED files exit 0. The verdict itself is unchanged: the Report
+JSON (``--json``, ``--report``) carries the full verdict, and ``safe_load`` still
+refuses every file that is not CLEAN.
 
 ``doctor`` exits 0 when every check passes and 1 otherwise.
 """
@@ -40,24 +57,24 @@ from . import override
 from .parsing.detect import EXTENSION_HINTS
 from .pipeline import scan
 from .report import Report, Verdict
-from .sandbox.runtime import RuntimeIntegrityError
 
 EXIT_CLEAN, EXIT_MALICIOUS, EXIT_USAGE, EXIT_SUSPICIOUS, EXIT_INTEGRITY, EXIT_UNSUPPORTED = 0, 1, 2, 3, 4, 5
+EXIT_ERROR = 6
 SUPPORTED = tuple(EXTENSION_HINTS)
 
 
-def _collect(paths: list[str]) -> tuple[list[str], list[str]]:
-    files, missing = [], []
+def _collect(paths: list[str]) -> list[str]:
+    """Files to scan, in the order given. A path that is neither a directory nor a regular
+    file stays in the list: its scan reports it (ERROR E101 or E104), the others go on."""
+    files = []
     for path in paths:
         if os.path.isdir(path):
             for root, dirs, names in os.walk(path):
                 dirs[:] = sorted(d for d in dirs if not d.startswith("."))
                 files.extend(os.path.join(root, n) for n in sorted(names) if n.lower().endswith(SUPPORTED))
-        elif os.path.isfile(path):
-            files.append(path)
         else:
-            missing.append(path)
-    return files, missing
+            files.append(path)
+    return files
 
 
 def _allow_pair(text: str) -> tuple[str, str]:
@@ -95,13 +112,20 @@ def _build_parser() -> argparse.ArgumentParser:
                    help="accept one UNVERIFIABLE item for one file (repeatable); with several files, "
                         "prefix the file's sha256. Refused if the file has any MALICIOUS or RISKY reason")
     s.add_argument("--trust-inert-from", action="append", default=[], metavar="DISTRIBUTION",
-                   help="judge classes of this installed distribution from its installed source (read, never "
-                        "imported); a class whose rebuild runs no code of its own is accepted (repeatable)")
+                   help="experimental: judge classes of this installed distribution from its installed source "
+                        "(read, never imported); a class whose rebuild runs no code of its own is accepted "
+                        "(repeatable). Changes no verdict in the 0.8.0 evaluation: for the pinned distributions "
+                        "it gives the same answer as the shipped policies")
     s.add_argument("--no-known-good", action="store_true",
                    help="do not use the shipped list of reviewed benign files (only makes verdicts stricter)")
     s.add_argument("--no-input", action="store_true", help="never prompt, even on a terminal")
     s.add_argument("--report", metavar="FILE", help="also write the Report JSON to FILE")
+    s.add_argument("--sarif", metavar="FILE",
+                   help="also write a SARIF 2.1.0 log to FILE (one result per file that is not CLEAN)")
     s.add_argument("-q", "--quiet", action="store_true", help="no per-file text output")
+    s.add_argument("--malicious-only", action="store_true",
+                   help="binary output: MALICIOUS or NOT-MALICIOUS per file, exit 1 only for MALICIOUS "
+                        "(errors still exit 4 or 6); the verdict and safe_load are unchanged")
     s.add_argument("--config", metavar="FILE",
                    help=f"read options from this {options_mod.CONFIG_NAME} (never read unless named here)")
     o = sub.add_parser("options", help="print every option, its default and the effective settings")
@@ -112,6 +136,12 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def _print_text(report: Report) -> None:
+    if not report.ok:
+        print(f"{'ERROR':<10} {report.path}  ({report.error['code']}, layer {report.error['layer']})")
+        print(f"    [{report.error['code']}] {report.error['message']}")
+        for other in report.errors[1:5]:
+            print(f"    [{other['code']}] {other['message']}")
+        return
     status = report.verdict.value
     if not report.clean and report.accepted:
         status += f" (accepted: {', '.join(report.override['items'])})"
@@ -130,6 +160,8 @@ def _print_text(report: Report) -> None:
     refused = (report.override or {}).get("refused_because")
     if refused:
         print(f"    override refused: {refused}")
+    for other in report.errors:  # a tool failure next to MALICIOUS evidence
+        print(f"    [{other['code']}] {other['message']} (the MALICIOUS evidence above decides)")
 
 
 def _interactive() -> bool:
@@ -200,12 +232,9 @@ def main(argv: list[str] | None = None) -> int:
     except (options_mod.OptionError, OSError, argparse.ArgumentTypeError) as exc:
         print(f"safeloadai: {exc}", file=sys.stderr)
         return EXIT_USAGE
-    files, missing = _collect(args.paths)
-    for path in missing:
-        print(f"safeloadai: no such file or directory: {path}", file=sys.stderr)
-    if missing or not files:
-        if not files:
-            print("safeloadai: nothing to scan", file=sys.stderr)
+    files = _collect(args.paths)
+    if not files:
+        print("safeloadai: nothing to scan", file=sys.stderr)
         return EXIT_USAGE
 
     if len(files) > 1 and any(sha is None for sha, _item, _source in settings["accept_unverified"]):
@@ -215,16 +244,17 @@ def main(argv: list[str] | None = None) -> int:
 
     for line in _announce(settings):
         print(line, file=sys.stderr)
-    try:
-        reports = [scan(f, judge=settings["judge"], deep=settings["deep"], allow=settings["allow"],
-                        trust_inert_from=settings["trust_inert_from"], known_good=settings["known_good"],
-                        option_sources=settings["sources"]) for f in files]
-    except options_mod.OptionError as exc:
-        print(f"safeloadai: {exc}", file=sys.stderr)
-        return EXIT_USAGE
-    except RuntimeIntegrityError as exc:
-        print(f"safeloadai: {exc}", file=sys.stderr)
-        return EXIT_INTEGRITY
+    if args.malicious_only:
+        print("safeloadai: --malicious-only: SUSPICIOUS and UNSUPPORTED files are reported as NOT-MALICIOUS "
+              "and exit 0; safe_load still refuses every file that is not CLEAN", file=sys.stderr)
+    reports = []
+    for path in files:
+        report = scan(path, judge=settings["judge"], deep=settings["deep"], allow=settings["allow"],
+                      trust_inert_from=settings["trust_inert_from"], known_good=settings["known_good"],
+                      option_sources=settings["sources"])
+        if not report.ok:
+            print(f"safeloadai: {path}: {report.error['code']} {report.error['message']}", file=sys.stderr)
+        reports.append(report)
     _overrides(reports, settings["accept_unverified"],
                may_prompt=not args.no_input and not args.json and _interactive())
     payload = [r.to_dict() for r in reports]
@@ -233,14 +263,41 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(document, indent=2, default=str))
     elif not args.quiet:
         for report in reports:
-            _print_text(report)
+            _print_binary(report) if args.malicious_only else _print_text(report)
     if args.report:
         with open(args.report, "w", encoding="utf-8") as fh:
             json.dump(document, fh, indent=2, default=str)
+    if args.sarif:
+        from .sarif import to_sarif
 
-    verdicts = {r.verdict for r in reports}
+        with open(args.sarif, "w", encoding="utf-8") as fh:
+            json.dump(to_sarif(reports), fh, indent=2, default=str)
+
+    return binary_exit_code(reports) if args.malicious_only else exit_code(reports)
+
+
+def _print_binary(report: Report) -> None:
+    if not report.ok:
+        print(f"{'ERROR':<14} {report.path}  ({report.error['code']})")
+    else:
+        print(f"{'MALICIOUS' if report.verdict is Verdict.MALICIOUS else 'NOT-MALICIOUS':<14} {report.path}")
+
+
+def binary_exit_code(reports: list[Report]) -> int:
+    """--malicious-only: MALICIOUS 1 > ERROR (4, 6) > anything else 0. A file safeloadai
+    could not scan is never reported as NOT-MALICIOUS."""
+    code = exit_code(reports)
+    return code if code in (EXIT_MALICIOUS, EXIT_INTEGRITY, EXIT_ERROR) else EXIT_CLEAN
+
+
+def exit_code(reports: list[Report]) -> int:
+    """MALICIOUS > ERROR (integrity 4, other 6) > SUSPICIOUS > UNSUPPORTED > CLEAN."""
+    verdicts = {r.verdict for r in reports if r.ok}
     if Verdict.MALICIOUS in verdicts:
         return EXIT_MALICIOUS
+    failed = [r for r in reports if not r.ok]
+    if failed:
+        return EXIT_INTEGRITY if any(r.error["code"].startswith("E4") for r in failed) else EXIT_ERROR
     if any(r.verdict is Verdict.SUSPICIOUS and not r.accepted for r in reports):
         return EXIT_SUSPICIOUS
     if Verdict.UNSUPPORTED in verdicts:

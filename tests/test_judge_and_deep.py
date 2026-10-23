@@ -74,12 +74,12 @@ def test_unknown_judge_answer_is_ignored_not_lowering():
 
 # --- deep mode -------------------------------------------------------------------
 
-def test_deep_without_backend_is_suspicious(monkeypatch, tmp_path):
+def test_deep_without_backend_is_a_tool_error(monkeypatch, tmp_path):
     monkeypatch.setattr(deep, "choose_backend", lambda requested=None: None)
     path = tmp_path / "m.pkl"
     path.write_bytes(b"\x80\x04}\x94.")
     layer = verdict.docker_layer(deep.run_deep(str(path), "pickle"))
-    assert layer.verdict is Verdict.SUSPICIOUS and not layer.ran
+    assert [e["code"] for e in layer.errors] == ["E310"] and not layer.ran
 
 
 def test_unknown_requested_backend_is_refused():

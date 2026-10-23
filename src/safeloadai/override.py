@@ -132,6 +132,10 @@ def apply(report: Report, items: Iterable[str] | None, *, how: str, config_path:
     record = {"accepted": False, "items": [], "requested": requested, "sha256": report.sha256,
               "time": datetime.now(UTC).isoformat(timespec="seconds"), "how": how, "refused_because": None}
     report.override = record
+    if not report.ok:
+        record["refused_because"] = (f"safeloadai failed on this file ({report.error['code']}); a tool error "
+                                     "is never accepted")
+        return False
     blocking = [f for f in report.findings if f["category"] != "UNVERIFIABLE"]
     if report.verdict.value != "SUSPICIOUS" or blocking or not report.findings:
         kinds = sorted({f["category"] for f in blocking}) or [report.verdict.value]

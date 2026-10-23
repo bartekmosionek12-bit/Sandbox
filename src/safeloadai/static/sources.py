@@ -53,34 +53,35 @@ NEUTRAL_DECORATORS = frozenset({("dataclasses", "dataclass"), ("functools", "tot
 
 # Hook implementations read and judged benign for a dict-state BUILD (they only update
 # __dict__ and set defaults, or only run when an attribute is missing and then raise).
-# (module, class, hook) -> (sha256 of the function's source text, note); a property
+# (module, class, hook) -> (sha256 of the function's source text with LF line endings,
+# note); a property
 # setter or deleter is keyed "<name>.setter" / "<name>.deleter". A different
 # source (another library version) is not covered: the class is then not state-only.
 REVIEWED_HOOKS: dict[tuple[str, str, str], tuple[str, str]] = {
     ("sklearn.base", "BaseEstimator", "__setstate__"): (
-        "6ff746cdd900431462bd18c21d84d039342a97c4f8d96ff28aebeb38f9cf0a29",
+        "b761516c2ddf957fe8d52e783ed4aca73d2e542f58c9e7ab04df1361ee83fda6",
         "scikit-learn 1.9.1: pops _sklearn_version, may warn, then super().__setstate__ or __dict__.update"),
     ("torch.nn.modules.module", "Module", "__setstate__"): (
-        "73fcaddc694f0b52692b0a2df6e2f1eaa47a3b941fdfbbc21c2dca004c6ae383",
+        "a47fd547bead07282b750a37be3d6dd4633a28b1a4ed928eff960bf242df3cbd",
         "torch 2.14.1: __dict__.update, then empty OrderedDict/set/None defaults for missing hook dicts"),
     ("torch.nn.modules.module", "Module", "__getattr__"): (
-        "8167a45819a1a8377ed5ae0e107df637c84c449c41502ddc7555b30832cce8a2",
+        "b96dcce0f3bc98e0bb84c7516c51875e20a3298f71a90955f5f23d557f1640e3",
         "torch 2.14.1: looks the name up in _parameters/_buffers/_modules, else AttributeError"),
     ("torch.nn.modules.module", "Module", "__setattr__"): (
-        "883e76372abfd05810ae42b76e51028ba23542c3ed62b454958205eea3755e33",
+        "45473fc67957988b485a3c2943278de89433811215270916509c03c6299d2387",
         "torch 2.14.1: files Parameter/Module/buffer values into their dicts; on load only reached by "
         "Module.__setstate__ assigning empty defaults (no registration hook runs for those values)"),
     ("torch.nn.modules.module", "Module", "__delattr__"): (
-        "4e1fe337f9e0e2d99f3401ba3892d36ea7793ef63799b856e879e080939fc334",
+        "344e0be907b337c0212d9b0d1c47af91f06154daaf90d4a4ba448430e1597910",
         "torch 2.14.1: removes from _parameters/_buffers/_modules; unpickling never deletes attributes"),
     ("torch.nn.modules.conv", "_ConvNd", "__setstate__"): (
-        "343e4b4ef10f3c4cb67f2541d4e2e981deab746f96caba6021a0ece887123308",
+        "481146e1a95578962c8171f4be07690ad8c9082549712e6f788512c8246bccce",
         "torch 2.14.1: super().__setstate__, then padding_mode = 'zeros' if missing"),
     ("torch.nn.modules.upsampling", "Upsample", "__setstate__"): (
-        "6c8f12547d594db39b39e143c141f5412d49d1008895850e5ab696ed9d4d75b9",
+        "f28eabf1cc56ca66cab561c0f4826e85754e1e400a3f3d3739153fa979fdb80c",
         "torch 2.14.1: sets recompute_scale_factor in the state dict if missing, then super().__setstate__"),
     ("sklearn.utils._repr_html.base", "_HTMLDocumentationLinkMixin", "_doc_link_template.setter"): (
-        "e1d002bc194c64335d827336c1023e718a63e80b2cbf35a5cb34b16a7fd11f1b",
+        "bd2e19fa5efc7035e8235fe5bd1b92a9c3d0bc12b2115be26d789c7f3c0e4250",
         "scikit-learn 1.9.1: setattr(self, '__doc_link_template', value), a plain attribute"),
     ("ultralytics.utils", "SimpleClass", "__getattr__"): (
         "6ffd01d179f611273ddd45d8caf06e43c7a7c817294bbba4681d9816067092ec",
@@ -306,14 +307,62 @@ def _walk_top(stmts: list[ast.stmt], facts: ModuleFacts, package: str = "") -> N
             facts.refuse(node, f"top-level {type(node).__name__.lower()} statement")
 
 
+_DISPLAYS = (ast.Dict, ast.List, ast.Tuple, ast.Set)
+
+
+def _plain_data(node: ast.expr, data: set[str]) -> bool:
+    """A constant, a name in ``data``, or a display of them (a dict display's values may be
+    anything: building it is checked as usual, and no method reads them)."""
+    if isinstance(node, ast.Constant) or (isinstance(node, ast.Name) and node.id in data):
+        return True
+    if isinstance(node, ast.Dict):
+        return all(k is not None and _plain_data(k, data) for k in node.keys)
+    if isinstance(node, (ast.List, ast.Tuple, ast.Set)):
+        return all(_plain_data(e, data) for e in node.elts)
+    return False
+
+
 def _class_body(stmts: list[ast.stmt], calls: _ImportTimeCalls) -> None:
+    # A method call on a dict, list, set, tuple or constant that the class body itself
+    # made, with plain data as arguments (``_parameter_constraints.pop("l1_ratio")`` on a
+    # dict display two lines above), runs only a builtin method, so it is not counted as a
+    # call. Any other call still is, and so are calls inside the display.
+    data: set[str] = set()  # names whose current value is such a display or constant
     for stmt in stmts:
         if isinstance(stmt, ast.ClassDef):
             for item in [*stmt.decorator_list, *stmt.bases, *(k.value for k in stmt.keywords)]:
                 calls.visit(item)
-            _class_body(stmt.body, calls)
-        else:
-            calls.visit(stmt)
+            _class_body(stmt.body, calls)  # a nested class body does not see this one's names
+            data.discard(stmt.name)
+            continue
+        loop = set()
+        if isinstance(stmt, ast.For) and isinstance(stmt.iter, (ast.Tuple, ast.List)) and all(
+                isinstance(e, ast.Constant) for e in stmt.iter.elts):
+            _targets(stmt.target, loop)  # for name in ("a", "b"): ... binds constants
+        builtin = {id(node.func) for node in ast.walk(stmt) if isinstance(node, ast.Call)
+                   and isinstance(node.func, ast.Attribute) and isinstance(node.func.value, ast.Name)
+                   and node.func.value.id in data and node.func.value.id not in loop
+                   and all(_plain_data(a.value if isinstance(a, ast.Starred) else a, data | loop)
+                           for a in node.args)
+                   and all(k.arg is not None and _plain_data(k.value, data | loop) for k in node.keywords)}
+        begin = len(calls.out)
+        calls.visit(stmt)
+        calls.out[begin:] = [c for c in calls.out[begin:] if id(c) not in builtin]
+        bound: set[str] = set()
+        if isinstance(stmt, (ast.Assign, ast.AnnAssign, ast.AugAssign)):
+            for target in stmt.targets if isinstance(stmt, ast.Assign) else [stmt.target]:
+                _targets(target, bound)
+        elif isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef, ast.For, ast.With, ast.If, ast.Try)):
+            for node in ast.walk(stmt):  # any name these bind is no longer known data
+                if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
+                    bound.add(node.id)
+            if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                bound.add(stmt.name)
+        data -= bound
+        value = getattr(stmt, "value", None)
+        if isinstance(stmt, (ast.Assign, ast.AnnAssign)) and isinstance(value, (*_DISPLAYS, ast.Constant)):
+            data |= {t.id for t in (stmt.targets if isinstance(stmt, ast.Assign) else [stmt.target])
+                     if isinstance(t, ast.Name)}
 
 
 def _absolute(node: ast.ImportFrom, package: str) -> str:
@@ -357,7 +406,9 @@ class Verdict:
 
 
 def source_sha256(text: str) -> str:
-    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+    """sha256 of source text with line endings normalised: a Windows wheel ships the same
+    file with CRLF, and a review of a function covers it whatever the platform."""
+    return hashlib.sha256(text.replace("\r\n", "\n").replace("\r", "\n").encode("utf-8")).hexdigest()
 
 
 class SourceIndex:

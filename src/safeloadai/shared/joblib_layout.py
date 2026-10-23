@@ -54,6 +54,13 @@ class LayoutError(ValueError):
     """The wrapper or dtype is not one joblib's reader handles in a known way."""
 
 
+def dtype_flags_ok(align, copy):
+    """The ``align`` and ``copy`` arguments of a pickled ``numpy.dtype(descr, align, copy)``.
+    numpy writes ``False, True``; older numpy wrote the ints ``0, 1``, which mean the same."""
+    return (type(align) in (bool, int) and align == 0
+            and type(copy) in (bool, int) and copy == 1)
+
+
 class Plan:
     """What follows a wrapper's BUILD in the stream."""
 

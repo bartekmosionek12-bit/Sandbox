@@ -10,7 +10,11 @@ Evidence integrity rules (owner decision, DECISIONS.md):
   not come from the recorder: ``tampered = True`` (the verdict layer maps that to
   MALICIOUS).
 * Sequence numbers must be 0, 1, 2, ... with no gaps or repeats, and the last
-  record must be ``done``. Anything else is an incomplete run (SUSPICIOUS).
+  record must be ``done``. Anything else is an incomplete run.
+* The guest must return from ``_start``. A guest that calls ``proc_exit`` (even with
+  status 0) did not run to the end of the bootstrap, whatever records it wrote: the
+  run is incomplete (status ``exit``). This is observed by the runner, outside the
+  guest, so guest code cannot forge it (0.8.0, docs/EVIDENCE_CHANNEL.md).
 
 What this cannot prevent: the payload shares the guest interpreter with the
 recorder, so it can find the nonce and append well-formed records of its own. It
@@ -31,7 +35,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 
 from . import runtime
@@ -52,6 +56,29 @@ class Limits:
     max_records: int = 10_000
     max_record_bytes: int = 64 * 1024
     max_stdio_bytes: int = 64 * 1024
+
+
+# The emulation of a pickle gets a budget that grows with the work the file asks for, up to
+# a fixed ceiling. Measured on the 0.8.0 held-out files that ran out of the fixed budget
+# (48 files): about 220 fuel per byte of pickle data and up to 70 000 per opcode (object
+# arrays in joblib files), at 4 to 5 billion fuel per second; the largest needed 202
+# billion fuel and 48 s. A file over the ceiling still ends in ERROR (E304 fuel, E303 time).
+FUEL_PER_BYTE = 256
+FUEL_PER_OPCODE = 100_000
+MAX_FUEL = 250_000_000_000
+MAX_WALL_SECONDS = 120.0
+MAX_GUEST_MEMORY = 2 * 1024 * 1024 * 1024
+
+
+def scaled_limits(size: int, opcodes: int, base: Limits | None = None) -> Limits:
+    """Limits for emulating ``size`` bytes of pickle data with ``opcodes`` opcodes: the
+    defaults plus a share per byte and per opcode, never more than the ceilings above.
+    Wall time grows with the fuel; guest memory with the data the guest holds."""
+    base = base or Limits()
+    fuel = min(MAX_FUEL, base.fuel + FUEL_PER_BYTE * max(0, size) + FUEL_PER_OPCODE * max(0, opcodes))
+    return replace(base, fuel=max(fuel, base.fuel),
+                   wall_seconds=max(base.wall_seconds, min(MAX_WALL_SECONDS, base.wall_seconds * fuel / base.fuel)),
+                   memory_bytes=max(base.memory_bytes, min(MAX_GUEST_MEMORY, base.memory_bytes + 2 * max(0, size))))
 
 
 @dataclass
@@ -218,7 +245,9 @@ def run_guest(task: dict, artefacts: dict[str, bytes], limits: Limits | None = N
         completed = False
     status = result.get("status", "runner_error")
     if status != "ok":
-        problems.append(f"guest ended with status {status}" + (f": {result.get('trap')}" if result.get("trap") else ""))
+        detail = result.get("trap") or (f"proc_exit({result.get('exit_code')}) called inside the guest"
+                                         if status == "exit" else "")
+        problems.append(f"guest ended with status {status}" + (f": {detail}" if detail else ""))
         completed = False
     timings = dict(result.get("timings_ms", {}), total=elapsed)
     info = _runtime_info(wasm)

@@ -21,6 +21,7 @@ import pickletools
 import re
 
 from ..shared import joblib_layout
+from . import budget as budget_mod
 
 MARK = object()
 HIGHEST_PROTOCOL = 5
@@ -31,6 +32,11 @@ _OBJECT = ("builtins", "object")
 
 class VMError(Exception):
     """The stream is one a real unpickler would reject (or read differently)."""
+
+
+class VMUnmodelled(VMError):
+    """The machine has no model for something a real unpickler accepts: a gap in
+    safeloadai, not a property of the file (a tool error, errors.py E201)."""
 
 
 class Global:
@@ -53,6 +59,15 @@ class Obj:
         self.how, self.func, self.args = how, func, args
         self.state = None
         self.attrs = None
+
+
+def _held_bytes(arg) -> int:
+    """Bytes the stand-in for an opcode argument holds beyond its fixed cost."""
+    if isinstance(arg, (str, bytes, bytearray)):
+        return len(arg)
+    if isinstance(arg, int) and not isinstance(arg, bool):
+        return arg.bit_length() // 8
+    return 0
 
 
 def identifier_path(text) -> bool:
@@ -79,7 +94,7 @@ def dtype_value(value):
             and value.func.pair == joblib_layout.DTYPE):
         raise joblib_layout.LayoutError("array dtype is not a numpy.dtype reconstruction")
     args = value.args
-    if not (isinstance(args, tuple) and len(args) == 3 and args[1] is False and args[2] is True):
+    if not (isinstance(args, tuple) and len(args) == 3 and joblib_layout.dtype_flags_ok(args[1], args[2])):
         raise joblib_layout.LayoutError("unexpected numpy.dtype arguments")
     return args[0], value.state
 
@@ -104,6 +119,7 @@ class Machine:
         self.on_opcode = on_opcode or (lambda *a: None)
         self.on_call = on_call or (lambda *a: None)
         self.max_opcodes = max_opcodes
+        self.budget = budget_mod.current()
         self.opcodes = 0
         self.arrays = 0
         self.object_arrays = 0
@@ -134,6 +150,7 @@ class Machine:
             self.opcodes += 1
             if self.opcodes > self.max_opcodes:
                 raise VMError(f"more than {self.max_opcodes} opcodes")
+            self.budget.charge(budget_mod.OPCODE_COST + _held_bytes(arg))
             self._frames(opcode.name, arg, pos, end, state)
             self.on_opcode(opcode, arg, pos)
             if state["first_int"] is None and isinstance(arg, int) and not isinstance(arg, bool) \
@@ -353,7 +370,7 @@ class Machine:
             self.uses.append(("persid", (pid,), None, pos))
             stack.append(Obj("persid", None, (pid,)))
         else:
-            raise VMError(f"opcode {name} is not modelled")
+            raise VMUnmodelled(f"opcode {name} is not modelled")
 
     def _ref(self, value):
         if isinstance(value, (Global, Obj)):

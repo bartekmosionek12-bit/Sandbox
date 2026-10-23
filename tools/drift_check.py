@@ -95,7 +95,7 @@ def scan_dir(directory: str) -> list[dict]:
         if not (os.path.isfile(path) and name.lower().endswith(tuple(EXTENSION_HINTS))):
             continue
         report = scan(path)
-        results.append({"file": name, "verdict": report.verdict.value,
+        results.append({"file": name, "verdict": report.outcome,
                         "names": names_needed(report) if not report.clean else [],
                         "reasons": [r[:200] for r in report.reasons[:5]]})
     return results

@@ -286,3 +286,26 @@ def test_restricted_joblib_loader_refuses_unlisted_globals(tmp_path):
     path = _dump(tmp_path, {"a": np.arange(3.0), "o": np.array([_Marker()], dtype=object)})
     with pytest.raises(UnsafeModelError, match="not on the allowlist"):
         load_joblib(str(path), PICKLE_GLOBALS)
+
+
+def _wrapper_stream(align: bytes, copy: bytes) -> bytes:
+    """A joblib stream with one float64 array of 2 items; dtype rebuilt as numpy.dtype('f8', align, copy)."""
+    wrapper = ("joblib.numpy_pickle", "NumpyArrayWrapper")
+    head = (b"\x80\x02c%s\n%s\n)\x81}(X\x05\x00\x00\x00shapeK\x02\x85X\x05\x00\x00\x00orderX\x01\x00\x00\x00C"
+            b"X\x05\x00\x00\x00dtypecnumpy\ndtype\nX\x02\x00\x00\x00f8%s%s\x87R(K\x03X\x01\x00\x00\x00<"
+            b"NNNJ\xff\xff\xff\xffJ\xff\xff\xff\xffK\x00tbub" % (*(p.encode() for p in wrapper), align, copy))
+    return head + b"\0" * 16 + b"."
+
+
+@pytest.mark.parametrize("align, copy", [(b"\x89", b"\x88"), (b"K\x00", b"K\x01")])
+def test_dtype_flags_of_old_and_new_numpy_are_read(align, copy):
+    # numpy writes dtype('f8', False, True); numpy before 1.x wrote dtype('f8', 0, 1). Both
+    # mean the same; reading only the first was a gap in the walker, not a file problem.
+    report = parse_pickle(_wrapper_stream(align, copy))
+    assert report["error"] is None and report["static_risk"] == "clean", report["reasons"]
+
+
+@pytest.mark.parametrize("align, copy", [(b"K\x01", b"K\x01"), (b"G" + b"\x00" * 8, b"\x88")])
+def test_other_dtype_flags_stay_suspicious(align, copy):
+    report = parse_pickle(_wrapper_stream(align, copy))
+    assert report["static_risk"] == "suspicious" and "joblib array" in report["error"]

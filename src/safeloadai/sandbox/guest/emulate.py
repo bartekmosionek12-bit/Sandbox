@@ -123,7 +123,8 @@ class FakeArray:
 
 
 def _dtype_of(value):
-    if not isinstance(value, DTypeStub) or len(value.args) != 3 or value.args[1:] != (False, True):
+    if (not isinstance(value, DTypeStub) or len(value.args) != 3
+            or not joblib_layout.dtype_flags_ok(value.args[1], value.args[2])):
         raise joblib_layout.LayoutError("array dtype is not a numpy.dtype reconstruction")
     return value.args[0], value.state
 

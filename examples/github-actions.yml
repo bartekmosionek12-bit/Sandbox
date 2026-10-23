@@ -1,5 +1,17 @@
 # Example: scan model files in a pull request with safeloadai.
 # Copy to .github/workflows/ in the repository that holds the models.
+# The safeloadai GitHub Action (action.yml at this repository's root) does the same
+# and also reports to code scanning as SARIF:
+#
+#   permissions:
+#     contents: read
+#     security-events: write
+#   steps:
+#     - uses: actions/checkout@v4
+#     - uses: bartekmosionek12-bit/Sandbox@<release tag or commit sha>
+#       with:
+#         path: models
+#         fail-on: suspicious   # or "malicious"; an ERROR always fails
 name: model-scan
 
 on:
@@ -19,14 +31,16 @@ jobs:
           python-version: "3.12"
       # The runtime comes with the pinned safeloadai-runtime package: nothing to fetch.
       - name: Install safeloadai
-        run: pip install "safeloadai==0.3.0"
+        run: pip install "safeloadai==0.7.1"
       - name: Check the sandbox
         run: safeloadai doctor
       - name: Scan
-        # Exit 1 = MALICIOUS, 3 = SUSPICIOUS; both fail the job.
-        run: safeloadai scan models/ --report safeloadai-report.json
+        # Exit 1 MALICIOUS, 3 SUSPICIOUS, 5 UNSUPPORTED, 4/6 ERROR: all fail the job.
+        run: safeloadai scan models/ --no-input --report safeloadai-report.json --sarif safeloadai.sarif
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: safeloadai-report
-          path: safeloadai-report.json
+          path: |
+            safeloadai-report.json
+            safeloadai.sarif

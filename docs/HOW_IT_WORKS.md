@@ -36,7 +36,8 @@ README has the short version; this page has the details.
      checks what that reading would import (parser differential).
    - **Keras:** `config.json` is walked. Exact module and class names are
      required, and Lambda bytecode is scanned for sink names. The bytecode is
-     never unmarshalled on the host.
+     never unmarshalled on the host. A Lambda with bytecode is never CLEAN (at
+     least RISKY); emulation decides whether it is MALICIOUS.
    - **Legacy HDF5:** the host does not parse HDF5 at all. A small
      standard-library HDF5 reader runs inside the WASI sandbox and returns the
      root attributes `model_config`, `training_config`, `keras_version` and
@@ -52,7 +53,8 @@ README has the short version; this page has the details.
    CPython 3.12 compiled to WebAssembly and running under wasmtime in a child
    process.
    - **Limits:** a memory cap, fuel as a CPU budget, and a wall-clock kill of
-     the process by the host.
+     the process by the host. For a pickle all three grow with its size and opcode
+     count, up to fixed ceilings (`sandbox.host.scaled_limits`).
    - **Isolation:** no network and no filesystem other than that directory.
    - **Inside the sandbox:** pickles are unpickled with a recording
      `find_class` (joblib streams with joblib's own reading of the array
@@ -115,6 +117,31 @@ lowers a MALICIOUS or RISKY finding, and each accepted import is listed in
   file gets nothing. `--no-known-good` turns it off.
 - **UNSUPPORTED.** A file with no pickle, joblib, ZIP or HDF5 reading at all is
   UNSUPPORTED: not CLEAN, not loadable, not overridable, CLI exit code 5.
+- **ERROR is not a verdict.** When safeloadai itself fails (I/O, a parser bug, a
+  sandbox crash or timeout, runtime integrity, invalid options), the report has
+  `status: "error"` and a code, and no verdict ([ERRORS.md](ERRORS.md)). Only MALICIOUS
+  evidence found before the failure still decides.
 
 Every list above is generated or written at development time, reviewed and committed.
 Nothing is added to any list while scanning.
+
+## Rule families and standards
+
+Every detection rule belongs to one family, and every family is mapped to the
+standards in [THREAT_MODEL.md](THREAT_MODEL.md) (threat IDs T1 to T15 there). A pull
+request or commit that changes a family carries its tag in the title (see
+[CONTRIBUTING.md](../CONTRIBUTING.md)).
+
+| Family | Where | What it flags | Threat | Tags |
+|---|---|---|---|---|
+| Sink imports and calls | `static/pickle_static.py`, `behaviour.py` (`SINKS`) | a known sink imported and called; in emulation, any call to a sink | T1 | `[LLM03]` `[ML06]` `[AML.T0011.000]` `[AML.T0018.002]` |
+| Exact allowlist | `static/allowlists.py`, `static/clearance.py`, `profiles/`, `known_good.py` | any import outside exact `(module, qualname)` pairs (and the rules that accept some) | T1, T15 | `[LLM03]` `[ML06]` `[AML.T0010.003]` |
+| Gadgets and indirection | `static/pickle_static.py` (`_check_getattr`, guarded calls, BUILD hooks), `allowlists.KNOWN_GADGETS` | getattr chains, `partial`, `methodcaller`, hook attributes in BUILD states, re-exported sinks | T2 | `[LLM03]` `[ML06]` `[AML.T0018.002]` |
+| Keras code and custom objects | `static/keras_static.py`, `static/h5_static.py`, Lambda emulation | Lambda bytecode, functions named by module, custom objects, non-built-in training config | T3 | `[LLM03]` `[ML06]` `[AML.T0011.000]` |
+| Readings and parser differentials | `parsing/views.py`, `static/__init__.py`, `parsing/zipsafe.py`, joblib differential | polyglots, trailing or leading data, refused archives, CRC mismatches, hidden pickles, joblib array bytes a plain `pickle.load` would read | T4 | `[LLM03]` `[ML06]` `[AML.T0011.000]` |
+| Corrupt and over-limit streams | `static/pickle_vm.py`, `static/pickle_static.py: walk_problem`, `parsing/decompress.py`, `shared/hdf5_meta.py` | streams a loader rejects or reads differently, limits on size, opcodes, depth, ratio | T5, T10 | `[LLM03]` `[ML06]` `[AML.T0076]` |
+| Look-alike names | `static/lookalike.py` | module names imitating allowlisted ones | T6 | `[LLM03]` `[ML06]` `[AML.T0010.003]` |
+| Evidence integrity | `sandbox/host.py`, `behaviour.py` | writes without the nonce, broken sequences (tampering) | T9 | `[LLM03]` `[AML.T0011.000]` |
+| Judge escalation | `judge.py`, `verdict.judge_layer` | injection attempts in the evidence | T11 | `[LLM01]` |
+| Runtime integrity | `sandbox/runtime.py` | a WASI runtime that is not the pinned build (E401) | T13 | `[LLM03]` `[AML.T0010.001]` |
+

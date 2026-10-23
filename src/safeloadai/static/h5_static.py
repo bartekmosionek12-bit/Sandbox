@@ -46,7 +46,10 @@ def parse_h5_metadata(meta: dict, file_name: str = "<memory>") -> dict:
     reasons: list[str] = report["reasons"]
     if meta.get("failed"):
         report["error"] = str(meta["failed"])
-        reasons.append(report["error"])
+        if meta.get("tool_error"):
+            report["tool_errors"].append(meta["tool_error"])  # the tool failed, not the file
+        else:
+            reasons.append(report["error"])
         report["static_risk"] = "suspicious"
         return report
     report["h5"] = {

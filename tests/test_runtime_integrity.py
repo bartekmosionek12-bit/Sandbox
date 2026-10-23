@@ -7,7 +7,7 @@ import sys
 
 import pytest
 
-from safeloadai import RuntimeIntegrityError, Verdict, scan
+from safeloadai import RuntimeIntegrityError, scan
 from safeloadai.__main__ import EXIT_INTEGRITY, main
 from safeloadai.sandbox import host, run_guest, runtime
 
@@ -39,8 +39,9 @@ def test_env_override_is_still_verified(tmp_path, monkeypatch):
 
 def test_tampered_runtime_refuses_the_scan(tmp_path, monkeypatch):
     monkeypatch.setenv(runtime.RUNTIME_ENV, str(_right_size_wrong_bytes(tmp_path)))
-    with pytest.raises(RuntimeIntegrityError):
-        scan(_pickle(tmp_path))
+    report = scan(_pickle(tmp_path))
+    assert report.status == "error" and report.verdict is None and not report.clean
+    assert report.error["code"] == "E401" and "sha256" in report.error["message"]
 
 
 def test_cli_exit_code_on_integrity_failure(tmp_path, monkeypatch, capsys):
@@ -74,23 +75,24 @@ def test_runner_rechecks_the_bytes_it_compiles(tmp_path, monkeypatch):
         run_guest({"kind": "selftest"}, {})
 
 
-def test_missing_runtime_is_suspicious_with_reason(tmp_path, monkeypatch):
+def test_missing_runtime_is_an_error_with_reason(tmp_path, monkeypatch):
     monkeypatch.setenv(runtime.RUNTIME_ENV, str(tmp_path / "absent.wasm"))
     report = scan(_pickle(tmp_path))
-    assert report.verdict is Verdict.SUSPICIOUS
+    assert report.status == "error" and report.verdict is None
     emulation = report.layer("emulation")
     assert emulation.ran is False
-    assert any("no WASI runtime" in r and "safeloadai doctor" in r for r in emulation.reasons)
+    assert report.error["code"] == "E301"
+    assert "no WASI runtime" in report.error["message"] and "safeloadai doctor" in report.error["message"]
 
 
-def test_missing_runtime_package_is_suspicious(tmp_path, monkeypatch):
+def test_missing_runtime_package_is_an_error(tmp_path, monkeypatch):
     monkeypatch.delenv(runtime.RUNTIME_ENV, raising=False)
     monkeypatch.setitem(sys.modules, runtime.RUNTIME_MODULE, None)  # import fails
     with pytest.raises(runtime.RuntimeUnavailable, match="not installed"):
         runtime.locate()
     report = scan(_pickle(tmp_path))
-    assert report.verdict is Verdict.SUSPICIOUS
-    assert any("safeloadai-runtime package is not installed" in r for r in report.reasons)
+    assert report.status == "error" and report.error["code"] == "E301"
+    assert "safeloadai-runtime package is not installed" in report.error["message"]
 
 
 def test_package_file_missing_is_suspicious(tmp_path, monkeypatch):

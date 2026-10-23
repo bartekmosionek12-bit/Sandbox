@@ -8,8 +8,10 @@ reach code while the pickle loads:
   its arguments, at any depth, including inside the arguments and state of objects
   passed along (the callee may call them);
 * the target of a BUILD, and the globals in its state unless the target is an instance
-  of a class whose dict-state BUILD only stores (allowlisted or state-only) and the
-  state is a dict;
+  of a class whose dict-state BUILD only stores (allowlisted or state-only), the state
+  is a dict that sets no hook attribute (``BUILD_HOOK_KEYS``) and it is the object's
+  first BUILD (a second one calls the ``__setstate__`` an earlier state may have stored,
+  so the globals in every earlier state of that object count as used too);
 * the target of ``builtins.getattr`` once the getattr result is used;
 * items appended or set into an object that is not a plain container (a method of its
   class receives them), dict keys and set members (they are hashed), and persistent
@@ -32,7 +34,7 @@ import contextvars
 from dataclasses import dataclass, field
 
 from . import upstream
-from .allowlists import GETATTR, KNOWN_GADGETS, STATE_ONLY_CLASSES
+from .allowlists import BUILD_HOOK_KEYS, GETATTR, KNOWN_GADGETS, STATE_ONLY_CLASSES
 from .lookalike import imitates
 from .pickle_vm import Global, Obj, class_of
 from .sources import DENIED_MODULES
@@ -55,6 +57,8 @@ class Clearance:
 
     def state_only(self, pair: tuple[str, str]) -> tuple[str, str] | None:
         """(mechanism, detail) when ``pair`` is a state-only class, else None."""
+        if not (isinstance(pair, tuple) and len(pair) == 2 and all(isinstance(p, str) for p in pair)):
+            return None  # a global whose module or name is not a string (found by fuzzing, 0.8.0)
         if pair in self._cache:
             return self._cache[pair]
         found = None
@@ -142,6 +146,13 @@ def referenced_ok(module: str, name: str) -> bool:
     return upstream.inert_definition(module, name)
 
 
+def sets_hook(state) -> bool:
+    """Does a BUILD state (a dict, or a (dict, slotstate) pair) set a hook attribute?"""
+    parts = state if isinstance(state, tuple) and len(state) == 2 else (state,)
+    return any(isinstance(part, dict) and any(isinstance(key, str) and key in BUILD_HOOK_KEYS for key in part)
+               for part in parts)
+
+
 def used_globals(calls: list[tuple], uses: list[tuple], stores_only) -> set[int] | None:
     """ids of the Global stand-ins whose value reaches code while loading; None when the
     walk ran out of budget (then every global counts as used). ``stores_only(obj)``
@@ -173,12 +184,16 @@ def used_globals(calls: list[tuple], uses: list[tuple], stores_only) -> set[int]
                 todo.extend(v for kv in item.items() for v in kv)
         return True
 
+    built: dict[int, list] = {}
     for how, func, args, _pos in calls:
         if how == "build":
             state = args[0] if isinstance(args, tuple) and args else args
-            if isinstance(func, Obj) and isinstance(state, dict) and stores_only(func):
+            earlier = built.setdefault(id(func), [])
+            earlier.append(state)
+            if (len(earlier) == 1 and isinstance(func, Obj) and isinstance(state, dict)
+                    and not sets_hook(state) and stores_only(func)):
                 continue
-            ok = mark(func) and mark(state)
+            ok = mark(func) and all(mark(s) for s in earlier)
         elif isinstance(func, Global) and func.pair in GETATTR:
             ok = mark(func)  # getattr does not call its target; using the result marks it
         else:
@@ -218,7 +233,7 @@ def weights_only_ok(report: dict, calls: list[tuple], uses: list[tuple]) -> str 
 
     if report["error"]:
         return "the walk failed"
-    ops = {o["name"] for o in report["opcodes"]} - wo.OPCODES
+    ops = set(report.get("opcode_counts") or {o["name"] for o in report["opcodes"]}) - wo.OPCODES
     if ops:
         return f"opcodes torch does not implement: {', '.join(sorted(ops))}"
     for imp in report["imports"]:

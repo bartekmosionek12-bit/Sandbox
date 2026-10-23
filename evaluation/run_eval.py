@@ -158,7 +158,8 @@ def load_entries(lab: str | None, hf: str | None, benign: list[str], mutations: 
                             "path": os.path.join(hf_malicious, item["path"]), "label": label,
                             "category": f"hf_flagged_{item['format']}",
                             "expected": {"malicious": "MALICIOUS", "benign": "CLEAN"}.get(label, "SUSPICIOUS"),
-                            "source": "hf-malicious", "group": "hf-malicious", "label_reason": reason,
+                            "source": "hf-malicious", "group": item.get("group", "hf-malicious"),
+                            "label_reason": reason,
                             "hub_scan": item.get("hub_scan"), "repo_id": item["repo_id"],
                             "revision": item["revision"], "sha256": item["sha256"], "size": item["size"]})
     for directory in benign:
@@ -197,7 +198,16 @@ def block_of(verdict: str | None, unverifiable_only: bool) -> str:
     return "soft" if verdict == "SUSPICIOUS" and unverifiable_only else "hard"
 
 
+def _error_column(report, seconds: float) -> dict:
+    """A tool error (docs/ERRORS.md): its own outcome, never a detection or a miss."""
+    return {"outcome": "error", "verdict": None, "error": f"{report.error['code']}: {report.error['message']}",
+            "error_code": report.error["code"], "category": None, "unverifiable_only": False,
+            "seconds": seconds, "block": "error", "cleared": []}
+
+
 def _column(report, seconds: float) -> dict:
+    if not report.ok:
+        return _error_column(report, seconds)
     return {"outcome": "clean" if report.clean else "flagged", "verdict": report.verdict.value,
             "category": report.category, "unverifiable_only": report.unverifiable_only, "seconds": seconds,
             "block": block_of(report.verdict.value, report.unverifiable_only),
@@ -212,6 +222,14 @@ def run_safeloadai(path: str, trust: tuple[str, ...] = ()) -> dict:
         return {"outcome": "error", "error": f"{type(exc).__name__}: {exc}",
                 "seconds": time.perf_counter() - started}
     seconds = time.perf_counter() - started
+    if not report.ok:
+        result = _error_column(report, seconds)
+        result.update(file_format=report.file_format, timings_ms=report.timings_ms, reasons=report.reasons[:8])
+        for column in ("no_known_good", "upper_bound"):
+            result[column] = _error_column(report, seconds)
+        if trust:
+            result["trust"] = _error_column(report, seconds)
+        return result
     layers = {layer.name: layer.verdict.value for layer in report.layers}
     result = {"outcome": "clean" if report.clean else "flagged", "verdict": report.verdict.value,
               "file_format": report.file_format, "layers": layers, "timings_ms": report.timings_ms,
@@ -406,7 +424,7 @@ def _block(result: dict) -> str:
     return block_of(result.get("verdict"), bool(result.get("unverifiable_only")))
 
 
-GROUP_ORDER = ("lab", "mutations", "hf-malicious", "hf-tune", "hf-heldout", "benign")
+GROUP_ORDER = ("lab", "mutations", "hf-malicious", "hf-unsafe", "hf-tune", "hf-heldout", "hf-heldout2", "benign")
 
 
 def groups_of(entries: list[dict]) -> list[str]:
@@ -468,7 +486,7 @@ def false_positives(entries: list[dict]) -> dict:
     other: Counter = Counter()
     for e in entries:
         r = e["results"]["safeloadai"]
-        if e["label"] != "benign" or r["outcome"] != "flagged" or e.get("group") == "hf-heldout":
+        if e["label"] != "benign" or r["outcome"] != "flagged" or e.get("group") in ("hf-heldout", "hf-heldout2"):
             continue
         missing = r.get("missing") or []
         for item in missing:
@@ -667,7 +685,9 @@ def markdown(summary: dict, fps: dict, entries: list[dict], tools: list[str], me
               "|---|---|---|---|---|" + "---|" * len(tools)]
     for e in entries:
         res = e["results"]
-        cells = [res["safeloadai"].get("verdict", res["safeloadai"]["outcome"])] + [res[t]["outcome"] for t in tools]
+        # an ERROR has verdict None (docs/ERRORS.md)
+        cells = [res["safeloadai"].get("verdict") or str(res["safeloadai"]["outcome"]).upper()]
+        cells += [str(res.get(t, {}).get("outcome")) for t in tools]
         lines.append(f"| {e['file']} | {e.get('group', e.get('source'))} | {e['label']} | {e['expected']} | "
                      + " | ".join(cells) + " |")
     return "\n".join(lines) + "\n"

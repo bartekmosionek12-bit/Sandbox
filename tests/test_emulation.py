@@ -223,3 +223,53 @@ def test_reduce_result_accepts_tuple_state_like_numpy_arrays():
     run = emulate_pickle([data])
     assert run.completed and _anomalies(run) == []
     assert "numpy._core.multiarray._reconstruct().__setstate__" in _targets(run)
+
+
+# --- the emulation's budget grows with the file (0.8.0 held-out, E304) -------------------
+
+def test_scaled_limits_grow_with_the_file_up_to_a_ceiling():
+    from safeloadai.sandbox import host
+
+    base = host.Limits()
+    assert host.scaled_limits(0, 0) == base
+    grown = host.scaled_limits(100 << 20, 1_000_000)
+    assert base.fuel < grown.fuel <= host.MAX_FUEL
+    assert base.wall_seconds < grown.wall_seconds <= host.MAX_WALL_SECONDS
+    assert base.memory_bytes < grown.memory_bytes <= host.MAX_GUEST_MEMORY
+    top = host.scaled_limits(1 << 40, 10 ** 9)
+    assert (top.fuel, top.wall_seconds, top.memory_bytes) == (host.MAX_FUEL, host.MAX_WALL_SECONDS,
+                                                              host.MAX_GUEST_MEMORY)
+
+
+def test_a_large_pickle_gets_a_larger_budget_by_default(tmp_path, monkeypatch):
+    import functools
+    import pickle
+
+    from safeloadai import pipeline, scan
+    from safeloadai.sandbox import host
+
+    # A base budget that starting the guest just fits in, so the file's own opcodes decide.
+    small = host.Limits(fuel=1_150_000_000)
+    path = tmp_path / "many.pkl"
+    path.write_bytes(pickle.dumps(list(range(400_000)), protocol=2))
+    fixed = scan(path, limits=small)
+    assert fixed.status == "error" and fixed.error["code"] == "E304", fixed.error
+    monkeypatch.setattr(pipeline, "scaled_limits", functools.partial(host.scaled_limits, base=small))
+    grown = scan(path)
+    assert grown.status == "ok" and grown.verdict is not None, grown.error
+
+
+def test_over_the_ceiling_is_still_an_error(tmp_path, monkeypatch):
+    import functools
+    import pickle
+
+    from safeloadai import pipeline, scan
+    from safeloadai.sandbox import host
+
+    small = host.Limits(fuel=1_150_000_000)
+    monkeypatch.setattr(host, "MAX_FUEL", small.fuel)  # the ceiling: no room to grow
+    monkeypatch.setattr(pipeline, "scaled_limits", functools.partial(host.scaled_limits, base=small))
+    path = tmp_path / "many.pkl"
+    path.write_bytes(pickle.dumps(list(range(400_000)), protocol=2))
+    report = scan(path)
+    assert report.status == "error" and report.error["code"] == "E304", report.error

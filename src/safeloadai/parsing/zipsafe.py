@@ -13,6 +13,7 @@ make us allocate more than ``max_member_bytes``.
 from __future__ import annotations
 
 import io
+import lzma
 import posixpath
 import zipfile
 import zlib
@@ -23,6 +24,13 @@ DEFAULT_MAX_MEMBER_BYTES = 64 * 1024 * 1024
 DEFAULT_MAX_RATIO = 200
 
 ZIP_MAGIC = b"PK\x03\x04"
+
+
+# What zipfile raises for an archive or member it cannot read: a lying local header offset gives a
+# negative seek (ValueError), corrupt deflate or LZMA data a zlib.error or LZMAError (found
+# by fuzzing, 0.8.0).
+_MEMBER_ERRORS = (zipfile.BadZipFile, OSError, EOFError, NotImplementedError, RuntimeError, ValueError,
+                  zlib.error, lzma.LZMAError)
 
 
 class ZipRefused(Exception):
@@ -68,8 +76,8 @@ class SafeZip:
         self.max_ratio = max_ratio
         try:
             self._zf = zipfile.ZipFile(io.BytesIO(data))
-        except (zipfile.BadZipFile, ValueError, OSError) as exc:
-            raise ZipRefused(f"not a valid ZIP archive: {exc}") from exc
+        except _MEMBER_ERRORS as exc:  # also an unknown "version needed" (NotImplementedError)
+            raise ZipRefused(f"not a valid ZIP archive: {type(exc).__name__}: {exc}") from exc
 
         infos = self._zf.infolist()
         if len(infos) > max_members:
@@ -120,7 +128,7 @@ class SafeZip:
         try:
             with self._zf.open(info) as fh:
                 return fh.read(n)
-        except (zipfile.BadZipFile, OSError, EOFError, NotImplementedError, RuntimeError) as exc:
+        except _MEMBER_ERRORS as exc:
             raise ZipRefused(f"member {name!r} cannot be read: {exc}") from exc
 
     def read(self, name: str, *, ignore_crc: bool = False) -> bytes:
@@ -154,7 +162,7 @@ class SafeZip:
                     out += chunk
                     if len(out) > self.max_member_bytes:
                         raise ZipRefused(f"member {name!r} exceeds {self.max_member_bytes} bytes")
-        except (zipfile.BadZipFile, OSError, EOFError, NotImplementedError, RuntimeError) as exc:
+        except _MEMBER_ERRORS as exc:
             raise ZipRefused(f"member {name!r} cannot be read: {exc}") from exc
         if ignore_crc:
             computed = zlib.crc32(out) & 0xFFFFFFFF

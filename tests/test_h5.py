@@ -29,7 +29,7 @@ wasi = pytest.mark.wasi
 BENIGN = [
     "k2_sequential.h5", "k2_sequential_fixedstr.h5", "k2_functional_cnn.h5", "k2_functional_cnn_latest.h5",
     "k2_rnn_uncompiled.h5", "k2_weights_only.h5", "k2_many_layers.h5", "k3_sequential.h5",
-    "k3_sequential_latest.h5", "k3_lambda_benign.h5", "s_soft_link.h5", "s_hardlink_cycle.h5",
+    "k3_sequential_latest.h5", "s_soft_link.h5", "s_hardlink_cycle.h5",
 ]
 STRUCTURE = {
     "s_external_link.h5": "external link",
@@ -289,6 +289,13 @@ def test_benign_h5_models_are_clean(name):
 
 
 @wasi
+def test_benign_lambda_h5_is_risky_never_clean():
+    # Owner decision L1 (2026-10-22): Lambda bytecode is never CLEAN, whatever emulation saw.
+    report = scan(FIXTURES / "k3_lambda_benign.h5")
+    assert report.verdict is Verdict.SUSPICIOUS and report.category == "RISKY", report.reasons
+
+
+@wasi
 def test_cve_2024_3660_lambda_marker_is_malicious():
     report = scan(FIXTURES / "k2_lambda_marker.h5")
     assert report.verdict is Verdict.MALICIOUS
@@ -365,11 +372,11 @@ def test_scan_reads_hdf5_only_inside_the_sandbox(monkeypatch):
     assert tasks == ["h5_meta"]
 
 
-def test_missing_runtime_makes_h5_suspicious(tmp_path, monkeypatch):
+def test_missing_runtime_makes_h5_an_error(tmp_path, monkeypatch):
     monkeypatch.setenv(runtime.RUNTIME_ENV, str(tmp_path / "absent.wasm"))
     report = scan(FIXTURES / "k2_sequential.h5")
-    assert report.verdict is Verdict.SUSPICIOUS
-    assert any("sandbox unavailable" in r for r in report.reasons)
+    assert report.status == "error" and report.verdict is None and not report.clean
+    assert report.error["code"] == "E301" and "sandbox unavailable" in report.error["message"]
 
 
 @wasi

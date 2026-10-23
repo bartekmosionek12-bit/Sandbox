@@ -6,6 +6,7 @@ import base64
 import json
 import math
 
+from .. import errors
 from .host import GuestRun, Limits, run_guest
 
 
@@ -40,17 +41,21 @@ def read_h5_metadata(data: bytes, *, limits: Limits | None = None, reader_limits
     cleanly. The values are untrusted data, like the file itself."""
     task = {"kind": "h5_meta", "file": "model.h5", "limits": reader_limits or {}}
     run = run_guest(task, {"model.h5": data}, limits)
-    if run.status == "unavailable":
-        return {"failed": "WASI sandbox unavailable: " + "; ".join(run.problems), "unavailable": True}
     if run.tampered:
         return {"failed": "evidence channel tampered with during the HDF5 metadata read", "tampered": True}
-    if not run.completed or run.status != "ok":
-        return {"failed": f"HDF5 metadata reader did not complete (status {run.status}): "
-                          + "; ".join(run.problems[:5])}
+    failure = errors.guest_error(run.status, run.problems, layer="static")
+    if failure is not None:
+        # The sandbox, not the file, failed: a tool error (E3xx), never a verdict.
+        return {"failed": failure["message"], "tool_error": failure, "unavailable": run.status == "unavailable"}
     anomalies = [e for e in run.events if e.get("kind") == "anomaly"]
     if anomalies:
-        return {"failed": "HDF5 metadata reader raised: "
-                          + "; ".join(f"{a.get('error')}: {a.get('detail')}" for a in anomalies[:3])}
+        # The reader turns every structure it refuses into a "refused" summary; an exception
+        # that escapes it is a bug in the reader (E203), not a statement about the file.
+        detail = "; ".join(f"{a.get('error')}: {a.get('detail')}" for a in anomalies[:3])
+        return {"failed": "HDF5 metadata reader raised: " + detail,
+                "tool_error": errors.error("E203", detail)}
+    if not run.completed:
+        return {"failed": "HDF5 metadata reader did not complete: " + "; ".join(run.problems[:5])}
     metas = [e for e in run.events if e.get("kind") == "h5_meta"]
     if len(metas) != 1:
         return {"failed": f"HDF5 metadata reader sent {len(metas)} summaries"}

@@ -52,7 +52,9 @@ def test_missing_runtime_fails_closed(tmp_path, monkeypatch):
 
     monkeypatch.setattr(runtime, "locate", missing)
     report = scan(_write(tmp_path / "m.pkl", {"a": 1}))
-    assert report.verdict is Verdict.SUSPICIOUS
+    # The tool failed, not the file: ERROR (no verdict), never CLEAN.
+    assert report.status == "error" and report.verdict is None and not report.clean
+    assert report.error["code"] == "E301"
     assert report.layer("emulation").ran is False
 
 

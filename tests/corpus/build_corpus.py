@@ -87,7 +87,7 @@ def pickle_payloads() -> list[tuple[str, str, str, bytes]]:
         ("p_webbrowser.pkl", "network", MALICIOUS,
          P2 + call(g("webbrowser", "open"), s("http://127.0.0.1:9/MARKER")) + STOP),
         ("p_ctypes.pkl", "native", MALICIOUS, P2 + call(g("ctypes", "CDLL"), s("libc.so.6")) + STOP),
-        ("p_numpy_runstring.pkl", "code_exec", SUSPICIOUS,
+        ("p_numpy_runstring.pkl", "code_exec", MALICIOUS,
          P2 + call(g("numpy.testing._private.utils", "runstring"), s(f"import os; os.system('{MARKER_CMD}')"),
                    b"}") + STOP),
         ("p_unknown_global.pkl", "unknown_global", SUSPICIOUS, P2 + g("safeloadai_marker_pkg", "Thing") + STOP),
@@ -119,7 +119,7 @@ def bypass_payloads() -> list[tuple[str, str, str, bytes]]:
         # CVE-2025-1716 (picklescan): pip.main is not on its blocklist.
         ("x_pip_main.pkl", "bypass", MALICIOUS, P2 + call(g("pip", "main"), b"(" + s("--version") + b"l") + STOP),
         # Stdlib helpers that run a command and are missing from blocklists.
-        ("x_osx_support_read_output.pkl", "bypass", SUSPICIOUS,
+        ("x_osx_support_read_output.pkl", "bypass", MALICIOUS,
          P2 + call(g("_osx_support", "_read_output"), s(MARKER_CMD)) + STOP),
         ("x_pydoc_pipepager.pkl", "bypass", MALICIOUS,
          P2 + call(g("pydoc", "pipepager"), s("MARKER"), s(MARKER_CMD)) + STOP),
@@ -138,6 +138,33 @@ def bypass_payloads() -> list[tuple[str, str, str, bytes]]:
         ("x_zip_flag_bits.pt", "bypass", SUSPICIOUS, _zip_flag_bits(_torch_zip(evil))),
         # CVE-2025-1889 (picklescan): a pickle hidden in a member without a .pkl name.
         ("x_zip_hidden_pickle.pt", "bypass", SUSPICIOUS, _torch_zip(P2 + b"}" + STOP, extra={"archive/data/0": evil})),
+        # safeloadai 0.7.0 (fixed in 0.7.1): a BUILD state stores a library function as the
+        # object's __setstate__, and a second BUILD calls it with an argument of the file's.
+        *_stored_setstate_payloads(),
+    ]
+
+
+def _stored_setstate(target: bytes, func: bytes, arg: str, slot: bool = False) -> bytes:
+    state = b"}" + s("__setstate__") + func + b"s"
+    state = b"N" + state + b"\x86" if slot else state
+    return P2 + target + state + b"b" + s(arg) + b"b" + STOP
+
+
+def _stored_setstate_payloads() -> list[tuple[str, str, str, bytes]]:
+    estimator = g("sklearn.linear_model._logistic", "LogisticRegression") + b")\x81"
+    ordered = g("collections", "OrderedDict") + b")R"
+    remove = g("sklearn.datasets._lfw", "remove")  # os.remove, re-exported
+    return [
+        ("x_setstate_estimator_remove.pkl", "bypass", MALICIOUS, _stored_setstate(estimator, remove, MARKER_FILE)),
+        ("x_setstate_ordereddict_remove.pkl", "bypass", MALICIOUS, _stored_setstate(ordered, remove, MARKER_FILE)),
+        ("x_setstate_slotstate_remove.pkl", "bypass", MALICIOUS,
+         _stored_setstate(estimator, remove, MARKER_FILE, slot=True)),
+        ("x_setstate_rmtree.pkl", "bypass", MALICIOUS,
+         _stored_setstate(ordered, g("keras.src.utils.file_utils", "rmtree"), MARKER_FILE)),
+        # the same shape with a function no list names: the pattern itself is the finding
+        ("x_setstate_policy_class.pkl", "bypass", SUSPICIOUS,
+         _stored_setstate(g("sklearn.ensemble._voting", "VotingRegressor") + b")\x81",
+                          g("sklearn.metrics._ranking", "average_precision_score"), "MARKER")),
     ]
 
 
@@ -261,8 +288,9 @@ LAMBDAS = {
     "k_lambda_introspection.keras": ("evasion", SUSPICIOUS,
                                      "lambda x: ().__class__.__bases__[0].__subclasses__() and x"),
     "k_lambda_unknown_global.keras": ("missing_stub", SUSPICIOUS, "lambda x: helper_not_defined(x)"),
-    "b_lambda_scale.keras": ("benign", CLEAN, "lambda x: x * 2.0 + 1.0"),
-    "b_lambda_relu.keras": ("benign", CLEAN, "lambda x: tf.nn.relu(x)"),
+    # benign code, but code: never CLEAN (owner decision L1, 2026-10-22)
+    "b_lambda_scale.keras": ("benign", SUSPICIOUS, "lambda x: x * 2.0 + 1.0"),
+    "b_lambda_relu.keras": ("benign", SUSPICIOUS, "lambda x: tf.nn.relu(x)"),
 }
 
 

@@ -113,7 +113,7 @@ file, if you may share it).
 | `E301` | WASI sandbox unavailable (runtime missing, wasmtime missing) | run `safeloadai doctor` |
 | `E302` | WASI sandbox crashed (wasm trap, non-zero exit, runner failure) | report it if it repeats |
 | `E303` | WASI sandbox timed out (wall-clock limit) | retry on a less loaded machine |
-| `E304` | WASI sandbox ran out of its compute budget (fuel) | report it with the file's sha256 |
+| `E304` | WASI sandbox ran out of its compute budget (fuel). By default the budget grows with the pickle data and its opcode count, up to 250 billion fuel, 120 s and 2 GiB of guest memory | the file asks for more work than the ceiling allows; report it with the file's sha256 |
 | `E310` | deep sandbox did not run (no backend, no detoner for the format, no result) | see `--deep` in docs/OPTIONS.md |
 | `E311` | deep sandbox timed out | |
 

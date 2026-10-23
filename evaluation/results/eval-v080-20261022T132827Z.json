@@ -326002,5 +326002,34 @@
     }
   ],
   "relabelled_from": "merged-after.json",
-  "comparison_note": "A detailed per-format comparison is withheld until coordinated disclosure with the affected projects is complete."
+  "comparison_note": "A detailed per-format comparison is withheld until coordinated disclosure with the affected projects is complete.",
+  "summary_without_poc_rule": {
+    "picklescan": {
+      "malicious": 902,
+      "benign": 3817,
+      "detected": 750,
+      "false_positives": 29,
+      "errors": 389,
+      "unsupported": 0,
+      "skipped": 0
+    },
+    "fickling": {
+      "malicious": 902,
+      "benign": 3817,
+      "detected": 737,
+      "false_positives": 1487,
+      "errors": 2496,
+      "unsupported": 0,
+      "skipped": 0
+    },
+    "modelscan": {
+      "malicious": 902,
+      "benign": 3817,
+      "detected": 691,
+      "false_positives": 41,
+      "errors": 6,
+      "unsupported": 654,
+      "skipped": 622
+    }
+  }
 }

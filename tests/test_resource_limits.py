@@ -100,3 +100,15 @@ def test_opcode_records_are_bounded_but_every_opcode_is_counted(monkeypatch):
     report = pickle_static.parse_pickle(pickle.dumps(list(range(500)), protocol=2), "m.pkl")
     assert len(report["opcodes"]) == 50
     assert sum(report["opcode_counts"].values()) > 50
+
+
+def test_memory_error_in_the_walker_is_a_resource_limit_not_a_walker_bug(monkeypatch):
+    from safeloadai.static import pickle_vm
+
+    def boom(self, *args, **kwargs):
+        raise MemoryError
+
+    monkeypatch.setattr(pickle_vm.Machine, "run_one", boom)
+    report = static_mod.analyze_bytes(pickle.dumps([1, 2, 3]), "m.pkl")
+    assert [e["code"] for e in report["tool_errors"]] == ["E105"]
+    assert "no pickle found" not in report["reasons"]

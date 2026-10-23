@@ -8,7 +8,9 @@ This script rewrites results files in place:
 
 * JSON: each file's ``results`` keeps only the safeloadai columns; ``groups`` keeps only
   safeloadai; ``summary`` keeps every tool's totals but drops their per-format and
-  per-library breakdowns; a ``comparison_note`` says what was left out.
+  per-library breakdowns; ``summary_without_poc_rule`` keeps their totals without the
+  repository-name PoC rule (make_evaluation_doc.py); a ``comparison_note`` says what was
+  left out.
 * Markdown run reports (``eval-*.md``): the first table (all files) is kept as it is; in
   every other table, rows for another scanner and columns named after one are removed.
 
@@ -32,14 +34,20 @@ def own(tool: str) -> bool:
 
 
 def redact_run(run: dict) -> dict:
+    from make_evaluation_doc import totals, without_rule
+
+    # Totals without the repository-name PoC rule, while the per-file results are still here.
+    plain = without_rule(run.get("entries", []))
+    computed = {tool: totals(plain, tool) for tool in OTHER_TOOLS}
+    run.setdefault("summary_without_poc_rule", {}).update({k: v for k, v in computed.items() if v})
     for entry in run.get("entries", []):
         entry["results"] = {k: v for k, v in entry.get("results", {}).items() if own(k)}
     if isinstance(run.get("groups"), dict):
         run["groups"] = {g: {t: v for t, v in per.items() if own(t)} for g, per in run["groups"].items()}
-    for tool, totals in (run.get("summary") or {}).items():
-        if not own(tool) and isinstance(totals, dict):
+    for tool, stats in (run.get("summary") or {}).items():
+        if not own(tool) and isinstance(stats, dict):
             for key in ("per_format", "per_library", "per_group"):
-                totals.pop(key, None)
+                stats.pop(key, None)
     run["comparison_note"] = NOTE
     return run
 

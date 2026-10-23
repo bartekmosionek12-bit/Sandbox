@@ -322,7 +322,7 @@ def parse_pickle(data: bytes, file_name: str = "<memory>", *, torch: bool = Fals
                 break
             if machine.stream.tell() == start or not legacy_torch:
                 break
-    except budget_mod.ResourceLimit:
+    except (budget_mod.ResourceLimit, MemoryError):
         raise
     except Exception as exc:  # noqa: BLE001 - any parse failure must surface
         problem = walk_problem(exc)

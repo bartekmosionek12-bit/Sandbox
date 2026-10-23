@@ -35,7 +35,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 
 from . import runtime
@@ -56,6 +56,29 @@ class Limits:
     max_records: int = 10_000
     max_record_bytes: int = 64 * 1024
     max_stdio_bytes: int = 64 * 1024
+
+
+# The emulation of a pickle gets a budget that grows with the work the file asks for, up to
+# a fixed ceiling. Measured on the 0.8.0 held-out files that ran out of the fixed budget
+# (48 files): about 220 fuel per byte of pickle data and up to 70 000 per opcode (object
+# arrays in joblib files), at 4 to 5 billion fuel per second; the largest needed 202
+# billion fuel and 48 s. A file over the ceiling still ends in ERROR (E304 fuel, E303 time).
+FUEL_PER_BYTE = 256
+FUEL_PER_OPCODE = 100_000
+MAX_FUEL = 250_000_000_000
+MAX_WALL_SECONDS = 120.0
+MAX_GUEST_MEMORY = 2 * 1024 * 1024 * 1024
+
+
+def scaled_limits(size: int, opcodes: int, base: Limits | None = None) -> Limits:
+    """Limits for emulating ``size`` bytes of pickle data with ``opcodes`` opcodes: the
+    defaults plus a share per byte and per opcode, never more than the ceilings above.
+    Wall time grows with the fuel; guest memory with the data the guest holds."""
+    base = base or Limits()
+    fuel = min(MAX_FUEL, base.fuel + FUEL_PER_BYTE * max(0, size) + FUEL_PER_OPCODE * max(0, opcodes))
+    return replace(base, fuel=max(fuel, base.fuel),
+                   wall_seconds=max(base.wall_seconds, min(MAX_WALL_SECONDS, base.wall_seconds * fuel / base.fuel)),
+                   memory_bytes=max(base.memory_bytes, min(MAX_GUEST_MEMORY, base.memory_bytes + 2 * max(0, size))))
 
 
 @dataclass

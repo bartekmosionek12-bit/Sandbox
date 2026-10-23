@@ -20,6 +20,7 @@ from .parsing import detect as detect_mod
 from .parsing.zipsafe import SafeZip, ZipRefused
 from .report import LayerResult, Report, Verdict, settle
 from .sandbox import Limits, RuntimeIntegrityError, emulate_keras_lambdas, emulate_pickle
+from .sandbox.host import scaled_limits
 from .static import clearance as clearance_mod
 from .static.torch_static import MAX_PICKLE_MEMBER_BYTES
 
@@ -44,6 +45,14 @@ def cleared_pairs(parser_report: dict) -> tuple[frozenset, frozenset]:
     return frozenset(allowed), frozenset(referenced - allowed)
 
 
+def _pickle_limits(limits: Limits | None, size: int, parser_report: dict) -> Limits:
+    """The limits the user chose, or by default limits that grow with the pickle data and its
+    opcode count up to fixed ceilings (sandbox.host.scaled_limits)."""
+    if limits is not None:
+        return limits
+    return scaled_limits(size, sum((parser_report.get("opcode_counts") or {}).values()))
+
+
 def emulation_layer(data: bytes, parser_report: dict, extra_allowed: frozenset,
                     limits: Limits | None = None) -> LayerResult:
     fmt = parser_report.get("file_format")
@@ -56,11 +65,12 @@ def emulation_layer(data: bytes, parser_report: dict, extra_allowed: frozenset,
             layer.raise_to(Verdict.SUSPICIOUS, "compressed joblib file could not be decompressed; nothing emulated")
             return layer
         run = emulate_pickle([stream], max_pickles=parser_report.get("pickle_count") or 1, joblib=True,
-                             limits=limits)
+                             limits=_pickle_limits(limits, len(stream), parser_report))
         return behaviour.classify(run, extra_allowed=extra_allowed, framework=False, referenced=referenced)
     if fmt == detect_mod.PICKLE:
         torch = _is_legacy_torch(parser_report)
-        run = emulate_pickle([data], max_pickles=parser_report.get("pickle_count") or 1, limits=limits)
+        run = emulate_pickle([data], max_pickles=parser_report.get("pickle_count") or 1,
+                             limits=_pickle_limits(limits, len(data), parser_report))
         return behaviour.classify(run, torch=torch, extra_allowed=extra_allowed, framework=False,
                                   referenced=referenced)
     if fmt == detect_mod.TORCH:
@@ -75,7 +85,8 @@ def emulation_layer(data: bytes, parser_report: dict, extra_allowed: frozenset,
             layer = LayerResult(name="emulation", verdict=Verdict.CLEAN, ran=False)
             layer.raise_to(Verdict.SUSPICIOUS, "torch archive without a pickle member")
             return layer
-        run = emulate_pickle(streams, max_pickles=1, limits=limits)
+        run = emulate_pickle(streams, max_pickles=1,
+                             limits=_pickle_limits(limits, sum(map(len, streams)), parser_report))
         return behaviour.classify(run, torch=True, extra_allowed=extra_allowed, framework=False,
                                   referenced=referenced)
     if fmt in (detect_mod.KERAS, detect_mod.H5):

@@ -177,20 +177,20 @@ Run of 2026-10-22, safeloadai 0.8.0, Python 3.13.16, in a disposable cloud conta
 
 **Benign held-out files** (hf-heldout: 496, hf-heldout2: 2806; no allowlist review looked at them). Benign files MALICIOUS in any configuration: 1.
 
-| set and configuration | CLEAN | soft block | hard block | UNSUPPORTED | ERROR | benign files | FPR on readable files [95 % CI] |
-|---|---|---|---|---|---|---|---|
-| hf-heldout, 0.7.1, default | 370 | 81 | 12 | 33 | 0 | 496 | 0.201 [0.167, 0.240] |
-| **hf-heldout, 0.8.0, default** | 379 | 73 | 10 | 33 | 1 | 496 | 0.180 [0.147, 0.217] |
-| hf-heldout, 0.7.1, `--trust-inert-from` | 370 | 81 | 12 | 33 | 0 | 496 | 0.201 [0.167, 0.240] |
-| **hf-heldout, 0.8.0, `--trust-inert-from`** | 379 | 73 | 10 | 33 | 1 | 496 | 0.180 [0.147, 0.217] |
-| hf-heldout, 0.7.1, upper bound (not recommended) | 451 | 0 | 12 | 33 | 0 | 496 | 0.026 [0.015, 0.045] |
-| **hf-heldout, 0.8.0, upper bound (not recommended)** | 452 | 0 | 10 | 33 | 1 | 496 | 0.022 [0.012, 0.039] |
-| hf-heldout2, 0.7.1, default | 2194 | 373 | 125 | 114 | 0 | 2806 | 0.185 [0.171, 0.200] |
-| **hf-heldout2, 0.8.0, default** | 2207 | 360 | 79 | 114 | 46 | 2806 | 0.166 [0.152, 0.181] |
-| hf-heldout2, 0.7.1, `--trust-inert-from` | 2194 | 375 | 123 | 114 | 0 | 2806 | 0.185 [0.171, 0.200] |
-| **hf-heldout2, 0.8.0, `--trust-inert-from`** | 2207 | 360 | 79 | 114 | 46 | 2806 | 0.166 [0.152, 0.181] |
-| hf-heldout2, 0.7.1, upper bound (not recommended) | 2567 | 0 | 125 | 114 | 0 | 2806 | 0.046 [0.039, 0.055] |
-| **hf-heldout2, 0.8.0, upper bound (not recommended)** | 2567 | 0 | 79 | 114 | 46 | 2806 | 0.030 [0.024, 0.037] |
+| set and configuration | CLEAN | soft block | hard block | UNSUPPORTED | ERROR | benign files | FPR on readable files [95 % CI] | benign files, without PoC rule | FPR, without PoC rule |
+|---|---|---|---|---|---|---|---|---|---|
+| hf-heldout, 0.7.1, default | 370 | 81 | 12 | 33 | 0 | 496 | 0.201 [0.167, 0.240] | 500 | 0.206 [0.171, 0.245] |
+| **hf-heldout, 0.8.0, default** | 379 | 73 | 10 | 33 | 1 | 496 | 0.180 [0.147, 0.217] | 500 | 0.185 [0.152, 0.222] |
+| hf-heldout, 0.7.1, `--trust-inert-from` | 370 | 81 | 12 | 33 | 0 | 496 | 0.201 [0.167, 0.240] | 500 | 0.206 [0.171, 0.245] |
+| **hf-heldout, 0.8.0, `--trust-inert-from`** | 379 | 73 | 10 | 33 | 1 | 496 | 0.180 [0.147, 0.217] | 500 | 0.185 [0.152, 0.222] |
+| hf-heldout, 0.7.1, upper bound (not recommended) | 451 | 0 | 12 | 33 | 0 | 496 | 0.026 [0.015, 0.045] | 500 | 0.032 [0.020, 0.052] |
+| **hf-heldout, 0.8.0, upper bound (not recommended)** | 452 | 0 | 10 | 33 | 1 | 496 | 0.022 [0.012, 0.039] | 500 | 0.028 [0.016, 0.047] |
+| hf-heldout2, 0.7.1, default | 2194 | 373 | 125 | 114 | 0 | 2806 | 0.185 [0.171, 0.200] | 2814 | 0.187 [0.173, 0.202] |
+| **hf-heldout2, 0.8.0, default** | 2207 | 360 | 79 | 114 | 46 | 2806 | 0.166 [0.152, 0.181] | 2814 | 0.168 [0.154, 0.183] |
+| hf-heldout2, 0.7.1, `--trust-inert-from` | 2194 | 375 | 123 | 114 | 0 | 2806 | 0.185 [0.171, 0.200] | 2814 | 0.187 [0.173, 0.202] |
+| **hf-heldout2, 0.8.0, `--trust-inert-from`** | 2207 | 360 | 79 | 114 | 46 | 2806 | 0.166 [0.152, 0.181] | 2814 | 0.168 [0.154, 0.183] |
+| hf-heldout2, 0.7.1, upper bound (not recommended) | 2567 | 0 | 125 | 114 | 0 | 2806 | 0.046 [0.039, 0.055] | 2814 | 0.049 [0.041, 0.058] |
+| **hf-heldout2, 0.8.0, upper bound (not recommended)** | 2567 | 0 | 79 | 114 | 46 | 2806 | 0.030 [0.024, 0.037] | 2814 | 0.032 [0.026, 0.040] |
 
 What still blocks held-out files most often (by default; files that need the item): `xgboost.core.Booster` (106), `accelerate.utils.dataclasses.DeepSpeedPlugin` (37), `transformers.integrations.deepspeed.HfTrainerDeepSpeedConfig` (31), `transformers.integrations.deepspeed.HfDeepSpeedConfig` (26), `sklearn.compose._column_transformer._RemainderColsList` (25), `lightgbm.basic.Booster` (17).
 
@@ -304,9 +304,10 @@ non-CLEAN benign file, soft blocks included).
   numpy and scikit-learn, and runs their reconstruction code. You are trusting them.
 - **The WASI sandbox is only as strong as wasmtime** and a third-party CPython WASI
   build (pinned by sha256). Fuel bounds CPU and the host kills the process at the
-  wall-clock limit; large or slow models can hit the limits and are then ERROR (E303,
-  E304; never CLEAN).
-  Files up to 4 GiB are read into memory on the host.
+  wall-clock limit; both grow with the pickle up to fixed ceilings, and a model over
+  them is ERROR (E303, E304; never CLEAN).
+  Files up to 4 GiB are read into memory on the host; the static analysis on the host
+  holds at most a fixed budget more (E105 when a file asks for more).
 - **Deep mode (`--deep`, off) runs the real loader on the real kernel** in Docker,
   bubblewrap or nsjail. Docker shares the kernel; the nsjail flags have not been
   tested; a payload can print fake events, which can only raise the verdict. The Docker

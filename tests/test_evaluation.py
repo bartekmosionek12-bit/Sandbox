@@ -381,7 +381,29 @@ def test_malicious_only_section_counts_only_malicious_verdicts():
                _held("lab", "m2", "hard", "SUSPICIOUS", "malicious"),
                _held("lab", "b1", "soft", "SUSPICIOUS")]
     text = "\n".join(doc.malicious_only_section(entries))
-    assert "| lab | 2 / 2 | 1 / 2 | 1 / 1 | 0 / 1 | 0 |" in text
+    assert "| lab | 2 / 2 | 1 / 2 | 1 / 1 | 0 / 1 | 1 / 1 | 0 / 1 | 0 |" in text
+
+
+def _poc(group, file, block, verdict):
+    entry = _held(group, file, block, verdict, "unclear")
+    entry["label_reason"] = "repository name declares a proof of concept or scanner test; contents not reviewed"
+    return entry
+
+
+def test_every_label_table_is_also_given_without_the_poc_rule():
+    doc = _load("make_evaluation_doc")
+    entries = [_held("hf-heldout2", "a/x.pkl", "clean", "CLEAN"), _poc("hf-heldout2", "poc-x/y.pkl", "hard",
+                                                                       "MALICIOUS")]
+    plain = doc.without_rule(entries)
+    assert [e["label"] for e in plain] == ["benign", "benign"] and entries[1]["label"] == "unclear"
+    rows = doc.matrix_rows("hf-heldout2", entries)
+    assert rows[0].startswith("| hf-heldout2 | 0 | 0 | 0 | 1 |")
+    assert rows[1].startswith("| hf-heldout2, without PoC rule | 0 | 0 | 1 | 1 |")
+    held = "\n".join(doc.held_out_section(entries, None, "0.8.0"))
+    assert "| default | 1 | 0 | 0 | 0 | 0 | 1 | 0.000 [0.000, 0.793] | 2 | 0.500 [0.095, 0.905] |" in held
+    mal = "\n".join(doc.malicious_only_section(entries))
+    assert "| hf-heldout2 | - | - | 0 / 1 | 0 / 1 | 1 / 2 | 1 / 2 | 0 |" in mal
+    assert doc.rule_count(entries) == {"hf-heldout2": 1}
 
 
 def test_readme_block_replaces_only_the_marked_part():

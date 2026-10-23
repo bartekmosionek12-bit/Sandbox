@@ -26,6 +26,7 @@ Numbers from `evaluation/results/eval-v080-20261022T132827Z.json`: safeloadai 0.
 | hf-heldout | Benign Hub corpus, held-out half (never looked at while tuning) | same as hf-tune | 4 | 496 | 7 |
 | hf-heldout2 | Second benign held-out set: repositories no earlier corpus used, scanned in batches and deleted (`evaluation/batch_hf.py`); never used for tuning | benign by selection; files the Hub flags are unclear until reviewed by hand (`evaluation/hf_batches_labels.tsv`, rules in `evaluation/review_heldout2_labels.py`) | 1 | 2806 | 56 |
 | **all** | | | **902** | **3801** | **95** |
+| all, without PoC rule | | | 902 | 3817 | 79 |
 
 ### Files per group and format
 
@@ -54,6 +55,18 @@ Numbers from `evaluation/results/eval-v080-20261022T132827Z.json`: safeloadai 0.
 | torch_transformers | 98 | 152 | 750 |
 | torch_ultralytics | 27 | 33 | 179 |
 
+### Repository-name rule for proofs of concept
+
+A Hub file is benign by selection: it comes from a popular-library stratum and the Hub's scanners do not flag it. That says nothing about a repository whose name declares a vulnerability proof of concept or a scanner test (words such as `poc`, `exploit`, `bypass`, `malicious`, `rce`, `payload`, `huntr` between separators in the repository id; `evaluation/batch_hf.py: DECLARED_POC`). Such a file is labelled unclear instead of benign. The rule looks at the repository name only, never at a verdict, but it was written after the first pass over hf-heldout2, when its results were known, so it is not blind. Every table that depends on labels is therefore also given without the rule (rows or columns marked "without PoC rule"), where these files count as benign.
+
+| group | files the rule labels unclear |
+|---|---|
+| hf-unsafe | 3 |
+| hf-tune | 1 |
+| hf-heldout | 4 |
+| hf-heldout2 | 8 |
+| **all** | **16** |
+
 ### An honest note on the malicious side
 
 840 of the 902 malicious files (0.931) are our own lab payloads and their mutations. They are built to cover every technique we know of (public scanner bypasses rebuilt with marker payloads, every pickle encoding, every container), so they measure coverage of known techniques, not how often real attacks are caught. The real-world malicious files are the Hub files the Hub's scanners flag; there are few, many are proofs of concept rather than attacks, and their labels come from the Hub's evidence, not from ground truth. A recall of 1.0 on this corpus is therefore not a claim that safeloadai catches every attack: it says no file in this corpus got through.
@@ -62,11 +75,23 @@ Numbers from `evaluation/results/eval-v080-20261022T132827Z.json`: safeloadai 0.
 
 The benign Hub corpus is split in two by a hash of the repository id (`evaluation/fetch_benign_hf.py: split_of`), so every file of one repository is on the same side and a repository's sibling files cannot leak into the other half. Allowlist reviews, policies, profiles and the known-file list were built from the tune half only (`evaluation/splits/hf-tune.txt`). The held-out half (`evaluation/splits/hf-heldout.txt`) is the false-positive rate we report. A large gap between the two FPRs is what overfitting to the tune half looks like. hf-heldout2 is a second held-out set from repositories no earlier corpus used, measured once with the final release.
 
-| split | repositories | files | benign | FPR (safeloadai) [95 % CI] |
-|---|---|---|---|---|
-| hf-tune | 346 | 434 | 430 | 0.130 [0.100, 0.166] |
-| hf-heldout | 388 | 507 | 496 | 0.180 [0.147, 0.217] |
-| hf-heldout2 | 2290 | 2863 | 2806 | 0.166 [0.152, 0.181] |
+| split | repositories | files | benign | FPR (safeloadai) [95 % CI] | benign, without PoC rule | FPR, without PoC rule |
+|---|---|---|---|---|---|---|
+| hf-tune | 346 | 434 | 430 | 0.130 [0.100, 0.166] | 431 | 0.129 [0.100, 0.165] |
+| hf-heldout | 388 | 507 | 496 | 0.180 [0.147, 0.217] | 500 | 0.185 [0.152, 0.222] |
+| hf-heldout2 | 2290 | 2863 | 2806 | 0.166 [0.152, 0.181] | 2814 | 0.168 [0.154, 0.183] |
+
+### Bugs the held-out sets surfaced
+
+The held-out rule (nothing is tuned on held-out files) is about the allowlists, policies and the known-file list. Bugs in the code that the held-out files showed were fixed: each was reproduced on a synthetic file of our own (a marker, never the Hub file), fixed in general and covered by a test. For files of these kinds the held-out measurement is no longer blind.
+
+| kind | what was wrong | test |
+|---|---|---|
+| host memory | a large dill pickle made the static analysis on the host hold more than 13 GB (the listing for the dashboard); now bounded, and running out is ERROR E105 | `tests/test_resource_limits.py` |
+| cloudpickle | a function or class pickled by cloudpickle was MALICIOUS without any sink (`builtins.type`, `staticmethod` and cloudpickle's helpers were treated as sinks); now the path of dill functions and Keras Lambdas | `tests/test_cloudpickle.py` |
+| dill arrays | dill's `_create_array` (numpy array reconstruction) was a code-execution sink; now judged by its first argument | `tests/test_cloudpickle.py` |
+| dill globals | dill's `__builtin__.__main__` (the globals of a pickled function) was a sink | `tests/test_cloudpickle.py` |
+| emulation budget | large pickles ran out of the emulation's compute budget (ERROR E304); the budget now grows with the file, up to a fixed ceiling | `tests/test_emulation.py` |
 
 ## Confusion matrix per group
 
@@ -77,24 +102,28 @@ Precision depends on each group's mix of malicious and benign files. The benign 
 | tool | TP | FN | FP | TN | precision | recall [95 % CI] | FPR [95 % CI] | UNSUPPORTED | ERROR | skipped |
 |---|---|---|---|---|---|---|---|---|---|---|
 | safeloadai | 902 | 0 | 576 | 3010 | 0.610 | 1.000 [0.996, 1.000] | 0.161 [0.149, 0.173] | 166 | 49 | 0 |
+| safeloadai, without PoC rule | 902 | 0 | 586 | 3016 | 0.606 | 1.000 [0.996, 1.000] | 0.163 [0.151, 0.175] | 166 | 49 | 0 |
 
 ### lab
 
 | tool | TP | FN | FP | TN | precision | recall [95 % CI] | FPR [95 % CI] | UNSUPPORTED | ERROR | skipped |
 |---|---|---|---|---|---|---|---|---|---|---|
 | safeloadai | 66 | 0 | 0 | 12 | 1.000 | 1.000 [0.945, 1.000] | 0.000 [0.000, 0.243] | 0 | 0 | 0 |
+| safeloadai, without PoC rule | 66 | 0 | 0 | 12 | 1.000 | 1.000 [0.945, 1.000] | 0.000 [0.000, 0.243] | 0 | 0 | 0 |
 
 ### mutations
 
 | tool | TP | FN | FP | TN | precision | recall [95 % CI] | FPR [95 % CI] | UNSUPPORTED | ERROR | skipped |
 |---|---|---|---|---|---|---|---|---|---|---|
 | safeloadai | 774 | 0 | 0 | 56 | 1.000 | 1.000 [0.995, 1.000] | 0.000 [0.000, 0.064] | 0 | 0 | 0 |
+| safeloadai, without PoC rule | 774 | 0 | 0 | 56 | 1.000 | 1.000 [0.995, 1.000] | 0.000 [0.000, 0.064] | 0 | 0 | 0 |
 
 ### hf-malicious
 
 | tool | TP | FN | FP | TN | precision | recall [95 % CI] | FPR [95 % CI] | UNSUPPORTED | ERROR | skipped |
 |---|---|---|---|---|---|---|---|---|---|---|
 | safeloadai | 49 | 0 | 1 | 0 | 0.980 | 1.000 [0.927, 1.000] | 1.000 [0.207, 1.000] | 0 | 0 | 0 |
+| safeloadai, without PoC rule | 49 | 0 | 1 | 0 | 0.980 | 1.000 [0.927, 1.000] | 1.000 [0.207, 1.000] | 0 | 0 | 0 |
 
 Unclear labels in this group: 25 (safeloadai positive on 11).
 
@@ -103,6 +132,7 @@ Unclear labels in this group: 25 (safeloadai positive on 11).
 | tool | TP | FN | FP | TN | precision | recall [95 % CI] | FPR [95 % CI] | UNSUPPORTED | ERROR | skipped |
 |---|---|---|---|---|---|---|---|---|---|---|
 | safeloadai | 5 | 0 | 0 | 0 | 1.000 | 1.000 [0.566, 1.000] | - | 0 | 0 | 0 |
+| safeloadai, without PoC rule | 5 | 0 | 0 | 3 | 1.000 | 1.000 [0.566, 1.000] | 0.000 [0.000, 0.562] | 0 | 0 | 0 |
 
 Unclear labels in this group: 6 (safeloadai positive on 2).
 
@@ -111,6 +141,7 @@ Unclear labels in this group: 6 (safeloadai positive on 2).
 | tool | TP | FN | FP | TN | precision | recall [95 % CI] | FPR [95 % CI] | UNSUPPORTED | ERROR | skipped |
 |---|---|---|---|---|---|---|---|---|---|---|
 | safeloadai | 3 | 0 | 53 | 356 | 0.054 | 1.000 [0.438, 1.000] | 0.130 [0.100, 0.166] | 19 | 2 | 0 |
+| safeloadai, without PoC rule | 3 | 0 | 53 | 357 | 0.054 | 1.000 [0.438, 1.000] | 0.129 [0.100, 0.165] | 19 | 2 | 0 |
 
 Unclear labels in this group: 1 (safeloadai positive on 0).
 
@@ -119,6 +150,7 @@ Unclear labels in this group: 1 (safeloadai positive on 0).
 | tool | TP | FN | FP | TN | precision | recall [95 % CI] | FPR [95 % CI] | UNSUPPORTED | ERROR | skipped |
 |---|---|---|---|---|---|---|---|---|---|---|
 | safeloadai | 4 | 0 | 83 | 379 | 0.046 | 1.000 [0.510, 1.000] | 0.180 [0.147, 0.217] | 33 | 1 | 0 |
+| safeloadai, without PoC rule | 4 | 0 | 86 | 380 | 0.044 | 1.000 [0.510, 1.000] | 0.185 [0.152, 0.222] | 33 | 1 | 0 |
 
 Unclear labels in this group: 7 (safeloadai positive on 6).
 
@@ -127,6 +159,7 @@ Unclear labels in this group: 7 (safeloadai positive on 6).
 | tool | TP | FN | FP | TN | precision | recall [95 % CI] | FPR [95 % CI] | UNSUPPORTED | ERROR | skipped |
 |---|---|---|---|---|---|---|---|---|---|---|
 | safeloadai | 1 | 0 | 439 | 2207 | 0.002 | 1.000 [0.207, 1.000] | 0.166 [0.152, 0.181] | 114 | 46 | 0 |
+| safeloadai, without PoC rule | 1 | 0 | 446 | 2208 | 0.002 | 1.000 [0.207, 1.000] | 0.168 [0.154, 0.183] | 114 | 46 | 0 |
 
 Unclear labels in this group: 56 (safeloadai positive on 49).
 
@@ -137,9 +170,13 @@ Every labelled file of the run, whatever its format; "detected" is any verdict o
 | tool | detected / malicious | false positives / benign | errors | unsupported | skipped |
 |---|---|---|---|---|---|
 | safeloadai | 902 / 902 | 742 / 3801 | 51 | 0 | 0 |
+| safeloadai, without PoC rule | 902 / 902 | 752 / 3817 | 51 | 0 | 0 |
 | picklescan | 750 / 902 | 29 / 3801 | 389 | 0 | 0 |
+| picklescan, without PoC rule | 750 / 902 | 29 / 3817 | 389 | 0 | 0 |
 | fickling | 737 / 902 | 1481 / 3801 | 2496 | 0 | 0 |
+| fickling, without PoC rule | 737 / 902 | 1487 / 3817 | 2496 | 0 | 0 |
 | modelscan | 691 / 902 | 41 / 3801 | 6 | 654 | 622 |
+| modelscan, without PoC rule | 691 / 902 | 41 / 3817 | 6 | 654 | 622 |
 
 A detailed per-format comparison is withheld until coordinated disclosure with the affected projects is complete.
 
@@ -148,38 +185,71 @@ A detailed per-format comparison is withheld until coordinated disclosure with t
 | group / format | TP | FN | FP | TN | precision | recall [95 % CI] | FPR [95 % CI] | UNSUPPORTED | ERROR | skipped |
 |---|---|---|---|---|---|---|---|---|---|---|
 | lab / h5 | 5 | 0 | 0 | 2 | 1.000 | 1.000 [0.566, 1.000] | 0.000 [0.000, 0.658] | 0 | 0 | 0 |
+| lab / h5, without PoC rule | 5 | 0 | 0 | 2 | 1.000 | 1.000 [0.566, 1.000] | 0.000 [0.000, 0.658] | 0 | 0 | 0 |
 | lab / joblib | 1 | 0 | 0 | 1 | 1.000 | 1.000 [0.207, 1.000] | 0.000 [0.000, 0.793] | 0 | 0 | 0 |
+| lab / joblib, without PoC rule | 1 | 0 | 0 | 1 | 1.000 | 1.000 [0.207, 1.000] | 0.000 [0.000, 0.793] | 0 | 0 | 0 |
 | lab / keras | 16 | 0 | 0 | 1 | 1.000 | 1.000 [0.806, 1.000] | 0.000 [0.000, 0.793] | 0 | 0 | 0 |
+| lab / keras, without PoC rule | 16 | 0 | 0 | 1 | 1.000 | 1.000 [0.806, 1.000] | 0.000 [0.000, 0.793] | 0 | 0 | 0 |
 | lab / pickle | 39 | 0 | 0 | 7 | 1.000 | 1.000 [0.910, 1.000] | 0.000 [0.000, 0.354] | 0 | 0 | 0 |
+| lab / pickle, without PoC rule | 39 | 0 | 0 | 7 | 1.000 | 1.000 [0.910, 1.000] | 0.000 [0.000, 0.354] | 0 | 0 | 0 |
 | lab / torch | 5 | 0 | 0 | 1 | 1.000 | 1.000 [0.566, 1.000] | 0.000 [0.000, 0.793] | 0 | 0 | 0 |
+| lab / torch, without PoC rule | 5 | 0 | 0 | 1 | 1.000 | 1.000 [0.566, 1.000] | 0.000 [0.000, 0.793] | 0 | 0 | 0 |
 | mutations / h5 | 12 | 0 | 0 | 0 | 1.000 | 1.000 [0.757, 1.000] | - | 0 | 0 | 0 |
+| mutations / h5, without PoC rule | 12 | 0 | 0 | 0 | 1.000 | 1.000 [0.757, 1.000] | - | 0 | 0 | 0 |
 | mutations / joblib | 72 | 0 | 0 | 24 | 1.000 | 1.000 [0.949, 1.000] | 0.000 [0.000, 0.138] | 0 | 0 | 0 |
+| mutations / joblib, without PoC rule | 72 | 0 | 0 | 24 | 1.000 | 1.000 [0.949, 1.000] | 0.000 [0.000, 0.138] | 0 | 0 | 0 |
 | mutations / keras | 12 | 0 | 0 | 0 | 1.000 | 1.000 [0.757, 1.000] | - | 0 | 0 | 0 |
+| mutations / keras, without PoC rule | 12 | 0 | 0 | 0 | 1.000 | 1.000 [0.757, 1.000] | - | 0 | 0 | 0 |
 | mutations / pickle | 618 | 0 | 0 | 16 | 1.000 | 1.000 [0.994, 1.000] | 0.000 [0.000, 0.194] | 0 | 0 | 0 |
+| mutations / pickle, without PoC rule | 618 | 0 | 0 | 16 | 1.000 | 1.000 [0.994, 1.000] | 0.000 [0.000, 0.194] | 0 | 0 | 0 |
 | mutations / torch | 60 | 0 | 0 | 16 | 1.000 | 1.000 [0.940, 1.000] | 0.000 [0.000, 0.194] | 0 | 0 | 0 |
+| mutations / torch, without PoC rule | 60 | 0 | 0 | 16 | 1.000 | 1.000 [0.940, 1.000] | 0.000 [0.000, 0.194] | 0 | 0 | 0 |
 | hf-malicious / h5 | 5 | 0 | 0 | 0 | 1.000 | 1.000 [0.566, 1.000] | - | 0 | 0 | 0 |
+| hf-malicious / h5, without PoC rule | 5 | 0 | 0 | 0 | 1.000 | 1.000 [0.566, 1.000] | - | 0 | 0 | 0 |
 | hf-malicious / joblib | 3 | 0 | 0 | 0 | 1.000 | 1.000 [0.438, 1.000] | - | 0 | 0 | 0 |
+| hf-malicious / joblib, without PoC rule | 3 | 0 | 0 | 0 | 1.000 | 1.000 [0.438, 1.000] | - | 0 | 0 | 0 |
 | hf-malicious / keras | 5 | 0 | 0 | 0 | 1.000 | 1.000 [0.566, 1.000] | - | 0 | 0 | 0 |
+| hf-malicious / keras, without PoC rule | 5 | 0 | 0 | 0 | 1.000 | 1.000 [0.566, 1.000] | - | 0 | 0 | 0 |
 | hf-malicious / pickle | 23 | 0 | 1 | 0 | 0.958 | 1.000 [0.857, 1.000] | 1.000 [0.207, 1.000] | 0 | 0 | 0 |
+| hf-malicious / pickle, without PoC rule | 23 | 0 | 1 | 0 | 0.958 | 1.000 [0.857, 1.000] | 1.000 [0.207, 1.000] | 0 | 0 | 0 |
 | hf-malicious / torch | 13 | 0 | 0 | 0 | 1.000 | 1.000 [0.772, 1.000] | - | 0 | 0 | 0 |
+| hf-malicious / torch, without PoC rule | 13 | 0 | 0 | 0 | 1.000 | 1.000 [0.772, 1.000] | - | 0 | 0 | 0 |
 | hf-unsafe / keras | 0 | 0 | 0 | 0 | - | - | - | 0 | 0 | 0 |
+| hf-unsafe / keras, without PoC rule | 0 | 0 | 0 | 0 | - | - | - | 0 | 0 | 0 |
 | hf-unsafe / pickle | 1 | 0 | 0 | 0 | 1.000 | 1.000 [0.207, 1.000] | - | 0 | 0 | 0 |
+| hf-unsafe / pickle, without PoC rule | 1 | 0 | 0 | 0 | 1.000 | 1.000 [0.207, 1.000] | - | 0 | 0 | 0 |
 | hf-unsafe / torch | 4 | 0 | 0 | 0 | 1.000 | 1.000 [0.510, 1.000] | - | 0 | 0 | 0 |
+| hf-unsafe / torch, without PoC rule | 4 | 0 | 0 | 3 | 1.000 | 1.000 [0.510, 1.000] | 0.000 [0.000, 0.562] | 0 | 0 | 0 |
 | hf-tune / h5 | 1 | 0 | 4 | 57 | 0.200 | 1.000 [0.207, 1.000] | 0.066 [0.026, 0.157] | 0 | 0 | 0 |
+| hf-tune / h5, without PoC rule | 1 | 0 | 4 | 57 | 0.200 | 1.000 [0.207, 1.000] | 0.066 [0.026, 0.157] | 0 | 0 | 0 |
 | hf-tune / joblib | 1 | 0 | 21 | 25 | 0.045 | 1.000 [0.207, 1.000] | 0.457 [0.322, 0.598] | 0 | 1 | 0 |
+| hf-tune / joblib, without PoC rule | 1 | 0 | 21 | 25 | 0.045 | 1.000 [0.207, 1.000] | 0.457 [0.322, 0.598] | 0 | 1 | 0 |
 | hf-tune / keras | 1 | 0 | 25 | 38 | 0.038 | 1.000 [0.207, 1.000] | 0.397 [0.285, 0.520] | 0 | 0 | 0 |
+| hf-tune / keras, without PoC rule | 1 | 0 | 25 | 39 | 0.038 | 1.000 [0.207, 1.000] | 0.391 [0.281, 0.513] | 0 | 0 | 0 |
 | hf-tune / pickle | 0 | 0 | 3 | 71 | 0.000 | - | 0.041 [0.014, 0.113] | 0 | 1 | 0 |
+| hf-tune / pickle, without PoC rule | 0 | 0 | 3 | 71 | 0.000 | - | 0.041 [0.014, 0.113] | 0 | 1 | 0 |
 | hf-tune / torch | 0 | 0 | 0 | 165 | - | - | 0.000 [0.000, 0.023] | 19 | 0 | 0 |
+| hf-tune / torch, without PoC rule | 0 | 0 | 0 | 165 | - | - | 0.000 [0.000, 0.023] | 19 | 0 | 0 |
 | hf-heldout / h5 | 2 | 0 | 9 | 73 | 0.182 | 1.000 [0.342, 1.000] | 0.110 [0.059, 0.196] | 0 | 0 | 0 |
+| hf-heldout / h5, without PoC rule | 2 | 0 | 10 | 74 | 0.167 | 1.000 [0.342, 1.000] | 0.119 [0.066, 0.205] | 0 | 0 | 0 |
 | hf-heldout / joblib | 1 | 0 | 19 | 17 | 0.050 | 1.000 [0.207, 1.000] | 0.528 [0.370, 0.680] | 0 | 1 | 0 |
+| hf-heldout / joblib, without PoC rule | 1 | 0 | 19 | 17 | 0.050 | 1.000 [0.207, 1.000] | 0.528 [0.370, 0.680] | 0 | 1 | 0 |
 | hf-heldout / keras | 0 | 0 | 24 | 46 | 0.000 | - | 0.343 [0.242, 0.460] | 0 | 0 | 0 |
+| hf-heldout / keras, without PoC rule | 0 | 0 | 26 | 46 | 0.000 | - | 0.361 [0.260, 0.476] | 0 | 0 | 0 |
 | hf-heldout / pickle | 1 | 0 | 14 | 40 | 0.067 | 1.000 [0.207, 1.000] | 0.259 [0.161, 0.389] | 0 | 0 | 0 |
+| hf-heldout / pickle, without PoC rule | 1 | 0 | 14 | 40 | 0.067 | 1.000 [0.207, 1.000] | 0.259 [0.161, 0.389] | 0 | 0 | 0 |
 | hf-heldout / torch | 0 | 0 | 17 | 203 | 0.000 | - | 0.077 [0.049, 0.120] | 33 | 0 | 0 |
+| hf-heldout / torch, without PoC rule | 0 | 0 | 17 | 203 | 0.000 | - | 0.077 [0.049, 0.120] | 33 | 0 | 0 |
 | hf-heldout2 / h5 | 1 | 0 | 15 | 424 | 0.062 | 1.000 [0.207, 1.000] | 0.034 [0.021, 0.056] | 0 | 0 | 0 |
+| hf-heldout2 / h5, without PoC rule | 1 | 0 | 19 | 424 | 0.050 | 1.000 [0.207, 1.000] | 0.043 [0.028, 0.066] | 0 | 0 | 0 |
 | hf-heldout2 / joblib | 0 | 0 | 67 | 127 | 0.000 | - | 0.345 [0.282, 0.415] | 0 | 9 | 0 |
+| hf-heldout2 / joblib, without PoC rule | 0 | 0 | 68 | 127 | 0.000 | - | 0.349 [0.285, 0.418] | 0 | 9 | 0 |
 | hf-heldout2 / keras | 0 | 0 | 123 | 257 | 0.000 | - | 0.324 [0.279, 0.372] | 0 | 0 | 0 |
+| hf-heldout2 / keras, without PoC rule | 0 | 0 | 125 | 258 | 0.000 | - | 0.326 [0.281, 0.375] | 0 | 0 | 0 |
 | hf-heldout2 / pickle | 0 | 0 | 114 | 234 | 0.000 | - | 0.328 [0.280, 0.379] | 5 | 37 | 0 |
+| hf-heldout2 / pickle, without PoC rule | 0 | 0 | 114 | 234 | 0.000 | - | 0.328 [0.280, 0.379] | 5 | 37 | 0 |
 | hf-heldout2 / torch | 0 | 0 | 120 | 1165 | 0.000 | - | 0.093 [0.079, 0.111] | 109 | 0 | 0 |
+| hf-heldout2 / torch, without PoC rule | 0 | 0 | 120 | 1165 | 0.000 | - | 0.093 [0.079, 0.111] | 109 | 0 | 0 |
 
 ## What a user meets on held-out benign files
 
@@ -193,42 +263,44 @@ A false positive is not one thing. A *soft block* has only UNVERIFIABLE reasons 
 
 The same 496 benign files (same commit and sha256) with safeloadai 0.7.1 (before) and 0.8.0 (after).
 
-| configuration | CLEAN | soft block | hard block | UNSUPPORTED | ERROR | benign files | FPR on readable files [95 % CI] |
-|---|---|---|---|---|---|---|---|
-| before: default | 370 | 81 | 12 | 33 | 0 | 496 | 0.201 [0.167, 0.240] |
-| **after: default** | 379 | 73 | 10 | 33 | 1 | 496 | 0.180 [0.147, 0.217] |
-| before: `--trust-inert-from` | 370 | 81 | 12 | 33 | 0 | 496 | 0.201 [0.167, 0.240] |
-| **after: `--trust-inert-from`** | 379 | 73 | 10 | 33 | 1 | 496 | 0.180 [0.147, 0.217] |
-| before: upper bound (not recommended) | 451 | 0 | 12 | 33 | 0 | 496 | 0.026 [0.015, 0.045] |
-| **after: upper bound (not recommended)** | 452 | 0 | 10 | 33 | 1 | 496 | 0.022 [0.012, 0.039] |
+| configuration | CLEAN | soft block | hard block | UNSUPPORTED | ERROR | benign files | FPR on readable files [95 % CI] | benign files, without PoC rule | FPR, without PoC rule |
+|---|---|---|---|---|---|---|---|---|---|
+| before: default | 370 | 81 | 12 | 33 | 0 | 496 | 0.201 [0.167, 0.240] | 500 | 0.206 [0.171, 0.245] |
+| **after: default** | 379 | 73 | 10 | 33 | 1 | 496 | 0.180 [0.147, 0.217] | 500 | 0.185 [0.152, 0.222] |
+| before: `--trust-inert-from` | 370 | 81 | 12 | 33 | 0 | 496 | 0.201 [0.167, 0.240] | 500 | 0.206 [0.171, 0.245] |
+| **after: `--trust-inert-from`** | 379 | 73 | 10 | 33 | 1 | 496 | 0.180 [0.147, 0.217] | 500 | 0.185 [0.152, 0.222] |
+| before: upper bound (not recommended) | 451 | 0 | 12 | 33 | 0 | 496 | 0.026 [0.015, 0.045] | 500 | 0.032 [0.020, 0.052] |
+| **after: upper bound (not recommended)** | 452 | 0 | 10 | 33 | 1 | 496 | 0.022 [0.012, 0.039] | 500 | 0.028 [0.016, 0.047] |
 
 ### hf-heldout2
 
 The same 2806 benign files (same commit and sha256) with safeloadai 0.7.1 (before) and 0.8.0 (after).
 
-| configuration | CLEAN | soft block | hard block | UNSUPPORTED | ERROR | benign files | FPR on readable files [95 % CI] |
-|---|---|---|---|---|---|---|---|
-| before: default | 2194 | 373 | 125 | 114 | 0 | 2806 | 0.185 [0.171, 0.200] |
-| **after: default** | 2207 | 360 | 79 | 114 | 46 | 2806 | 0.166 [0.152, 0.181] |
-| before: `--trust-inert-from` | 2194 | 375 | 123 | 114 | 0 | 2806 | 0.185 [0.171, 0.200] |
-| **after: `--trust-inert-from`** | 2207 | 360 | 79 | 114 | 46 | 2806 | 0.166 [0.152, 0.181] |
-| before: upper bound (not recommended) | 2567 | 0 | 125 | 114 | 0 | 2806 | 0.046 [0.039, 0.055] |
-| **after: upper bound (not recommended)** | 2567 | 0 | 79 | 114 | 46 | 2806 | 0.030 [0.024, 0.037] |
+| configuration | CLEAN | soft block | hard block | UNSUPPORTED | ERROR | benign files | FPR on readable files [95 % CI] | benign files, without PoC rule | FPR, without PoC rule |
+|---|---|---|---|---|---|---|---|---|---|
+| before: default | 2194 | 373 | 125 | 114 | 0 | 2806 | 0.185 [0.171, 0.200] | 2814 | 0.187 [0.173, 0.202] |
+| **after: default** | 2207 | 360 | 79 | 114 | 46 | 2806 | 0.166 [0.152, 0.181] | 2814 | 0.168 [0.154, 0.183] |
+| before: `--trust-inert-from` | 2194 | 375 | 123 | 114 | 0 | 2806 | 0.185 [0.171, 0.200] | 2814 | 0.187 [0.173, 0.202] |
+| **after: `--trust-inert-from`** | 2207 | 360 | 79 | 114 | 46 | 2806 | 0.166 [0.152, 0.181] | 2814 | 0.168 [0.154, 0.183] |
+| before: upper bound (not recommended) | 2567 | 0 | 125 | 114 | 0 | 2806 | 0.046 [0.039, 0.055] | 2814 | 0.049 [0.041, 0.058] |
+| **after: upper bound (not recommended)** | 2567 | 0 | 79 | 114 | 46 | 2806 | 0.030 [0.024, 0.037] | 2814 | 0.032 [0.026, 0.040] |
 
 ## `--malicious-only`
 
 `safeloadai scan --malicious-only` blocks only a MALICIOUS verdict (exit 1); SUSPICIOUS, CLEAN and UNSUPPORTED pass. The verdict is the same as by default, so these numbers come from the same scans. Detection: malicious files blocked; FP: benign files blocked. ERROR exits 4 or 6 in both modes and is counted apart.
 
-| group | detection, default | detection, --malicious-only | FP, default | FP, --malicious-only | errors |
-|---|---|---|---|---|---|
-| lab | 66 / 66 | 55 / 66 | 0 / 12 | 0 / 12 | 0 |
-| mutations | 774 / 774 | 774 / 774 | 0 / 56 | 0 / 56 | 0 |
-| hf-malicious | 49 / 49 | 49 / 49 | 1 / 1 | 0 / 1 | 0 |
-| hf-unsafe | 5 / 5 | 5 / 5 | - | - | 0 |
-| hf-tune | 3 / 3 | 3 / 3 | 72 / 430 | 0 / 430 | 2 |
-| hf-heldout | 4 / 4 | 4 / 4 | 116 / 496 | 0 / 496 | 1 |
-| hf-heldout2 | 1 / 1 | 1 / 1 | 553 / 2806 | 1 / 2806 | 46 |
-| **all** | 902 / 902 | 891 / 902 | 742 / 3801 | 1 / 3801 | 49 |
+| group | detection, default | detection, --malicious-only | FP, default | FP, --malicious-only | FP, default, without PoC rule | FP, --malicious-only, without PoC rule | errors |
+|---|---|---|---|---|---|---|---|
+| lab | 66 / 66 | 55 / 66 | 0 / 12 | 0 / 12 | 0 / 12 | 0 / 12 | 0 |
+| mutations | 774 / 774 | 774 / 774 | 0 / 56 | 0 / 56 | 0 / 56 | 0 / 56 | 0 |
+| hf-malicious | 49 / 49 | 49 / 49 | 1 / 1 | 0 / 1 | 1 / 1 | 0 / 1 | 0 |
+| hf-unsafe | 5 / 5 | 5 / 5 | - | - | 0 / 3 | 0 / 3 | 0 |
+| hf-tune | 3 / 3 | 3 / 3 | 72 / 430 | 0 / 430 | 72 / 431 | 0 / 431 | 2 |
+| hf-heldout | 4 / 4 | 4 / 4 | 116 / 496 | 0 / 496 | 119 / 500 | 0 / 500 | 1 |
+| hf-heldout2 | 1 / 1 | 1 / 1 | 553 / 2806 | 1 / 2806 | 560 / 2814 | 5 / 2814 | 46 |
+| **all** | 902 / 902 | 891 / 902 | 742 / 3801 | 1 / 3801 | 752 / 3817 | 5 / 3817 | 49 |
+
+Malicious-labelled files that `--malicious-only` lets through (SUSPICIOUS by default): 11 (lab: 11). A per-file account is kept with the private results.
 
 ## Limits of this evaluation
 

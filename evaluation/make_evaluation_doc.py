@@ -65,6 +65,11 @@ LABEL_ORIGIN = {
                    "(`evaluation/hf_batches_labels.tsv`, rules in `evaluation/review_heldout2_labels.py`)",
 }
 POSITIVE = {"SUSPICIOUS", "MALICIOUS"}
+# batch_hf.declared_poc: a benign-by-selection file from a repository whose name declares a
+# proof of concept or a scanner test is labelled unclear. Every label-dependent table is
+# also given without that rule (owner's decision of 2026-10-23).
+POC_REASON = "repository name declares a proof of concept"
+NO_RULE = "without PoC rule"
 
 
 def wilson(k: int, n: int, z: float = 1.96) -> str:
@@ -84,6 +89,15 @@ def ratio(k: int, n: int) -> str:
 def rate(k: int, n: int) -> str:
     """k/n with its interval, or "-" when there is nothing to measure."""
     return f"{ratio(k, n)} {wilson(k, n)}" if n else "-"
+
+
+def without_rule(entries: list[dict]) -> list[dict]:
+    """The entries with the repository-name rule undone: its files are benign again."""
+    return [dict(e, label="benign") if POC_REASON in (e.get("label_reason") or "") else e for e in entries]
+
+
+def rule_count(entries: list[dict]) -> Counter:
+    return Counter(e["group"] for e in entries if POC_REASON in (e.get("label_reason") or ""))
 
 
 def outcome(result: dict, own: bool) -> str:
@@ -130,6 +144,12 @@ def matrix_row(name: str, m: Counter) -> str:
             f"{rate(fp, fp + tn)} | {unsupported} | {errors} | {skipped} |")
 
 
+def matrix_rows(name: str, entries: list[dict], tool: str = "safeloadai") -> list[str]:
+    """The row with the PoC rule and the row without it."""
+    return [matrix_row(name, matrix(entries, tool)),
+            matrix_row(f"{name}, {NO_RULE}", matrix(without_rule(entries), tool))]
+
+
 MATRIX_HEAD = ("| {first} | TP | FN | FP | TN | precision | recall [95 % CI] | FPR [95 % CI] | UNSUPPORTED | "
                "ERROR | skipped |\n|---|---|---|---|---|---|---|---|---|---|---|")
 
@@ -159,19 +179,38 @@ def comparison(data: dict, tools: list[str]) -> list[str]:
     """Other scanners: one table over all files, from the run's totals, and nothing finer."""
     if not tools:
         return []
-    summary = data.get("summary") or {}
     lines = ["## Compared with other scanners (all files)", "",
              "Every labelled file of the run, whatever its format; \"detected\" is any verdict other than CLEAN "
              "(\"flagged\" for the other scanners). Errors, unsupported and skipped files are counted apart and are "
              "neither a detection nor a miss.", "",
              "| tool | detected / malicious | false positives / benign | errors | unsupported | skipped |",
              "|---|---|---|---|---|---|"]
+    summary = data.get("summary") or {}
+    # Other scanners' per-file results are withheld from the committed file, so their totals
+    # without the PoC rule come from redact_results.py, computed before the redaction.
+    plain = data.get("summary_without_poc_rule") or {}
     for tool in ["safeloadai", *tools]:
-        t = summary.get(tool)
-        if t:
-            lines.append(f"| {tool} | {t['detected']} / {t['malicious']} | {t['false_positives']} / {t['benign']} | "
-                         f"{t['errors']} | {t['unsupported']} | {t['skipped']} |")
+        for name, t in ((tool, summary.get(tool)),
+                        (f"{tool}, {NO_RULE}", plain.get(tool) or totals(without_rule(data["entries"]), tool))):
+            if t:
+                lines.append(f"| {name} | {t['detected']} / {t['malicious']} | {t['false_positives']} / "
+                             f"{t['benign']} | {t['errors']} | {t['unsupported']} | {t['skipped']} |")
     return lines + ["", COMPARISON_NOTE, ""]
+
+
+def totals(entries: list[dict], tool: str) -> dict | None:
+    """The all-files comparison for one tool, from the entries (run_eval.py's summary)."""
+    rows = [(e["label"], e["results"][tool]) for e in entries if tool in e["results"]]
+    if not rows:
+        return None
+    t = Counter(malicious=sum(label == "malicious" for label, _ in rows),
+                benign=sum(label == "benign" for label, _ in rows))
+    for label, result in rows:
+        t["detected"] += label == "malicious" and result.get("outcome") == "flagged"
+        t["false_positives"] += label == "benign" and result.get("outcome") == "flagged"
+    for key in ("error", "unsupported", "skipped"):
+        t[key + "s" if key == "error" else key] = sum(r.get("outcome") == key for _, r in rows)
+    return dict(t)
 
 
 def blocks_of(entries: list[dict], tool: str) -> Counter:
@@ -181,14 +220,22 @@ def blocks_of(entries: list[dict], tool: str) -> Counter:
                    for e in entries if e["label"] == "benign" and tool in e["results"])
 
 
-def blocks_row(name: str, c: Counter) -> str:
-    blocked, read = c["soft"] + c["hard"], c["clean"] + c["soft"] + c["hard"]
+def blocks_row(name: str, c: Counter, plain: Counter) -> str:
+    """One configuration with the PoC rule (``c``) and without it (``plain``)."""
+    def fpr(x: Counter) -> str:
+        return rate(x["soft"] + x["hard"], x["clean"] + x["soft"] + x["hard"])
+
     return (f"| {name} | " + " | ".join(str(c[b]) for b in BLOCKS) +
-            f" | {sum(c.values())} | {rate(blocked, read)} |")
+            f" | {sum(c.values())} | {fpr(c)} | {sum(plain.values())} | {fpr(plain)} |")
+
+
+def blocks_rows(name: str, entries: list[dict], tool: str) -> str:
+    return blocks_row(name, blocks_of(entries, tool), blocks_of(without_rule(entries), tool))
 
 
 BLOCKS_HEAD = ("| {first} | CLEAN | soft block | hard block | UNSUPPORTED | ERROR | benign files | "
-               "FPR on readable files [95 % CI] |\n|---|---|---|---|---|---|---|---|")
+               "FPR on readable files [95 % CI] | benign files, " + NO_RULE + " | FPR, " + NO_RULE + " |\n"
+               "|---|---|---|---|---|---|---|---|---|---|")
 
 
 def held_out_section(entries: list[dict], before: dict | None, version: str) -> list[str]:
@@ -214,11 +261,11 @@ def held_out_section(entries: list[dict], before: dict | None, version: str) -> 
                       f"sha256) with safeloadai {before['safeloadai']} (before) and {version} (after).", "",
                       BLOCKS_HEAD.format(first="configuration")]
             for tool, name in VARIANTS.items():
-                lines.append(blocks_row(f"before: {name}", blocks_of(prior, tool)))
-                lines.append(blocks_row(f"**after: {name}**", blocks_of(paired, tool)))
+                lines.append(blocks_rows(f"before: {name}", prior, tool))
+                lines.append(blocks_rows(f"**after: {name}**", paired, tool))
         else:
             lines += [BLOCKS_HEAD.format(first="configuration")]
-            lines += [blocks_row(name, blocks_of(rows, tool)) for tool, name in VARIANTS.items()]
+            lines += [blocks_rows(name, rows, tool) for tool, name in VARIANTS.items()]
         lines.append("")
     return lines
 
@@ -232,24 +279,37 @@ def malicious_only_section(entries: list[dict]) -> list[str]:
              "Detection: malicious files blocked; FP: benign files blocked. ERROR exits 4 or 6 in both modes and is "
              "counted apart.", "",
              "| group | detection, default | detection, --malicious-only | FP, default | FP, --malicious-only | "
-             "errors |", "|---|---|---|---|---|---|"]
+             f"FP, default, {NO_RULE} | FP, --malicious-only, {NO_RULE} | errors |",
+             "|---|---|---|---|---|---|---|---|"]
     for group, rows in [*by_group(entries).items(), ("all", entries)]:
-        c = Counter()
-        for e in rows:
-            label, result = e["label"], e["results"]["safeloadai"]
-            if label not in ("malicious", "benign"):
-                continue
-            c[label] += 1
-            if result.get("outcome") == "error" or result.get("verdict") is None:
-                c["errors"] += 1
-                continue
-            c[label + "_default"] += result["verdict"] != "CLEAN"
-            c[label + "_binary"] += result["verdict"] == "MALICIOUS"
+        c, n = malicious_only_counts(rows), malicious_only_counts(without_rule(rows))
         name = "**all**" if group == "all" else group
         lines.append(f"| {name} | {frac(c['malicious_default'], c['malicious'])} | "
                      f"{frac(c['malicious_binary'], c['malicious'])} | {frac(c['benign_default'], c['benign'])} | "
-                     f"{frac(c['benign_binary'], c['benign'])} | {c['errors']} |")
+                     f"{frac(c['benign_binary'], c['benign'])} | {frac(n['benign_default'], n['benign'])} | "
+                     f"{frac(n['benign_binary'], n['benign'])} | {c['errors']} |")
+    passed = Counter(e["group"] for e in entries if e["label"] == "malicious"
+                     and e["results"]["safeloadai"].get("verdict") not in ("MALICIOUS", None))
+    if passed:
+        lines += ["", f"Malicious-labelled files that `--malicious-only` lets through (SUSPICIOUS by default): "
+                      f"{sum(passed.values())} (" + ", ".join(f"{g}: {passed[g]}" for g in GROUP_ORDER if passed[g])
+                  + "). A per-file account is kept with the private results."]
     return lines + [""]
+
+
+def malicious_only_counts(rows: list[dict]) -> Counter:
+    c = Counter()
+    for e in rows:
+        label, result = e["label"], e["results"]["safeloadai"]
+        if label not in ("malicious", "benign"):
+            continue
+        c[label] += 1
+        if result.get("outcome") == "error" or result.get("verdict") is None:
+            c["errors"] += 1
+            continue
+        c[label + "_default"] += result["verdict"] != "CLEAN"
+        c[label + "_binary"] += result["verdict"] == "MALICIOUS"
+    return c
 
 
 def skipped_note(data: dict) -> list[str]:
@@ -261,6 +321,52 @@ def skipped_note(data: dict) -> list[str]:
             "safeloadai ran out of memory) and are left out of every table: " +
             ", ".join(f"`{r['file']}` ({r['size'] // 2 ** 20} MiB)" for r in rows) +
             ". Peak memory on large pickles is a known issue."]
+
+
+def poc_rule_section(entries: list[dict]) -> list[str]:
+    counts = rule_count(entries)
+    if not counts:
+        return []
+    return ["", "### Repository-name rule for proofs of concept", "",
+            "A Hub file is benign by selection: it comes from a popular-library stratum and the Hub's scanners do "
+            "not flag it. That says nothing about a repository whose name declares a vulnerability proof of "
+            "concept or a scanner test (words such as `poc`, `exploit`, `bypass`, `malicious`, `rce`, `payload`, "
+            "`huntr` between separators in the repository id; `evaluation/batch_hf.py: DECLARED_POC`). Such a "
+            "file is labelled unclear instead of benign. The rule looks at the repository name only, never at a "
+            "verdict, but it was written after the first pass over hf-heldout2, when its results were known, so "
+            "it is not blind. Every table that depends on labels is therefore also given without the rule (rows "
+            f"or columns marked \"{NO_RULE}\"), where these files count as benign.", "",
+            "| group | files the rule labels unclear |", "|---|---|",
+            *[f"| {g} | {counts[g]} |" for g in GROUP_ORDER if counts[g]],
+            f"| **all** | **{sum(counts.values())}** |"]
+
+
+# Bugs in the code (not allowlist tuning) that the held-out sets surfaced in 0.8.0. Each was
+# reproduced on a synthetic file, fixed generally and tested (owner's decision of 2026-10-23).
+HELDOUT_BUGS = (
+    ("host memory", "a large dill pickle made the static analysis on the host hold more than 13 GB "
+                    "(the listing for the dashboard); now bounded, and running out is ERROR E105",
+     "tests/test_resource_limits.py"),
+    ("cloudpickle", "a function or class pickled by cloudpickle was MALICIOUS without any sink "
+                    "(`builtins.type`, `staticmethod` and cloudpickle's helpers were treated as sinks); now the "
+                    "path of dill functions and Keras Lambdas", "tests/test_cloudpickle.py"),
+    ("dill arrays", "dill's `_create_array` (numpy array reconstruction) was a code-execution sink; now judged "
+                    "by its first argument", "tests/test_cloudpickle.py"),
+    ("dill globals", "dill's `__builtin__.__main__` (the globals of a pickled function) was a sink",
+     "tests/test_cloudpickle.py"),
+    ("emulation budget", "large pickles ran out of the emulation's compute budget (ERROR E304); the budget now "
+                         "grows with the file, up to a fixed ceiling", "tests/test_emulation.py"),
+)
+
+
+def heldout_bugs_section() -> list[str]:
+    return ["", "### Bugs the held-out sets surfaced", "",
+            "The held-out rule (nothing is tuned on held-out files) is about the allowlists, policies and the "
+            "known-file list. Bugs in the code that the held-out files showed were fixed: each was reproduced on "
+            "a synthetic file of our own (a marker, never the Hub file), fixed in general and covered by a test. "
+            "For files of these kinds the held-out measurement is no longer blind.", "",
+            "| kind | what was wrong | test |", "|---|---|---|",
+            *[f"| {kind} | {what} | `{test}` |" for kind, what, test in HELDOUT_BUGS]]
 
 
 def frac(k: int, n: int) -> str:
@@ -306,6 +412,8 @@ def render(data: dict, source: str, before: dict | None = None) -> str:
                      f"{labels['malicious']} | {labels['benign']} | {labels['unclear']} |")
     total = Counter(e["label"] for e in entries)
     lines.append(f"| **all** | | | **{total['malicious']}** | **{total['benign']}** | **{total['unclear']}** |")
+    plain = Counter(e["label"] for e in without_rule(entries))
+    lines.append(f"| all, {NO_RULE} | | | {plain['malicious']} | {plain['benign']} | {plain['unclear']} |")
 
     formats = sorted({e["format"] for e in entries})
     lines += ["", "### Files per group and format", "",
@@ -324,6 +432,7 @@ def render(data: dict, source: str, before: dict | None = None) -> str:
             lines.append(f"| {lib} | " + " | ".join(
                 str(sum(1 for e in groups[g] if (e.get("library") or "-") == lib)) for g in benign_groups) + " |")
 
+    lines += poc_rule_section(entries)
     own_made = sum(1 for e in entries if e["label"] == "malicious" and e["group"] in ("lab", "mutations"))
     lines += [
         "",
@@ -351,25 +460,27 @@ def render(data: dict, source: str, before: dict | None = None) -> str:
         "FPRs is what overfitting to the tune half looks like. hf-heldout2 is a second held-out set from "
         "repositories no earlier corpus used, measured once with the final release.",
         "",
-        "| split | repositories | files | benign | FPR (safeloadai) [95 % CI] |",
-        "|---|---|---|---|---|",
+        f"| split | repositories | files | benign | FPR (safeloadai) [95 % CI] | benign, {NO_RULE} | "
+        f"FPR, {NO_RULE} |",
+        "|---|---|---|---|---|---|---|",
     ]
     for group in benign_groups:
         rows = groups[group]
-        m = matrix(rows, "safeloadai")
+        m, n = matrix(rows, "safeloadai"), matrix(without_rule(rows), "safeloadai")
         repo_count = repos.get(group) or len({e.get("repo_id") or e["file"].rsplit("/", 1)[0] for e in rows})
         lines.append(f"| {group} | {repo_count} | {len(rows)} | "
-                     f"{sum(1 for e in rows if e['label'] == 'benign')} | {rate(m['fp'], m['fp'] + m['tn'])} |")
+                     f"{sum(1 for e in rows if e['label'] == 'benign')} | {rate(m['fp'], m['fp'] + m['tn'])} | "
+                     f"{n['fp'] + n['tn'] + n['benign_unsupported'] + n['benign_error']} | "
+                     f"{rate(n['fp'], n['fp'] + n['tn'])} |")
 
+    lines += heldout_bugs_section()
     lines += ["", "## Confusion matrix per group", "",
               "Precision depends on each group's mix of malicious and benign files. The benign Hub groups hold "
               "only a handful of malicious files, so their precision says little; read their FPR. The lab, "
               "mutation and hf-malicious groups are mostly malicious; read their recall.", "",
-              "### all labelled files", "", MATRIX_HEAD.format(first="tool"),
-              matrix_row("safeloadai", matrix(entries, "safeloadai")), ""]
+              "### all labelled files", "", MATRIX_HEAD.format(first="tool"), *matrix_rows("safeloadai", entries), ""]
     for group, rows in groups.items():
-        lines += [f"### {group}", "", MATRIX_HEAD.format(first="tool"),
-                  matrix_row("safeloadai", matrix(rows, "safeloadai"))]
+        lines += [f"### {group}", "", MATRIX_HEAD.format(first="tool"), *matrix_rows("safeloadai", rows)]
         unclear = matrix(rows, "safeloadai")
         if unclear["unclear_positive"] or unclear["unclear_other"]:
             lines.append("")
@@ -381,8 +492,7 @@ def render(data: dict, source: str, before: dict | None = None) -> str:
     lines += ["## safeloadai per group and format", "", MATRIX_HEAD.format(first="group / format")]
     for group, rows in groups.items():
         for fmt in sorted({e["format"] for e in rows}):
-            lines.append(matrix_row(f"{group} / {fmt}", matrix([e for e in rows if e["format"] == fmt],
-                                                                "safeloadai")))
+            lines += matrix_rows(f"{group} / {fmt}", [e for e in rows if e["format"] == fmt])
 
     lines += [""] + held_out_section(entries, before, data["safeloadai"]) + malicious_only_section(entries) + [
         "## Limits of this evaluation",
@@ -424,7 +534,8 @@ def readme_block(data: dict, source: str, before: dict | None) -> str:
         cells = [frac(matrix(malicious, tool)["tp"], len(malicious)) for tool in VARIANTS]
         binary = sum(1 for e in malicious if e["results"]["safeloadai"].get("verdict") == "MALICIOUS")
         lines.append(f"| {group} | " + " | ".join(cells) + f" | {frac(binary, len(malicious))} |")
-    held = [e for e in entries if e["group"] in HELD_OUT and e["label"] == "benign"]
+    held_all = [e for e in entries if e["group"] in HELD_OUT]
+    held = [e for e in held_all if e["label"] == "benign"]
     worst = sum(1 for e in held if any((e["results"].get(t) or {}).get("verdict") == "MALICIOUS" for t in VARIANTS))
     sizes = Counter(e["group"] for e in held)
     lines += ["", "**Benign held-out files** (" + ", ".join(f"{g}: {sizes[g]}" for g in HELD_OUT if sizes[g]) +
@@ -432,17 +543,17 @@ def readme_block(data: dict, source: str, before: dict | None) -> str:
               BLOCKS_HEAD.format(first="set and configuration")]
     old = {(e["group"], e["file"]): e for e in (before or {}).get("entries", [])}
     for group in HELD_OUT:
-        rows = [e for e in held if e["group"] == group]
+        rows = [e for e in held_all if e["group"] == group]
         if not rows:
             continue
         if old:
             paired = [e for e in rows if (group, e["file"]) in old]
             prior = [old[(group, e["file"])] for e in paired]
             for tool, name in VARIANTS.items():
-                lines.append(blocks_row(f"{group}, {before['safeloadai']}, {name}", blocks_of(prior, tool)))
-                lines.append(blocks_row(f"**{group}, {data['safeloadai']}, {name}**", blocks_of(paired, tool)))
+                lines.append(blocks_rows(f"{group}, {before['safeloadai']}, {name}", prior, tool))
+                lines.append(blocks_rows(f"**{group}, {data['safeloadai']}, {name}**", paired, tool))
         else:
-            lines += [blocks_row(f"{group}, {name}", blocks_of(rows, tool)) for tool, name in VARIANTS.items()]
+            lines += [blocks_rows(f"{group}, {name}", rows, tool) for tool, name in VARIANTS.items()]
     missing = Counter(item for e in held if e["results"]["safeloadai"].get("block") in ("soft", "hard")
                       for item in set(e["results"]["safeloadai"].get("missing") or []))
     if missing:

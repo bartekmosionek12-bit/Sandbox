@@ -36,6 +36,7 @@ def analyze_bytes(data: bytes, file_name: str = "<memory>", extra_allowed: froze
     except (budget_mod.ResourceLimit, MemoryError) as exc:  # the scanner's availability, never a crash
         report = parse_pickle(b"", file_name, file_format=detect_mod.detect(data))
         report["tool_errors"].append(errors.error("E105", str(exc) or type(exc).__name__))
+        report["reasons"] = ["the static analysis stopped at its memory limit; the file was not fully read"]
         report["static_risk"] = "suspicious"
         return report
 

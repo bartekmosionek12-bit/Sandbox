@@ -299,7 +299,74 @@ ZERO_ARG_CLASSES = frozenset({
     ("ultralytics.utils", "IterableSimpleNamespace"),
     ("ultralytics.yolo.utils", "IterableSimpleNamespace"),
 })
-ARGUMENT_CHECKED = STATE_ONLY_CLASSES | ENUM_CLASSES | ZERO_ARG_CLASSES | {PANDAS_NEW_INDEX, DEFAULTDICT}
+
+# --- pandas objects, dabl estimators and a scikit-learn scorer (Phase 5 tune review) ----
+# evaluation/results/source-review-3-20261022.md: sources read from PyPI wheels and sdists
+# (pandas 1.4.4 and 3.1.0, dabl 0.2.6.2 and 0.3.2, scikit-learn 1.1.3 and 1.9.1), never
+# installed or imported. Enforced by pickle_static (_argument_check, _build_state_problem),
+# with an adversarial test per entry in tests/test_allowlist_review_20261022.py. Each form
+# below is the only one accepted; anything else stays SUSPICIOUS.
+PANDAS_DATAFRAME = ("pandas.core.frame", "DataFrame")
+PANDAS_SERIES = ("pandas.core.series", "Series")
+PANDAS_BLOCK_MANAGER = ("pandas.core.internals.managers", "BlockManager")
+PANDAS_SINGLE_BLOCK_MANAGER = ("pandas.core.internals.managers", "SingleBlockManager")
+PANDAS_UNPICKLE_BLOCK = ("pandas._libs.internals", "_unpickle_block")
+PANDAS_CATEGORICAL_DTYPE = ("pandas.core.dtypes.dtypes", "CategoricalDtype")
+SKLEARN_THRESHOLD_SCORER = ("sklearn.metrics._scorer", "_ThresholdScorer")
+# Score functions a scorer stores in _score_func: accepted only as that stored value,
+# never called and never passed to a call while loading (the scorer calls it later).
+SCORER_FUNCTIONS = frozenset({
+    ("sklearn.metrics._ranking", "average_precision_score"),  # numeric metric, 1.1.3 and 1.9.1
+})
+# The keys each class's own __getstate__ writes; its __setstate__ (or __dict__ update) sets
+# every key it is given, so a BUILD state with any other key is refused.
+BUILD_STATE_KEYS = {
+    # NDFrame.__getstate__/__setstate__ (pandas 1.4.4 generic.py:2107, 3.1.0 generic.py:2012):
+    # _mgr, _typ, _metadata, attrs, _flags and one key per _metadata name (Series: "name").
+    # __setstate__ sets each key with object.__setattr__ and builds Flags(self, **_flags).
+    PANDAS_DATAFRAME: frozenset({"_mgr", "_typ", "_metadata", "attrs", "_flags"}),
+    PANDAS_SERIES: frozenset({"_mgr", "_typ", "_metadata", "attrs", "_flags", "name"}),
+    # CategoricalDtype.__setstate__ pops "categories" and "ordered" into private attributes
+    # (pandas 1.4.4 dtypes.py:342, 3.1.0 dtypes.py:398)
+    PANDAS_CATEGORICAL_DTYPE: frozenset({"categories", "ordered"}),
+    # _BaseScorer.__init__(score_func, sign, kwargs) stores _score_func, _sign, _kwargs; no
+    # pickling hooks (scikit-learn 1.1.3 metrics/_scorer.py:144; the class is gone in 1.9.1,
+    # where importing it fails)
+    SKLEARN_THRESHOLD_SCORER: frozenset({"_kwargs", "_score_func", "_sign"}),
+}
+PANDAS_STATE_ONLY = frozenset({
+    # rebuilt by NEWOBJ () + BUILD; the state is checked against BUILD_STATE_KEYS and
+    # pickle_static._build_state_problem (what each key may hold)
+    PANDAS_DATAFRAME,
+    PANDAS_SERIES,
+    PANDAS_CATEGORICAL_DTYPE,
+    # BaseBlockManager.__getstate__ writes (axes, values, items, {"0.14.1": {"axes": [...],
+    # "blocks": [{"values", "mgr_locs"}]}}); __setstate__ reads only the "0.14.1" part, makes
+    # each axis an Index (ensure_index) and each block with new_block(values, mgr_locs, ndim)
+    # (pandas 1.4.4 managers.py:1764-1800, 3.1.0 managers.py:2118-2160). Accepted only with
+    # that tuple state, numpy arrays as values and slices as block locations.
+    PANDAS_SINGLE_BLOCK_MANAGER,
+})
+STATE_ONLY_CLASSES = STATE_ONLY_CLASSES | PANDAS_STATE_ONLY | frozenset({
+    # dabl 0.2.6.2 and 0.3.2: BaseEstimator subclasses with no pickling hooks, __setattr__,
+    # __getattr__ or properties (available_if descriptors only run on attribute access)
+    ("dabl.preprocessing", "EasyPreprocessor"),
+    ("dabl.models", "SimpleClassifier"),
+    ("dabl.models", "SimpleRegressor"),
+    SKLEARN_THRESHOLD_SCORER,
+})
+# Called only through REDUCE, each with its argument check in pickle_static._argument_check:
+# * BlockManager(blocks, axes): libinternals.BlockManager.__reduce__ returns (type(self),
+#   (self.blocks, self.axes)); __cinit__ stores the tuple and axes.copy() (pandas 1.4.4
+#   internals.pyx:677-742, 3.1.0 internals.pyx:745-864). Accepted: a tuple of blocks made by
+#   _unpickle_block and a list of two pandas Index objects.
+# * _unpickle_block(values, placement, ndim): Block.__reduce__ returns (_unpickle_block,
+#   (values, mgr_locs.indexer, ndim)); it calls new_block (1.4.4 internals.pyx:568, 3.1.0
+#   internals.pyx:629, which also calls maybe_coerce_values and BlockPlacement). Accepted: a
+#   numpy array, a slice or int, and ndim 1 or 2.
+PANDAS_CALLS = frozenset({PANDAS_BLOCK_MANAGER, PANDAS_UNPICKLE_BLOCK})
+ARGUMENT_CHECKED = (STATE_ONLY_CLASSES | ENUM_CLASSES | ZERO_ARG_CLASSES | PANDAS_CALLS | SCORER_FUNCTIONS
+                    | {PANDAS_NEW_INDEX, DEFAULTDICT})
 PICKLE_GLOBALS = PICKLE_GLOBALS | ARGUMENT_CHECKED
 
 # builtins.getattr is how pickle writes a bound method: getattr(obj, "name"). It is never
@@ -353,10 +420,25 @@ DANGEROUS_MODULES = frozenset({
     "http", "ftplib", "smtplib", "telnetlib", "requests", "antigravity", "tempfile",
     "io", "_io", "pathlib", "glob", "signal", "threading", "_thread",
 })
+# Library functions outside DANGEROUS_MODULES that run a string as code or a shell
+# command: known sinks (MALICIOUS), like os.system (0.8.0; they were RISKY before).
+EXEC_GADGETS = frozenset({
+    ("numpy.testing._private.utils", "runstring"),  # exec() of a string
+    ("_osx_support", "_read_output"),  # runs a shell command
+    ("_osx_support", "_find_build_tool"),  # runs a shell command
+})
+# Built-ins a pickled class is rebuilt with (cloudpickle's
+# _make_skeleton_class(type, ...), staticmethod, classmethod and property wrappers in the
+# class dict) and dill's ``__builtin__.__main__``, which dill's find_class maps to the
+# globals of the loading program. They build a class, wrap a function or hand over a
+# namespace; they run no code of their own, so they are not known sinks (0.8.0; they were
+# MALICIOUS as members of ``builtins``). Part of KNOWN_GADGETS: RISKY, never UNVERIFIABLE.
+CLASS_BUILDERS = frozenset({(m, n) for m in ("builtins", "__builtin__")
+                            for n in ("type", "staticmethod", "classmethod", "property", "__main__")})
 # Globals outside the two sets above that public scanner bypasses use to run code or to
-# call an argument (tests/corpus/build_corpus.py:bypass_payloads). They do not change the
-# verdict; they only keep the reason RISKY instead of UNVERIFIABLE, because the scanner
-# does know what they do, so no override can accept them.
+# call an argument (tests/corpus/build_corpus.py:bypass_payloads). EXEC_GADGETS are known
+# sinks; the others do not change the verdict, they only keep the reason RISKY instead of
+# UNVERIFIABLE, because the scanner does know what they do, so no override can accept them.
 KNOWN_GADGETS = frozenset({
     ("numpy.testing._private.utils", "runstring"),  # exec() of a string
     ("_osx_support", "_read_output"),  # runs a shell command
@@ -365,7 +447,7 @@ KNOWN_GADGETS = frozenset({
     ("functools", "reduce"),  # calls its first argument
     ("operator", "methodcaller"),  # calls a method by name
     ("operator", "attrgetter"),  # attribute access by name
-})
+}) | CLASS_BUILDERS
 
 # dill (0.3.8 and 0.4.1, dill/_dill.py; evaluation/results/source-review-2-20261019.md).
 # Helpers that import, eval, call an argument, read attributes by name, unmarshal or open
@@ -373,13 +455,37 @@ KNOWN_GADGETS = frozenset({
 DILL_MODULES = frozenset({"dill._dill", "dill.dill"})  # dill's find_class maps dill.dill to dill._dill
 DILL_SINKS = frozenset({
     "_import_module", "_eval_repr", "_getattr", "_get_attr", "_create_type", "_create_ftype",
-    "_create_array", "_unmarshal", "_create_filehandle", "_create_capsule", "_create_namedtuple",
+    "_unmarshal", "_create_filehandle", "_create_capsule", "_create_namedtuple",
 })
+# _create_array(f, args, state, npdict) is f(*args).__setstate__(state): dill's numpy
+# array. With f numpy's own _reconstruct it rebuilds an array and runs no code; with any
+# other f it calls that argument (pickle_static._dill_code: RISKY; f's own import is
+# judged like any other, so a sink there is MALICIOUS). It was a known sink before 0.8.0.
+DILL_ARRAY = "_create_array"
+ARRAY_RECONSTRUCTORS = frozenset({("numpy.core.multiarray", "_reconstruct"),
+                                  ("numpy._core.multiarray", "_reconstruct")})
 # Helpers a plain dill function or set is rebuilt with. _create_code/_create_function build
 # code (judged by pickle_static._dill_code: RISKY, MALICIOUS with sink names); _load_type is
 # a lookup in a fixed table; _create_cell and _setitems hold or copy data.
 DILL_CODE = frozenset({"_create_code", "_create_function"})
 DILL_DATA = frozenset({"_load_type", "_create_cell", "_setitems"})
+
+# cloudpickle (3.1, cloudpickle/cloudpickle.py). A function is written as
+# _make_function(_builtin_type("CodeType")(<fields>), globals, name, argdefs, closure) and
+# a class as _make_skeleton_class(type, name, bases, ...) with _class_setstate: the same
+# path as dill's functions (pickle_static._dill_code: RISKY, MALICIOUS with sink names;
+# the code is emulated). _builtin_type(name) is getattr(types, name), reviewed for
+# CLOUDPICKLE_TYPES; subimport(name) imports a module by name (judged by that name).
+CLOUDPICKLE_MODULES = frozenset({"cloudpickle.cloudpickle", "cloudpickle.cloudpickle_fast"})
+CLOUDPICKLE_CODE = frozenset({"_builtin_type", "_make_function", "_function_setstate",
+                              "_make_skeleton_class", "_class_setstate", "_make_skeleton_enum",
+                              "_enum_setstate"})
+CLOUDPICKLE_DATA = frozenset({"_make_empty_cell", "_make_cell", "_make_dict_keys", "_make_dict_values",
+                              "_make_dict_items", "_get_dataclass_field_type_sentinel",
+                              "_make_typevar", "dynamic_subimport"})
+CLOUDPICKLE_IMPORT = "subimport"
+CLOUDPICKLE_TYPES = frozenset({"CodeType", "CellType", "FunctionType", "LambdaType", "MethodType",
+                               "MappingProxyType", "ModuleType", "SimpleNamespace", "ClassType"})
 
 DANGEROUS_SYMBOLS = frozenset({
     "system", "popen", "spawn", "spawnl", "spawnv", "exec", "execv", "execve",

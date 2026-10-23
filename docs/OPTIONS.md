@@ -28,7 +28,7 @@ file is not used unless you name it.
 |---|---|---|---|
 | [`allow`](#allow) | `()` (none) | looser | high |
 | [`accept_unverified`](#accept_unverified) | `None` (none) | looser | medium |
-| [`trust_inert_from`](#trust_inert_from) | `()` (none) | looser | medium |
+| [`trust_inert_from`](#trust_inert_from) (experimental) | `()` (none) | looser | medium |
 | [`known_good`](#known_good) | `True` (shipped list used) | stricter when turned off | low |
 | [`deep`](#deep) | `False` | stricter (but runs the file's code) | high |
 | [`judge`](#judge) | `False` | stricter (but sends data out) | medium |
@@ -129,6 +129,8 @@ Every entry in `Report.options` looks like this:
      pickle, so no Python object is rebuilt. It is still parsed by libxgboost.
 
 ## `trust_inert_from`
+
+**Experimental.** In the 0.8.0 evaluation it changes no verdict: the evaluation names scikit-learn, transformers and torch at the pinned versions, and for those the option gives the same answer as the pinned policies that ship with safeloadai (point 7 below). It only changes a verdict for a distribution that is not pinned, or for a class that your installed version has and the pinned one does not; `tests/test_trust_inert_from.py` shows such a change.
 
 1. **What it does.** For each named distribution that is installed where the scan
    runs, it reads that distribution's own Python files and decides which of its classes

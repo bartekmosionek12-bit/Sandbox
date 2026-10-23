@@ -1,0 +1,15 @@
+# pre-commit hook: scan model files being committed, without loading them.
+#   repos:
+#     - repo: https://github.com/bartekmosionek12-bit/Sandbox
+#       rev: <tag or commit>
+#       hooks:
+#         - id: safeloadai
+# The commit fails on any verdict other than CLEAN (and on any ERROR); see docs/ERRORS.md.
+# Extra options go in "args" (for example [--config, safeloadai.toml]); each is announced.
+- id: safeloadai
+  name: safeloadai model scan
+  description: Scan pickle, joblib, PyTorch, Keras and HDF5 model files without loading them.
+  entry: safeloadai scan --no-input
+  language: python
+  files: '(?i)\.(pkl|pickle|joblib|pt|pth|bin|keras|h5|hdf5)$'
+  require_serial: true

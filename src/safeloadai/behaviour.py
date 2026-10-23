@@ -23,13 +23,21 @@ from . import errors, override
 from .report import Category, LayerResult, Verdict
 from .sandbox.host import GuestRun
 from .static.allowlists import (
+    ARRAY_RECONSTRUCTORS,
+    CLOUDPICKLE_CODE,
+    CLOUDPICKLE_DATA,
+    CLOUDPICKLE_IMPORT,
+    CLOUDPICKLE_MODULES,
+    CLOUDPICKLE_TYPES,
     DANGEROUS_SYMBOLS,
+    DILL_ARRAY,
     DILL_CODE,
     DILL_DATA,
     DILL_MODULES,
     GETATTR,
     KNOWN_GADGETS,
     PICKLE_GLOBALS,
+    SCORER_FUNCTIONS,
     TORCH_GLOBALS,
 )
 from .static.lookalike import imitates
@@ -106,6 +114,15 @@ def _unquote(text: str) -> str:
     return text[1:-1] if len(text) >= 2 and text[0] == text[-1] and text[0] in "'\"" else text
 
 
+def _fake_name(text) -> str:
+    """The name inside the guest's ``<fake class numpy._core.multiarray._reconstruct>``."""
+    text = str(text)
+    for prefix in ("<fake class ", "<fake "):
+        if text.startswith(prefix) and text.endswith(">"):
+            return text[len(prefix):-1]
+    return text
+
+
 def _classify_call(event: dict, allowed_names: frozenset[str], framework: bool) -> tuple[str, Verdict] | None:
     target = str(event.get("target", ""))
     args = event.get("args") or []
@@ -124,6 +141,25 @@ def _classify_call(event: dict, allowed_names: frozenset[str], framework: bool) 
         if module.split(".")[0] in SAFE_IMPORTS:
             return None
         return "import", S
+    if any(target == f"{module}.{DILL_ARRAY}" for module in DILL_MODULES):
+        # f(*args) with f the first argument: numpy's array reconstructor rebuilds an array;
+        # anything else is a call of that argument, judged by its name.
+        f = _fake_name(args[0]) if args else ""
+        if tuple(f.rsplit(".", 1)) in ARRAY_RECONSTRUCTORS:
+            return "dill", S
+        return sink_for(f) or ("unexpected_call", S)
+    for module in CLOUDPICKLE_MODULES:
+        if target == f"{module}._builtin_type":
+            name = _unquote(str(args[0])) if args else ""
+            return ("cloudpickle", S) if name in CLOUDPICKLE_TYPES else ("introspection", S)
+        if target == f"{module}.{CLOUDPICKLE_IMPORT}":
+            name = _unquote(str(args[0])) if args else ""
+            return None if name.split(".")[0] in SAFE_IMPORTS else ("import", S)
+        if any(_matches(target, f"{module}.{name}") for name in CLOUDPICKLE_CODE | CLOUDPICKLE_DATA):
+            # Reviewed cloudpickle helpers (allowlists.CLOUDPICKLE_CODE, CLOUDPICKLE_DATA): the
+            # code object, function and class a pickle is rebuilt with, whose bytecode the static
+            # layer and the code emulation judge, and cells and dict views.
+            return "cloudpickle", S
     if any(_matches(target, f"{module}.{name}") for module in DILL_MODULES for name in DILL_DATA | DILL_CODE):
         # Reviewed dill helpers (allowlists.DILL_CODE, DILL_DATA): a type lookup, cells, dict
         # copies and the code a function is rebuilt from, whose bytecode the static layer
@@ -140,7 +176,9 @@ def _classify_call(event: dict, allowed_names: frozenset[str], framework: bool) 
 
 
 def allowed_names(extra_allowed: frozenset = frozenset(), torch: bool = False) -> frozenset[str]:
-    pairs = PICKLE_GLOBALS | frozenset(extra_allowed) | (TORCH_GLOBALS if torch else frozenset())
+    """Call targets that are no finding. A scorer's score function may be imported and stored
+    (allowlists.SCORER_FUNCTIONS) but is never called while loading, so a call to it is."""
+    pairs = (PICKLE_GLOBALS - SCORER_FUNCTIONS) | frozenset(extra_allowed) | (TORCH_GLOBALS if torch else frozenset())
     return frozenset(f"{module}.{name}" for module, name in pairs)
 
 

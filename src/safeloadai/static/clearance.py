@@ -233,7 +233,7 @@ def weights_only_ok(report: dict, calls: list[tuple], uses: list[tuple]) -> str 
 
     if report["error"]:
         return "the walk failed"
-    ops = {o["name"] for o in report["opcodes"]} - wo.OPCODES
+    ops = set(report.get("opcode_counts") or {o["name"] for o in report["opcodes"]}) - wo.OPCODES
     if ops:
         return f"opcodes torch does not implement: {', '.join(sorted(ops))}"
     for imp in report["imports"]:

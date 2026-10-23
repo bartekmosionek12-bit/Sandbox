@@ -31,14 +31,14 @@ def cleared(report: dict) -> dict[str, str]:
     return {c["item"]: c["mechanism"] for c in report["cleared"]}
 
 
-FUNC = ("sklearn.metrics._ranking", "average_precision_score")  # a def in an inert sklearn module
+FUNC = ("sklearn.metrics._ranking", "roc_auc_score")  # a def in an inert sklearn module, not allowlisted
 REF = g(*FUNC)
 FUNC_NAME = ".".join(FUNC)
 
 
 def test_pinned_data_has_the_reference_names():
     assert upstream.inert_definition(*FUNC)
-    assert not upstream.inert_definition(FUNC[0], "average_precision_score.__wrapped__")
+    assert not upstream.inert_definition(FUNC[0], "roc_auc_score.__wrapped__")
     assert upstream.distributions()["scikit-learn"]["version"]
 
 
@@ -95,9 +95,9 @@ def test_value_of_an_allowlisted_container_stays_referenced():
     ("antigravity", "geohash"),  # import side effect
     ("this", "s"),
     ("webbrowser", "open"),  # a sink
-    ("sklaern.metrics._ranking", "average_precision_score"),  # look-alike package name
-    ("sklearn_metrics._ranking", "average_precision_score"),
-    ("sklearn.metrics._ranking", "average_precision_score.__globals__"),  # dotted qualname
+    ("sklaern.metrics._ranking", "roc_auc_score"),  # look-alike package name
+    ("sklearn_metrics._ranking", "roc_auc_score"),
+    ("sklearn.metrics._ranking", "roc_auc_score.__globals__"),  # dotted qualname
     ("sklearn.metrics._scorer", "_passthrough_scorer"),  # not in the pinned version
     ("transformers.models.bert.modeling_bert", "BertModel"),  # import chain not inert (lazy module)
     ("mod_unknown", "anything"),  # unknown package

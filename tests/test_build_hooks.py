@@ -26,7 +26,7 @@ def g(module: str, name: str) -> bytes:
     return s(module) + s(name) + b"\x93"
 
 
-FUNC = ("sklearn.metrics._ranking", "average_precision_score")  # a def in an inert sklearn module
+FUNC = ("sklearn.metrics._ranking", "roc_auc_score")  # a def in an inert sklearn module, not allowlisted
 REF = g(*FUNC)
 FUNC_NAME = ".".join(FUNC)
 REMOVE = ("sklearn.datasets._lfw", "remove")  # os.remove, re-exported by an inert module

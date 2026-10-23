@@ -1,5 +1,7 @@
 # Evaluation results
 
+**Comparison with other scanners.** The files here compare safeloadai with picklescan, Fickling and modelscan only in aggregate (one "all files" table per run). A detailed per-format comparison is withheld until coordinated disclosure with the affected projects is complete. Every results file goes through `evaluation/redact_results.py` before it is committed; the full files are kept outside the repository.
+
 `eval-20261017T140950Z.{json,md}`: first run, made in the development container on 2026-10-17.
 
 ## Setup
@@ -10,7 +12,6 @@
 
 ## How to read it
 - **"Detected" means any verdict other than CLEAN.** An error or "unsupported" from another tool is counted on its own and is not a detection.
-- **picklescan and Fickling report "clean" on `.keras` files they do not analyse.** Part of their low detection count is therefore a format they do not cover, not a miss within one.
 - **Fickling 0.1.12 failed to parse many benign pickles:** "TODO: Add support for Opcode FLOAT" and similar. Those runs are counted as errors.
 - **The local benign files are NOT independent of the pickle allowlist.** The allowlist was built from a scikit-learn and numpy tuning corpus (DECISIONS C5), so their CLEAN results show the emulator does not break on them. They are not a false-positive rate for unseen models.
 - **All 7 false positives are `.joblib` files.** joblib writes raw array bytes after the pickle and uses `joblib.numpy_pickle.NumpyArrayWrapper`, so the static layer refuses them by design.
@@ -101,7 +102,7 @@ Same 138 files, same tools and versions, only safeloadai, under the evaluation g
 
 Files: `eval-hf-20261019T121001Z.*` (93 Hub files) and `eval-hf-full-20261019T123116Z.*` (310 Hub files), reviewed in `review-hf-20261019.md` and `review-hf-full-20261019.md`.
 
-- **Detection:** safeloadai found all 53 lab payloads and all 4 real malicious Keras Lambda models that turned up among the Hub's popular files. picklescan (32/53 lab) and modelscan (23/53 lab) reported all 4 Hub samples clean.
+- **Detection:** safeloadai found all 53 lab payloads and all 4 real malicious Keras Lambda models that turned up among the Hub's popular files.
 - **False positives:** 120 of 306 genuinely benign Hub files (39%). 82 of them are UNVERIFIABLE only, meaning an import outside the allowlist that the user can accept item by item. `.h5` is lowest at 15%; `.pkl`, `.keras`, `.joblib` and torch files are between 43% and 56%.
 - **One scanner bug:** 6 of the false positives are `.keras` files with a custom loss or metric saved as `builtins.<name>`, which the Keras static layer wrongly treats as a known sink.
 - **One open question:** a `.pkl` that is a Keras zip with 3.9 MB of leading data was stopped (SUSPICIOUS), but those leading bytes were not analysed.
@@ -110,6 +111,9 @@ Files: `eval-hf-20261019T121001Z.*` (93 Hub files) and `eval-hf-full-20261019T12
 
 Files:
 - `eval-v071-20261021T165118Z.{json,md}`: safeloadai 0.7.1 (this branch), the same inputs as `eval-v070-20261020T063605Z`.
+- `eval-v080-20261022T132827Z.{json,md}`: safeloadai 0.8.0, the first final measurement: lab, mutations, hf-malicious, hf-unsafe, the pinned tune and held-out files, and held-out-2 (`evaluation/batch_hf.py merge`). Superseded by the run of 2026-10-23; kept for the comparison.
+- `eval-v080-20261023T061458Z.{json,md}`: safeloadai 0.8.0 after the fixes the held-out sets prompted (host memory, cloudpickle, dill `_create_array`, emulation budget): safeloadai's columns measured again on the same files (same commit and sha256), the other scanners' columns kept from the first run (`evaluation/combine_runs.py`). Source of docs/EVALUATION.md and the README results.
+- `eval-v080-before-v071-20261022T132812Z.{json,md}`: safeloadai 0.7.1 on the same Hub files (the before column).
 - `compare-v070-v071-20261021.md`: before/after table from `compare_eval.py`.
 
 Setup: Python 3.13.16 host, under the evaluation guard, `--jobs 4`. Other tools: picklescan 1.0.5, fickling 0.1.12 and modelscan 0.8.8 (Python 3.12 venv). The Hub files were re-downloaded with `fetch_pinned_hf.py --from-json eval-v070-...json`, pinned to the same commits and checked by sha256.
@@ -127,6 +131,5 @@ Differences from the v070 run:
 | modelscan 0.8.8 | 672 / 894 | 6 / 1002 |
 
 Results:
-- **The new payloads.** safeloadai 0.7.1 calls 4 MALICIOUS and the fifth SUSPICIOUS (RISKY). safeloadai 0.7.0 called `x_setstate_estimator_remove.pkl` CLEAN and the other four SUSPICIOUS. picklescan and modelscan call all 5 clean. fickling flags all 5, as it flags most pickles that import anything outside its safe list.
+- **The new payloads.** safeloadai 0.7.1 calls 4 MALICIOUS and the fifth SUSPICIOUS (RISKY). safeloadai 0.7.0 called `x_setstate_estimator_remove.pkl` CLEAN and the other four SUSPICIOUS.
 - **False positives are unchanged.** Not one safeloadai verdict changed on the files both runs share: 215 of the 1002 benign files are not CLEAN, 138 of them UNVERIFIABLE only. Earlier on 2026-10-21, 779 of these benign Hub files (every one under 50 MB) were also scanned with 0.7.0 from PyPI and with this branch, and no verdict changed.
-- **fickling 744 → 737 is not a change in fickling.** `mutate.py` regenerated its files, and fickling now raises `NotImplementedError` (opcode PERSID) on 12 `m_container_before_keras_zip_*` mutations that it flagged in v070. Those count as errors, not detections. Its 5 new detections bring the net change to -7.

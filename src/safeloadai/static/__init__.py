@@ -12,6 +12,7 @@ from .. import errors
 from ..parsing import decompress
 from ..parsing import detect as detect_mod
 from ..parsing import views as views_mod
+from . import budget as budget_mod
 from .h5_static import parse_h5_metadata
 from .keras_static import parse_keras
 from .pickle_static import parse_pickle
@@ -29,6 +30,18 @@ def analyze_bytes(data: bytes, file_name: str = "<memory>", extra_allowed: froze
     gives each its own static and emulation layers. A file with more than one reading,
     or with bytes in front of an archive or superblock that no reading explains, is at
     least SUSPICIOUS (RISKY)."""
+    try:
+        with budget_mod.scope(budget_mod.limit_for(len(data))):
+            return _analyze_bytes(data, file_name, extra_allowed)
+    except (budget_mod.ResourceLimit, MemoryError) as exc:  # the scanner's availability, never a crash
+        report = parse_pickle(b"", file_name, file_format=detect_mod.detect(data))
+        report["tool_errors"].append(errors.error("E105", str(exc) or type(exc).__name__))
+        report["reasons"] = ["the static analysis stopped at its memory limit; the file was not fully read"]
+        report["static_risk"] = "suspicious"
+        return report
+
+
+def _analyze_bytes(data: bytes, file_name: str, extra_allowed: frozenset) -> dict:
     views = views_mod.find_views(data)
     primary = views_mod.primary_view(views, file_name)
     report = _analyze_view(primary, data, file_name, extra_allowed)
@@ -66,7 +79,7 @@ def _analyze_view(view: views_mod.View | None, data: bytes, file_name: str, extr
     fmt = view.fmt if view else detect_mod.UNKNOWN
     try:
         return _read_view(view, fmt, data, file_name, extra_allowed)
-    except RuntimeIntegrityError:
+    except (RuntimeIntegrityError, budget_mod.ResourceLimit, MemoryError):
         raise
     except Exception as exc:  # noqa: BLE001 - a reader bug fails closed as a tool error
         report = parse_pickle(b"", file_name, file_format=fmt)

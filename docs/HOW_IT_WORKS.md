@@ -53,7 +53,8 @@ README has the short version; this page has the details.
    CPython 3.12 compiled to WebAssembly and running under wasmtime in a child
    process.
    - **Limits:** a memory cap, fuel as a CPU budget, and a wall-clock kill of
-     the process by the host.
+     the process by the host. For a pickle all three grow with its size and opcode
+     count, up to fixed ceilings (`sandbox.host.scaled_limits`).
    - **Isolation:** no network and no filesystem other than that directory.
    - **Inside the sandbox:** pickles are unpickled with a recording
      `find_class` (joblib streams with joblib's own reading of the array

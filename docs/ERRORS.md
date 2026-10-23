@@ -89,6 +89,7 @@ where it happened (`io`, `static`, `emulation`, `deep`, `runtime`, `options`).
 | `E102` | file could not be read (permission denied, I/O error) | check permissions and the disk |
 | `E103` | file too large to read (over 4 GiB) | out of scope for this version |
 | `E104` | path is not a regular file (a directory, socket, device) | pass a file, or a directory to `safeloadai scan` |
+| `E105` | resource limit reached: the static analysis on the host needs more memory than one scan may hold (512 MiB plus twice the file's size, at most 4 GiB of string and bytes data plus 64 bytes per opcode) | the file asks for far more memory than its size explains; it is not loaded. Treat it as you would a SUSPICIOUS file |
 
 ### E2xx: a parser raised an exception it does not expect
 
@@ -112,7 +113,7 @@ file, if you may share it).
 | `E301` | WASI sandbox unavailable (runtime missing, wasmtime missing) | run `safeloadai doctor` |
 | `E302` | WASI sandbox crashed (wasm trap, non-zero exit, runner failure) | report it if it repeats |
 | `E303` | WASI sandbox timed out (wall-clock limit) | retry on a less loaded machine |
-| `E304` | WASI sandbox ran out of its compute budget (fuel) | report it with the file's sha256 |
+| `E304` | WASI sandbox ran out of its compute budget (fuel). By default the budget grows with the pickle data and its opcode count, up to 250 billion fuel, 120 s and 2 GiB of guest memory | the file asks for more work than the ceiling allows; report it with the file's sha256 |
 | `E310` | deep sandbox did not run (no backend, no detoner for the format, no result) | see `--deep` in docs/OPTIONS.md |
 | `E311` | deep sandbox timed out | |
 
@@ -162,3 +163,20 @@ The exit code of `safeloadai scan` is the first that applies:
 
 Precedence: **MALICIOUS > ERROR > SUSPICIOUS > UNSUPPORTED > CLEAN.** A CI job that
 fails on any non-zero exit therefore fails on every ERROR.
+
+With `--sarif FILE` an ERROR is a result of its own (rule `safeloadai/error`, level
+`error`, the code in its message and in `properties.errorCode`), never a missing
+result: a code-scanning view never shows an unscanned file as passed.
+
+### `--malicious-only` (binary output)
+
+For integrations that need a yes/no answer, `safeloadai scan --malicious-only` prints
+`MALICIOUS` or `NOT-MALICIOUS` per file and exits **1** when a file is MALICIOUS, **4**
+or **6** when safeloadai could not scan a file (an ERROR is never reported as
+NOT-MALICIOUS), and **0** otherwise. SUSPICIOUS and UNSUPPORTED files therefore exit 0.
+
+It is an output mode only. The verdict does not change: `--json` and `--report` carry
+the full Report, a warning on stderr says what the mode hides, and `safe_load` still
+refuses every file that is not CLEAN. Use it only where a SUSPICIOUS file is handled
+some other way (it is still not loadable). Measured on the evaluation sets with
+`evaluation/malicious_only.py`.

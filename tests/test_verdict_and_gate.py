@@ -67,12 +67,14 @@ def test_unknown_static_risk_is_suspicious():
     assert verdict.final_verdict({"static_risk": "unknown"})[0] is Verdict.SUSPICIOUS
 
 
-def test_lambda_only_static_defers_to_emulation():
+def test_lambda_only_static_is_risky_and_left_to_emulation():
     report = {"file_format": "keras", "static_risk": "suspicious", "error": None,
               "lambdas": [{"path": "layers[1]", "has_code": True, "sink_tokens": []}],
               "flagged_opcodes": [{"name": "Lambda"}], "suspicious_imports": [], "unknown_imports": [],
               "reasons": ["layers[1]: Lambda layer with marshalled bytecode"]}
-    assert verdict.static_layer(report, defer_lambdas=True).verdict is Verdict.CLEAN
+    layer = verdict.static_layer(report, defer_lambdas=True)
+    assert layer.verdict is Verdict.SUSPICIOUS and len(layer.reasons) == 1
+    assert "emulation cannot prove it harmless" in layer.reasons[0]
     assert verdict.static_layer(report).verdict is Verdict.SUSPICIOUS
     report["unknown_imports"] = [{"module": "x", "symbol": "y"}]
     assert verdict.static_layer(report, defer_lambdas=True).verdict is Verdict.SUSPICIOUS

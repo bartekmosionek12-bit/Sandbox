@@ -50,8 +50,8 @@ OPTIONS: tuple[Option, ...] = (
            "accept named UNVERIFIABLE items for one file (sha256-bound); refused on any RISKY or MALICIOUS reason",
            "accept_unverified", "--accept-unverified [SHA256:]ITEM", config=True),
     Option("trust_inert_from", (), "looser", "medium",
-           "treat classes of the named installed distributions as state-only when their installed source says so "
-           "(read with ast, never imported)",
+           "experimental: treat classes of the named installed distributions as state-only when their installed "
+           "source says so (read with ast, never imported)",
            "trust_inert_from", "--trust-inert-from DISTRIBUTION", config=True),
     Option("known_good", True, "stricter", "low",
            "use the shipped list of reviewed benign files (exact sha256); turning it off only makes verdicts stricter",

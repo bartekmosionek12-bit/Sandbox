@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "safeloadai"
-version = "0.7.1"
+version = "0.8.0"
 authors = [
   { name="Bartosz Mosionek" },
 ]
@@ -56,6 +56,10 @@ test = [
     "joblib",
     "scikit-learn",
     "lz4>=4.0,<5",
+    # property tests of the parsers (tests/test_fuzz.py); fuzz/run.py uses atheris when present
+    "hypothesis",
+    # reads action.yml and .pre-commit-hooks.yaml (tests/test_integrations.py)
+    "pyyaml",
 ]
 dev = [
     "safeloadai[test]",

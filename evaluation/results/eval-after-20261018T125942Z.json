@@ -185,79 +185,7 @@
       "skipped": 0,
       "seconds_median": 0.0861,
       "seconds_p95": 0.1126,
-      "seconds_max": 0.1374,
-      "per_format": {
-        "h5": {
-          "malicious": 4,
-          "benign": 16,
-          "detected": 0,
-          "detection_rate": 0.0,
-          "false_positives": 0,
-          "fp_rate": 0.0,
-          "errors": 0,
-          "unsupported": 0,
-          "skipped": 0,
-          "seconds_median": 0.0847,
-          "seconds_p95": 0.1374,
-          "seconds_max": 0.1374
-        },
-        "joblib": {
-          "malicious": 0,
-          "benign": 17,
-          "detected": 0,
-          "detection_rate": null,
-          "false_positives": 0,
-          "fp_rate": 0.0,
-          "errors": 17,
-          "unsupported": 0,
-          "skipped": 0,
-          "seconds_median": 0.0852,
-          "seconds_p95": 0.1126,
-          "seconds_max": 0.1126
-        },
-        "keras": {
-          "malicious": 13,
-          "benign": 19,
-          "detected": 0,
-          "detection_rate": 0.0,
-          "false_positives": 0,
-          "fp_rate": 0.0,
-          "errors": 0,
-          "unsupported": 0,
-          "skipped": 0,
-          "seconds_median": 0.088,
-          "seconds_p95": 0.1216,
-          "seconds_max": 0.1256
-        },
-        "pickle": {
-          "malicious": 32,
-          "benign": 33,
-          "detected": 28,
-          "detection_rate": 0.875,
-          "false_positives": 0,
-          "fp_rate": 0.0,
-          "errors": 2,
-          "unsupported": 0,
-          "skipped": 0,
-          "seconds_median": 0.0854,
-          "seconds_p95": 0.1067,
-          "seconds_max": 0.1233
-        },
-        "torch": {
-          "malicious": 4,
-          "benign": 0,
-          "detected": 4,
-          "detection_rate": 1.0,
-          "false_positives": 0,
-          "fp_rate": null,
-          "errors": 0,
-          "unsupported": 0,
-          "skipped": 0,
-          "seconds_median": 0.0881,
-          "seconds_p95": 0.0912,
-          "seconds_max": 0.0912
-        }
-      }
+      "seconds_max": 0.1374
     },
     "fickling": {
       "malicious": 53,
@@ -271,79 +199,7 @@
       "skipped": 0,
       "seconds_median": 0.0648,
       "seconds_p95": 0.0833,
-      "seconds_max": 0.1251,
-      "per_format": {
-        "h5": {
-          "malicious": 4,
-          "benign": 16,
-          "detected": 4,
-          "detection_rate": 1.0,
-          "false_positives": 16,
-          "fp_rate": 1.0,
-          "errors": 0,
-          "unsupported": 0,
-          "skipped": 0,
-          "seconds_median": 0.0664,
-          "seconds_p95": 0.0881,
-          "seconds_max": 0.0881
-        },
-        "joblib": {
-          "malicious": 0,
-          "benign": 17,
-          "detected": 0,
-          "detection_rate": null,
-          "false_positives": 17,
-          "fp_rate": 1.0,
-          "errors": 0,
-          "unsupported": 0,
-          "skipped": 0,
-          "seconds_median": 0.0661,
-          "seconds_p95": 0.0866,
-          "seconds_max": 0.0866
-        },
-        "keras": {
-          "malicious": 13,
-          "benign": 19,
-          "detected": 0,
-          "detection_rate": 0.0,
-          "false_positives": 0,
-          "fp_rate": 0.0,
-          "errors": 32,
-          "unsupported": 0,
-          "skipped": 0,
-          "seconds_median": 0.0626,
-          "seconds_p95": 0.0919,
-          "seconds_max": 0.1251
-        },
-        "pickle": {
-          "malicious": 32,
-          "benign": 33,
-          "detected": 32,
-          "detection_rate": 1.0,
-          "false_positives": 28,
-          "fp_rate": 0.8485,
-          "errors": 4,
-          "unsupported": 0,
-          "skipped": 0,
-          "seconds_median": 0.0653,
-          "seconds_p95": 0.0812,
-          "seconds_max": 0.0962
-        },
-        "torch": {
-          "malicious": 4,
-          "benign": 0,
-          "detected": 0,
-          "detection_rate": 0.0,
-          "false_positives": 0,
-          "fp_rate": null,
-          "errors": 4,
-          "unsupported": 0,
-          "skipped": 0,
-          "seconds_median": 0.0656,
-          "seconds_p95": 0.0736,
-          "seconds_max": 0.0736
-        }
-      }
+      "seconds_max": 0.1251
     },
     "modelscan": {
       "malicious": 53,
@@ -357,79 +213,7 @@
       "skipped": 20,
       "seconds_median": 0.1662,
       "seconds_p95": 0.2053,
-      "seconds_max": 0.4717,
-      "per_format": {
-        "h5": {
-          "malicious": 4,
-          "benign": 16,
-          "detected": 0,
-          "detection_rate": 0.0,
-          "false_positives": 0,
-          "fp_rate": 0.0,
-          "errors": 0,
-          "unsupported": 0,
-          "skipped": 20,
-          "seconds_median": null,
-          "seconds_p95": null,
-          "seconds_max": null
-        },
-        "joblib": {
-          "malicious": 0,
-          "benign": 17,
-          "detected": 0,
-          "detection_rate": null,
-          "false_positives": 0,
-          "fp_rate": 0.0,
-          "errors": 0,
-          "unsupported": 17,
-          "skipped": 0,
-          "seconds_median": 0.1642,
-          "seconds_p95": 0.1982,
-          "seconds_max": 0.1982
-        },
-        "keras": {
-          "malicious": 13,
-          "benign": 19,
-          "detected": 0,
-          "detection_rate": 0.0,
-          "false_positives": 0,
-          "fp_rate": 0.0,
-          "errors": 0,
-          "unsupported": 32,
-          "skipped": 0,
-          "seconds_median": 0.172,
-          "seconds_p95": 0.2053,
-          "seconds_max": 0.2496
-        },
-        "pickle": {
-          "malicious": 32,
-          "benign": 33,
-          "detected": 22,
-          "detection_rate": 0.6875,
-          "false_positives": 0,
-          "fp_rate": 0.0,
-          "errors": 0,
-          "unsupported": 1,
-          "skipped": 0,
-          "seconds_median": 0.1654,
-          "seconds_p95": 0.2088,
-          "seconds_max": 0.4717
-        },
-        "torch": {
-          "malicious": 4,
-          "benign": 0,
-          "detected": 1,
-          "detection_rate": 0.25,
-          "false_positives": 0,
-          "fp_rate": null,
-          "errors": 0,
-          "unsupported": 2,
-          "skipped": 0,
-          "seconds_median": 0.1653,
-          "seconds_p95": 0.1802,
-          "seconds_max": 0.1802
-        }
-      }
+      "seconds_max": 0.4717
     }
   },
   "false_positives": {
@@ -601,24 +385,6 @@
           "missing": [
             "posix.system"
           ]
-        },
-        "picklescan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.09589032199983194,
-          "output_tail": "p_os_system.pkl: dangerous import 'posix system' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.09616456500043569,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.47170888500022556,
-          "output_tail": " ---\n\nTotal Issues: 1\n\nTotal Issues By Severity:\n\n    - LOW: 0\n    - MEDIUM: 0\n    - HIGH: 0\n    - CRITICAL: 1\n\n--- Issues by Severity ---\n\n--- CRITICAL ---\n\nUnsafe operator found:\n  - Severity: CRITICAL\n  - Description: Use of unsafe operator 'system' from module 'posix'\n  - Source: p_os_system.pkl"
         }
       }
     },
@@ -652,24 +418,6 @@
           "missing": [
             "os.system"
           ]
-        },
-        "picklescan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.08017859400024463,
-          "output_tail": "p_os_system_stack_global.pkl: dangerous import 'os system' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.059644969000146375,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.18692370999997365,
-          "output_tail": "l Issues: 1\n\nTotal Issues By Severity:\n\n    - LOW: 0\n    - MEDIUM: 0\n    - HIGH: 0\n    - CRITICAL: 1\n\n--- Issues by Severity ---\n\n--- CRITICAL ---\n\nUnsafe operator found:\n  - Severity: CRITICAL\n  - Description: Use of unsafe operator 'system' from module 'os'\n  - Source: p_os_system_stack_global.pkl"
         }
       }
     },
@@ -703,24 +451,6 @@
           "missing": [
             "nt.system"
           ]
-        },
-        "picklescan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.10669969199989282,
-          "output_tail": "p_nt_system.pkl: dangerous import 'nt system' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.062211598999965645,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.16430195399971126,
-          "output_tail": "ary ---\n\nTotal Issues: 1\n\nTotal Issues By Severity:\n\n    - LOW: 0\n    - MEDIUM: 0\n    - HIGH: 0\n    - CRITICAL: 1\n\n--- Issues by Severity ---\n\n--- CRITICAL ---\n\nUnsafe operator found:\n  - Severity: CRITICAL\n  - Description: Use of unsafe operator 'system' from module 'nt'\n  - Source: p_nt_system.pkl"
         }
       }
     },
@@ -754,24 +484,6 @@
           "missing": [
             "subprocess.getoutput"
           ]
-        },
-        "picklescan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.10507233800035465,
-          "output_tail": "p_subprocess_getoutput.pkl: dangerous import 'subprocess getoutput' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.058277885999814316,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.15409688300042035,
-          "output_tail": " 1\n\nTotal Issues By Severity:\n\n    - LOW: 0\n    - MEDIUM: 0\n    - HIGH: 0\n    - CRITICAL: 1\n\n--- Issues by Severity ---\n\n--- CRITICAL ---\n\nUnsafe operator found:\n  - Severity: CRITICAL\n  - Description: Use of unsafe operator 'getoutput' from module 'subprocess'\n  - Source: p_subprocess_getoutput.pkl"
         }
       }
     },
@@ -805,24 +517,6 @@
           "missing": [
             "os.system"
           ]
-        },
-        "picklescan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.08669031400040694,
-          "output_tail": "p_inst_opcode.pkl: dangerous import 'os system' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06551177099936467,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.16472005400009948,
-          "output_tail": "y ---\n\nTotal Issues: 1\n\nTotal Issues By Severity:\n\n    - LOW: 0\n    - MEDIUM: 0\n    - HIGH: 0\n    - CRITICAL: 1\n\n--- Issues by Severity ---\n\n--- CRITICAL ---\n\nUnsafe operator found:\n  - Severity: CRITICAL\n  - Description: Use of unsafe operator 'system' from module 'os'\n  - Source: p_inst_opcode.pkl"
         }
       }
     },
@@ -856,24 +550,6 @@
           "missing": [
             "posix.system"
           ]
-        },
-        "picklescan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.08236805100023048,
-          "output_tail": "p_obj_opcode.pkl: dangerous import 'posix system' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.05997183500039682,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.16465618799975346,
-          "output_tail": "---\n\nTotal Issues: 1\n\nTotal Issues By Severity:\n\n    - LOW: 0\n    - MEDIUM: 0\n    - HIGH: 0\n    - CRITICAL: 1\n\n--- Issues by Severity ---\n\n--- CRITICAL ---\n\nUnsafe operator found:\n  - Severity: CRITICAL\n  - Description: Use of unsafe operator 'system' from module 'posix'\n  - Source: p_obj_opcode.pkl"
         }
       }
     },
@@ -912,24 +588,6 @@
             "builtins.__import__",
             "builtins.getattr"
           ]
-        },
-        "picklescan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.09091594500023348,
-          "output_tail": "p_getattr_chain.pkl: dangerous import 'builtins getattr' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 1\nDangerous globals: 1"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06447405600010825,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.17222151599980862,
-          "output_tail": "e operator found:\n  - Severity: CRITICAL\n  - Description: Use of unsafe operator '__import__' from module 'builtins'\n  - Source: p_getattr_chain.pkl\n\nUnsafe operator found:\n  - Severity: CRITICAL\n  - Description: Use of unsafe operator 'getattr' from module 'builtins'\n  - Source: p_getattr_chain.pkl"
         }
       }
     },
@@ -965,24 +623,6 @@
           "missing": [
             "builtins.exec"
           ]
-        },
-        "picklescan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.0788559989996429,
-          "output_tail": "p_exec_nested.pkl: dangerous import 'builtins exec' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.060416274999624875,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.1666006709992871,
-          "output_tail": "-\n\nTotal Issues: 1\n\nTotal Issues By Severity:\n\n    - LOW: 0\n    - MEDIUM: 0\n    - HIGH: 0\n    - CRITICAL: 1\n\n--- Issues by Severity ---\n\n--- CRITICAL ---\n\nUnsafe operator found:\n  - Severity: CRITICAL\n  - Description: Use of unsafe operator 'exec' from module 'builtins'\n  - Source: p_exec_nested.pkl"
         }
       }
     },
@@ -1018,24 +658,6 @@
           "missing": [
             "builtins.eval"
           ]
-        },
-        "picklescan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.08704116399985651,
-          "output_tail": "p_eval.pkl: dangerous import 'builtins eval' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06546827100009978,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.16300411900010658,
-          "output_tail": "mary ---\n\nTotal Issues: 1\n\nTotal Issues By Severity:\n\n    - LOW: 0\n    - MEDIUM: 0\n    - HIGH: 0\n    - CRITICAL: 1\n\n--- Issues by Severity ---\n\n--- CRITICAL ---\n\nUnsafe operator found:\n  - Severity: CRITICAL\n  - Description: Use of unsafe operator 'eval' from module 'builtins'\n  - Source: p_eval.pkl"
         }
       }
     },
@@ -1069,24 +691,6 @@
           "missing": [
             "runpy.run_path"
           ]
-        },
-        "picklescan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.07590439000068727,
-          "output_tail": "p_runpy.pkl: dangerous import 'runpy run_path' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06705001599948446,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.16461167400029808,
-          "output_tail": "ry ---\n\nTotal Issues: 1\n\nTotal Issues By Severity:\n\n    - LOW: 0\n    - MEDIUM: 0\n    - HIGH: 0\n    - CRITICAL: 1\n\n--- Issues by Severity ---\n\n--- CRITICAL ---\n\nUnsafe operator found:\n  - Severity: CRITICAL\n  - Description: Use of unsafe operator 'run_path' from module 'runpy'\n  - Source: p_runpy.pkl"
         }
       }
     },
@@ -1120,24 +724,6 @@
           "missing": [
             "importlib.import_module"
           ]
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.0821888400005264,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 1\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06038045900004363,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.1614610120004727,
-          "output_tail": "No settings file detected at /tmp/tmpgl0fy5ht/modelscan-settings.toml. Using defaults. \n\nScanning p_importlib.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
         }
       }
     },
@@ -1171,24 +757,6 @@
           "missing": [
             "builtins.open"
           ]
-        },
-        "picklescan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.08770849099983025,
-          "output_tail": "p_open_write.pkl: dangerous import 'builtins open' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.05922284300049796,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.16220299300039187,
-          "output_tail": "--\n\nTotal Issues: 1\n\nTotal Issues By Severity:\n\n    - LOW: 0\n    - MEDIUM: 0\n    - HIGH: 0\n    - CRITICAL: 1\n\n--- Issues by Severity ---\n\n--- CRITICAL ---\n\nUnsafe operator found:\n  - Severity: CRITICAL\n  - Description: Use of unsafe operator 'open' from module 'builtins'\n  - Source: p_open_write.pkl"
         }
       }
     },
@@ -1222,24 +790,6 @@
           "missing": [
             "shutil.rmtree"
           ]
-        },
-        "picklescan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.08296455099934974,
-          "output_tail": "p_shutil_rmtree.pkl: dangerous import 'shutil rmtree' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06911529799981508,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.19675954499962245,
-          "output_tail": "\nTotal Issues: 1\n\nTotal Issues By Severity:\n\n    - LOW: 0\n    - MEDIUM: 0\n    - HIGH: 0\n    - CRITICAL: 1\n\n--- Issues by Severity ---\n\n--- CRITICAL ---\n\nUnsafe operator found:\n  - Severity: CRITICAL\n  - Description: Use of unsafe operator 'rmtree' from module 'shutil'\n  - Source: p_shutil_rmtree.pkl"
         }
       }
     },
@@ -1273,24 +823,6 @@
           "missing": [
             "socket.create_connection"
           ]
-        },
-        "picklescan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.0868018179999126,
-          "output_tail": "p_socket_loopback.pkl: dangerous import 'socket create_connection' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.061320623999563395,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.17134604200055037,
-          "output_tail": ": 1\n\nTotal Issues By Severity:\n\n    - LOW: 0\n    - MEDIUM: 0\n    - HIGH: 0\n    - CRITICAL: 1\n\n--- Issues by Severity ---\n\n--- CRITICAL ---\n\nUnsafe operator found:\n  - Severity: CRITICAL\n  - Description: Use of unsafe operator 'create_connection' from module 'socket'\n  - Source: p_socket_loopback.pkl"
         }
       }
     },
@@ -1324,24 +856,6 @@
           "missing": [
             "webbrowser.open"
           ]
-        },
-        "picklescan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.10377743400022155,
-          "output_tail": "p_webbrowser.pkl: dangerous import 'webbrowser open' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.05820787800075777,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.1809228330002952,
-          "output_tail": "mary ---\n\nTotal Issues: 1\n\nTotal Issues By Severity:\n\n    - LOW: 0\n    - MEDIUM: 0\n    - HIGH: 1\n    - CRITICAL: 0\n\n--- Issues by Severity ---\n\n--- HIGH ---\n\nUnsafe operator found:\n  - Severity: HIGH\n  - Description: Use of unsafe operator 'open' from module 'webbrowser'\n  - Source: p_webbrowser.pkl"
         }
       }
     },
@@ -1375,24 +889,6 @@
           "missing": [
             "ctypes.CDLL"
           ]
-        },
-        "picklescan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.10183874900030787,
-          "output_tail": "p_ctypes.pkl: dangerous import 'ctypes CDLL' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.08122411899967119,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.1803814879995116,
-          "output_tail": "No settings file detected at /tmp/tmp4fstqgqa/modelscan-settings.toml. Using defaults. \n\nScanning p_ctypes.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
         }
       }
     },
@@ -1426,24 +922,6 @@
           "missing": [
             "numpy.testing._private.utils.runstring"
           ]
-        },
-        "picklescan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.10780708099991898,
-          "output_tail": "p_numpy_runstring.pkl: dangerous import 'numpy.testing._private.utils runstring' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06723249900005612,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.16008110500024486,
-          "output_tail": "No settings file detected at /tmp/tmpw25ix504/modelscan-settings.toml. Using defaults. \n\nScanning p_numpy_runstring.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
         }
       }
     },
@@ -1476,24 +954,6 @@
           "missing": [
             "safeloadai_marker_pkg.Thing"
           ]
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.1232629400001315,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 1\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06641517399930308,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.18228140200062626,
-          "output_tail": "No settings file detected at /tmp/tmplsc0m17h/modelscan-settings.toml. Using defaults. \n\nScanning p_unknown_global.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
         }
       }
     },
@@ -1527,24 +987,6 @@
           "missing": [
             "posix.system"
           ]
-        },
-        "picklescan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.08182031700016523,
-          "output_tail": "p_second_pickle.pkl: dangerous import 'posix system' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06432324399975187,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.1615333270001429,
-          "output_tail": "\n\nTotal Issues: 1\n\nTotal Issues By Severity:\n\n    - LOW: 0\n    - MEDIUM: 0\n    - HIGH: 0\n    - CRITICAL: 1\n\n--- Issues by Severity ---\n\n--- CRITICAL ---\n\nUnsafe operator found:\n  - Severity: CRITICAL\n  - Description: Use of unsafe operator 'system' from module 'posix'\n  - Source: p_second_pickle.pkl"
         }
       }
     },
@@ -1582,24 +1024,6 @@
           "missing": [
             "builtins.exec"
           ]
-        },
-        "picklescan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.08645309600069595,
-          "output_tail": "p_time_gated.pkl: dangerous import 'builtins exec' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06908429099985369,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.16727211800025543,
-          "output_tail": "--\n\nTotal Issues: 1\n\nTotal Issues By Severity:\n\n    - LOW: 0\n    - MEDIUM: 0\n    - HIGH: 0\n    - CRITICAL: 1\n\n--- Issues by Severity ---\n\n--- CRITICAL ---\n\nUnsafe operator found:\n  - Severity: CRITICAL\n  - Description: Use of unsafe operator 'exec' from module 'builtins'\n  - Source: p_time_gated.pkl"
         }
       }
     },
@@ -1636,24 +1060,6 @@
           "missing": [
             "builtins.exec"
           ]
-        },
-        "picklescan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.08846448399981455,
-          "output_tail": "p_env_probe.pkl: dangerous import 'builtins exec' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06282289499995386,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.16475248799997644,
-          "output_tail": "---\n\nTotal Issues: 1\n\nTotal Issues By Severity:\n\n    - LOW: 0\n    - MEDIUM: 0\n    - HIGH: 0\n    - CRITICAL: 1\n\n--- Issues by Severity ---\n\n--- CRITICAL ---\n\nUnsafe operator found:\n  - Severity: CRITICAL\n  - Description: Use of unsafe operator 'exec' from module 'builtins'\n  - Source: p_env_probe.pkl"
         }
       }
     },
@@ -1690,24 +1096,6 @@
           "missing": [
             "builtins.exec"
           ]
-        },
-        "picklescan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.10026233600001433,
-          "output_tail": "p_sandbox_probe.pkl: dangerous import 'builtins exec' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06530959900010203,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.1610942850002175,
-          "output_tail": "\nTotal Issues: 1\n\nTotal Issues By Severity:\n\n    - LOW: 0\n    - MEDIUM: 0\n    - HIGH: 0\n    - CRITICAL: 1\n\n--- Issues by Severity ---\n\n--- CRITICAL ---\n\nUnsafe operator found:\n  - Severity: CRITICAL\n  - Description: Use of unsafe operator 'exec' from module 'builtins'\n  - Source: p_sandbox_probe.pkl"
         }
       }
     },
@@ -1743,24 +1131,6 @@
           "missing": [
             "builtins.exec"
           ]
-        },
-        "picklescan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.08360718599942629,
-          "output_tail": "p_forge_clean_log.pkl: dangerous import 'builtins exec' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.05798681700071029,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.1755335739999282,
-          "output_tail": "otal Issues: 1\n\nTotal Issues By Severity:\n\n    - LOW: 0\n    - MEDIUM: 0\n    - HIGH: 0\n    - CRITICAL: 1\n\n--- Issues by Severity ---\n\n--- CRITICAL ---\n\nUnsafe operator found:\n  - Severity: CRITICAL\n  - Description: Use of unsafe operator 'exec' from module 'builtins'\n  - Source: p_forge_clean_log.pkl"
         }
       }
     },
@@ -1794,24 +1164,6 @@
           "missing": [
             "posix.system"
           ]
-        },
-        "picklescan": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.08370227799969143,
-          "output_tail": "ERROR: parsing pickle in p_torch_legacy.pkl: at position 65, opcode b'\\x00' unknown\np_torch_legacy.pkl: dangerous import 'posix system' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06070181099948968,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.18756759099960618,
-          "output_tail": "-\n\nTotal Issues: 1\n\nTotal Issues By Severity:\n\n    - LOW: 0\n    - MEDIUM: 0\n    - HIGH: 0\n    - CRITICAL: 1\n\n--- Issues by Severity ---\n\n--- CRITICAL ---\n\nUnsafe operator found:\n  - Severity: CRITICAL\n  - Description: Use of unsafe operator 'system' from module 'posix'\n  - Source: p_torch_legacy.pkl"
         }
       }
     },
@@ -1845,24 +1197,6 @@
           "missing": [
             "posix.system"
           ]
-        },
-        "picklescan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.08237580799959687,
-          "output_tail": "p_torch_zip.pt:archive/data.pkl: dangerous import 'posix system' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
-        },
-        "fickling": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.05984975800038228,
-          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
-        },
-        "modelscan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.16159741500086966,
-          "output_tail": "RITICAL: 1\n\n--- Issues by Severity ---\n\n--- CRITICAL ---\n\nUnsafe operator found:\n  - Severity: CRITICAL\n  - Description: Use of unsafe operator 'system' from module 'posix'\n  - Source: p_torch_zip.pt:archive/data.pkl\n\n--- Skipped --- \n\nTotal skipped: 1 - run with --show-skipped to see the full list."
         }
       }
     },
@@ -1898,24 +1232,6 @@
           "missing": [
             "posix.system"
           ]
-        },
-        "picklescan": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.09391356000014639,
-          "output_tail": "ERROR: parsing pickle in x_nullifai_broken_stream.pkl: at position 36, opcode b'\\xff' unknown\nx_nullifai_broken_stream.pkl: dangerous import 'posix system' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.07020521100002952,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.20922806199996558,
-          "output_tail": "n-settings.toml. Using defaults. \n\nScanning x_nullifai_broken_stream.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89\n\n--- Errors --- \n\nError 1:\nThe following error was raised during a pickle scan: \nParsing error: at position 36, opcode b'\\xff' unknown"
         }
       }
     },
@@ -1949,24 +1265,6 @@
           "missing": [
             "pip.main"
           ]
-        },
-        "picklescan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.09552964199974667,
-          "output_tail": "x_pip_main.pkl: dangerous import 'pip main' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06614360499952454,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.15333679700052016,
-          "output_tail": "No settings file detected at /tmp/tmpyrgqz2d1/modelscan-settings.toml. Using defaults. \n\nScanning x_pip_main.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
         }
       }
     },
@@ -2000,24 +1298,6 @@
           "missing": [
             "_osx_support._read_output"
           ]
-        },
-        "picklescan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.08953254399966681,
-          "output_tail": "x_osx_support_read_output.pkl: dangerous import '_osx_support _read_output' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.060048548999475315,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.1738243549998515,
-          "output_tail": "No settings file detected at /tmp/tmpdq0tgzdb/modelscan-settings.toml. Using defaults. \n\nScanning x_osx_support_read_output.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
         }
       }
     },
@@ -2051,24 +1331,6 @@
           "missing": [
             "pydoc.pipepager"
           ]
-        },
-        "picklescan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.0871607409999342,
-          "output_tail": "x_pydoc_pipepager.pkl: dangerous import 'pydoc pipepager' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06950416900053824,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.22027929999967455,
-          "output_tail": "No settings file detected at /tmp/tmpv0d7xf_p/modelscan-settings.toml. Using defaults. \n\nScanning x_pydoc_pipepager.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
         }
       }
     },
@@ -2102,24 +1364,6 @@
           "missing": [
             "timeit.timeit"
           ]
-        },
-        "picklescan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.0815452169999844,
-          "output_tail": "x_timeit.pkl: dangerous import 'timeit timeit' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06121056600022712,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.1776348430003054,
-          "output_tail": "No settings file detected at /tmp/tmp3882mrsj/modelscan-settings.toml. Using defaults. \n\nScanning x_timeit.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
         }
       }
     },
@@ -2153,24 +1397,6 @@
           "missing": [
             "cProfile.run"
           ]
-        },
-        "picklescan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.08941665800011833,
-          "output_tail": "x_cprofile_run.pkl: dangerous import 'cProfile run' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06668530699971598,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.18079034200036403,
-          "output_tail": "No settings file detected at /tmp/tmpgu6w6lp0/modelscan-settings.toml. Using defaults. \n\nScanning x_cprofile_run.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
         }
       }
     },
@@ -2208,24 +1434,6 @@
             "functools.partial",
             "posix.system"
           ]
-        },
-        "picklescan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.08534356999916781,
-          "output_tail": "x_functools_partial.pkl: dangerous import 'posix system' FOUND\nx_functools_partial.pkl: dangerous import 'functools partial' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 2"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06397997499971098,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.1731359200002771,
-          "output_tail": "tal Issues: 1\n\nTotal Issues By Severity:\n\n    - LOW: 0\n    - MEDIUM: 0\n    - HIGH: 0\n    - CRITICAL: 1\n\n--- Issues by Severity ---\n\n--- CRITICAL ---\n\nUnsafe operator found:\n  - Severity: CRITICAL\n  - Description: Use of unsafe operator 'system' from module 'posix'\n  - Source: x_functools_partial.pkl"
         }
       }
     },
@@ -2264,24 +1472,6 @@
             "builtins.__import__",
             "operator.methodcaller"
           ]
-        },
-        "picklescan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.0944674849997682,
-          "output_tail": "x_operator_methodcaller.pkl: dangerous import 'operator methodcaller' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 1\nDangerous globals: 1"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.07939804599936906,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.16004275500017684,
-          "output_tail": " 1\n\nTotal Issues By Severity:\n\n    - LOW: 0\n    - MEDIUM: 0\n    - HIGH: 0\n    - CRITICAL: 1\n\n--- Issues by Severity ---\n\n--- CRITICAL ---\n\nUnsafe operator found:\n  - Severity: CRITICAL\n  - Description: Use of unsafe operator '__import__' from module 'builtins'\n  - Source: x_operator_methodcaller.pkl"
         }
       }
     },
@@ -2312,24 +1502,6 @@
           ],
           "seconds": 0.0004436720000740024,
           "missing": []
-        },
-        "picklescan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.09121340600086114,
-          "output_tail": "x_zip_name_mismatch.pt:archive/data.pkl: dangerous import 'posix system' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
-        },
-        "fickling": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.07358546700015722,
-          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.16289557199979754,
-          "output_tail": "No settings file detected at /tmp/tmpln4myn80/modelscan-settings.toml. Using defaults. \n\n\n--- Summary ---\n\n No issues found! \ud83c\udf89\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
         }
       }
     },
@@ -2360,24 +1532,6 @@
           ],
           "seconds": 0.0004473409999263822,
           "missing": []
-        },
-        "picklescan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.08911349599929963,
-          "output_tail": "x_zip_flag_bits.pt:archive/data.pkl: dangerous import 'posix system' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
-        },
-        "fickling": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.06728730000031646,
-          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.1801525729997593,
-          "output_tail": "No settings file detected at /tmp/tmp1_upt3s4/modelscan-settings.toml. Using defaults. \n\n\n--- Summary ---\n\n No issues found! \ud83c\udf89\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
         }
       }
     },
@@ -2410,24 +1564,6 @@
           "missing": [
             "posix.system"
           ]
-        },
-        "picklescan": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.08708150099937484,
-          "output_tail": "x_zip_hidden_pickle.pt:archive/data/0: dangerous import 'posix system' FOUND\n----------- SCAN SUMMARY -----------\nScanned files: 2\nInfected files: 1\nSuspicious globals: 0\nDangerous globals: 1"
-        },
-        "fickling": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.06385520200001338,
-          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.16764815100032138,
-          "output_tail": "le detected at /tmp/tmp57mcn8z8/modelscan-settings.toml. Using defaults. \n\nScanning x_zip_hidden_pickle.pt:archive/data.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
         }
       }
     },
@@ -2454,24 +1590,6 @@
           },
           "reasons": [],
           "seconds": 0.3650637769997047
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.08394442100052402,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 2\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "error",
-          "exit_code": 1,
-          "seconds": 0.06422584800020559,
-          "output_tail": "^^^\n  File \"<scratch>/tools/lib/python3.12/site-packages/fickling/fickle.py\", line 387, in __new__\n    raise NotImplementedError(f\"TODO: Add support for Opcode {info.name}\")\nNotImplementedError: TODO: Add support for Opcode FLOAT"
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.16832736400010617,
-          "output_tail": "No settings file detected at /tmp/tmp0v2ojj33/modelscan-settings.toml. Using defaults. \n\nScanning b_builtins_p0.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
         }
       }
     },
@@ -2498,24 +1616,6 @@
           },
           "reasons": [],
           "seconds": 0.4096923910001351
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.08786930899987055,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 2\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06656325699987065,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.1769060830001763,
-          "output_tail": "No settings file detected at /tmp/tmpvuy7ucal/modelscan-settings.toml. Using defaults. \n\nScanning b_builtins_p1.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
         }
       }
     },
@@ -2542,24 +1642,6 @@
           },
           "reasons": [],
           "seconds": 0.49403092299962736
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.09153613099988434,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 2\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.05947350800033746,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.16928185800043138,
-          "output_tail": "No settings file detected at /tmp/tmpux4rbiiy/modelscan-settings.toml. Using defaults. \n\nScanning b_builtins_p2.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
         }
       }
     },
@@ -2586,24 +1668,6 @@
           },
           "reasons": [],
           "seconds": 0.41923021000002336
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.08168527299949346,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 1\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06425950499942701,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.15793882699927053,
-          "output_tail": "No settings file detected at /tmp/tmp21sr6cv0/modelscan-settings.toml. Using defaults. \n\nScanning b_builtins_p3.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
         }
       }
     },
@@ -2630,24 +1694,6 @@
           },
           "reasons": [],
           "seconds": 0.38615384600052494
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.09524599500036857,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06471817300007388,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.16539887900034955,
-          "output_tail": "No settings file detected at /tmp/tmp86_1yn7n/modelscan-settings.toml. Using defaults. \n\nScanning b_builtins_p4.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
         }
       }
     },
@@ -2674,24 +1720,6 @@
           },
           "reasons": [],
           "seconds": 0.37064137600009417
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.08541779999995924,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.056853815999602375,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.17476317799992103,
-          "output_tail": "No settings file detected at /tmp/tmpx7pwdacj/modelscan-settings.toml. Using defaults. \n\nScanning b_builtins_p5.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
         }
       }
     },
@@ -2718,24 +1746,6 @@
           },
           "reasons": [],
           "seconds": 0.4122477020000588
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.08897403799983294,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.06241329400018003,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.15715362500031915,
-          "output_tail": "No settings file detected at /tmp/tmp5xlrf9lj/modelscan-settings.toml. Using defaults. \n\nScanning b_two_pickles.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
         }
       }
     },
@@ -2762,24 +1772,6 @@
           },
           "reasons": [],
           "seconds": 0.000552169999537
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.09610387999964587,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "error",
-          "exit_code": 1,
-          "seconds": 0.061239007999574824,
-          "output_tail": "/claude-0/-home-user-Sandbox/6f8adfdb-4c7f-51b3-8c05-0c74ee0e752e/scratchpad/tools/lib/python3.12/site-packages/fickling/fickle.py\", line 391, in run\n    raise NotImplementedError(f\"TODO: Add support for Pickle opcode {self.info.name}\")\nNotImplementedError: TODO: Add support for Pickle opcode PERSID"
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.1624956330006171,
-          "output_tail": "1:\nThe following error was raised during a keras scan: \nTo use modelscan.scanners.KerasLambdaDetectScan, please install modelscan with \ntensorflow extras. `pip install 'modelscan[ tensorflow ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
         }
       }
     },
@@ -2813,24 +1805,6 @@
             "Custom>Backdoor.registered_name",
             "safeloadai_marker_pkg.layers.Backdoor"
           ]
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.09246901599999546,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.061467620999792416,
-          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.16589854800076864,
-          "output_tail": "1:\nThe following error was raised during a keras scan: \nTo use modelscan.scanners.KerasLambdaDetectScan, please install modelscan with \ntensorflow extras. `pip install 'modelscan[ tensorflow ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
         }
       }
     },
@@ -2862,24 +1836,6 @@
           "missing": [
             "posix.system"
           ]
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.08524280600067868,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.06229668000014499,
-          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.17067362800025876,
-          "output_tail": "1:\nThe following error was raised during a keras scan: \nTo use modelscan.scanners.KerasLambdaDetectScan, please install modelscan with \ntensorflow extras. `pip install 'modelscan[ tensorflow ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
         }
       }
     },
@@ -2912,24 +1868,6 @@
           "missing": [
             "tf.io.write_file"
           ]
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.09251691800000117,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.05796891099998902,
-          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.161861864000457,
-          "output_tail": "1:\nThe following error was raised during a keras scan: \nTo use modelscan.scanners.KerasLambdaDetectScan, please install modelscan with \ntensorflow extras. `pip install 'modelscan[ tensorflow ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
         }
       }
     },
@@ -2961,24 +1899,6 @@
           "missing": [
             "kerasx.layers.Dense"
           ]
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.07938238899987482,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.056913693999376846,
-          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.17718839999997726,
-          "output_tail": "1:\nThe following error was raised during a keras scan: \nTo use modelscan.scanners.KerasLambdaDetectScan, please install modelscan with \ntensorflow extras. `pip install 'modelscan[ tensorflow ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
         }
       }
     },
@@ -3018,24 +1938,6 @@
             "keras.layers.Lambda.os",
             "keras.layers.Lambda.system"
           ]
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.09538826900006825,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.06140294400029234,
-          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.18199614599961933,
-          "output_tail": "1:\nThe following error was raised during a keras scan: \nTo use modelscan.scanners.KerasLambdaDetectScan, please install modelscan with \ntensorflow extras. `pip install 'modelscan[ tensorflow ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
         }
       }
     },
@@ -3071,24 +1973,6 @@
             "keras.layers.Lambda.io",
             "keras.layers.Lambda.write_file"
           ]
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.08284196600016003,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.057201884999813046,
-          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.16197548600030132,
-          "output_tail": "1:\nThe following error was raised during a keras scan: \nTo use modelscan.scanners.KerasLambdaDetectScan, please install modelscan with \ntensorflow extras. `pip install 'modelscan[ tensorflow ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
         }
       }
     },
@@ -3122,24 +2006,6 @@
           "missing": [
             "keras.layers.Lambda.py_function"
           ]
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.11545944200042868,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.08320802799971716,
-          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.15476014799969562,
-          "output_tail": "1:\nThe following error was raised during a keras scan: \nTo use modelscan.scanners.KerasLambdaDetectScan, please install modelscan with \ntensorflow extras. `pip install 'modelscan[ tensorflow ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
         }
       }
     },
@@ -3181,24 +2047,6 @@
             "keras.layers.Lambda.os",
             "keras.layers.Lambda.system"
           ]
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.12105698300001677,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.062298438999278005,
-          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.19640803600032086,
-          "output_tail": "1:\nThe following error was raised during a keras scan: \nTo use modelscan.scanners.KerasLambdaDetectScan, please install modelscan with \ntensorflow extras. `pip install 'modelscan[ tensorflow ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
         }
       }
     },
@@ -3238,24 +2086,6 @@
             "keras.layers.Lambda.environ",
             "keras.layers.Lambda.os"
           ]
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.07904099300048983,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.06016406599974289,
-          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.17697627899997315,
-          "output_tail": "1:\nThe following error was raised during a keras scan: \nTo use modelscan.scanners.KerasLambdaDetectScan, please install modelscan with \ntensorflow extras. `pip install 'modelscan[ tensorflow ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
         }
       }
     },
@@ -3294,24 +2124,6 @@
             "keras.layers.Lambda.os",
             "keras.layers.Lambda.system"
           ]
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.08529132100011338,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.059708409999984724,
-          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.17338241300058144,
-          "output_tail": "1:\nThe following error was raised during a keras scan: \nTo use modelscan.scanners.KerasLambdaDetectScan, please install modelscan with \ntensorflow extras. `pip install 'modelscan[ tensorflow ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
         }
       }
     },
@@ -3345,24 +2157,6 @@
           "missing": [
             "keras.layers.Lambda.__subclasses__"
           ]
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.08320047599954705,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.06335403299999598,
-          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.16911387700019986,
-          "output_tail": "1:\nThe following error was raised during a keras scan: \nTo use modelscan.scanners.KerasLambdaDetectScan, please install modelscan with \ntensorflow extras. `pip install 'modelscan[ tensorflow ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
         }
       }
     },
@@ -3393,24 +2187,6 @@
           ],
           "seconds": 0.4000389090006138,
           "missing": []
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.08136194500002603,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.07133984699976281,
-          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.18149410500063823,
-          "output_tail": "1:\nThe following error was raised during a keras scan: \nTo use modelscan.scanners.KerasLambdaDetectScan, please install modelscan with \ntensorflow extras. `pip install 'modelscan[ tensorflow ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
         }
       }
     },
@@ -3437,24 +2213,6 @@
           },
           "reasons": [],
           "seconds": 0.39706274200034386
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.09687281700007588,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.0752771120005491,
-          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.18496786700052326,
-          "output_tail": "1:\nThe following error was raised during a keras scan: \nTo use modelscan.scanners.KerasLambdaDetectScan, please install modelscan with \ntensorflow extras. `pip install 'modelscan[ tensorflow ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
         }
       }
     },
@@ -3481,24 +2239,6 @@
           },
           "reasons": [],
           "seconds": 0.45077340499938146
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.1041919789995518,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.06529958299961436,
-          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.1843525899994347,
-          "output_tail": "1:\nThe following error was raised during a keras scan: \nTo use modelscan.scanners.KerasLambdaDetectScan, please install modelscan with \ntensorflow extras. `pip install 'modelscan[ tensorflow ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
         }
       }
     },
@@ -3538,24 +2278,6 @@
             "keras.layers.Lambda.os",
             "keras.layers.Lambda.system"
           ]
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.10963696299950243,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.12513280600069265,
-          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.24958215199967526,
-          "output_tail": "1:\nThe following error was raised during a keras scan: \nTo use modelscan.scanners.KerasLambdaDetectScan, please install modelscan with \ntensorflow extras. `pip install 'modelscan[ tensorflow ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
         }
       }
     },
@@ -3591,23 +2313,6 @@
             "keras.layers.Lambda.__import__",
             "keras.layers.Lambda.subprocess"
           ]
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.09655779399963649,
-          "output_tail": "WARNING: could not parse k2_lambda_marker.h5 as pickle: at position 1, opcode b'H' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.07371537600010925,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "skipped",
-          "reason": "modelscan reads .h5 with h5py on the host",
-          "seconds": 0.0
         }
       }
     },
@@ -3641,23 +2346,6 @@
             "os.system",
             "tf.system"
           ]
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.08362845800002106,
-          "output_tail": "WARNING: could not parse k2_lambda_os_system.h5 as pickle: at position 1, opcode b'H' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.07326182599990716,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "skipped",
-          "reason": "modelscan reads .h5 with h5py on the host",
-          "seconds": 0.0
         }
       }
     },
@@ -3691,23 +2379,6 @@
             "None.MyDense",
             "loss/metric.my_custom_loss"
           ]
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.08267197599980136,
-          "output_tail": "WARNING: could not parse k2_custom_objects.h5 as pickle: at position 1, opcode b'H' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06167808100053662,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "skipped",
-          "reason": "modelscan reads .h5 with h5py on the host",
-          "seconds": 0.0
         }
       }
     },
@@ -3737,23 +2408,6 @@
           ],
           "seconds": 0.3607309669996539,
           "missing": []
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.0829650120003862,
-          "output_tail": "WARNING: could not parse s_external_link.h5 as pickle: at position 1, opcode b'H' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06538301999989926,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "skipped",
-          "reason": "modelscan reads .h5 with h5py on the host",
-          "seconds": 0.0
         }
       }
     },
@@ -3780,23 +2434,6 @@
           },
           "reasons": [],
           "seconds": 0.3717402209995271
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.09113872599937167,
-          "output_tail": "WARNING: could not parse k2_sequential.h5 as pickle: at position 1, opcode b'H' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06272624099983659,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "skipped",
-          "reason": "modelscan reads .h5 with h5py on the host",
-          "seconds": 0.0
         }
       }
     },
@@ -3823,23 +2460,6 @@
           },
           "reasons": [],
           "seconds": 0.3645160109999779
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.08415607900042232,
-          "output_tail": "WARNING: could not parse k2_functional_cnn.h5 as pickle: at position 1, opcode b'H' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06757020399982139,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "skipped",
-          "reason": "modelscan reads .h5 with h5py on the host",
-          "seconds": 0.0
         }
       }
     },
@@ -3866,24 +2486,6 @@
           },
           "reasons": [],
           "seconds": 0.3781280939992939
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.08064815200032172,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 1\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06458650300010049,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.1711724740007412,
-          "output_tail": "No settings file detected at /tmp/tmpx8f03htd/modelscan-settings.toml. Using defaults. \n\nScanning np_array_f32_p2.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
         }
       }
     },
@@ -3910,24 +2512,6 @@
           },
           "reasons": [],
           "seconds": 0.3732716080003229
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.08076927899946895,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.07860932799940201,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.15982328500012954,
-          "output_tail": "No settings file detected at /tmp/tmpil8wczb8/modelscan-settings.toml. Using defaults. \n\nScanning np_array_f32_p4.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
         }
       }
     },
@@ -3954,24 +2538,6 @@
           },
           "reasons": [],
           "seconds": 0.40515163899999607
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.09203355099998589,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 1\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "error",
-          "exit_code": 1,
-          "seconds": 0.0641584810000495,
-          "output_tail": " File \"<scratch>/tools/lib/python3.12/site-packages/fickling/fickle.py\", line 387, in __new__\n    raise NotImplementedError(f\"TODO: Add support for Opcode {info.name}\")\nNotImplementedError: TODO: Add support for Opcode BYTEARRAY8"
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.16879433899975993,
-          "output_tail": "No settings file detected at /tmp/tmpm4199w26/modelscan-settings.toml. Using defaults. \n\nScanning np_array_f32_p5.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
         }
       }
     },
@@ -3998,24 +2564,6 @@
           },
           "reasons": [],
           "seconds": 0.3729512190002424
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.08333635600047273,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 1\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06806383000002825,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.1628662709999844,
-          "output_tail": "No settings file detected at /tmp/tmpajkzz_bu/modelscan-settings.toml. Using defaults. \n\nScanning np_array_i64_p2.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
         }
       }
     },
@@ -4042,24 +2590,6 @@
           },
           "reasons": [],
           "seconds": 0.3987780510005905
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.09286927799985278,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.07003903800068656,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.16324814700055867,
-          "output_tail": "No settings file detected at /tmp/tmpe99gfcsm/modelscan-settings.toml. Using defaults. \n\nScanning np_array_i64_p4.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
         }
       }
     },
@@ -4086,24 +2616,6 @@
           },
           "reasons": [],
           "seconds": 0.3725264470003822
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.08459533200039004,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 1\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "error",
-          "exit_code": 1,
-          "seconds": 0.0662869519992455,
-          "output_tail": " File \"<scratch>/tools/lib/python3.12/site-packages/fickling/fickle.py\", line 387, in __new__\n    raise NotImplementedError(f\"TODO: Add support for Opcode {info.name}\")\nNotImplementedError: TODO: Add support for Opcode BYTEARRAY8"
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.17333879099987826,
-          "output_tail": "No settings file detected at /tmp/tmpkbjx156b/modelscan-settings.toml. Using defaults. \n\nScanning np_array_i64_p5.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
         }
       }
     },
@@ -4130,24 +2642,6 @@
           },
           "reasons": [],
           "seconds": 0.356718181999895
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.07659706500089669,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 1\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.05981922499995562,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.1465462080004727,
-          "output_tail": "No settings file detected at /tmp/tmp44uokdsq/modelscan-settings.toml. Using defaults. \n\nScanning np_dict_p2.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
         }
       }
     },
@@ -4174,24 +2668,6 @@
           },
           "reasons": [],
           "seconds": 0.37565399699997215
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.0765247029994498,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.05696626899953117,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.15042023899968626,
-          "output_tail": "No settings file detected at /tmp/tmpt81_g5of/modelscan-settings.toml. Using defaults. \n\nScanning np_dict_p4.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
         }
       }
     },
@@ -4218,24 +2694,6 @@
           },
           "reasons": [],
           "seconds": 0.34058006499981275
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.07563459699940722,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 1\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "error",
-          "exit_code": 1,
-          "seconds": 0.08118819000083022,
-          "output_tail": " File \"<scratch>/tools/lib/python3.12/site-packages/fickling/fickle.py\", line 387, in __new__\n    raise NotImplementedError(f\"TODO: Add support for Opcode {info.name}\")\nNotImplementedError: TODO: Add support for Opcode BYTEARRAY8"
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.14955929600000673,
-          "output_tail": "No settings file detected at /tmp/tmpofqbflcn/modelscan-settings.toml. Using defaults. \n\nScanning np_dict_p5.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
         }
       }
     },
@@ -4278,24 +2736,6 @@
             "sklearn.linear_model._stochastic_gradient.SGDClassifier",
             "sklearn.preprocessing._encoders.OneHotEncoder"
           ]
-        },
-        "picklescan": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.10560025300037523,
-          "output_tail": "ERROR: parsing pickle in sk_column_transformer.joblib: at position 1122, opcode b'\\r' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 7\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.058051189000252634,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.15892974300004425,
-          "output_tail": "n-settings.toml. Using defaults. \n\nScanning sk_column_transformer.joblib using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89\n\n--- Errors --- \n\nError 1:\nThe following error was raised during a pickle scan: \nParsing error: at position 1122, opcode b'\\r' unknown"
         }
       }
     },
@@ -4338,24 +2778,6 @@
             "sklearn.linear_model._stochastic_gradient.SGDClassifier",
             "sklearn.preprocessing._encoders.OneHotEncoder"
           ]
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.08183592000023054,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 9\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.07042061799984367,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.15823332799936907,
-          "output_tail": "No settings file detected at /tmp/tmpr0cw29nw/modelscan-settings.toml. Using defaults. \n\nScanning sk_column_transformer.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
         }
       }
     },
@@ -4382,24 +2804,6 @@
           },
           "reasons": [],
           "seconds": 0.40672243400058505
-        },
-        "picklescan": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.08024147499963874,
-          "output_tail": "ERROR: parsing pickle in sk_forest.joblib: at position 913, opcode b'\\x0e' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 3\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.059968595999635,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.14937342400025955,
-          "output_tail": "yd/modelscan-settings.toml. Using defaults. \n\nScanning sk_forest.joblib using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89\n\n--- Errors --- \n\nError 1:\nThe following error was raised during a pickle scan: \nParsing error: at position 913, opcode b'\\x0e' unknown"
         }
       }
     },
@@ -4426,24 +2830,6 @@
           },
           "reasons": [],
           "seconds": 0.4498872690001008
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.10459909200017137,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 4\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06482352100010758,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.1662554469994575,
-          "output_tail": "No settings file detected at /tmp/tmpyc4yeepg/modelscan-settings.toml. Using defaults. \n\nScanning sk_forest.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
         }
       }
     },
@@ -4486,24 +2872,6 @@
             "sklearn.dummy.DummyRegressor",
             "sklearn.ensemble._gb.GradientBoostingRegressor"
           ]
-        },
-        "picklescan": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.11259852699913608,
-          "output_tail": "ERROR: parsing pickle in sk_gbr.joblib: at position 1284, opcode b'\\x0b' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 7\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06612539699926856,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.17158095000013418,
-          "output_tail": "7bdd/modelscan-settings.toml. Using defaults. \n\nScanning sk_gbr.joblib using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89\n\n--- Errors --- \n\nError 1:\nThe following error was raised during a pickle scan: \nParsing error: at position 1284, opcode b'\\x0b' unknown"
         }
       }
     },
@@ -4546,24 +2914,6 @@
             "sklearn.dummy.DummyRegressor",
             "sklearn.ensemble._gb.GradientBoostingRegressor"
           ]
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.08115689399983239,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 13\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.07615757199982909,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.17896949900023174,
-          "output_tail": "No settings file detected at /tmp/tmpjd4b3tda/modelscan-settings.toml. Using defaults. \n\nScanning sk_gbr.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
         }
       }
     },
@@ -4610,24 +2960,6 @@
             "sklearn.ensemble._hist_gradient_boosting.predictor.TreePredictor",
             "sklearn.preprocessing._label.LabelEncoder"
           ]
-        },
-        "picklescan": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.08301962400037155,
-          "output_tail": "ERROR: parsing pickle in sk_hgb.joblib: at position 895, opcode b'\\x10' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 3\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06334179599980416,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.19185641300009593,
-          "output_tail": "d2id2/modelscan-settings.toml. Using defaults. \n\nScanning sk_hgb.joblib using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89\n\n--- Errors --- \n\nError 1:\nThe following error was raised during a pickle scan: \nParsing error: at position 895, opcode b'\\x10' unknown"
         }
       }
     },
@@ -4674,24 +3006,6 @@
             "sklearn.ensemble._hist_gradient_boosting.predictor.TreePredictor",
             "sklearn.preprocessing._label.LabelEncoder"
           ]
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.07953028500014625,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 14\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.07386221199976717,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.15906456199991226,
-          "output_tail": "No settings file detected at /tmp/tmpo0hu5pxa/modelscan-settings.toml. Using defaults. \n\nScanning sk_hgb.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
         }
       }
     },
@@ -4718,24 +3032,6 @@
           },
           "reasons": [],
           "seconds": 0.3582918490001248
-        },
-        "picklescan": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.07934863700029382,
-          "output_tail": "ERROR: parsing pickle in sk_kmeans.joblib: at position 538, opcode b'\\x05' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 3\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06001392300004227,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.15188993000083428,
-          "output_tail": "d9/modelscan-settings.toml. Using defaults. \n\nScanning sk_kmeans.joblib using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89\n\n--- Errors --- \n\nError 1:\nThe following error was raised during a pickle scan: \nParsing error: at position 538, opcode b'\\x05' unknown"
         }
       }
     },
@@ -4762,24 +3058,6 @@
           },
           "reasons": [],
           "seconds": 0.3917734589995234
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.0814493930001845,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 2\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.05854377499963448,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.1594940389995827,
-          "output_tail": "No settings file detected at /tmp/tmpfte0udhp/modelscan-settings.toml. Using defaults. \n\nScanning sk_kmeans.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
         }
       }
     },
@@ -4806,24 +3084,6 @@
           },
           "reasons": [],
           "seconds": 0.3733418559995698
-        },
-        "picklescan": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.08153051399949618,
-          "output_tail": "ERROR: parsing pickle in sk_knn.joblib: at position 465, opcode b'\\x0e' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 2\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.05548193199956586,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.16422794600021007,
-          "output_tail": "e2o8z/modelscan-settings.toml. Using defaults. \n\nScanning sk_knn.joblib using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89\n\n--- Errors --- \n\nError 1:\nThe following error was raised during a pickle scan: \nParsing error: at position 465, opcode b'\\x0e' unknown"
         }
       }
     },
@@ -4850,24 +3110,6 @@
           },
           "reasons": [],
           "seconds": 0.36319557299975713
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.08421390399962547,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 5\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.0687452359998133,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.16434968100020342,
-          "output_tail": "No settings file detected at /tmp/tmp60nzstkw/modelscan-settings.toml. Using defaults. \n\nScanning sk_knn.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
         }
       }
     },
@@ -4902,24 +3144,6 @@
           "missing": [
             "sklearn.preprocessing._label.LabelEncoder"
           ]
-        },
-        "picklescan": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.08058497000001807,
-          "output_tail": "ERROR: parsing pickle in sk_label_encoder.joblib: at position 279, opcode b'\\x08' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 2\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.0746123360004276,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.15333096099948307,
-          "output_tail": "lscan-settings.toml. Using defaults. \n\nScanning sk_label_encoder.joblib using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89\n\n--- Errors --- \n\nError 1:\nThe following error was raised during a pickle scan: \nParsing error: at position 279, opcode b'\\x08' unknown"
         }
       }
     },
@@ -4954,24 +3178,6 @@
           "missing": [
             "sklearn.preprocessing._label.LabelEncoder"
           ]
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.07886615200004599,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 1\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.05728394000016124,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.16219158900003094,
-          "output_tail": "No settings file detected at /tmp/tmpjeuht90n/modelscan-settings.toml. Using defaults. \n\nScanning sk_label_encoder.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
         }
       }
     },
@@ -4998,24 +3204,6 @@
           },
           "reasons": [],
           "seconds": 0.3787310530005925
-        },
-        "picklescan": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.11122460499973386,
-          "output_tail": "ERROR: parsing pickle in sk_linreg.joblib: at position 367, opcode b'\\x10' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 2\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.08659703400007857,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.1854905720001625,
-          "output_tail": "br/modelscan-settings.toml. Using defaults. \n\nScanning sk_linreg.joblib using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89\n\n--- Errors --- \n\nError 1:\nThe following error was raised during a pickle scan: \nParsing error: at position 367, opcode b'\\x10' unknown"
         }
       }
     },
@@ -5042,24 +3230,6 @@
           },
           "reasons": [],
           "seconds": 0.3914470720001191
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.09990543000003527,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 2\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06667205800022202,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.1565068939999037,
-          "output_tail": "No settings file detected at /tmp/tmp9nfl3bv_/modelscan-settings.toml. Using defaults. \n\nScanning sk_linreg.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
         }
       }
     },
@@ -5086,24 +3256,6 @@
           },
           "reasons": [],
           "seconds": 0.37728402500033553
-        },
-        "picklescan": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.08523103599964088,
-          "output_tail": "ERROR: parsing pickle in sk_logreg.joblib: at position 526, opcode b'\\x01' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 2\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.05859530700035975,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.15182242700029747,
-          "output_tail": "j5/modelscan-settings.toml. Using defaults. \n\nScanning sk_logreg.joblib using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89\n\n--- Errors --- \n\nError 1:\nThe following error was raised during a pickle scan: \nParsing error: at position 526, opcode b'\\x01' unknown"
         }
       }
     },
@@ -5130,24 +3282,6 @@
           },
           "reasons": [],
           "seconds": 0.3361591689999841
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.08193248099996708,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 1\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06538456100042822,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.15227995499935787,
-          "output_tail": "No settings file detected at /tmp/tmpkr0h_mr0/modelscan-settings.toml. Using defaults. \n\nScanning sk_logreg.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
         }
       }
     },
@@ -5188,24 +3322,6 @@
             "sklearn.neural_network._stochastic_optimizers.AdamOptimizer",
             "sklearn.preprocessing._label.LabelBinarizer"
           ]
-        },
-        "picklescan": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.08623505699961242,
-          "output_tail": "ERROR: parsing pickle in sk_mlp.joblib: at position 930, opcode b'\\r' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 3\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.05810213600034331,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.1581726799995522,
-          "output_tail": "gj5nr0_/modelscan-settings.toml. Using defaults. \n\nScanning sk_mlp.joblib using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89\n\n--- Errors --- \n\nError 1:\nThe following error was raised during a pickle scan: \nParsing error: at position 930, opcode b'\\r' unknown"
         }
       }
     },
@@ -5246,24 +3362,6 @@
             "sklearn.neural_network._stochastic_optimizers.AdamOptimizer",
             "sklearn.preprocessing._label.LabelBinarizer"
           ]
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.08482458099933865,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 9\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.0823785870006759,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.17920428199977323,
-          "output_tail": "No settings file detected at /tmp/tmpc06k3q7n/modelscan-settings.toml. Using defaults. \n\nScanning sk_mlp.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
         }
       }
     },
@@ -5290,24 +3388,6 @@
           },
           "reasons": [],
           "seconds": 0.3824345530001665
-        },
-        "picklescan": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.09174227299990889,
-          "output_tail": "ERROR: parsing pickle in sk_pca.joblib: at position 480, opcode b'\\x0f' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 2\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06628049600021768,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.15796733600018342,
-          "output_tail": "yhljt/modelscan-settings.toml. Using defaults. \n\nScanning sk_pca.joblib using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89\n\n--- Errors --- \n\nError 1:\nThe following error was raised during a pickle scan: \nParsing error: at position 480, opcode b'\\x0f' unknown"
         }
       }
     },
@@ -5334,24 +3414,6 @@
           },
           "reasons": [],
           "seconds": 0.36786015599955135
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.07639043099970877,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 2\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.05997767299959378,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.15529933800007711,
-          "output_tail": "No settings file detected at /tmp/tmpf1b32znu/modelscan-settings.toml. Using defaults. \n\nScanning sk_pca.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
         }
       }
     },
@@ -5378,24 +3440,6 @@
           },
           "reasons": [],
           "seconds": 0.3656757660000949
-        },
-        "picklescan": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.1024900290003643,
-          "output_tail": "ERROR: parsing pickle in sk_pipeline.joblib: at position 472, opcode b'\\x07' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 4\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06227930000022752,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.15542912999990222,
-          "output_tail": "/modelscan-settings.toml. Using defaults. \n\nScanning sk_pipeline.joblib using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89\n\n--- Errors --- \n\nError 1:\nThe following error was raised during a pickle scan: \nParsing error: at position 472, opcode b'\\x07' unknown"
         }
       }
     },
@@ -5422,24 +3466,6 @@
           },
           "reasons": [],
           "seconds": 0.37204211199968995
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.08285168899965356,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 4\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06366181400062487,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.16100562500014348,
-          "output_tail": "No settings file detected at /tmp/tmp0ejp5ant/modelscan-settings.toml. Using defaults. \n\nScanning sk_pipeline.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
         }
       }
     },
@@ -5474,24 +3500,6 @@
           "missing": [
             "sklearn.linear_model._ridge.Ridge"
           ]
-        },
-        "picklescan": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.08498500200039416,
-          "output_tail": "ERROR: parsing pickle in sk_ridge.joblib: at position 408, opcode b'\\x07' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 2\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06620034800016583,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.16601153500050714,
-          "output_tail": "opj/modelscan-settings.toml. Using defaults. \n\nScanning sk_ridge.joblib using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89\n\n--- Errors --- \n\nError 1:\nThe following error was raised during a pickle scan: \nParsing error: at position 408, opcode b'\\x07' unknown"
         }
       }
     },
@@ -5526,24 +3534,6 @@
           "missing": [
             "sklearn.linear_model._ridge.Ridge"
           ]
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.07926525899983972,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 2\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.08088208599929203,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.1828546210008426,
-          "output_tail": "No settings file detected at /tmp/tmp2wugdxog/modelscan-settings.toml. Using defaults. \n\nScanning sk_ridge.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
         }
       }
     },
@@ -5582,24 +3572,6 @@
             "sklearn.linear_model._sgd_fast.Hinge",
             "sklearn.linear_model._stochastic_gradient.SGDClassifier"
           ]
-        },
-        "picklescan": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.08444332199997007,
-          "output_tail": "ERROR: parsing pickle in sk_sgd.joblib: at position 642, opcode b'\\r' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 2\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.08328506799989555,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.19815280700004223,
-          "output_tail": "nid_x1j/modelscan-settings.toml. Using defaults. \n\nScanning sk_sgd.joblib using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89\n\n--- Errors --- \n\nError 1:\nThe following error was raised during a pickle scan: \nParsing error: at position 642, opcode b'\\r' unknown"
         }
       }
     },
@@ -5638,24 +3610,6 @@
             "sklearn.linear_model._sgd_fast.Hinge",
             "sklearn.linear_model._stochastic_gradient.SGDClassifier"
           ]
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.08493898799952149,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 2\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06971766100014065,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.19103285599976516,
-          "output_tail": "No settings file detected at /tmp/tmpcgdhg5mc/modelscan-settings.toml. Using defaults. \n\nScanning sk_sgd.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
         }
       }
     },
@@ -5682,24 +3636,6 @@
           },
           "reasons": [],
           "seconds": 0.3960551479995047
-        },
-        "picklescan": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.08570687500014174,
-          "output_tail": "ERROR: parsing pickle in sk_svc.joblib: at position 581, opcode b'\\n' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 2\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06766817300012917,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.16701763900073274,
-          "output_tail": "0zx054f/modelscan-settings.toml. Using defaults. \n\nScanning sk_svc.joblib using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89\n\n--- Errors --- \n\nError 1:\nThe following error was raised during a pickle scan: \nParsing error: at position 581, opcode b'\\n' unknown"
         }
       }
     },
@@ -5726,24 +3662,6 @@
           },
           "reasons": [],
           "seconds": 0.4205832349998673
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.09016837099989061,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 2\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.08247081100034848,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.20879165299993474,
-          "output_tail": "No settings file detected at /tmp/tmpnszda2si/modelscan-settings.toml. Using defaults. \n\nScanning sk_svc.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
         }
       }
     },
@@ -5786,24 +3704,6 @@
             "sklearn.linear_model._sgd_fast.Hinge",
             "sklearn.linear_model._stochastic_gradient.SGDClassifier"
           ]
-        },
-        "picklescan": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.0993704490001619,
-          "output_tail": "ERROR: parsing pickle in sk_tfidf.joblib: at position 766, opcode b'\\x01' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 5\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.07643248699969263,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.16583011799957603,
-          "output_tail": "387/modelscan-settings.toml. Using defaults. \n\nScanning sk_tfidf.joblib using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89\n\n--- Errors --- \n\nError 1:\nThe following error was raised during a pickle scan: \nParsing error: at position 766, opcode b'\\x01' unknown"
         }
       }
     },
@@ -5846,24 +3746,6 @@
             "sklearn.linear_model._sgd_fast.Hinge",
             "sklearn.linear_model._stochastic_gradient.SGDClassifier"
           ]
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.11160386400024436,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 6\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.07401277600001777,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.18260050200024125,
-          "output_tail": "No settings file detected at /tmp/tmptgqiyv1t/modelscan-settings.toml. Using defaults. \n\nScanning sk_tfidf.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
         }
       }
     },
@@ -5890,24 +3772,6 @@
           },
           "reasons": [],
           "seconds": 0.395545790000142
-        },
-        "picklescan": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.08217837999927724,
-          "output_tail": "ERROR: parsing pickle in sk_tree.joblib: at position 589, opcode b'\\x02' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 2\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.07890560400028335,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.16548257900012686,
-          "output_tail": "gbth/modelscan-settings.toml. Using defaults. \n\nScanning sk_tree.joblib using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89\n\n--- Errors --- \n\nError 1:\nThe following error was raised during a pickle scan: \nParsing error: at position 589, opcode b'\\x02' unknown"
         }
       }
     },
@@ -5934,24 +3798,6 @@
           },
           "reasons": [],
           "seconds": 0.39847836700027983
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.0876987490000829,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 3\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06854121000014857,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.16312649399969814,
-          "output_tail": "No settings file detected at /tmp/tmpxfsj5tj1/modelscan-settings.toml. Using defaults. \n\nScanning sk_tree.pkl using modelscan.scanners.PickleUnsafeOpScan model scan\n\n--- Summary ---\n\n No issues found! \ud83c\udf89"
         }
       }
     },
@@ -5990,23 +3836,6 @@
           "missing": [
             "None.LayerScale"
           ]
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.08022635100041953,
-          "output_tail": "WARNING: could not parse k2_convnext_tiny.h5 as pickle: at position 1, opcode b'H' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.05832577399996808,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "skipped",
-          "reason": "modelscan reads .h5 with h5py on the host",
-          "seconds": 0.0
         }
       }
     },
@@ -6046,24 +3875,6 @@
             "keras.src.applications.convnext.LayerScale",
             "keras.src.layers.core.tf_op_layer.TFOpLambda"
           ]
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.07967513899984624,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.06067215399980341,
-          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.16756144999999378,
-          "output_tail": "sing pip.\n\nError 2:\nThe following error was raised during a hdf5 scan: \nTo use modelscan.scanners.H5LambdaDetectScan, please install modelscan with h5py\nextras. `pip install 'modelscan[ h5py ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
         }
       }
     },
@@ -6090,23 +3901,6 @@
           },
           "reasons": [],
           "seconds": 0.7901888930000496
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.07523045000016282,
-          "output_tail": "WARNING: could not parse k2_densenet121.h5 as pickle: at position 1, opcode b'H' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06464990999938891,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "skipped",
-          "reason": "modelscan reads .h5 with h5py on the host",
-          "seconds": 0.0
         }
       }
     },
@@ -6133,24 +3927,6 @@
           },
           "reasons": [],
           "seconds": 0.0578120720001607
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.09669578400007595,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.0699272159999964,
-          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.15707300100075372,
-          "output_tail": "sing pip.\n\nError 2:\nThe following error was raised during a hdf5 scan: \nTo use modelscan.scanners.H5LambdaDetectScan, please install modelscan with h5py\nextras. `pip install 'modelscan[ h5py ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
         }
       }
     },
@@ -6177,23 +3953,6 @@
           },
           "reasons": [],
           "seconds": 0.660532670000066
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.08248620200083678,
-          "output_tail": "WARNING: could not parse k2_efficientnet_b0.h5 as pickle: at position 1, opcode b'H' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.057402752999223594,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "skipped",
-          "reason": "modelscan reads .h5 with h5py on the host",
-          "seconds": 0.0
         }
       }
     },
@@ -6220,24 +3979,6 @@
           },
           "reasons": [],
           "seconds": 0.027357941000445862
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.0816425020002498,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.05722835899996426,
-          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.17351177599994116,
-          "output_tail": "sing pip.\n\nError 2:\nThe following error was raised during a hdf5 scan: \nTo use modelscan.scanners.H5LambdaDetectScan, please install modelscan with h5py\nextras. `pip install 'modelscan[ h5py ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
         }
       }
     },
@@ -6264,23 +4005,6 @@
           },
           "reasons": [],
           "seconds": 0.5180297229999269
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.081032592000156,
-          "output_tail": "WARNING: could not parse k2_mobilenet_v2.h5 as pickle: at position 1, opcode b'H' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.05974932800017996,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "skipped",
-          "reason": "modelscan reads .h5 with h5py on the host",
-          "seconds": 0.0
         }
       }
     },
@@ -6307,24 +4031,6 @@
           },
           "reasons": [],
           "seconds": 0.012201934000586334
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.09516856600021129,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.06891312100015057,
-          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.1559384960000898,
-          "output_tail": "sing pip.\n\nError 2:\nThe following error was raised during a hdf5 scan: \nTo use modelscan.scanners.H5LambdaDetectScan, please install modelscan with h5py\nextras. `pip install 'modelscan[ h5py ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
         }
       }
     },
@@ -6361,23 +4067,6 @@
           ],
           "seconds": 0.5551486699996531,
           "missing": []
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.07547255700046662,
-          "output_tail": "WARNING: could not parse k2_mobilenet_v3_small.h5 as pickle: at position 1, opcode b'H' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.05359350400067342,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "skipped",
-          "reason": "modelscan reads .h5 with h5py on the host",
-          "seconds": 0.0
         }
       }
     },
@@ -6416,24 +4105,6 @@
           "missing": [
             "keras.src.layers.core.tf_op_layer.TFOpLambda"
           ]
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.08868732500013721,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.056971973999679903,
-          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.15611288000036438,
-          "output_tail": "sing pip.\n\nError 2:\nThe following error was raised during a hdf5 scan: \nTo use modelscan.scanners.H5LambdaDetectScan, please install modelscan with h5py\nextras. `pip install 'modelscan[ h5py ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
         }
       }
     },
@@ -6460,23 +4131,6 @@
           },
           "reasons": [],
           "seconds": 1.2768459519993485
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.08770997999999963,
-          "output_tail": "WARNING: could not parse k2_nasnet_mobile.h5 as pickle: at position 1, opcode b'H' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.070819991999997,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "skipped",
-          "reason": "modelscan reads .h5 with h5py on the host",
-          "seconds": 0.0
         }
       }
     },
@@ -6503,24 +4157,6 @@
           },
           "reasons": [],
           "seconds": 0.045520976000261726
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.12163029400016967,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.06855861399981222,
-          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.16394480500002828,
-          "output_tail": "sing pip.\n\nError 2:\nThe following error was raised during a hdf5 scan: \nTo use modelscan.scanners.H5LambdaDetectScan, please install modelscan with h5py\nextras. `pip install 'modelscan[ h5py ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
         }
       }
     },
@@ -6547,23 +4183,6 @@
           },
           "reasons": [],
           "seconds": 0.36184719999982917
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.09079803699933109,
-          "output_tail": "WARNING: could not parse k2_text_gru.h5 as pickle: at position 1, opcode b'H' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06848829400041723,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "skipped",
-          "reason": "modelscan reads .h5 with h5py on the host",
-          "seconds": 0.0
         }
       }
     },
@@ -6590,24 +4209,6 @@
           },
           "reasons": [],
           "seconds": 0.0006637559999944642
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.1256095920007283,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.09193394299927604,
-          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.19178226300027745,
-          "output_tail": "sing pip.\n\nError 2:\nThe following error was raised during a hdf5 scan: \nTo use modelscan.scanners.H5LambdaDetectScan, please install modelscan with h5py\nextras. `pip install 'modelscan[ h5py ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
         }
       }
     },
@@ -6634,24 +4235,6 @@
           },
           "reasons": [],
           "seconds": 0.0005760889998782659
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.08381910799926118,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.06304822799938847,
-          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.18601112200030911,
-          "output_tail": "sing pip.\n\nError 2:\nThe following error was raised during a hdf5 scan: \nTo use modelscan.scanners.H5LambdaDetectScan, please install modelscan with h5py\nextras. `pip install 'modelscan[ h5py ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
         }
       }
     },
@@ -6690,23 +4273,6 @@
           "missing": [
             "None.LayerScale"
           ]
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.10116651299995283,
-          "output_tail": "WARNING: could not parse k3_convnext_tiny.h5 as pickle: at position 1, opcode b'H' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06741158000022551,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "skipped",
-          "reason": "modelscan reads .h5 with h5py on the host",
-          "seconds": 0.0
         }
       }
     },
@@ -6746,24 +4312,6 @@
             "keras.src.applications.convnext.LayerScale",
             "keras.src.ops.numpy.Add"
           ]
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.07905459699941275,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.0601497070001642,
-          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.16618158199980826,
-          "output_tail": "sing pip.\n\nError 2:\nThe following error was raised during a hdf5 scan: \nTo use modelscan.scanners.H5LambdaDetectScan, please install modelscan with h5py\nextras. `pip install 'modelscan[ h5py ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
         }
       }
     },
@@ -6790,23 +4338,6 @@
           },
           "reasons": [],
           "seconds": 0.8615381820000039
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.08117907499945431,
-          "output_tail": "WARNING: could not parse k3_densenet121.h5 as pickle: at position 1, opcode b'H' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06328538900015701,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "skipped",
-          "reason": "modelscan reads .h5 with h5py on the host",
-          "seconds": 0.0
         }
       }
     },
@@ -6833,24 +4364,6 @@
           },
           "reasons": [],
           "seconds": 0.06096141699981672
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.08721422100006748,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.07672131600065768,
-          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.16403565500058903,
-          "output_tail": "sing pip.\n\nError 2:\nThe following error was raised during a hdf5 scan: \nTo use modelscan.scanners.H5LambdaDetectScan, please install modelscan with h5py\nextras. `pip install 'modelscan[ h5py ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
         }
       }
     },
@@ -6877,23 +4390,6 @@
           },
           "reasons": [],
           "seconds": 0.6799745950002034
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.08807971399983217,
-          "output_tail": "WARNING: could not parse k3_efficientnet_b0.h5 as pickle: at position 1, opcode b'H' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.06203385399930994,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "skipped",
-          "reason": "modelscan reads .h5 with h5py on the host",
-          "seconds": 0.0
         }
       }
     },
@@ -6920,24 +4416,6 @@
           },
           "reasons": [],
           "seconds": 0.032134579000739905
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.08244590699996479,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.07976117399994109,
-          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.18131053400065866,
-          "output_tail": "sing pip.\n\nError 2:\nThe following error was raised during a hdf5 scan: \nTo use modelscan.scanners.H5LambdaDetectScan, please install modelscan with h5py\nextras. `pip install 'modelscan[ h5py ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
         }
       }
     },
@@ -6964,23 +4442,6 @@
           },
           "reasons": [],
           "seconds": 0.5361191369993321
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.08756531300059578,
-          "output_tail": "WARNING: could not parse k3_mobilenet_v2.h5 as pickle: at position 1, opcode b'H' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.07282410799962236,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "skipped",
-          "reason": "modelscan reads .h5 with h5py on the host",
-          "seconds": 0.0
         }
       }
     },
@@ -7007,24 +4468,6 @@
           },
           "reasons": [],
           "seconds": 0.013776938999399135
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.08713479200014262,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.06513743800041993,
-          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.18300773999999365,
-          "output_tail": "sing pip.\n\nError 2:\nThe following error was raised during a hdf5 scan: \nTo use modelscan.scanners.H5LambdaDetectScan, please install modelscan with h5py\nextras. `pip install 'modelscan[ h5py ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
         }
       }
     },
@@ -7051,23 +4494,6 @@
           },
           "reasons": [],
           "seconds": 0.5421321160001753
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.0851943379993827,
-          "output_tail": "WARNING: could not parse k3_mobilenet_v3_small.h5 as pickle: at position 1, opcode b'H' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.07492764400012675,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "skipped",
-          "reason": "modelscan reads .h5 with h5py on the host",
-          "seconds": 0.0
         }
       }
     },
@@ -7107,24 +4533,6 @@
             "keras.src.ops.numpy.Add",
             "keras.src.ops.numpy.Multiply"
           ]
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.08592763799970271,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.08366845799992007,
-          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.20525116200042248,
-          "output_tail": "sing pip.\n\nError 2:\nThe following error was raised during a hdf5 scan: \nTo use modelscan.scanners.H5LambdaDetectScan, please install modelscan with h5py\nextras. `pip install 'modelscan[ h5py ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
         }
       }
     },
@@ -7151,23 +4559,6 @@
           },
           "reasons": [],
           "seconds": 1.6922839610006122
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.1022851810002976,
-          "output_tail": "WARNING: could not parse k3_nasnet_mobile.h5 as pickle: at position 1, opcode b'H' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.07097649600018485,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "skipped",
-          "reason": "modelscan reads .h5 with h5py on the host",
-          "seconds": 0.0
         }
       }
     },
@@ -7194,24 +4585,6 @@
           },
           "reasons": [],
           "seconds": 0.05682762499964156
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.08909250299984706,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.0605022129993813,
-          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.16897607000009884,
-          "output_tail": "sing pip.\n\nError 2:\nThe following error was raised during a hdf5 scan: \nTo use modelscan.scanners.H5LambdaDetectScan, please install modelscan with h5py\nextras. `pip install 'modelscan[ h5py ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
         }
       }
     },
@@ -7238,23 +4611,6 @@
           },
           "reasons": [],
           "seconds": 0.39006733699989127
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.1373737350004376,
-          "output_tail": "WARNING: could not parse k3_text_gru.h5 as pickle: at position 1, opcode b'H' unknown\n----------- SCAN SUMMARY -----------\nScanned files: 1\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "flagged",
-          "exit_code": 1,
-          "seconds": 0.08814007500041043,
-          "output_tail": ""
-        },
-        "modelscan": {
-          "outcome": "skipped",
-          "reason": "modelscan reads .h5 with h5py on the host",
-          "seconds": 0.0
         }
       }
     },
@@ -7281,24 +4637,6 @@
           },
           "reasons": [],
           "seconds": 0.0011550979997991817
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.08420066500002577,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.06282142599957297,
-          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.16451363099986338,
-          "output_tail": "sing pip.\n\nError 2:\nThe following error was raised during a hdf5 scan: \nTo use modelscan.scanners.H5LambdaDetectScan, please install modelscan with h5py\nextras. `pip install 'modelscan[ h5py ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
         }
       }
     },
@@ -7325,26 +4663,9 @@
           },
           "reasons": [],
           "seconds": 0.0005669610000040848
-        },
-        "picklescan": {
-          "outcome": "clean",
-          "exit_code": 0,
-          "seconds": 0.09569252300025255,
-          "output_tail": "----------- SCAN SUMMARY -----------\nScanned files: 0\nInfected files: 0\nSuspicious globals: 0\nDangerous globals: 0"
-        },
-        "fickling": {
-          "outcome": "error",
-          "exit_code": 2,
-          "seconds": 0.05789510200065706,
-          "output_tail": "failed to parse this pickle file. Error: No pickle files detected\nParsing errors might be indicative of a maliciously crafted pickle file. DO NOT TRUST this file without performing further analysis!\n\n(If this is a valid pickle file, please report the error at https://github.com/trailofbits/fickling)"
-        },
-        "modelscan": {
-          "outcome": "unsupported",
-          "exit_code": 3,
-          "seconds": 0.19128681699930894,
-          "output_tail": "sing pip.\n\nError 2:\nThe following error was raised during a hdf5 scan: \nTo use modelscan.scanners.H5LambdaDetectScan, please install modelscan with h5py\nextras. `pip install 'modelscan[ h5py ]'` if you are using pip.\n\n--- Skipped --- \n\nTotal skipped: 2 - run with --show-skipped to see the full list."
         }
       }
     }
-  ]
+  ],
+  "comparison_note": "A detailed per-format comparison is withheld until coordinated disclosure with the affected projects is complete."
 }

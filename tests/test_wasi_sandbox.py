@@ -125,3 +125,24 @@ def test_payload_cannot_erase_earlier_records():
     assert any(e.get("detail") == "MARKER" for e in run.events)
 
 
+
+
+@pytest.mark.parametrize("leave", ["os._exit(0)", "sys.exit(0)", "raise SystemExit(0)"])
+def test_forged_done_then_exit_is_not_a_complete_run(leave):
+    # 0.8.0: the payload shares the interpreter with the recorder, so it can write a
+    # well-formed "done" record itself. Leaving before the bootstrap writes its own
+    # used to look complete; the runner now sees proc_exit outside the guest.
+    code = (
+        "import gc, os, sys\n"
+        "rec = [o for o in gc.get_objects() if getattr(o, '__name__', '') == 'record'][0]\n"
+        "rec('done', status='ok')\n"
+        "sys.stdout.flush()\n"
+        f"{leave}\n"
+    )
+    run = _py(code)
+    if leave != "os._exit(0)":
+        # caught by the bootstrap, which then writes its own done: two done records
+        assert not run.completed and "more than one done record" in run.problems
+    else:
+        assert run.status == "exit" and run.exit_code == 0 and not run.completed
+        assert any("proc_exit(0) called inside the guest" in p for p in run.problems)

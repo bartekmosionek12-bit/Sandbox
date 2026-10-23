@@ -42,6 +42,7 @@ from ..parsing.zipsafe import SafeZip, ZipRefused
 from .allowlists import (
     DANGEROUS_MODULES,
     DANGEROUS_SYMBOLS,
+    EXEC_GADGETS,
     KERAS2_CLASSES,
     KERAS_ACTIVATION_NAMES,
     KERAS_CLASS_PAIRS,
@@ -86,6 +87,8 @@ def _empty_report(file_name: str) -> dict:
         "error": None,
         # failures of safeloadai itself (errors.error dicts); never a verdict
         "tool_errors": [],
+        # the reasons that are evidence of a sink (MALICIOUS findings); the rest are RISKY
+        "evidence": [],
         # reason text -> {"item", "explanation"} for the reasons that are UNVERIFIABLE
         "unverifiable": {},
     }
@@ -168,7 +171,8 @@ def _entry(module, symbol, path: str) -> dict:
 
 def _is_dangerous(module, name) -> bool:
     top = str(module).split(".")[0]
-    return top in DANGEROUS_MODULES or str(name) in TF_DANGEROUS or str(name) in DANGEROUS_SYMBOLS
+    return (top in DANGEROUS_MODULES or str(name) in TF_DANGEROUS or str(name) in DANGEROUS_SYMBOLS
+            or (str(module), str(name)) in EXEC_GADGETS)
 
 
 def _keras2_lambda(config: dict, path: str, report: dict) -> None:
@@ -460,12 +464,13 @@ def _custom_builtins_function(module: str, name: str) -> bool:
 def _promote_sinks(report: dict) -> None:
     """An unknown object that names a known sink or gadget is never UNVERIFIABLE. A class
     or function from a sink module (``subprocess.Popen``) is a known sink: Keras imports
-    it and calls it while deserialising. A sink or gadget name elsewhere stays RISKY."""
+    it and calls it while deserialising; so is an EXEC_GADGETS function. A sink or gadget
+    name elsewhere stays RISKY."""
     unknown = []
     for imp in report["unknown_imports"]:
         target = _target(imp)
         custom = bool(target) and _custom_builtins_function(*target)
-        if target and not custom and (target[0] in DANGEROUS_MODULES
+        if target and not custom and (target[0] in DANGEROUS_MODULES or tuple(target) in EXEC_GADGETS
                                       or target[0].split(".")[0] in DANGEROUS_MODULES):
             report["suspicious_imports"].append({k: v for k, v in imp.items() if k != "kind"})
             continue
@@ -485,8 +490,11 @@ def finalize(report: dict) -> dict:
             + (f"; sink names in bytecode: {', '.join(lam['sink_tokens'])}" if lam["sink_tokens"] else "")
         )
     _promote_sinks(report)
+    evidence = report.setdefault("evidence", [])
     for imp in report["suspicious_imports"]:
         reasons.append(f"{imp.get('path')}: known sink {imp['module']}.{imp['symbol']}")
+        evidence.append(reasons[-1])
+    evidence.extend(r for r in reasons if "; sink names in bytecode: " in r)
     unverifiable = report.setdefault("unverifiable", {})
     for imp in report["unknown_imports"]:
         reason = f"{imp.get('path')}: object outside the allowlist {imp['module']}.{imp['symbol']}"

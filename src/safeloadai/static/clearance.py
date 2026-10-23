@@ -57,6 +57,8 @@ class Clearance:
 
     def state_only(self, pair: tuple[str, str]) -> tuple[str, str] | None:
         """(mechanism, detail) when ``pair`` is a state-only class, else None."""
+        if not (isinstance(pair, tuple) and len(pair) == 2 and all(isinstance(p, str) for p in pair)):
+            return None  # a global whose module or name is not a string (found by fuzzing, 0.8.0)
         if pair in self._cache:
             return self._cache[pair]
         found = None
@@ -231,7 +233,7 @@ def weights_only_ok(report: dict, calls: list[tuple], uses: list[tuple]) -> str 
 
     if report["error"]:
         return "the walk failed"
-    ops = {o["name"] for o in report["opcodes"]} - wo.OPCODES
+    ops = set(report.get("opcode_counts") or {o["name"] for o in report["opcodes"]}) - wo.OPCODES
     if ops:
         return f"opcodes torch does not implement: {', '.join(sorted(ops))}"
     for imp in report["imports"]:

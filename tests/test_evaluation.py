@@ -330,3 +330,106 @@ def test_resummarise_renames_the_old_opt_in_column(tmp_path):
     [out] = [p for p in tmp_path.glob("eval-again-*.json")]
     data = json.loads(out.read_text())
     assert data["tools"] == [run_eval.UPPER_BOUND] and run_eval.UPPER_BOUND in data["summary"]
+
+
+def test_evaluation_page_is_generated_from_the_results():
+    # docs/EVALUATION.md is written by make_evaluation_doc.py; a hand edit or a stale page fails here.
+    assert _load("make_evaluation_doc").main(["--check"]) == 0
+
+
+def test_confusion_matrix_keeps_unsupported_and_errors_apart():
+    doc = _load("make_evaluation_doc")
+    entries = [{"label": "malicious", "results": {"safeloadai": {"verdict": "MALICIOUS", "block": "hard"},
+                                                    "x": {"outcome": "error"}}},
+               {"label": "malicious", "results": {"safeloadai": {"verdict": "CLEAN", "block": "clean"},
+                                                    "x": {"outcome": "unsupported"}}},
+               {"label": "benign", "results": {"safeloadai": {"verdict": "UNSUPPORTED", "block": "unsupported"},
+                                                 "x": {"outcome": "flagged"}}},
+               {"label": "benign", "results": {"safeloadai": {"verdict": None, "outcome": "error", "block": "error"},
+                                                 "x": {"outcome": "clean"}}}]
+    own = doc.matrix(entries, "safeloadai")
+    assert (own["tp"], own["fn"], own["fp"], own["tn"]) == (1, 1, 0, 0)
+    assert own["benign_unsupported"] == 1 and own["benign_error"] == 1
+    other = doc.matrix(entries, "x")
+    assert (other["tp"], other["fn"], other["fp"], other["tn"]) == (0, 0, 1, 1)
+    assert other["malicious_error"] == 1 and other["malicious_unsupported"] == 1
+    assert doc.wilson(0, 10).startswith("[0.000, ") and doc.wilson(0, 0) == "-"
+
+
+def _held(group, file, block, verdict="SUSPICIOUS", label="benign"):
+    result = {"verdict": verdict, "block": block}
+    return {"group": group, "file": file, "label": label,
+            "results": {"safeloadai": result, "safeloadai trust-inert-from": dict(result),
+                        "safeloadai upper bound": {"verdict": "CLEAN", "block": "clean"}}}
+
+
+def test_held_out_before_and_after_pair_the_same_files():
+    doc = _load("make_evaluation_doc")
+    before = {"safeloadai": "0.7.1", "entries": [_held("hf-heldout2", "a/x.pkl", "soft"),
+                                                 _held("hf-heldout2", "b/y.pkl", "hard")]}
+    after = [_held("hf-heldout2", "a/x.pkl", "clean", "CLEAN"), _held("hf-heldout2", "b/y.pkl", "hard"),
+             _held("hf-heldout2", "c/new.pkl", "soft")]  # not in the before run: left out of the pairing
+    text = "\n".join(doc.held_out_section(after, before, "0.8.0"))
+    assert "The same 2 benign files" in text
+    assert "| before: default | 0 | 1 | 1 | 0 | 0 | 2 |" in text
+    assert "| **after: default** | 1 | 0 | 1 | 0 | 0 | 2 |" in text
+
+
+def test_malicious_only_section_counts_only_malicious_verdicts():
+    doc = _load("make_evaluation_doc")
+    entries = [_held("lab", "m1", "hard", "MALICIOUS", "malicious"),
+               _held("lab", "m2", "hard", "SUSPICIOUS", "malicious"),
+               _held("lab", "b1", "soft", "SUSPICIOUS")]
+    text = "\n".join(doc.malicious_only_section(entries))
+    assert "| lab | 2 / 2 | 1 / 2 | 1 / 1 | 0 / 1 | 1 / 1 | 0 / 1 | 0 |" in text
+
+
+def _poc(group, file, block, verdict):
+    entry = _held(group, file, block, verdict, "unclear")
+    entry["label_reason"] = "repository name declares a proof of concept or scanner test; contents not reviewed"
+    return entry
+
+
+def test_every_label_table_is_also_given_without_the_poc_rule():
+    doc = _load("make_evaluation_doc")
+    entries = [_held("hf-heldout2", "a/x.pkl", "clean", "CLEAN"), _poc("hf-heldout2", "poc-x/y.pkl", "hard",
+                                                                       "MALICIOUS")]
+    plain = doc.without_rule(entries)
+    assert [e["label"] for e in plain] == ["benign", "benign"] and entries[1]["label"] == "unclear"
+    rows = doc.matrix_rows("hf-heldout2", entries)
+    assert rows[0].startswith("| hf-heldout2 | 0 | 0 | 0 | 1 |")
+    assert rows[1].startswith("| hf-heldout2, without PoC rule | 0 | 0 | 1 | 1 |")
+    held = "\n".join(doc.held_out_section(entries, None, "0.8.0"))
+    assert "| default | 1 | 0 | 0 | 0 | 0 | 1 | 0.000 [0.000, 0.793] | 2 | 0.500 [0.095, 0.905] |" in held
+    mal = "\n".join(doc.malicious_only_section(entries))
+    assert "| hf-heldout2 | - | - | 0 / 1 | 0 / 1 | 1 / 2 | 1 / 2 | 0 |" in mal
+    assert doc.rule_count(entries) == {"hf-heldout2": 1}
+
+
+def test_readme_block_replaces_only_the_marked_part():
+    doc = _load("make_evaluation_doc")
+    readme = f"intro\n{doc.README_START}\nold\n{doc.README_END}\noutro\n"
+    out = doc.with_readme_block(readme, f"{doc.README_START}\nnew\n{doc.README_END}")
+    assert out == f"intro\n{doc.README_START}\nnew\n{doc.README_END}\noutro\n"
+
+
+def test_combine_runs_takes_own_columns_from_the_new_run():
+    combine = _load("combine_runs")
+
+    def entry(file, own, other=None, label="benign"):
+        results = {"safeloadai": {"verdict": own}, "safeloadai upper bound": {"verdict": own}}
+        if other:
+            results["picklescan"] = {"outcome": other}
+        return {"group": "hf-heldout2", "file": file, "label": label, "results": results}
+
+    old = {"tools": ["safeloadai upper bound", "picklescan"],
+           "entries": [entry("a", "MALICIOUS", "flagged"), entry("gone", "CLEAN", "clean")]}
+    new = {"tools": ["safeloadai upper bound"], "skipped_files": [],
+           "entries": [entry("a", "SUSPICIOUS", label="unclear"), entry("new", "CLEAN")]}
+    out = combine.combine(old, new, "old.json", "new.json")
+    by = {e["file"]: e for e in out["entries"]}
+    assert by["a"]["results"]["safeloadai"] == {"verdict": "SUSPICIOUS"} and by["a"]["label"] == "unclear"
+    assert by["a"]["results"]["picklescan"] == {"outcome": "flagged"}
+    assert by["new"]["results"]["picklescan"]["outcome"] == "skipped"
+    assert [s["file"] for s in out["skipped_files"]] == ["gone"]
+    assert out["tools"] == ["safeloadai upper bound", "picklescan"]

@@ -6,6 +6,8 @@ safeloadai 0.4.0, Python 3.13.16, Linux x86_64. 943 files.
 |---|---|---|---|---|---|---|---|---|
 | safeloadai | 0 / 0 | 360 / 943 | 266 | 0 | 0 | 0 | 0.4921 | 1.3895 |
 
+A detailed per-format comparison is withheld until coordinated disclosure with the affected projects is complete.
+
 "of which UNVERIFIABLE": false positives whose every reason is UNVERIFIABLE, so a user could accept them, item by item, for that one file. They still count as false positives. Malicious files that are UNVERIFIABLE only: 0 (an override would let these through, which is why it names every item).
 
 ## Per format

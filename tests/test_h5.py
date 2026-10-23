@@ -29,7 +29,7 @@ wasi = pytest.mark.wasi
 BENIGN = [
     "k2_sequential.h5", "k2_sequential_fixedstr.h5", "k2_functional_cnn.h5", "k2_functional_cnn_latest.h5",
     "k2_rnn_uncompiled.h5", "k2_weights_only.h5", "k2_many_layers.h5", "k3_sequential.h5",
-    "k3_sequential_latest.h5", "k3_lambda_benign.h5", "s_soft_link.h5", "s_hardlink_cycle.h5",
+    "k3_sequential_latest.h5", "s_soft_link.h5", "s_hardlink_cycle.h5",
 ]
 STRUCTURE = {
     "s_external_link.h5": "external link",
@@ -286,6 +286,13 @@ def test_benign_h5_models_are_clean(name):
     report = scan(FIXTURES / name)
     assert report.verdict is Verdict.CLEAN, report.reasons
     assert report.file_format == "h5"
+
+
+@wasi
+def test_benign_lambda_h5_is_risky_never_clean():
+    # Owner decision L1 (2026-10-22): Lambda bytecode is never CLEAN, whatever emulation saw.
+    report = scan(FIXTURES / "k3_lambda_benign.h5")
+    assert report.verdict is Verdict.SUSPICIOUS and report.category == "RISKY", report.reasons
 
 
 @wasi

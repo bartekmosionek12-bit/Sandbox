@@ -29,26 +29,43 @@ import re
 from typing import Any
 
 from .. import errors, override
+from . import budget as budget_mod
 from . import clearance as clearance_mod
 from .allowlists import (
     ARGUMENT_CHECKED,
+    ARRAY_RECONSTRUCTORS,
     BUILD_HOOK_KEYS,
+    BUILD_STATE_KEYS,
+    CLASS_BUILDERS,
+    CLOUDPICKLE_IMPORT,
+    CLOUDPICKLE_MODULES,
+    CLOUDPICKLE_TYPES,
     DANGEROUS_MODULES,
     DANGEROUS_SYMBOLS,
     DEFAULTDICT,
+    DILL_ARRAY,
     DILL_MODULES,
     DILL_SINKS,
     ENUM_CLASSES,
+    EXEC_GADGETS,
     GETATTR,
     GUARDED_CALLS,
     KNOWN_GADGETS,
     NUMPY_BIT_GENERATOR_CLASSES,
     NUMPY_BIT_GENERATOR_CTOR,
     NUMPY_BIT_GENERATOR_NAMES,
+    PANDAS_BLOCK_MANAGER,
+    PANDAS_CATEGORICAL_DTYPE,
+    PANDAS_DATAFRAME,
     PANDAS_INDEX_CLASSES,
     PANDAS_INDEX_KEYS,
     PANDAS_NEW_INDEX,
+    PANDAS_SERIES,
+    PANDAS_SINGLE_BLOCK_MANAGER,
+    PANDAS_UNPICKLE_BLOCK,
     PICKLE_GLOBALS,
+    SCORER_FUNCTIONS,
+    SKLEARN_THRESHOLD_SCORER,
     STATE_ONLY_CLASSES,
     TF_DANGEROUS,
     TORCH_GLOBALS,
@@ -103,6 +120,9 @@ TORCH_LEGACY_PICKLES = 5
 MAX_PICKLES = 64
 MAX_OPCODES = 5_000_000
 MAX_DISASM_CHARS = 200_000
+# Opcodes kept one by one in the report (the listing, flagged opcodes); every opcode is
+# still counted by name. Bounded so a large pickle does not grow the report without end.
+MAX_OPCODE_RECORDS = 100_000
 
 # Strings worth showing as evidence (never used for scoring on their own).
 _SUSPICIOUS_STRING = re.compile(
@@ -120,7 +140,9 @@ def _format_arg(arg: Any) -> str | None:
         return " ".join(str(a) for a in arg)
     if isinstance(arg, (bytes, bytearray)):
         return repr(bytes(arg[:200]))
-    return str(arg)
+    if isinstance(arg, str):
+        return arg[:200]
+    return str(arg)[:200]
 
 
 def _empty_report(file_name: str, file_format: str) -> dict:
@@ -129,6 +151,7 @@ def _empty_report(file_name: str, file_format: str) -> dict:
         "file_name": file_name,
         "file_format": file_format,
         "opcodes": [],
+        "opcode_counts": {},
         "flagged_opcodes": [],
         "suspicious_imports": [],
         "unknown_imports": [],
@@ -141,6 +164,8 @@ def _empty_report(file_name: str, file_format: str) -> dict:
         "error": None,
         # failures of safeloadai itself (errors.error dicts); never a verdict
         "tool_errors": [],
+        # the reasons that are evidence of a sink (MALICIOUS findings); the rest are RISKY
+        "evidence": [],
         "pickle_count": 0,
         # reason text -> {"item", "pair", "explanation"} for the reasons that are UNVERIFIABLE
         "unverifiable": {},
@@ -165,8 +190,11 @@ def is_dangerous_import(module: str, name: str) -> bool:
     root = module.split(".", 1)[0]
     leaf = name.rsplit(".", 1)[-1]
     head = name.split(".", 1)[0]
+    if (module, name) in CLASS_BUILDERS:
+        return False
     return (
         (module in DILL_MODULES and name in DILL_SINKS)
+        or (module, name) in EXEC_GADGETS
         or module in DANGEROUS_MODULES
         or root in DANGEROUS_MODULES
         or name in DANGEROUS_SYMBOLS
@@ -176,13 +204,19 @@ def is_dangerous_import(module: str, name: str) -> bool:
 
 
 def _recorders(report: dict, index_ref: list):
+    counts = report["opcode_counts"]
+
     def on_opcode(opcode, arg, pos):
         name = opcode.name
-        arg_str = _format_arg(arg)
-        entry = {"name": name, "arg": arg_str, "pos": pos, "pickle": index_ref[0]}
-        report["opcodes"].append(entry)
-        if name in FLAGGED_OPCODES:
-            report["flagged_opcodes"].append(dict(entry, reason=FLAGGED_OPCODES[name]))
+        counts[name] = counts.get(name, 0) + 1
+        if len(report["opcodes"]) < MAX_OPCODE_RECORDS:
+            entry = {"name": name, "arg": _format_arg(arg), "pos": pos, "pickle": index_ref[0]}
+            report["opcodes"].append(entry)
+            if name in FLAGGED_OPCODES:
+                report["flagged_opcodes"].append(dict(entry, reason=FLAGGED_OPCODES[name]))
+        elif name in FLAGGED_OPCODES and not report["flagged_opcodes"]:
+            report["flagged_opcodes"].append({"name": name, "arg": _format_arg(arg), "pos": pos,
+                                              "pickle": index_ref[0], "reason": FLAGGED_OPCODES[name]})
         if name in STRING_PUSH_OPCODES and isinstance(arg, str) and _SUSPICIOUS_STRING.search(arg):
             report["suspicious_strings"].append({"value": arg[:200], "pos": pos})
 
@@ -288,6 +322,8 @@ def parse_pickle(data: bytes, file_name: str = "<memory>", *, torch: bool = Fals
                 break
             if machine.stream.tell() == start or not legacy_torch:
                 break
+    except (budget_mod.ResourceLimit, MemoryError):
+        raise
     except Exception as exc:  # noqa: BLE001 - any parse failure must surface
         problem = walk_problem(exc)
         if problem is None:
@@ -385,6 +421,7 @@ def _trailing(report: dict, data: bytes, start: int, mode: str, depth: int, opti
     report["trailing"]["report"] = {"static_risk": sub["static_risk"], "pickle_count": sub["pickle_count"]}
     if sub["static_risk"] == "malicious":
         report["trailing_malicious"] = True
+        report.setdefault("evidence", []).extend(prefix + r for r in sub.get("evidence") or [])
 
 
 # Top-level packages a model-loading environment commonly has, besides the
@@ -504,7 +541,131 @@ def _argument_check(how: str, pair: tuple[str, str], args, state_only=None) -> t
         if not args or (len(args) == 1 and (args[0] is None or isinstance(args[0], Global))):
             return None, None  # not exempt: an argument-checked global is no factory either
         return f"is given {_short(args)}; only no factory or one imported global is accepted", None
+    if pair == PANDAS_UNPICKLE_BLOCK:
+        if (len(args) == 3 and _is_ndarray(args[0]) and _is_block_locs(args[1])
+                and type(args[2]) is int and args[2] in (1, 2)):
+            return None, None
+        return (f"is called with {_short(args)}; only (numpy array, slice, ndim 1 or 2) as pandas "
+                "writes a block is accepted"), None
+    if pair == PANDAS_BLOCK_MANAGER:
+        if (len(args) == 2 and isinstance(args[0], tuple) and args[0]
+                and all(_is_unpickled_block(b) for b in args[0])
+                and isinstance(args[1], list) and len(args[1]) == 2 and all(_is_pandas_index(a) for a in args[1])):
+            return None, None
+        return (f"is called with {_short(args)}; only (blocks from _unpickle_block, [two pandas Index]) "
+                "as pandas writes a DataFrame's manager is accepted"), None
+    if pair in SCORER_FUNCTIONS:
+        return ("is called; it is accepted only as the score function a scikit-learn scorer stores, "
+                "which is not called while loading"), None
     return "has no argument check", None
+
+
+# --- pandas and scorer shapes (allowlists.py, Phase 5 tune review) -----------------------
+
+NUMPY_RECONSTRUCT = frozenset({("numpy._core.multiarray", "_reconstruct"), ("numpy.core.multiarray", "_reconstruct")})
+SLICE = frozenset({("builtins", "slice"), ("__builtin__", "slice")})
+PLAIN_SCALARS = (str, int, float, bool, type(None))
+
+
+def _reduce_of(value, pairs) -> bool:
+    return (isinstance(value, Obj) and value.how == "reduce" and isinstance(value.func, Global)
+            and value.func.pair in pairs)
+
+
+def _is_ndarray(value) -> bool:
+    """A numpy array as numpy pickles it (_reconstruct(ndarray, ...) + BUILD) or as joblib reads it."""
+    if isinstance(value, Obj) and value.how == "array":
+        return True
+    return (_reduce_of(value, NUMPY_RECONSTRUCT) and isinstance(value.args, tuple) and value.args
+            and isinstance(value.args[0], Global) and value.args[0].pair == ("numpy", "ndarray"))
+
+
+def _is_block_locs(value) -> bool:
+    """A block's placement as pandas writes it: mgr_locs.indexer, a slice of ints or an int array."""
+    if _reduce_of(value, SLICE):
+        return (isinstance(value.args, tuple) and len(value.args) == 3
+                and all(a is None or type(a) is int for a in value.args))
+    return (type(value) is int) or _is_ndarray(value)
+
+
+def _is_pandas_index(value) -> bool:
+    return _reduce_of(value, {PANDAS_NEW_INDEX})  # its arguments are checked at its own call
+
+
+def _is_unpickled_block(value) -> bool:
+    return _reduce_of(value, {PANDAS_UNPICKLE_BLOCK})  # its arguments are checked at its own call
+
+
+def _manager_state_ok(state) -> bool:
+    """BaseBlockManager.__getstate__ for a SingleBlockManager: (axes, values, items,
+    {"0.14.1": {"axes": [Index], "blocks": [{"values": array, "mgr_locs": slice}]}})."""
+    if not (isinstance(state, tuple) and len(state) == 4 and isinstance(state[3], dict)
+            and set(state[3]) == {"0.14.1"}):
+        return False
+    first = state[3]["0.14.1"]
+    if not (isinstance(first, dict) and set(first) == {"axes", "blocks"}):
+        return False
+    axes, blocks = first["axes"], first["blocks"]
+    if not (isinstance(axes, list) and len(axes) == 1 and _is_pandas_index(axes[0])):
+        return False
+    if not (isinstance(blocks, list) and len(blocks) == 1 and isinstance(blocks[0], dict)
+            and set(blocks[0]) == {"values", "mgr_locs"}):
+        return False
+    if not (_is_ndarray(blocks[0]["values"]) and _is_block_locs(blocks[0]["mgr_locs"])):
+        return False
+    old_axes, old_values, old_items = state[:3]  # the 0.13.1 copy, which __setstate__ ignores
+    return (isinstance(old_axes, list) and all(_is_pandas_index(a) for a in old_axes)
+            and isinstance(old_values, list) and all(_is_ndarray(v) for v in old_values)
+            and isinstance(old_items, list) and all(_is_pandas_index(i) for i in old_items))
+
+
+def _plain_label(value, depth: int = 0) -> bool:
+    """A Series name or scorer keyword value: a scalar or a tuple of scalars."""
+    if isinstance(value, tuple) and depth == 0:
+        return all(_plain_label(v, 1) for v in value)
+    return type(value) in PLAIN_SCALARS
+
+
+def _build_state_problem(pair, state) -> str | None:
+    """What is wrong with the BUILD state of an instance of a class in BUILD_STATE_KEYS, or None."""
+    keys = BUILD_STATE_KEYS.get(pair)
+    if keys is None:
+        return None
+    extra = sorted(str(k) for k in state if k not in keys)
+    if extra:
+        return f"has state keys its class never writes ({', '.join(extra)[:120]})"
+    if pair in (PANDAS_DATAFRAME, PANDAS_SERIES):
+        manager_ok = (_reduce_of(state.get("_mgr"), {PANDAS_BLOCK_MANAGER}) if pair == PANDAS_DATAFRAME
+                      else class_of(state.get("_mgr")) == PANDAS_SINGLE_BLOCK_MANAGER
+                      and state["_mgr"].how == "newobj")
+        flags = state.get("_flags", {})
+        if not (manager_ok and state.get("_typ") in ("dataframe", "series")
+                and isinstance(state.get("_metadata", []), list)
+                and all(type(m) is str for m in state.get("_metadata", []))
+                and isinstance(state.get("attrs", {}), dict)
+                and isinstance(flags, dict) and set(flags) <= {"allows_duplicate_labels"}
+                and all(type(v) is bool for v in flags.values())
+                and _plain_label(state.get("name"))):
+            return "has a state pandas never writes (manager, _typ, _metadata, attrs, _flags or name)"
+    elif pair == PANDAS_CATEGORICAL_DTYPE:
+        categories = state.get("categories")
+        if not ((categories is None or _is_pandas_index(categories)) and state.get("ordered") in (True, False, None)):
+            return "has a state pandas never writes (categories must be an Index, ordered a bool)"
+    elif pair == SKLEARN_THRESHOLD_SCORER:
+        func, kwargs = state.get("_score_func"), state.get("_kwargs", {})
+        if not (isinstance(func, Global) and func.pair in SCORER_FUNCTIONS and state.get("_sign") in (1, -1)
+                and isinstance(kwargs, dict) and all(type(k) is str and _plain_label(v) for k, v in kwargs.items())):
+            return ("has a state scikit-learn never writes (_score_func must be a reviewed score function, "
+                    "_sign 1 or -1, _kwargs plain values)")
+    return None
+
+
+def _stored_score_function(how: str, func, args) -> bool:
+    """A BUILD of a _ThresholdScorer whose state passes _build_state_problem: its _score_func
+    is stored, not called, so the value walk skips it."""
+    return (how == "build" and class_of(func) == SKLEARN_THRESHOLD_SCORER and isinstance(args, tuple)
+            and len(args) == 1 and isinstance(args[0], dict)
+            and _build_state_problem(SKLEARN_THRESHOLD_SCORER, args[0]) is None)
 
 
 def _is_zero_arg_instance(value) -> bool:
@@ -525,15 +686,37 @@ def _rebuilt_instance_use(how: str, func, args, state_only=None) -> str | None:
     if how != "build":
         return f"{name} is called ({how.upper()}); it may only be rebuilt from a dict state"
     state = args[0] if isinstance(args, tuple) and args else None
+    if pair == PANDAS_SINGLE_BLOCK_MANAGER:
+        if _manager_state_ok(state):
+            return None
+        return f"{name} is given a BUILD state pandas never writes (only the 0.14.1 manager tuple is accepted)"
     if not isinstance(state, dict):
         return (f"{name} is given a {type(state).__name__} BUILD state; only a dict state is accepted "
                 "(a slot state makes pickle call setattr)")
+    problem = _build_state_problem(pair, state)
+    if problem:
+        return f"{name} {problem}"
     return None
 
 
+class _Shown(str):
+    def __repr__(self) -> str:
+        return str(self)
+
+
+def _shown(value):
+    if isinstance(value, Global):
+        return f"{value.module}.{value.name}"
+    if isinstance(value, Obj):
+        pair = class_of(value)
+        return _Shown(f"<{pair[0]}.{pair[1]} {value.how}>" if pair else f"<{value.how}>")
+    if isinstance(value, (tuple, list)):
+        return type(value)(_shown(v) for v in value)
+    return value
+
+
 def _short(args) -> str:
-    text = repr(tuple(f"{a.module}.{a.name}" if isinstance(a, Global) else a for a in args)
-                if isinstance(args, tuple) else args)
+    text = repr(tuple(_shown(a) for a in args) if isinstance(args, tuple) else _shown(args))
     return text if len(text) <= 120 else text[:117] + "..."
 
 
@@ -664,6 +847,8 @@ def _check_guarded_calls(calls: list[tuple], state_only=None) -> list[str]:
                                "second argument; only a numpy bit generator and __bit_generator_ctor are accepted)")
             else:
                 exempt = 1
+        if _stored_score_function(how, func, args):
+            args = ({k: v for k, v in args[0].items() if k != "_score_func"},)
         for value in _guarded_values(args, skip_top=exempt, walk=walk, state_only=state_only):
             reasons.append(f"{value.module}.{value.name} is passed as a value at {pos} "
                            f"({how.upper()}); it may only be called directly")
@@ -798,14 +983,46 @@ def _code_json(value, depth: int = 0):
         return {"t": [_code_json(v, depth + 1) for v in value]}
     if isinstance(value, frozenset):
         return {"fs": [_code_json(v, depth + 1) for v in value]}
-    if _is_dill(value, "_create_code") and isinstance(value.args, tuple):
+    if _is_code(value):
         return {"code": [_code_json(v, depth + 1) for v in _code_fields(value.args)]}
+    if _is_latin1_bytes(value):  # protocol 0-2 bytes: _codecs.encode(text, "latin1")
+        return {"b": base64.b64encode(value.args[0].encode("latin-1")).decode()}
     raise _NotData(f"{_describe(value)} is not plain data")
 
 
 def _is_dill(value, name: str) -> bool:
     return isinstance(value, Obj) and value.how == "reduce" and isinstance(value.func, Global) \
         and value.func.module in DILL_MODULES and value.func.name == name
+
+
+def _is_latin1_bytes(value) -> bool:
+    if not (isinstance(value, Obj) and value.how == "reduce" and isinstance(value.func, Global)
+            and value.func.pair == ("_codecs", "encode") and isinstance(value.args, tuple)
+            and len(value.args) == 2 and isinstance(value.args[0], str) and value.args[1] in ("latin1", "latin-1")):
+        return False
+    try:
+        value.args[0].encode("latin-1")
+    except UnicodeEncodeError:
+        return False
+    return True
+
+
+def _is_cloudpickle(value, name: str) -> bool:
+    return isinstance(value, Obj) and value.how == "reduce" and isinstance(value.func, Global) \
+        and value.func.module in CLOUDPICKLE_MODULES and value.func.name == name
+
+
+def _is_code_type(func) -> bool:
+    """cloudpickle's ``_builtin_type("CodeType")``: the constructor of a code object."""
+    return _is_cloudpickle(func, "_builtin_type") and func.args == ("CodeType",)
+
+
+def _is_code(value) -> bool:
+    """A code object as dill (``_create_code(...)``) or cloudpickle
+    (``_builtin_type("CodeType")(...)``) writes it."""
+    if not (isinstance(value, Obj) and value.how == "reduce" and isinstance(value.args, tuple)):
+        return False
+    return _is_dill(value, "_create_code") or _is_code_type(value.func)
 
 
 def _code_fields(args: tuple) -> tuple:
@@ -826,63 +1043,104 @@ def _code_strings(fields: tuple) -> list[str]:
             out.append(item)
         elif isinstance(item, (tuple, frozenset)):
             todo.extend(item)
-        elif _is_dill(item, "_create_code") and isinstance(item.args, tuple):
+        elif _is_code(item):
             nested = _code_fields(item.args)
             todo += [nested[7], nested[8]] if len(nested) == CODE_FIELDS_311 else \
                 [f for f in nested if isinstance(f, tuple)]
     return out
 
 
+def _code_maker(how: str, func, args) -> tuple[str, str] | None:
+    """(library, helper) when this call builds a code object: dill's ``_create_code`` or
+    cloudpickle's ``_builtin_type("CodeType")``."""
+    if isinstance(func, Global) and func.module in DILL_MODULES and func.name == "_create_code":
+        return func.module, "_create_code"
+    if _is_code_type(func):
+        return func.func.module, '_builtin_type("CodeType")'
+    return None
+
+
 def _dill_code(report: dict, calls: list[tuple]) -> None:
-    """Functions dill pickled with their bytecode (owner's decision of 2026-10-19: treated
-    like a Keras Lambda). Each code object is a RISKY reason ("file carries executable
-    Python code"); sink names among its co_names or string constants are MALICIOUS.
-    The fields go to the pipeline under ``dill_code``, which rebuilds the function inside
-    the WASI sandbox and calls it on fakes, like a Lambda."""
+    """Functions dill or cloudpickle pickled with their bytecode (owner's decisions of
+    2026-10-19 and 2026-10-23: treated like a Keras Lambda). Each code object is a RISKY
+    reason ("file carries executable Python code"); sink names among its co_names or string
+    constants are MALICIOUS. The fields go to the pipeline under ``dill_code``, which
+    rebuilds the function inside the WASI sandbox and calls it on fakes, like a Lambda.
+    The helpers both libraries rebuild a pickle with are checked here too: dill's
+    ``_create_array`` and cloudpickle's ``_builtin_type`` and ``subimport`` by argument."""
     functions = {}
-    helpers = set()
+    helpers: dict[str, set] = {"dill": set(), "cloudpickle": set()}
     for how, func, args, pos in calls:
-        if isinstance(func, Global) and func.module in DILL_MODULES:
-            helpers.add(func.name)
-            if func.name == "_create_function" and how == "reduce" and isinstance(args, tuple) and args \
-                    and _is_dill(args[0], "_create_code"):
-                functions.setdefault(id(args[0].args), (args, pos))
-    if helpers:
-        report["reasons"].append(
-            "pickle written by dill: dill.load rebuilds it with dill's own helpers ("
-            + ", ".join(sorted(helpers)) + ")")
-    for how, func, args, pos in calls:
-        if not (isinstance(func, Global) and func.module in DILL_MODULES and func.name == "_create_code"):
+        if not isinstance(func, Global):
             continue
+        library = "dill" if func.module in DILL_MODULES else \
+            "cloudpickle" if func.module in CLOUDPICKLE_MODULES else None
+        if library is None:
+            continue
+        helpers[library].add(func.name)
+        reduce = how == "reduce" and isinstance(args, tuple)
+        if func.name in ("_create_function", "_make_function") and reduce and args and _is_code(args[0]):
+            functions.setdefault(id(args[0].args), (args, pos))
+        elif library == "dill" and func.name == DILL_ARRAY:
+            f = args[0] if reduce and args else None
+            if not (isinstance(f, Global) and f.pair in ARRAY_RECONSTRUCTORS):
+                report["reasons"].append(f"{func.module}.{DILL_ARRAY} at {pos} calls its first argument "
+                                         f"({_describe(f) if reduce and args else how.upper()}), "
+                                         f"not numpy's array reconstructor")
+        elif library == "cloudpickle" and func.name == "_builtin_type":
+            name = args[0] if reduce and len(args) == 1 else None
+            if name not in CLOUDPICKLE_TYPES:
+                report["reasons"].append(f"{func.module}._builtin_type at {pos} looks up "
+                                         f"{_describe(name) if name is not None else 'an attribute'} "
+                                         f"of the types module by name")
+        elif library == "cloudpickle" and func.name == CLOUDPICKLE_IMPORT:
+            name = args[0] if reduce and len(args) == 1 and isinstance(args[0], str) else None
+            if name is None or not identifier_path(name):
+                report["reasons"].append(f"{func.module}.{CLOUDPICKLE_IMPORT} at {pos} imports a module "
+                                         f"whose name is not a constant")
+            elif name.split(".")[0] in DANGEROUS_MODULES:
+                report["reasons"].append(f"{func.module}.{CLOUDPICKLE_IMPORT} at {pos} imports {name}")
+    for library, names in helpers.items():
+        if names:
+            report["reasons"].append(
+                f"pickle written by {library}: {library}.load rebuilds it with {library}'s own helpers ("
+                + ", ".join(sorted(names)) + ")")
+    for how, func, args, pos in calls:
+        maker = _code_maker(how, func, args)
+        if maker is None:
+            continue
+        where = f"{maker[0]}.{maker[1]}"
         if how != "reduce" or not isinstance(args, tuple):
-            report["reasons"].append(f"{func.module}.{func.name} at {pos} is used through {how.upper()}")
+            report["reasons"].append(f"{where} at {pos} is used through {how.upper()}")
             continue
         fields = _code_fields(args)
         name = fields[11] if len(fields) == CODE_FIELDS_311 and isinstance(fields[11], str) else "?"
-        report["reasons"].append(f"file carries executable Python code ({func.module}._create_code at {pos} "
+        library = "dill" if maker[0] in DILL_MODULES else "cloudpickle"
+        report["reasons"].append(f"file carries executable Python code ({where} at {pos} "
                                  f"builds code object {name!r}; it runs when the function is called)")
         tokens = sorted({s for s in _code_strings(fields) if s in TF_DANGEROUS or s in DANGEROUS_SYMBOLS})
         if tokens:
-            report["code_malicious"].append(f"dill code object {name!r} at {pos} names the sink(s) "
+            report["code_malicious"].append(f"{library} code object {name!r} at {pos} names the sink(s) "
                                             + ", ".join(tokens))
         if len(report["dill_code"]) >= MAX_DILL_CODE:
-            report["reasons"].append(f"more than {MAX_DILL_CODE} dill code objects; the rest is not emulated")
+            report["reasons"].append(f"more than {MAX_DILL_CODE} pickled code objects; the rest is not emulated")
             continue
-        entry = {"path": f"dill code@{pos}", "name": name, "layout": len(fields), "sink_tokens": tokens,
+        entry = {"path": f"{library} code@{pos}", "name": name, "layout": len(fields), "sink_tokens": tokens,
                  "input_shape": [1, 8]}
         try:
             entry["code_fields"] = [_code_json(v) for v in fields]
         except _NotData as exc:
             entry["code_fields"] = None
-            report["reasons"].append(f"dill code object {name!r} at {pos} has a field that is not plain data "
-                                     f"({exc}); not emulated")
+            report["reasons"].append(f"{library} code object {name!r} at {pos} has a field that is not plain "
+                                     f"data ({exc}); not emulated")
         made = functions.get(id(args))
         if made:
             fn_args = made[0]
             for key, index in (("defaults", 3), ("closure", 4)):
                 value = fn_args[index] if len(fn_args) > index else None
                 if key == "closure" and isinstance(value, tuple):
-                    value = tuple(v.args[0] if _is_dill(v, "_create_cell") and v.args else v for v in value)
+                    value = tuple(v.args[0] if (_is_dill(v, "_create_cell") or _is_cloudpickle(v, "_make_cell"))
+                                  and v.args else v for v in value)
                 try:
                     entry[key] = _code_json(value)
                 except _NotData:
@@ -1005,16 +1263,36 @@ def _check_getattr(calls: list[tuple], allow: frozenset, imported: bool,
     return malicious, risky
 
 
+class _ListingFull(Exception):
+    pass
+
+
+class _CappedListing(io.StringIO):
+    """A StringIO that stops the listing at MAX_DISASM_CHARS: pickletools.dis writes one
+    pickle in full, and a large pickle would otherwise be rendered entirely in memory."""
+
+    def write(self, text: str) -> int:
+        room = MAX_DISASM_CHARS - self.tell()
+        if len(text) > room:
+            super().write(text[:max(room, 0)])
+            raise _ListingFull
+        return super().write(text)
+
+
 def _disasm(data: bytes) -> str:
     """Human-readable listing for the dashboard (pickletools.dis does not execute)."""
-    out = io.StringIO()
+    out = _CappedListing()
     try:
         stream = io.BytesIO(data)
         for _ in range(MAX_PICKLES):
-            if stream.tell() >= len(data) or out.tell() > MAX_DISASM_CHARS:
+            if stream.tell() >= len(data):
                 break
             pickletools.dis(stream, out=out, annotate=1)
+    except _ListingFull:
+        pass
     except Exception as exc:  # noqa: BLE001
+        out = io.StringIO(out.getvalue())
+        out.seek(0, io.SEEK_END)
         out.write(f"\n[disassembly stopped: {exc}]\n")
     return out.getvalue()[:MAX_DISASM_CHARS]
 
@@ -1096,6 +1374,13 @@ def _score(report: dict, allow: frozenset, torch: bool,
 
     getattr_malicious = (report.get("getattr_malicious") or []) + (report.get("code_malicious") or [])
     reasons.extend(getattr_malicious)
+    # The reasons that are evidence of a sink: only these are MALICIOUS findings. Everything
+    # else next to them (trailing data, a second reading, an unknown import) stays RISKY.
+    evidence = report.setdefault("evidence", [])
+    if report["suspicious_imports"] and has_call:
+        evidence.extend(f"import of a known sink: {imp['module']}.{imp['symbol']}"
+                        for imp in report["suspicious_imports"])
+    evidence.extend(getattr_malicious)
     if (report["suspicious_imports"] and has_call) or getattr_malicious or report.get("trailing_malicious"):
         report["static_risk"] = "malicious"
     elif reasons:

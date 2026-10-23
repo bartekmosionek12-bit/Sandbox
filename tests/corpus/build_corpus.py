@@ -87,7 +87,7 @@ def pickle_payloads() -> list[tuple[str, str, str, bytes]]:
         ("p_webbrowser.pkl", "network", MALICIOUS,
          P2 + call(g("webbrowser", "open"), s("http://127.0.0.1:9/MARKER")) + STOP),
         ("p_ctypes.pkl", "native", MALICIOUS, P2 + call(g("ctypes", "CDLL"), s("libc.so.6")) + STOP),
-        ("p_numpy_runstring.pkl", "code_exec", SUSPICIOUS,
+        ("p_numpy_runstring.pkl", "code_exec", MALICIOUS,
          P2 + call(g("numpy.testing._private.utils", "runstring"), s(f"import os; os.system('{MARKER_CMD}')"),
                    b"}") + STOP),
         ("p_unknown_global.pkl", "unknown_global", SUSPICIOUS, P2 + g("safeloadai_marker_pkg", "Thing") + STOP),
@@ -119,7 +119,7 @@ def bypass_payloads() -> list[tuple[str, str, str, bytes]]:
         # CVE-2025-1716 (picklescan): pip.main is not on its blocklist.
         ("x_pip_main.pkl", "bypass", MALICIOUS, P2 + call(g("pip", "main"), b"(" + s("--version") + b"l") + STOP),
         # Stdlib helpers that run a command and are missing from blocklists.
-        ("x_osx_support_read_output.pkl", "bypass", SUSPICIOUS,
+        ("x_osx_support_read_output.pkl", "bypass", MALICIOUS,
          P2 + call(g("_osx_support", "_read_output"), s(MARKER_CMD)) + STOP),
         ("x_pydoc_pipepager.pkl", "bypass", MALICIOUS,
          P2 + call(g("pydoc", "pipepager"), s("MARKER"), s(MARKER_CMD)) + STOP),
@@ -288,8 +288,9 @@ LAMBDAS = {
     "k_lambda_introspection.keras": ("evasion", SUSPICIOUS,
                                      "lambda x: ().__class__.__bases__[0].__subclasses__() and x"),
     "k_lambda_unknown_global.keras": ("missing_stub", SUSPICIOUS, "lambda x: helper_not_defined(x)"),
-    "b_lambda_scale.keras": ("benign", CLEAN, "lambda x: x * 2.0 + 1.0"),
-    "b_lambda_relu.keras": ("benign", CLEAN, "lambda x: tf.nn.relu(x)"),
+    # benign code, but code: never CLEAN (owner decision L1, 2026-10-22)
+    "b_lambda_scale.keras": ("benign", SUSPICIOUS, "lambda x: x * 2.0 + 1.0"),
+    "b_lambda_relu.keras": ("benign", SUSPICIOUS, "lambda x: tf.nn.relu(x)"),
 }
 
 

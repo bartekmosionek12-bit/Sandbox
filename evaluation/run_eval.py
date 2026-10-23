@@ -158,7 +158,8 @@ def load_entries(lab: str | None, hf: str | None, benign: list[str], mutations: 
                             "path": os.path.join(hf_malicious, item["path"]), "label": label,
                             "category": f"hf_flagged_{item['format']}",
                             "expected": {"malicious": "MALICIOUS", "benign": "CLEAN"}.get(label, "SUSPICIOUS"),
-                            "source": "hf-malicious", "group": "hf-malicious", "label_reason": reason,
+                            "source": "hf-malicious", "group": item.get("group", "hf-malicious"),
+                            "label_reason": reason,
                             "hub_scan": item.get("hub_scan"), "repo_id": item["repo_id"],
                             "revision": item["revision"], "sha256": item["sha256"], "size": item["size"]})
     for directory in benign:
@@ -423,7 +424,7 @@ def _block(result: dict) -> str:
     return block_of(result.get("verdict"), bool(result.get("unverifiable_only")))
 
 
-GROUP_ORDER = ("lab", "mutations", "hf-malicious", "hf-tune", "hf-heldout", "benign")
+GROUP_ORDER = ("lab", "mutations", "hf-malicious", "hf-unsafe", "hf-tune", "hf-heldout", "hf-heldout2", "benign")
 
 
 def groups_of(entries: list[dict]) -> list[str]:
@@ -485,7 +486,7 @@ def false_positives(entries: list[dict]) -> dict:
     other: Counter = Counter()
     for e in entries:
         r = e["results"]["safeloadai"]
-        if e["label"] != "benign" or r["outcome"] != "flagged" or e.get("group") == "hf-heldout":
+        if e["label"] != "benign" or r["outcome"] != "flagged" or e.get("group") in ("hf-heldout", "hf-heldout2"):
             continue
         missing = r.get("missing") or []
         for item in missing:
@@ -684,7 +685,9 @@ def markdown(summary: dict, fps: dict, entries: list[dict], tools: list[str], me
               "|---|---|---|---|---|" + "---|" * len(tools)]
     for e in entries:
         res = e["results"]
-        cells = [res["safeloadai"].get("verdict", res["safeloadai"]["outcome"])] + [res[t]["outcome"] for t in tools]
+        # an ERROR has verdict None (docs/ERRORS.md)
+        cells = [res["safeloadai"].get("verdict") or str(res["safeloadai"]["outcome"]).upper()]
+        cells += [str(res.get(t, {}).get("outcome")) for t in tools]
         lines.append(f"| {e['file']} | {e.get('group', e.get('source'))} | {e['label']} | {e['expected']} | "
                      + " | ".join(cells) + " |")
     return "\n".join(lines) + "\n"

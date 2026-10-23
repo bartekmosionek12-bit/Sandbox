@@ -149,3 +149,43 @@ def test_trailing_pickle_inside_a_container_is_analysed():
     report = parse_pickle(pickle.dumps([1, 2], protocol=2) + EVIL)
     assert report["static_risk"] == "malicious"
     assert any(r.startswith("trailing data at offset") and "known sink" in r for r in report["reasons"])
+
+
+def _benign_zip() -> bytes:
+    import io
+    import zipfile
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        zf.writestr("notes.txt", "hello")
+    return buf.getvalue()
+
+
+def _texts(report, category):
+    return [f["text"] for f in report.findings if f["category"] == category]
+
+
+@pytest.mark.wasi
+def test_benign_pickle_plus_benign_zip_is_risky_not_malicious(tmp_path):
+    path = tmp_path / "poly.pkl"
+    path.write_bytes(pickle.dumps({"a": 1}, protocol=2) + _benign_zip())
+    report = scan(path)
+    assert report.verdict is Verdict.SUSPICIOUS and report.category == "RISKY", report.reasons
+    assert any("more than one format" in t for t in _texts(report, "RISKY"))
+    assert any("trailing data" in t for t in _texts(report, "RISKY"))
+    assert not _texts(report, "MALICIOUS")
+
+
+@pytest.mark.wasi
+def test_polyglot_with_a_sink_is_malicious_from_the_sink_evidence(tmp_path):
+    from corpus.build_corpus import MARKER_CMD, P2, STOP, call, g, s
+
+    path = tmp_path / "poly.pkl"
+    path.write_bytes(P2 + call(g("posix", "system"), s(MARKER_CMD)) + STOP + _benign_zip())
+    report = scan(path)
+    assert report.verdict is Verdict.MALICIOUS
+    malicious = _texts(report, "MALICIOUS")
+    assert malicious and all("posix.system" in t for t in malicious), malicious
+    # the polyglot itself is no evidence: it stays a RISKY finding next to the sink
+    assert any("more than one format" in t for t in _texts(report, "RISKY"))
+    assert any("trailing data" in t for t in _texts(report, "RISKY"))

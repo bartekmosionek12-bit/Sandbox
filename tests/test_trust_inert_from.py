@@ -151,3 +151,34 @@ def test_owner_excluded_classes_stay_out_of_the_installed_analysis(fake_dists, m
     monkeypatch.setattr(upstream, "excluded", lambda pair: "test" if pair == ("fakelib.models", "Plain") else None)
     report = check(rebuilt("fakelib.models", "Plain"), ("fakelib",))
     assert report["static_risk"] != "clean" and not report["cleared"]
+
+
+@pytest.mark.wasi
+def test_option_changes_the_verdict_on_a_lab_file_from_a_real_installed_package(tmp_path):
+    # threadpoolctl is installed with scikit-learn (a test dependency) and is not among the
+    # pinned distributions, so by default its classes are outside the allowlist. A lab
+    # pickle that rebuilds its state-only ThreadpoolController from a dict state:
+    pytest.importorskip("threadpoolctl")  # the installed metadata is what is read; the module is not used
+    path = tmp_path / "lab_threadpoolctl.pkl"
+    path.write_bytes(rebuilt("threadpoolctl", "ThreadpoolController"))
+    default = scan(path)
+    assert default.verdict is Verdict.SUSPICIOUS and default.category == "UNVERIFIABLE", default.reasons
+    trusted = scan(path, trust_inert_from=["threadpoolctl"])
+    assert trusted.verdict is Verdict.CLEAN, trusted.reasons
+    assert trusted.cleared[0]["mechanism"] == "inert-class"
+    assert trusted.cleared[0]["detail"].startswith("CLEAN by inert-class rule (threadpoolctl ")
+    # naming another distribution does not clear it
+    assert scan(path, trust_inert_from=["scikit-learn"]).verdict is Verdict.SUSPICIOUS
+
+
+@pytest.mark.wasi
+def test_option_never_clears_a_hook_class_or_a_sink(tmp_path):
+    # a class of an installed package built on a C type (ctypes.Structure) stays out, and a
+    # sink stays MALICIOUS
+    pytest.importorskip("threadpoolctl")
+    path = tmp_path / "lab_ctypes.pkl"
+    path.write_bytes(rebuilt("threadpoolctl", "_dl_phdr_info"))
+    assert scan(path, trust_inert_from=["threadpoolctl"]).verdict is not Verdict.CLEAN
+    sink = tmp_path / "lab_sink.pkl"
+    sink.write_bytes(P4 + s("posix") + s("system") + b"\x93" + s("echo MARKER") + b"\x85R" + STOP)
+    assert scan(sink, trust_inert_from=["threadpoolctl"]).verdict is Verdict.MALICIOUS

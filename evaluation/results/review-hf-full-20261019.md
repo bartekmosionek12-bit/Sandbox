@@ -15,7 +15,7 @@ Run: `eval-hf-full-20261019T123116Z.{json,md}`. Same setup as `review-hf-2026101
 | `ScanMe/test-models/eval_lambda.keras` | `eval` | unsafe |
 | `hfscanner/model/lambda_attack.h5` | `__import__`, `os`, `system` | not scanned yet |
 
-All three repos are scanner test sets (the last one also holds a `lambda_benign.h5`, which safeloadai did not mark MALICIOUS). picklescan and modelscan reported all four clean; modelscan skips `.h5`. Fickling flags every `.h5` file.
+All three repos are scanner test sets (the last one also holds a `lambda_benign.h5`, which safeloadai did not mark MALICIOUS).
 
 **6 false positives, one scanner bug.** A Keras file saved with a custom loss or metric records it as `builtins.<name>`, and `_promote_sinks` in `static/keras_static.py` treats every name in `builtins` as a known sink:
 
@@ -40,7 +40,6 @@ None of these names exists in `builtins`, so Keras cannot import them and nothin
 
 82 of the 120 are UNVERIFIABLE only, so a user can accept them item by item. 38 (12%) need a code change or are refusals by design. Detection: 4/4 real malicious Hub files, 53/53 lab files.
 
-For comparison on the same 306 files: picklescan and modelscan 0 false positives, but 0/4 on the real Hub samples; Fickling flagged most benign pickles and every `.h5`.
 
 ## RISKY files worth a second look
 

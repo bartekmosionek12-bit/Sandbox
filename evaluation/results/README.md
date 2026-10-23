@@ -111,7 +111,8 @@ Files: `eval-hf-20261019T121001Z.*` (93 Hub files) and `eval-hf-full-20261019T12
 
 Files:
 - `eval-v071-20261021T165118Z.{json,md}`: safeloadai 0.7.1 (this branch), the same inputs as `eval-v070-20261020T063605Z`.
-- `eval-v080-20261022T132827Z.{json,md}`: safeloadai 0.8.0, the final measurement: lab, mutations, hf-malicious, hf-unsafe, the pinned tune and held-out files, and held-out-2 (`evaluation/batch_hf.py merge`). Source of docs/EVALUATION.md and the README results.
+- `eval-v080-20261022T132827Z.{json,md}`: safeloadai 0.8.0, the first final measurement: lab, mutations, hf-malicious, hf-unsafe, the pinned tune and held-out files, and held-out-2 (`evaluation/batch_hf.py merge`). Superseded by the run of 2026-10-23; kept for the comparison.
+- `eval-v080-20261023T061458Z.{json,md}`: safeloadai 0.8.0 after the fixes the held-out sets prompted (host memory, cloudpickle, dill `_create_array`, emulation budget): safeloadai's columns measured again on the same files (same commit and sha256), the other scanners' columns kept from the first run (`evaluation/combine_runs.py`). Source of docs/EVALUATION.md and the README results.
 - `eval-v080-before-v071-20261022T132812Z.{json,md}`: safeloadai 0.7.1 on the same Hub files (the before column).
 - `compare-v070-v071-20261021.md`: before/after table from `compare_eval.py`.
 

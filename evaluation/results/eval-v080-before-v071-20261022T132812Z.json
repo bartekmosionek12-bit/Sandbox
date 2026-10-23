@@ -261776,5 +261776,6 @@
     }
   ],
   "relabelled_from": "merged-before.json",
+  "summary_without_poc_rule": {},
   "comparison_note": "A detailed per-format comparison is withheld until coordinated disclosure with the affected projects is complete."
 }

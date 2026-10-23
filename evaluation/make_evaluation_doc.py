@@ -30,7 +30,7 @@ import sys
 from collections import Counter, defaultdict
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DEFAULT_RESULT = os.path.join(ROOT, "evaluation", "results", "eval-v080-20261022T132827Z.json")
+DEFAULT_RESULT = os.path.join(ROOT, "evaluation", "results", "eval-v080-20261023T061458Z.json")
 DEFAULT_BEFORE = os.path.join(ROOT, "evaluation", "results", "eval-v080-before-v071-20261022T132812Z.json")
 OUT = os.path.join(ROOT, "docs", "EVALUATION.md")
 README = os.path.join(ROOT, "README.md")
@@ -487,7 +487,7 @@ def render(data: dict, source: str, before: dict | None = None) -> str:
             lines.append(f"Unclear labels in this group: {unclear['unclear_positive'] + unclear['unclear_other']} "
                          f"(safeloadai positive on {unclear['unclear_positive']}).")
         lines.append("")
-    lines += comparison(data, tools)
+    lines += comparison(data, tools) + rerun_note(data)
 
     lines += ["## safeloadai per group and format", "", MATRIX_HEAD.format(first="group / format")]
     for group, rows in groups.items():
@@ -560,9 +560,64 @@ def readme_block(data: dict, source: str, before: dict | None) -> str:
         top = sorted(missing.items(), key=lambda item: (-item[1], item[0]))[:6]
         lines += ["", "What still blocks held-out files most often (by default; files that need the item): " +
                   ", ".join(f"`{name}` ({n})" for name, n in top) + "."]
-    lines += ["", "**Other scanners**: see the all-files comparison in [docs/EVALUATION.md](docs/EVALUATION.md). " +
-              COMPARISON_NOTE, README_END]
+    lines += [""] + side_by_side(data) + rerun_note(data) + [README_END]
     return "\n".join(lines)
+
+
+def side_by_side(data: dict) -> list[str]:
+    """Detection and false positives of every scanner over all files, from the run's totals."""
+    summary = data.get("summary") or {}
+    tools = [t for t in ("safeloadai", "picklescan", "fickling", "modelscan") if t in summary]
+    if len(tools) < 2:
+        return []
+    t = {name: summary[name] for name in tools}
+    return ["**Compared with other scanners** (all files, default settings; errors, unsupported and skipped files "
+            "are neither a detection nor a false positive):", "",
+            "| | " + " | ".join(tools) + " |", "|---|" + "---|" * len(tools),
+            "| detected / malicious | " + " | ".join(f"{t[n]['detected']} / {t[n]['malicious']}" for n in tools) + " |",
+            "| false positives / benign | " + " | ".join(f"{t[n]['false_positives']} / {t[n]['benign']}"
+                                                         for n in tools) + " |",
+            "", "The trade-off is the design: safeloadai accepts only what its allowlist knows, so it misses nothing "
+            "in this corpus and blocks more benign files; denylist scanners pass what they do not recognise, so they "
+            "miss more malicious files, and picklescan and modelscan block far fewer benign ones. "
+            + COMPARISON_NOTE, ""]
+
+
+# The first 0.8.0 measurement, before the fixes the held-out sets prompted. Only its own
+# columns are compared, and only for files that ran out of the emulation budget there.
+FIRST_RUN = os.path.join(ROOT, "evaluation", "results", "eval-v080-20261022T132827Z.json")
+
+
+def rerun_note(data: dict) -> list[str]:
+    if not data.get("combined") or not os.path.exists(FIRST_RUN):
+        return []
+    with open(FIRST_RUN, encoding="utf-8") as fh:
+        first = json.load(fh)
+    if first["created"] == data["created"]:
+        return []
+    group = "hf-heldout2"
+
+    def fpr(run: dict) -> str:
+        m = matrix([e for e in run["entries"] if e["group"] == group], "safeloadai")
+        return ratio(m["fp"], m["fp"] + m["tn"])
+
+    was_error = {e["file"] for e in first["entries"] if e["group"] == group and e["label"] == "benign"
+                 and (e["results"].get("safeloadai") or {}).get("error_code") == "E304"}
+    now_read = sum(1 for e in data["entries"] if e["file"] in was_error and e["group"] == group
+                   and e["results"]["safeloadai"].get("verdict") not in (None, "UNSUPPORTED"))
+    before = {e["file"]: e["results"]["safeloadai"].get("verdict") for e in first["entries"]
+              if e["group"] == group and e["label"] == "benign"}
+    changed = sum(1 for e in data["entries"] if e["group"] == group
+                  and before.get(e["file"]) not in (None, "UNSUPPORTED")
+                  and e["results"]["safeloadai"].get("verdict") not in (None, "UNSUPPORTED")
+                  and (e["results"]["safeloadai"]["verdict"] == "CLEAN") != (before[e["file"]] == "CLEAN"))
+    return [f"Against the first 0.8.0 measurement ({day(first['created'])}), the {group} FPR moved from "
+            f"{fpr(first)} to {fpr(data)} because {now_read} benign files that ran out of the emulation's budget "
+            "there (ERROR E304, outside the FPR) are read now; "
+            + ("no benign file read in both runs moved between CLEAN and blocked. " if not changed else
+               f"{changed} benign file(s) read in both runs moved between CLEAN and blocked. ") +
+            "safeloadai's columns were measured again on the same files; the other scanners' columns are those of "
+            "the first run (`evaluation/combine_runs.py`).", ""]
 
 
 def with_readme_block(readme: str, block: str) -> str:

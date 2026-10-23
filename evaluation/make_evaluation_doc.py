@@ -30,9 +30,9 @@ import sys
 from collections import Counter, defaultdict
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DEFAULT_RESULT = os.path.join(ROOT, "evaluation", "results", "eval-v080-20261023T061458Z.json")
-DEFAULT_BEFORE = os.path.join(ROOT, "evaluation", "results", "eval-v080-before-v071-20261022T132812Z.json")
-DEFAULT_ANATOMY = os.path.join(ROOT, "evaluation", "results", "fp-anatomy-v080-20261023.json")
+DEFAULT_RESULT = os.path.join(ROOT, "evaluation", "results", "eval-v090-20261023T212503Z.json")
+DEFAULT_BEFORE = os.path.join(ROOT, "evaluation", "results", "eval-v090-before-v080-20261023T212432Z.json")
+DEFAULT_ANATOMY = os.path.join(ROOT, "evaluation", "results", "fp-anatomy-v090-20261023.json")
 OUT = os.path.join(ROOT, "docs", "EVALUATION.md")
 README = os.path.join(ROOT, "README.md")
 README_START, README_END = "<!-- evaluation:start -->", "<!-- evaluation:end -->"
@@ -41,6 +41,11 @@ GROUP_ORDER = ("lab", "mutations", "hf-malicious", "hf-unsafe", "hf-tune", "hf-h
 HELD_OUT = ("hf-heldout", "hf-heldout2")
 DEFAULT, TRUST, UPPER = "safeloadai", "safeloadai trust-inert-from", "safeloadai upper bound"
 VARIANTS = {DEFAULT: "default", TRUST: "`--trust-inert-from`", UPPER: "upper bound (not recommended)"}
+
+
+def measured(entries: list[dict]) -> dict[str, str]:
+    """The VARIANTS a run has results for (a run without `--opt-in-site` has no trust column)."""
+    return {tool: name for tool, name in VARIANTS.items() if any(tool in e["results"] for e in entries)}
 BLOCKS = ("clean", "soft", "hard", "unsupported", "error")
 GROUP_TEXT = {
     "lab": "Lab corpus: marker payloads and benign controls built by `tests/corpus/build_corpus.py`",
@@ -239,14 +244,20 @@ BLOCKS_HEAD = ("| {first} | CLEAN | soft block | hard block | UNSUPPORTED | ERRO
                "|---|---|---|---|---|---|---|---|---|---|")
 
 
+TRUST_NOTE = ("- **`--trust-inert-from`**: `--trust-inert-from scikit-learn transformers torch`, reading those "
+              "libraries' source (the evaluation reads unpacked distributions, `run_eval.py --opt-in-site`).")
+TRUST_SKIPPED = ("- **`--trust-inert-from`**: not measured in this run (it needs unpacked distributions, "
+                 "`run_eval.py --opt-in-site`).")
+
+
 def held_out_section(entries: list[dict], before: dict | None, version: str) -> list[str]:
+    variants = measured(entries)
     lines = ["## What a user meets on held-out benign files", "",
              "A false positive is not one thing. A *soft block* has only UNVERIFIABLE reasons and can be accepted "
              "item by item for that file; a *hard block* has a RISKY or MALICIOUS reason and cannot. The FPR here "
              "is soft plus hard blocks over the files in a format safeloadai reads (CLEAN, soft or hard).", "",
              "- **default**: no options.",
-             "- **`--trust-inert-from`**: `--trust-inert-from scikit-learn transformers torch`, reading those "
-             "libraries' source (the evaluation reads unpacked distributions, `run_eval.py --opt-in-site`).",
+             TRUST_NOTE if TRUST in variants else TRUST_SKIPPED,
              "- **upper bound**: every UNVERIFIABLE item of every file accepted. Not a switch and not recommended: "
              "it is the most any override could clear.", ""]
     old = {(e["group"], e["file"]): e for e in (before or {}).get("entries", [])}
@@ -261,12 +272,12 @@ def held_out_section(entries: list[dict], before: dict | None, version: str) -> 
             lines += [f"The same {sum(1 for e in paired if e['label'] == 'benign')} benign files (same commit and "
                       f"sha256) with safeloadai {before['safeloadai']} (before) and {version} (after).", "",
                       BLOCKS_HEAD.format(first="configuration")]
-            for tool, name in VARIANTS.items():
+            for tool, name in variants.items():
                 lines.append(blocks_rows(f"before: {name}", prior, tool))
                 lines.append(blocks_rows(f"**after: {name}**", paired, tool))
         else:
             lines += [BLOCKS_HEAD.format(first="configuration")]
-            lines += [blocks_rows(name, rows, tool) for tool, name in VARIANTS.items()]
+            lines += [blocks_rows(name, rows, tool) for tool, name in variants.items()]
         lines.append("")
     return lines
 
@@ -548,7 +559,7 @@ def render(data: dict, source: str, before: dict | None = None, anatomy: dict | 
             lines.append(f"Unclear labels in this group: {unclear['unclear_positive'] + unclear['unclear_other']} "
                          f"(safeloadai positive on {unclear['unclear_positive']}).")
         lines.append("")
-    lines += comparison(data, tools) + rerun_note(data)
+    lines += comparison(data, tools) + rerun_note(data, "../")
 
     lines += ["## safeloadai per group and format", "", MATRIX_HEAD.format(first="group / format")]
     for group, rows in groups.items():
@@ -579,6 +590,7 @@ def readme_block(data: dict, source: str, before: dict | None, anatomy: dict | N
     """The results section of README.md: headline numbers only, every one from the JSON."""
     entries = data["entries"]
     groups = by_group(entries)
+    variants = measured(entries)
     lines = [README_START,
              "<!-- Generated by evaluation/make_evaluation_doc.py. Do not edit by hand. -->", "",
              f"Run of {day(data['created'])}, safeloadai {data['safeloadai']}, Python {data['python']}, in a "
@@ -588,17 +600,18 @@ def readme_block(data: dict, source: str, before: dict | None, anatomy: dict | N
              "scanners: [docs/EVALUATION.md](docs/EVALUATION.md).", "",
              "**Detection.** \"Detected\" means any verdict other than CLEAN; `--malicious-only` counts MALICIOUS "
              "only.", "",
-             "| set | " + " | ".join(VARIANTS.values()) + " | `--malicious-only` |", "|---|---|---|---|---|"]
+             "| set | " + " | ".join(variants.values()) + " | `--malicious-only` |",
+             "|---|" + "---|" * (len(variants) + 1)]
     for group, rows in groups.items():
         malicious = [e for e in rows if e["label"] == "malicious"]
         if not malicious:
             continue
-        cells = [frac(matrix(malicious, tool)["tp"], len(malicious)) for tool in VARIANTS]
+        cells = [frac(matrix(malicious, tool)["tp"], len(malicious)) for tool in variants]
         binary = sum(1 for e in malicious if e["results"]["safeloadai"].get("verdict") == "MALICIOUS")
         lines.append(f"| {group} | " + " | ".join(cells) + f" | {frac(binary, len(malicious))} |")
     held_all = [e for e in entries if e["group"] in HELD_OUT]
     held = [e for e in held_all if e["label"] == "benign"]
-    worst = sum(1 for e in held if any((e["results"].get(t) or {}).get("verdict") == "MALICIOUS" for t in VARIANTS))
+    worst = sum(1 for e in held if any((e["results"].get(t) or {}).get("verdict") == "MALICIOUS" for t in variants))
     sizes = Counter(e["group"] for e in held)
     lines += ["", "**Benign held-out files** (" + ", ".join(f"{g}: {sizes[g]}" for g in HELD_OUT if sizes[g]) +
               f"; no allowlist review looked at them). Benign files MALICIOUS in any configuration: {worst}.", "",
@@ -611,11 +624,11 @@ def readme_block(data: dict, source: str, before: dict | None, anatomy: dict | N
         if old:
             paired = [e for e in rows if (group, e["file"]) in old]
             prior = [old[(group, e["file"])] for e in paired]
-            for tool, name in VARIANTS.items():
+            for tool, name in variants.items():
                 lines.append(blocks_rows(f"{group}, {before['safeloadai']}, {name}", prior, tool))
                 lines.append(blocks_rows(f"**{group}, {data['safeloadai']}, {name}**", paired, tool))
         else:
-            lines += [blocks_rows(f"{group}, {name}", rows, tool) for tool, name in VARIANTS.items()]
+            lines += [blocks_rows(f"{group}, {name}", rows, tool) for tool, name in variants.items()]
     missing = Counter(item for e in held if e["results"]["safeloadai"].get("block") in ("soft", "hard")
                       for item in set(e["results"]["safeloadai"].get("missing") or []))
     if missing:
@@ -666,7 +679,12 @@ def side_by_side(data: dict) -> list[str]:
 FIRST_RUN = os.path.join(ROOT, "evaluation", "results", "eval-v080-20261022T132827Z.json")
 
 
-def rerun_note(data: dict) -> list[str]:
+def rerun_note(data: dict, root: str = "") -> list[str]:
+    if data.get("other_scanners_from"):
+        source = data["other_scanners_from"].split(" ", 1)[0]
+        return [f"The other scanners were not run again for safeloadai {data['safeloadai']}: their totals are "
+                f"those of [`{source}`]({root}evaluation/results/{source}), measured on the same files (same commits "
+                "and sha256).", ""]
     if not data.get("combined") or not os.path.exists(FIRST_RUN):
         return []
     with open(FIRST_RUN, encoding="utf-8") as fh:

@@ -462,7 +462,7 @@ def write_labels(work: str, path: str) -> None:
 PLAN_GROUP = {"tune": "hf-tune", "heldout": "hf-heldout", SPLIT: "hf-heldout2", "tune2": "hf-tune2"}
 
 
-def plan_labels(work: str) -> dict[str, tuple[str, str, str]]:
+def plan_labels(work: str) -> dict[str, list[tuple[str, str, str]]]:
     """(group, label, reason) per ``repo/file``, from the plans and the labels as reviewed
     now: a batch's results keep the label it was scanned with, which a later review may
     have changed, and the release before this one does not know the newer groups."""
@@ -475,12 +475,12 @@ def plan_labels(work: str) -> dict[str, tuple[str, str, str]]:
                 repo, name, _commit, _sha, label, reason = line.rstrip("\n").split("\t", 5)
                 current[f"{repo}/{name}"] = (label, reason)
     os.remove(labels)
-    out = {}
+    out = {}  # a file pinned in two groups (a Hub malicious file that is also in a split) is planned twice
     for name in ("plan-pinned.jsonl", "plan-benign.jsonl", "plan-unsafe.jsonl"):
         for e in _jsonl(os.path.join(work, name)):
             key = f"{e['repo_id']}/{e['filename']}"
             group = "hf-unsafe" if name == "plan-unsafe.jsonl" else e.get("group") or PLAN_GROUP[e["split"]]
-            out[key] = (group, *current[key])
+            out.setdefault(key, []).append((group, *current[key]))
     return out
 
 
@@ -509,7 +509,8 @@ def merge(works: list[str], out: str, column: str = "after", add: list[str] | No
         meta = meta or {k: v for k, v in run_.items() if k not in ("entries", "summary", "groups",
                                                                      "false_positives", "pareto", "cleared_files")}
         for e in run_["entries"]:
-            group, label, reason = planned[work][e["file"]]
+            plans = planned[work][e["file"]]
+            group, label, reason = plans.pop(0) if len(plans) > 1 else plans[0]
             results = dict(e["results"], **rescans.get(e["file"], {}))
             entries.append(dict(e, path=None, group=group, label=label, label_reason=reason, results=results))
     for path in add or []:

@@ -86,6 +86,18 @@ REVIEWED_HOOKS: dict[tuple[str, str, str], tuple[str, str]] = {
     ("ultralytics.utils", "SimpleClass", "__getattr__"): (
         "6ffd01d179f611273ddd45d8caf06e43c7a7c817294bbba4681d9816067092ec",
         "ultralytics 8.4.182: raises AttributeError with a help text"),
+    # 0.9.0 tune / tune-2 review (evaluation/results/source-review-4-20261023.md)
+    ("sklearn.isotonic", "IsotonicRegression", "__setstate__"): (
+        "679d16aa2ff2d2a733f09e31b00a3e40b6801e287ae8c6df0cb5d47e6e8e5d1c",
+        "scikit-learn 1.9.1: BaseEstimator.__setstate__, then when X_thresholds_ and y_thresholds_ are set "
+        "_build_f: compares out_of_bounds with 'raise', stores a lambda over y (not called) or "
+        "scipy.interpolate.interp1d(X, y, kind='linear') as f_; computation on state values only"),
+    ("ultralytics.nn.modules.block", "AAttn", "__setstate__"): (
+        "7e1355f657a1a8aa152cd7aeac5fb60eeae1069235cfee9573521c04ba2528ab",
+        "ultralytics 8.4.182: Module.__setstate__, then all_head_dim = head_dim * num_heads if missing"),
+    ("accelerate.utils.dataclasses", "DeepSpeedPlugin", "selected.setter"): (
+        "9a1f3cc36667f8a01ee87f881a5a829109acfa7abb4e03dcb5ca10a12cdf3572",
+        "accelerate 1.15.0: raises NotImplementedError; sets nothing"),
 }
 # Hooks of older library releases, read and judged benign for a dict-state BUILD by the same
 # rule (0.9.0, tools/gen_historical_paths.py): (module, class, hook) -> {sha256: note}. They
@@ -445,7 +457,7 @@ class SourceIndex:
                  known_tops: Iterable[str] = ()):
         self._read = read
         self.known_tops = frozenset(known_tops)
-        self._inert: dict[str, str | None] = {}
+        self._inert: dict[tuple[str, bool], str | None] = {}
         self._modules: dict[str, ModuleFacts | None] = {}
         self._namespaces: dict[str, dict[str, tuple]] = {}
         self._verdicts: dict[tuple[str, str], Verdict] = {}
@@ -550,12 +562,13 @@ class SourceIndex:
 
     # --- inert modules -----------------------------------------------------------------
 
-    def inert(self, module: str) -> str | None:
+    def inert(self, module: str, lazy: bool = False) -> str | None:
         """None when importing ``module`` (its own top level) runs only definitions and
         calls into in-process code: the module itself, the libraries in ``known_tops`` or
-        SAFE_STDLIB; otherwise why not. Parent packages are judged separately."""
-        if module in self._inert:
-            return self._inert[module]
+        SAFE_STDLIB; otherwise why not. Parent packages are judged separately. ``lazy``
+        also accepts the lazy-module store (``_lazy_store``)."""
+        if (module, lazy) in self._inert:
+            return self._inert[(module, lazy)]
         facts = self.module(module)
         why = None
         if facts is None:
@@ -571,11 +584,26 @@ class SourceIndex:
                 root, _ = _root(target)
                 if isinstance(target, ast.Attribute) and target.attr in METADATA_ATTRS:
                     continue
+                if lazy and self._lazy_store(module, target):
+                    continue
                 if root is None or root not in facts.names or root in facts.imported:
                     why = f"line {target.lineno}: top level stores into {ast.unparse(target)[:80]}"
                     break
-        self._inert[module] = why
+        self._inert[(module, lazy)] = why
         return why
+
+    def _lazy_store(self, module: str, target: ast.expr) -> bool:
+        """``sys.modules[__name__] = ...``: the lazy-module idiom (transformers, trl), where a
+        package replaces its own entry with a library object that imports submodules on
+        attribute access. The value's calls are checked like any other top-level call. Only
+        the import chains of state-only policy classes accept it (tools/gen_policies.py);
+        such a package never makes a module inert for the referenced-only rule."""
+        if not (isinstance(target, ast.Subscript) and isinstance(target.slice, ast.Name)
+                and target.slice.id == "__name__" and isinstance(target.value, ast.Attribute)
+                and target.value.attr == "modules" and isinstance(target.value.value, ast.Name)):
+            return False
+        entry = self.namespace(module).get(target.value.value.id)
+        return entry is not None and entry[0] == "module" and entry[1] == "sys"
 
     def _safe_callee(self, module: str, facts: ModuleFacts, callee: ast.expr) -> bool:
         root, attrs = _root(callee)

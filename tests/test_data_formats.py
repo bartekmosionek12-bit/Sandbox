@@ -344,3 +344,44 @@ def test_pickle_reading_that_imports_is_kept():
     report = _static(data, "m.safetensors")
     assert [v["format"] for v in report["views"]] == ["pickle", "safetensors"]
     assert report["static_risk"] != "clean"
+
+
+# --- found on tune-2: big-endian GGUF, highly compressed .npz members ------------------
+
+def _big_endian_gguf() -> bytes:
+    name = b"t"
+    head = b"GGUF" + struct.pack(">IQQ", 3, 1, 0)
+    head += struct.pack(">Q", len(name)) + name + struct.pack(">I", 1) + struct.pack(">Q", 32)
+    head += struct.pack(">IQ", 0, 0)
+    head += b"\0" * (-len(head) % 32)
+    return head + b"\0" * 128
+
+
+def test_big_endian_gguf_is_clean():
+    report = _static(_big_endian_gguf(), "model-be.gguf")
+    assert report["static_risk"] == "clean", report["reasons"]
+    assert report["data_format"]["big_endian"] is True
+
+
+def test_highly_compressed_npz_member_is_read_by_header_only():
+    big = npy("|u1", (4_000_000,), body=b"\0" * 4_000_000)
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("labels.npy", big)
+    report = _static(buf.getvalue(), "data.npz")
+    assert report["static_risk"] == "clean", report["reasons"]
+
+
+def test_npz_member_with_more_data_than_its_header_is_risky():
+    report = _static(npz({"a.npy": npy(extra=b"\x80\x04N.")}), "x.npz")
+    assert report["static_risk"] == "suspicious"
+    assert "trailing data" in report["reasons"][0]
+
+
+def test_npz_with_duplicate_members_is_risky():
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        zf.writestr("a.npy", npy())
+        with pytest.warns(UserWarning):
+            zf.writestr("a.npy", npy("|O", (1,), body=pickle.dumps([MARKER])))
+    assert _static(buf.getvalue(), "x.npz")["static_risk"] != "clean"

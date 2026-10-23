@@ -136,6 +136,24 @@
       "file": "skops-0.16.0-py3-none-any.whl",
       "sha256": "5b2eb1bc49392c74a38db04481e2d110f97d9a72d6ae38fbd698aa7a865a9070",
       "candidates_only": true
+    },
+    "trl": {
+      "version": "1.16.0",
+      "top_level": [
+        "trl"
+      ],
+      "url": "https://files.pythonhosted.org/packages/e1/4d/c5eaed26c16bfafc2f724e6be320f94a4f26bf4bb4ba62917114dd9b60c8/trl-1.16.0-py3-none-any.whl",
+      "file": "trl-1.16.0-py3-none-any.whl",
+      "sha256": "c4726e139dd40e1a41661511c639c8a68416782b2e3e8c0befebd77bb7ba0396"
+    },
+    "sentence-transformers": {
+      "version": "6.2.0",
+      "top_level": [
+        "sentence_transformers"
+      ],
+      "url": "https://files.pythonhosted.org/packages/66/ae/aac4fcaf7aa27daee96aa15d74770b38bb5ff50b1d31ccf12becd68c6e8b/sentence_transformers-6.2.0-py3-none-any.whl",
+      "file": "sentence_transformers-6.2.0-py3-none-any.whl",
+      "sha256": "ffb51ccfef65427cfa61776d0eeeb257600b0099cf0c7533ae9a6856d31e4665"
     }
   },
   "policy_scope": [
@@ -150,7 +168,24 @@
     "torchvision",
     "ultralytics",
     "pandas",
-    "statsmodels"
+    "statsmodels",
+    "transformers.integrations.deepspeed",
+    "accelerate.utils.dataclasses",
+    "trl.trainer.base_config",
+    "trl.trainer.distillation_config",
+    "trl.trainer.dpo_config",
+    "trl.trainer.grpo_config",
+    "trl.trainer.kto_config",
+    "trl.trainer.model_config",
+    "trl.trainer.reward_config",
+    "trl.trainer.rloo_config",
+    "trl.trainer.sft_config",
+    "sentence_transformers.base.sampler",
+    "sentence_transformers.base.training_args",
+    "sentence_transformers.cross_encoder.training_args",
+    "sentence_transformers.multi_vector_encoder.training_args",
+    "sentence_transformers.sentence_transformer.training_args",
+    "sentence_transformers.sparse_encoder.training_args"
   ],
   "policy_exclude": {
     "sklearn.preprocessing._function_transformer:FunctionTransformer": "owner decision A1 (DECISIONS.md): holds an arbitrary function and stays out",

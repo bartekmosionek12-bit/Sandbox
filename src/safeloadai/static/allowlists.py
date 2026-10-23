@@ -274,6 +274,15 @@ ENUM_CLASSES = frozenset({
     ("accelerate.utils.dataclasses", "DistributedType"),
     # torchvision 0.26.0 functional.py: class InterpolationMode(Enum) with str values
     ("torchvision.transforms.functional", "InterpolationMode"),
+    # 0.9.0 tune / tune-2 review (evaluation/results/source-review-4-20261023.md): bodies of
+    # string constants only. sentence-transformers: ExplicitEnum (transformers.utils.generic:
+    # str + Enum whose _missing_ raises ValueError), 3.0.0 to 5.3.0 in training_args, 6.2.0 in
+    # base.sampler; trl: plain Enum in dpo_config, 0.9.6 to 0.28.0 (gone in 1.x).
+    ("sentence_transformers.base.sampler", "BatchSamplers"),
+    ("sentence_transformers.base.sampler", "MultiDatasetBatchSamplers"),
+    ("sentence_transformers.training_args", "BatchSamplers"),
+    ("sentence_transformers.training_args", "MultiDatasetBatchSamplers"),
+    ("trl.trainer.dpo_config", "FDivergenceType"),
 })
 # pandas.core.indexes.base._new_Index(cls, d) returns cls.__new__(cls, **d): it calls its
 # first argument. Accepted only as pandas writes it for a plain Index: _new_Index(Index,

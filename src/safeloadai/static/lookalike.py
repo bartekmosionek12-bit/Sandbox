@@ -37,7 +37,7 @@ REFERENCE = frozenset(name for name in REFERENCE if not name.startswith("_"))
 GENUINE = frozenset({
     "torchvision", "torchaudio", "torchtext", "keras_nlp", "keras_cv", "keras_hub", "keras_tuner",
     "tensorflow_hub", "tensorflow_text", "tensorflow_addons", "tensorflow_probability",
-    "numba", "sympy", "pytorch_lightning",
+    "numba", "sympy", "pytorch_lightning", "sentence_transformers",
 })
 
 _SEPARATORS = "_-"

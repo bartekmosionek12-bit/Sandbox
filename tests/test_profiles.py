@@ -88,10 +88,11 @@ def test_a_sink_stays_malicious():
 
 
 def test_an_unknown_root_subclass_stays_unverifiable():
-    report = static(training_args(root=("trl.trainer.sft_config", "SFTConfig")))
+    report = static(training_args(root=("axolotl.core.training_args", "AxolotlTrainingArguments")))
     assert report["profile"] == "transformers-training-args"
-    assert "import outside the allowlist: trl.trainer.sft_config.SFTConfig" in report["reasons"]
-    assert set(report["unverifiable"]) == {"import outside the allowlist: trl.trainer.sft_config.SFTConfig"}
+    reason = "import outside the allowlist: axolotl.core.training_args.AxolotlTrainingArguments"
+    assert reason in report["reasons"]
+    assert set(report["unverifiable"]) == {reason}
 
 
 def test_an_unknown_global_elsewhere_is_not_lowered():

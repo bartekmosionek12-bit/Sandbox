@@ -76,6 +76,7 @@ TEMPLATE_INTERNALS = re.compile(r"__(class|mro|base|bases|subclasses|globals|bui
 TEMPLATE_SINKS = re.compile(r"\b(popen|system|subprocess|__import__|eval|exec|check_output|import_module)\b")
 
 NPY_MAX_HEADER = 10_000  # numpy.lib.format: headers above this need max_header_size (numpy >= 1.24)
+NPY_HEAD = 12 + NPY_MAX_HEADER  # magic, version, header length and the longest header numpy reads
 NPY_KINDS = re.compile(r"^[<>|=]?([?bBhHiIlLqQpPefdgFDGSUVmMa]|[biufcSUVaOmM]\d+)(\[[A-Za-z0-9]+\])?$")
 NPY_SIZES = {"?": 1, "b": 1, "B": 1, "h": 2, "H": 2, "i": 4, "I": 4, "l": 8, "L": 8, "q": 8, "Q": 8, "p": 8,
              "P": 8, "e": 2, "f": 4, "d": 8, "g": 16, "F": 8, "D": 16, "G": 32}
@@ -159,15 +160,16 @@ def check_safetensors(data: bytes) -> dict:
 # --- GGUF -----------------------------------------------------------------------------
 
 class _Reader:
-    def __init__(self, data: bytes, pos: int = 0):
+    def __init__(self, data: bytes, pos: int = 0, endian: str = "<"):
         self.data = data
         self.pos = pos
+        self.endian = endian
 
     def take(self, fmt: str):
         size = struct.calcsize("<" + fmt)
         if self.pos + size > len(self.data):
             raise Invalid(f"record at offset {self.pos} runs past the end of the file")
-        value = struct.unpack_from("<" + fmt, self.data, self.pos)
+        value = struct.unpack_from(self.endian + fmt, self.data, self.pos)
         self.pos += size
         return value[0] if len(value) == 1 else value
 
@@ -223,6 +225,10 @@ def check_gguf(data: bytes) -> dict:
     templates (strings the caller checks)."""
     r = _Reader(data, 4)
     version = r.take("I")
+    if version not in (1, 2, 3) and len(data) >= 8 and struct.unpack_from(">I", data, 4)[0] in (1, 2, 3):
+        # a big-endian file (gguf's GGUFReader and llama.cpp detect it by the byte-swapped version)
+        r = _Reader(data, 4, ">")
+        version = r.take("I")
     if version not in (1, 2, 3):
         raise Invalid(f"GGUF version {version} (1 to 3 are defined)")
     count_fmt = "I" if version == 1 else "Q"
@@ -287,7 +293,7 @@ def check_gguf(data: bytes) -> dict:
     if left >= alignment or data[end:].strip(b"\0"):
         raise Invalid(f"{left} bytes after the last tensor (trailing data)")
     return {"version": version, "tensors": tensor_count, "keys": kv_count, "alignment": alignment,
-            "templates": templates}
+            "big_endian": r.endian == ">", "templates": templates}
 
 
 def template_findings(template: str) -> tuple[str | None, bool]:
@@ -348,6 +354,22 @@ def _itemsize(descr, depth: int = 0) -> int:
 
 def check_npy(data: bytes) -> dict:
     """Facts of a valid ``.npy`` without object arrays; Invalid otherwise."""
+    facts = npy_header(data)
+    _npy_body(len(data) - facts.pop("data_start"), facts["data_bytes"])
+    return facts
+
+
+def _npy_body(body: int, size: int) -> None:
+    if body != size:
+        if body < size:
+            raise Invalid(f"array needs {size} bytes of data, the file has {body}")
+        raise Invalid(f"{body - size} bytes after the array data (trailing data)")
+
+
+def npy_header(data: bytes) -> dict:
+    """The header of a ``.npy`` (``data`` may be only its first bytes): version, shape,
+    ``data_bytes`` (what the dtype and shape need) and ``data_start``; Invalid for an object
+    dtype or any other problem."""
     if len(data) < 10:
         raise Invalid("shorter than the NumPy magic and header length")
     major, minor = data[6], data[7]
@@ -384,16 +406,16 @@ def check_npy(data: bytes) -> dict:
     if not (isinstance(shape, tuple) and all(type(d) is int and d >= 0 for d in shape)):
         raise Invalid(f"shape {shape!r} is not a tuple of non-negative integers")
     size = math.prod(shape) * _itemsize(header["descr"])
-    body = len(data) - start - hlen
-    if body != size:
-        if body < size:
-            raise Invalid(f"array needs {size} bytes of data, the file has {body}")
-        raise Invalid(f"{body - size} bytes after the array data (trailing data)")
-    return {"version": f"{major}.{minor}", "shape": list(shape), "data_bytes": size}
+    return {"version": f"{major}.{minor}", "shape": list(shape), "data_bytes": size, "data_start": start + hlen}
 
 
 def check_npz(data: bytes) -> dict:
-    """Facts of a valid ``.npz`` (a ZIP archive whose members are all valid ``.npy``)."""
+    """Facts of a valid ``.npz``: a ZIP archive whose members are all valid ``.npy``. Only
+    each member's header is decompressed (``NPY_HEAD`` bytes) and checked against the size
+    the archive declares for it: ``numpy.load`` reads members with ``zipfile``, which raises
+    when the data does not match that size and CRC, so a member cannot hold more than its
+    header describes, and no member is decompressed in full (no ratio or size limit is
+    needed for data that is never held in memory)."""
     from ..parsing.zipsafe import SafeZip, ZipRefused
 
     try:
@@ -401,23 +423,22 @@ def check_npz(data: bytes) -> dict:
             names = zf.names
             if not names:
                 raise Invalid("archive has no members")
-            if zf.inventory.leading_bytes:
-                raise Invalid(f"{zf.inventory.leading_bytes} bytes before the first ZIP entry")
+            if zf.inventory.problems:
+                raise Invalid(f"ZIP archive: {'; '.join(zf.inventory.problems)}")
             for name in names:
                 if not name.endswith(".npy"):
                     raise Invalid(f"member {name!r} is not a .npy array")
-                member = zf.read(name)
+                head = zf.head(name, NPY_HEAD)
                 try:
-                    check_npy(member) if member.startswith(NPY_MAGIC) else _raise(f"{name!r} is not a .npy array")
+                    if not head.startswith(NPY_MAGIC):
+                        raise Invalid("not a .npy array")
+                    facts = npy_header(head)
+                    _npy_body(zf.size(name) - facts["data_start"], facts["data_bytes"])
                 except Invalid as exc:
                     raise Invalid(f"member {name!r}: {exc}") from None
     except ZipRefused as exc:
         raise Invalid(f"ZIP archive refused: {exc}") from None
     return {"members": len(names)}
-
-
-def _raise(message: str):
-    raise Invalid(message)
 
 
 CHECKS = {SAFETENSORS: check_safetensors, GGUF: check_gguf, NPY: check_npy, NPZ: check_npz}

@@ -76,6 +76,9 @@ DISTRIBUTIONS = {
     "torchvision": {"top": "torchvision", "select": "minor", "bases": ("torch",)},
     "transformers": {"top": "transformers", "select": "minor", "bases": ("torch",)},
     "accelerate": {"top": "accelerate", "select": "minor", "bases": ("torch",)},
+    "trl": {"top": "trl", "select": "minor", "bases": ("transformers", "accelerate", "torch")},
+    "sentence-transformers": {"top": "sentence_transformers", "select": "minor",
+                              "bases": ("transformers", "torch")},
 }
 # pairs with argument checks keyed on the exact pair (pickle_static): never aliased
 NOT_ALIASED = (al.PANDAS_STATE_ONLY | al.PANDAS_CALLS | frozenset(al.BUILD_STATE_KEYS) | frozenset(al.PANDAS_INDEX_KEYS)

@@ -33,11 +33,17 @@ from . import budget as budget_mod
 from . import clearance as clearance_mod
 from .allowlists import (
     ARGUMENT_CHECKED,
+    ARRAY_RECONSTRUCTORS,
     BUILD_HOOK_KEYS,
     BUILD_STATE_KEYS,
+    CLASS_BUILDERS,
+    CLOUDPICKLE_IMPORT,
+    CLOUDPICKLE_MODULES,
+    CLOUDPICKLE_TYPES,
     DANGEROUS_MODULES,
     DANGEROUS_SYMBOLS,
     DEFAULTDICT,
+    DILL_ARRAY,
     DILL_MODULES,
     DILL_SINKS,
     ENUM_CLASSES,
@@ -184,6 +190,8 @@ def is_dangerous_import(module: str, name: str) -> bool:
     root = module.split(".", 1)[0]
     leaf = name.rsplit(".", 1)[-1]
     head = name.split(".", 1)[0]
+    if (module, name) in CLASS_BUILDERS:
+        return False
     return (
         (module in DILL_MODULES and name in DILL_SINKS)
         or (module, name) in EXEC_GADGETS
@@ -975,7 +983,7 @@ def _code_json(value, depth: int = 0):
         return {"t": [_code_json(v, depth + 1) for v in value]}
     if isinstance(value, frozenset):
         return {"fs": [_code_json(v, depth + 1) for v in value]}
-    if _is_dill(value, "_create_code") and isinstance(value.args, tuple):
+    if _is_code(value):
         return {"code": [_code_json(v, depth + 1) for v in _code_fields(value.args)]}
     raise _NotData(f"{_describe(value)} is not plain data")
 
@@ -983,6 +991,24 @@ def _code_json(value, depth: int = 0):
 def _is_dill(value, name: str) -> bool:
     return isinstance(value, Obj) and value.how == "reduce" and isinstance(value.func, Global) \
         and value.func.module in DILL_MODULES and value.func.name == name
+
+
+def _is_cloudpickle(value, name: str) -> bool:
+    return isinstance(value, Obj) and value.how == "reduce" and isinstance(value.func, Global) \
+        and value.func.module in CLOUDPICKLE_MODULES and value.func.name == name
+
+
+def _is_code_type(func) -> bool:
+    """cloudpickle's ``_builtin_type("CodeType")``: the constructor of a code object."""
+    return _is_cloudpickle(func, "_builtin_type") and func.args == ("CodeType",)
+
+
+def _is_code(value) -> bool:
+    """A code object as dill (``_create_code(...)``) or cloudpickle
+    (``_builtin_type("CodeType")(...)``) writes it."""
+    if not (isinstance(value, Obj) and value.how == "reduce" and isinstance(value.args, tuple)):
+        return False
+    return _is_dill(value, "_create_code") or _is_code_type(value.func)
 
 
 def _code_fields(args: tuple) -> tuple:
@@ -1003,63 +1029,104 @@ def _code_strings(fields: tuple) -> list[str]:
             out.append(item)
         elif isinstance(item, (tuple, frozenset)):
             todo.extend(item)
-        elif _is_dill(item, "_create_code") and isinstance(item.args, tuple):
+        elif _is_code(item):
             nested = _code_fields(item.args)
             todo += [nested[7], nested[8]] if len(nested) == CODE_FIELDS_311 else \
                 [f for f in nested if isinstance(f, tuple)]
     return out
 
 
+def _code_maker(how: str, func, args) -> tuple[str, str] | None:
+    """(library, helper) when this call builds a code object: dill's ``_create_code`` or
+    cloudpickle's ``_builtin_type("CodeType")``."""
+    if isinstance(func, Global) and func.module in DILL_MODULES and func.name == "_create_code":
+        return func.module, "_create_code"
+    if _is_code_type(func):
+        return func.func.module, '_builtin_type("CodeType")'
+    return None
+
+
 def _dill_code(report: dict, calls: list[tuple]) -> None:
-    """Functions dill pickled with their bytecode (owner's decision of 2026-10-19: treated
-    like a Keras Lambda). Each code object is a RISKY reason ("file carries executable
-    Python code"); sink names among its co_names or string constants are MALICIOUS.
-    The fields go to the pipeline under ``dill_code``, which rebuilds the function inside
-    the WASI sandbox and calls it on fakes, like a Lambda."""
+    """Functions dill or cloudpickle pickled with their bytecode (owner's decisions of
+    2026-10-19 and 2026-10-23: treated like a Keras Lambda). Each code object is a RISKY
+    reason ("file carries executable Python code"); sink names among its co_names or string
+    constants are MALICIOUS. The fields go to the pipeline under ``dill_code``, which
+    rebuilds the function inside the WASI sandbox and calls it on fakes, like a Lambda.
+    The helpers both libraries rebuild a pickle with are checked here too: dill's
+    ``_create_array`` and cloudpickle's ``_builtin_type`` and ``subimport`` by argument."""
     functions = {}
-    helpers = set()
+    helpers: dict[str, set] = {"dill": set(), "cloudpickle": set()}
     for how, func, args, pos in calls:
-        if isinstance(func, Global) and func.module in DILL_MODULES:
-            helpers.add(func.name)
-            if func.name == "_create_function" and how == "reduce" and isinstance(args, tuple) and args \
-                    and _is_dill(args[0], "_create_code"):
-                functions.setdefault(id(args[0].args), (args, pos))
-    if helpers:
-        report["reasons"].append(
-            "pickle written by dill: dill.load rebuilds it with dill's own helpers ("
-            + ", ".join(sorted(helpers)) + ")")
-    for how, func, args, pos in calls:
-        if not (isinstance(func, Global) and func.module in DILL_MODULES and func.name == "_create_code"):
+        if not isinstance(func, Global):
             continue
+        library = "dill" if func.module in DILL_MODULES else \
+            "cloudpickle" if func.module in CLOUDPICKLE_MODULES else None
+        if library is None:
+            continue
+        helpers[library].add(func.name)
+        reduce = how == "reduce" and isinstance(args, tuple)
+        if func.name in ("_create_function", "_make_function") and reduce and args and _is_code(args[0]):
+            functions.setdefault(id(args[0].args), (args, pos))
+        elif library == "dill" and func.name == DILL_ARRAY:
+            f = args[0] if reduce and args else None
+            if not (isinstance(f, Global) and f.pair in ARRAY_RECONSTRUCTORS):
+                report["reasons"].append(f"{func.module}.{DILL_ARRAY} at {pos} calls its first argument "
+                                         f"({_describe(f) if reduce and args else how.upper()}), "
+                                         f"not numpy's array reconstructor")
+        elif library == "cloudpickle" and func.name == "_builtin_type":
+            name = args[0] if reduce and len(args) == 1 else None
+            if name not in CLOUDPICKLE_TYPES:
+                report["reasons"].append(f"{func.module}._builtin_type at {pos} looks up "
+                                         f"{_describe(name) if name is not None else 'an attribute'} "
+                                         f"of the types module by name")
+        elif library == "cloudpickle" and func.name == CLOUDPICKLE_IMPORT:
+            name = args[0] if reduce and len(args) == 1 and isinstance(args[0], str) else None
+            if name is None or not identifier_path(name):
+                report["reasons"].append(f"{func.module}.{CLOUDPICKLE_IMPORT} at {pos} imports a module "
+                                         f"whose name is not a constant")
+            elif name.split(".")[0] in DANGEROUS_MODULES:
+                report["reasons"].append(f"{func.module}.{CLOUDPICKLE_IMPORT} at {pos} imports {name}")
+    for library, names in helpers.items():
+        if names:
+            report["reasons"].append(
+                f"pickle written by {library}: {library}.load rebuilds it with {library}'s own helpers ("
+                + ", ".join(sorted(names)) + ")")
+    for how, func, args, pos in calls:
+        maker = _code_maker(how, func, args)
+        if maker is None:
+            continue
+        where = f"{maker[0]}.{maker[1]}"
         if how != "reduce" or not isinstance(args, tuple):
-            report["reasons"].append(f"{func.module}.{func.name} at {pos} is used through {how.upper()}")
+            report["reasons"].append(f"{where} at {pos} is used through {how.upper()}")
             continue
         fields = _code_fields(args)
         name = fields[11] if len(fields) == CODE_FIELDS_311 and isinstance(fields[11], str) else "?"
-        report["reasons"].append(f"file carries executable Python code ({func.module}._create_code at {pos} "
+        library = "dill" if maker[0] in DILL_MODULES else "cloudpickle"
+        report["reasons"].append(f"file carries executable Python code ({where} at {pos} "
                                  f"builds code object {name!r}; it runs when the function is called)")
         tokens = sorted({s for s in _code_strings(fields) if s in TF_DANGEROUS or s in DANGEROUS_SYMBOLS})
         if tokens:
-            report["code_malicious"].append(f"dill code object {name!r} at {pos} names the sink(s) "
+            report["code_malicious"].append(f"{library} code object {name!r} at {pos} names the sink(s) "
                                             + ", ".join(tokens))
         if len(report["dill_code"]) >= MAX_DILL_CODE:
-            report["reasons"].append(f"more than {MAX_DILL_CODE} dill code objects; the rest is not emulated")
+            report["reasons"].append(f"more than {MAX_DILL_CODE} pickled code objects; the rest is not emulated")
             continue
-        entry = {"path": f"dill code@{pos}", "name": name, "layout": len(fields), "sink_tokens": tokens,
+        entry = {"path": f"{library} code@{pos}", "name": name, "layout": len(fields), "sink_tokens": tokens,
                  "input_shape": [1, 8]}
         try:
             entry["code_fields"] = [_code_json(v) for v in fields]
         except _NotData as exc:
             entry["code_fields"] = None
-            report["reasons"].append(f"dill code object {name!r} at {pos} has a field that is not plain data "
-                                     f"({exc}); not emulated")
+            report["reasons"].append(f"{library} code object {name!r} at {pos} has a field that is not plain "
+                                     f"data ({exc}); not emulated")
         made = functions.get(id(args))
         if made:
             fn_args = made[0]
             for key, index in (("defaults", 3), ("closure", 4)):
                 value = fn_args[index] if len(fn_args) > index else None
                 if key == "closure" and isinstance(value, tuple):
-                    value = tuple(v.args[0] if _is_dill(v, "_create_cell") and v.args else v for v in value)
+                    value = tuple(v.args[0] if (_is_dill(v, "_create_cell") or _is_cloudpickle(v, "_make_cell"))
+                                  and v.args else v for v in value)
                 try:
                     entry[key] = _code_json(value)
                 except _NotData:

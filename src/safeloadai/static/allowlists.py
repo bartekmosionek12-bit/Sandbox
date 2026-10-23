@@ -427,6 +427,14 @@ EXEC_GADGETS = frozenset({
     ("_osx_support", "_read_output"),  # runs a shell command
     ("_osx_support", "_find_build_tool"),  # runs a shell command
 })
+# Built-ins a pickled class is rebuilt with (cloudpickle's
+# _make_skeleton_class(type, ...), staticmethod, classmethod and property wrappers in the
+# class dict) and dill's ``__builtin__.__main__``, which dill's find_class maps to the
+# globals of the loading program. They build a class, wrap a function or hand over a
+# namespace; they run no code of their own, so they are not known sinks (0.8.0; they were
+# MALICIOUS as members of ``builtins``). Part of KNOWN_GADGETS: RISKY, never UNVERIFIABLE.
+CLASS_BUILDERS = frozenset({(m, n) for m in ("builtins", "__builtin__")
+                            for n in ("type", "staticmethod", "classmethod", "property", "__main__")})
 # Globals outside the two sets above that public scanner bypasses use to run code or to
 # call an argument (tests/corpus/build_corpus.py:bypass_payloads). EXEC_GADGETS are known
 # sinks; the others do not change the verdict, they only keep the reason RISKY instead of
@@ -439,7 +447,7 @@ KNOWN_GADGETS = frozenset({
     ("functools", "reduce"),  # calls its first argument
     ("operator", "methodcaller"),  # calls a method by name
     ("operator", "attrgetter"),  # attribute access by name
-})
+}) | CLASS_BUILDERS
 
 # dill (0.3.8 and 0.4.1, dill/_dill.py; evaluation/results/source-review-2-20261019.md).
 # Helpers that import, eval, call an argument, read attributes by name, unmarshal or open
@@ -447,13 +455,37 @@ KNOWN_GADGETS = frozenset({
 DILL_MODULES = frozenset({"dill._dill", "dill.dill"})  # dill's find_class maps dill.dill to dill._dill
 DILL_SINKS = frozenset({
     "_import_module", "_eval_repr", "_getattr", "_get_attr", "_create_type", "_create_ftype",
-    "_create_array", "_unmarshal", "_create_filehandle", "_create_capsule", "_create_namedtuple",
+    "_unmarshal", "_create_filehandle", "_create_capsule", "_create_namedtuple",
 })
+# _create_array(f, args, state, npdict) is f(*args).__setstate__(state): dill's numpy
+# array. With f numpy's own _reconstruct it rebuilds an array and runs no code; with any
+# other f it calls that argument (pickle_static._dill_code: RISKY; f's own import is
+# judged like any other, so a sink there is MALICIOUS). It was a known sink before 0.8.0.
+DILL_ARRAY = "_create_array"
+ARRAY_RECONSTRUCTORS = frozenset({("numpy.core.multiarray", "_reconstruct"),
+                                  ("numpy._core.multiarray", "_reconstruct")})
 # Helpers a plain dill function or set is rebuilt with. _create_code/_create_function build
 # code (judged by pickle_static._dill_code: RISKY, MALICIOUS with sink names); _load_type is
 # a lookup in a fixed table; _create_cell and _setitems hold or copy data.
 DILL_CODE = frozenset({"_create_code", "_create_function"})
 DILL_DATA = frozenset({"_load_type", "_create_cell", "_setitems"})
+
+# cloudpickle (3.1, cloudpickle/cloudpickle.py). A function is written as
+# _make_function(_builtin_type("CodeType")(<fields>), globals, name, argdefs, closure) and
+# a class as _make_skeleton_class(type, name, bases, ...) with _class_setstate: the same
+# path as dill's functions (pickle_static._dill_code: RISKY, MALICIOUS with sink names;
+# the code is emulated). _builtin_type(name) is getattr(types, name), reviewed for
+# CLOUDPICKLE_TYPES; subimport(name) imports a module by name (judged by that name).
+CLOUDPICKLE_MODULES = frozenset({"cloudpickle.cloudpickle", "cloudpickle.cloudpickle_fast"})
+CLOUDPICKLE_CODE = frozenset({"_builtin_type", "_make_function", "_function_setstate",
+                              "_make_skeleton_class", "_class_setstate", "_make_skeleton_enum",
+                              "_enum_setstate"})
+CLOUDPICKLE_DATA = frozenset({"_make_empty_cell", "_make_cell", "_make_dict_keys", "_make_dict_values",
+                              "_make_dict_items", "_get_dataclass_field_type_sentinel",
+                              "_make_typevar", "dynamic_subimport"})
+CLOUDPICKLE_IMPORT = "subimport"
+CLOUDPICKLE_TYPES = frozenset({"CodeType", "CellType", "FunctionType", "LambdaType", "MethodType",
+                               "MappingProxyType", "ModuleType", "SimpleNamespace", "ClassType"})
 
 DANGEROUS_SYMBOLS = frozenset({
     "system", "popen", "spawn", "spawnl", "spawnv", "exec", "execv", "execve",

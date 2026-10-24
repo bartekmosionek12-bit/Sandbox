@@ -14,7 +14,8 @@ Safety rules this script follows:
   downloaded and hashed. The only consumer is ``run_eval.py``, which calls
   ``scan()`` under the evaluation guard.
 * Only model weight files are fetched, by file name: ``.bin .pt .pth .pkl .pickle
-  .joblib .keras .h5``. No ``.py``, notebooks, setup scripts or any other code;
+  .joblib .keras .h5`` (and, for tune-2 only, the data formats ``.safetensors .gguf
+  .npy .npz``). No ``.py``, notebooks, setup scripts or any other code;
   ``trust_remote_code`` does not exist here because no model class is ever built.
 * Downloads are file-level (``huggingface_hub.hf_hub_download``) pinned to the
   commit the listing returned, into ``OUT/files/<repo with / as __>/``.
@@ -52,6 +53,8 @@ FORMATS = {
     ".bin": "torch", ".pt": "torch", ".pth": "torch",
     ".pkl": "sklearn", ".pickle": "sklearn", ".joblib": "sklearn",
     ".keras": "keras", ".h5": "h5",
+    # data-only formats (0.9.0 structural validators); only the tune2 plan asks for them
+    ".safetensors": "safetensors", ".gguf": "gguf", ".npy": "numpy", ".npz": "numpy",
 }
 # stratum -> what to fetch. ``filters`` are Hub library tags (``search`` is a free-text
 # query for the one stratum without a tag); ``names`` restricts to exact file names,
@@ -71,6 +74,13 @@ STRATA = {
     "pandas": {"fmt": "sklearn", "target": 20, "search": ["pandas", "dataframe"], "prefer": ()},
     "keras": {"fmt": "keras", "target": 140, "filters": ["keras", "tf-keras"], "prefer": ("model.keras",)},
     "h5": {"fmt": "h5", "target": 150, "filters": ["keras", "tf-keras", "tf"], "prefer": ("tf_model.h5", "model.h5")},
+}
+# Data-only strata, planned for tune-2 only (batch_hf.py --split tune2), each a fixed target.
+# NumPy files have no Hub tag of their own: the repos of common library tags are searched.
+DATA_STRATA = {
+    "safetensors": {"fmt": "safetensors", "target": 150, "filters": ["safetensors"], "prefer": ("model.safetensors",)},
+    "gguf": {"fmt": "gguf", "target": 75, "filters": ["gguf"], "prefer": ()},
+    "numpy": {"fmt": "numpy", "target": 75, "filters": ["sklearn", "keras", "pytorch", "audio"], "prefer": ()},
 }
 MAX_FILES_PER_REPO = 2
 
@@ -169,11 +179,12 @@ def _model_info(api, repo_id: str):
     return None
 
 
-def _listing(api, stratum: dict, target: int):
+def _listing(api, stratum: dict, target: int, expand: list[str] | None = None):
+    extra = {"expand": expand} if expand else {}
     for library in stratum.get("filters", []):
-        yield library, lambda lib=library: api.list_models(filter=lib, sort="downloads", limit=target * 10)
+        yield library, lambda lib=library: api.list_models(filter=lib, sort="downloads", limit=target * 10, **extra)
     for query in stratum.get("search", []):
-        yield query, lambda q=query: api.list_models(search=q, sort="downloads", limit=target * 10)
+        yield query, lambda q=query: api.list_models(search=q, sort="downloads", limit=target * 10, **extra)
 
 
 def discover(hub, out: str, max_bytes: int, only: set[str], done: set[tuple[str, str]], scale: float,

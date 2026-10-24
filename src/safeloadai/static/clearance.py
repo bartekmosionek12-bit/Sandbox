@@ -71,6 +71,10 @@ class Clearance:
             entry = upstream.state_only(pair)
             if entry:
                 found = ("policy", f"state-only class ({upstream.label(entry['distribution'])} source)")
+                if entry.get("historical"):
+                    old = entry["historical"]
+                    found = ("policy", f"state-only class ({upstream.label(entry['distribution'])} source); old "
+                                       f"module path of {old['current']} ({upstream.span(old)})")
         self._cache[pair] = found
         return found
 

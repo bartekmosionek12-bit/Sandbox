@@ -76,9 +76,11 @@ def fetch(pins: dict, cache: str) -> dict[str, str]:
     return paths
 
 
-def inert_chain(index: sources.SourceIndex, module: str, top: str) -> str | None:
+def inert_chain(index: sources.SourceIndex, module: str, top: str, lazy: bool = False) -> str | None:
     """None when importing ``module`` runs only definitions below the trusted top-level
-    package ``top``; otherwise why not."""
+    package ``top``; otherwise why not. ``lazy`` also accepts parent packages that replace
+    their sys.modules entry with a lazy module (sources.SourceIndex.inert): for the import
+    chain of a state-only policy class only, never for inert_modules.json."""
     if not sources.library_module(module):
         return "test, command-line or denied module"
     parts = module.split(".")
@@ -88,7 +90,7 @@ def inert_chain(index: sources.SourceIndex, module: str, top: str) -> str | None
             if i == len(parts):
                 return "no source"
             continue  # a namespace package: no __init__ runs
-        why = index.inert(name)
+        why = index.inert(name, lazy=lazy)
         if why:
             return f"{name}: {why}"
     if parts[0] != top:
@@ -126,9 +128,10 @@ def generate(pins: dict, wheels: dict[str, str]) -> dict[str, str]:
     state_only: dict[str, dict] = {}
     blocked_by: collections.Counter = collections.Counter()
     totals: collections.Counter = collections.Counter()
-    for module in sorted(modules):
-        if not any(module == s or module.startswith(s + ".") for s in scope):
-            continue
+    # policy candidates: the scope's modules whose import chain is inert, lazy packages allowed
+    candidates = {module for module in owner if any(module == s or module.startswith(s + ".") for s in scope)
+                  and top_of.get(module.split(".")[0]) and not inert_chain(index, module, module.split(".")[0], True)}
+    for module in sorted(candidates):
         for cls in index.classes(module):
             totals["classes"] += 1
             verdict = index.state_only(module, cls.name)
@@ -136,7 +139,7 @@ def generate(pins: dict, wheels: dict[str, str]) -> dict[str, str]:
                 totals["excluded"] += 1
                 continue
             if verdict.state_only:
-                if cls.pickled_module != module and cls.pickled_module not in modules:
+                if cls.pickled_module != module and cls.pickled_module not in candidates:
                     totals["pickled elsewhere"] += 1
                     continue
                 state_only[f"{cls.pickled_module}:{cls.name}"] = {

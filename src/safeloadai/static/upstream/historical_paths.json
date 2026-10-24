@@ -1,0 +1,8866 @@
+{
+ "generated_by": "tools/gen_historical_paths.py",
+ "paths": {
+  "accelerate.kwargs_handlers:DistributedDataParallelKwargs": {
+   "current": "accelerate.utils.dataclasses:DistributedDataParallelKwargs",
+   "distribution": "accelerate",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.2.1",
+    "0.3.0",
+    "0.4.0",
+    "0.5.1",
+    "0.6.2",
+    "0.7.1"
+   ]
+  },
+  "accelerate.kwargs_handlers:GradScalerKwargs": {
+   "current": "accelerate.utils.dataclasses:GradScalerKwargs",
+   "distribution": "accelerate",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.2.1",
+    "0.3.0",
+    "0.4.0",
+    "0.5.1",
+    "0.6.2",
+    "0.7.1"
+   ]
+  },
+  "accelerate.kwargs_handlers:InitProcessGroupKwargs": {
+   "current": "accelerate.utils.dataclasses:InitProcessGroupKwargs",
+   "distribution": "accelerate",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.6.2",
+    "0.7.1"
+   ]
+  },
+  "accelerate.kwargs_handlers:KwargsHandler": {
+   "current": "accelerate.utils.dataclasses:KwargsHandler",
+   "distribution": "accelerate",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.2.1",
+    "0.3.0",
+    "0.4.0",
+    "0.5.1",
+    "0.6.2",
+    "0.7.1"
+   ]
+  },
+  "accelerate.utils:DeepSpeedPlugin": {
+   "current": "accelerate.utils.dataclasses:DeepSpeedPlugin",
+   "distribution": "accelerate",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.4.0",
+    "0.5.1",
+    "0.6.2",
+    "0.7.1"
+   ]
+  },
+  "accelerate.utils:FullyShardedDataParallelPlugin": {
+   "current": "accelerate.utils.dataclasses:FullyShardedDataParallelPlugin",
+   "distribution": "accelerate",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.7.1"
+   ]
+  },
+  "accelerate.utils:TensorInformation": {
+   "current": "accelerate.utils.dataclasses:TensorInformation",
+   "distribution": "accelerate",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.5.1",
+    "0.6.2",
+    "0.7.1"
+   ]
+  },
+  "pandas.computation.engines:AbstractEngine": {
+   "current": "pandas.core.computation.engines:AbstractEngine",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.13.1",
+    "0.14.1",
+    "0.15.2",
+    "0.16.2",
+    "0.17.1"
+   ]
+  },
+  "pandas.computation.engines:NumExprEngine": {
+   "current": "pandas.core.computation.engines:NumExprEngine",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.13.1",
+    "0.14.1",
+    "0.15.2",
+    "0.16.2",
+    "0.17.1"
+   ]
+  },
+  "pandas.computation.engines:PythonEngine": {
+   "current": "pandas.core.computation.engines:PythonEngine",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.13.1",
+    "0.14.1",
+    "0.15.2",
+    "0.16.2",
+    "0.17.1"
+   ]
+  },
+  "pandas.computation.ops:FuncNode": {
+   "current": "pandas.core.computation.ops:FuncNode",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.17.1"
+   ]
+  },
+  "pandas.computation.ops:MathCall": {
+   "current": "pandas.core.computation.ops:MathCall",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.17.1"
+   ]
+  },
+  "pandas.computation.ops:Op": {
+   "current": "pandas.core.computation.ops:Op",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.13.1",
+    "0.14.1",
+    "0.15.2",
+    "0.16.2",
+    "0.17.1"
+   ]
+  },
+  "pandas.computation.pytables:ConditionBinOp": {
+   "current": "pandas.core.computation.pytables:ConditionBinOp",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.13.1",
+    "0.14.1",
+    "0.15.2",
+    "0.16.2",
+    "0.17.1"
+   ]
+  },
+  "pandas.computation.pytables:FilterBinOp": {
+   "current": "pandas.core.computation.pytables:FilterBinOp",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.13.1",
+    "0.14.1",
+    "0.15.2",
+    "0.16.2",
+    "0.17.1"
+   ]
+  },
+  "pandas.computation.pytables:JointConditionBinOp": {
+   "current": "pandas.core.computation.pytables:JointConditionBinOp",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.13.1",
+    "0.14.1",
+    "0.15.2",
+    "0.16.2",
+    "0.17.1"
+   ]
+  },
+  "pandas.computation.pytables:JointFilterBinOp": {
+   "current": "pandas.core.computation.pytables:JointFilterBinOp",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.13.1",
+    "0.14.1",
+    "0.15.2",
+    "0.16.2",
+    "0.17.1"
+   ]
+  },
+  "pandas.computation.pytables:TermValue": {
+   "current": "pandas.core.computation.pytables:TermValue",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.13.1",
+    "0.14.1",
+    "0.15.2",
+    "0.16.2",
+    "0.17.1"
+   ]
+  },
+  "pandas.core.algorithms:SelectN": {
+   "current": "pandas.core.methods.selectn:SelectN",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.20.3",
+    "0.21.1",
+    "0.22.0",
+    "0.23.4",
+    "0.24.2",
+    "0.25.3",
+    "1.0.5",
+    "1.1.5",
+    "1.2.5",
+    "1.3.5",
+    "1.4.4",
+    "1.5.3"
+   ]
+  },
+  "pandas.core.algorithms:SelectNFrame": {
+   "current": "pandas.core.methods.selectn:SelectNFrame",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.20.3",
+    "0.21.1",
+    "0.22.0",
+    "0.23.4",
+    "0.24.2",
+    "0.25.3",
+    "1.0.5",
+    "1.1.5",
+    "1.2.5",
+    "1.3.5",
+    "1.4.4",
+    "1.5.3"
+   ]
+  },
+  "pandas.core.algorithms:SelectNSeries": {
+   "current": "pandas.core.methods.selectn:SelectNSeries",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.20.3",
+    "0.21.1",
+    "0.22.0",
+    "0.23.4",
+    "0.24.2",
+    "0.25.3",
+    "1.0.5",
+    "1.1.5",
+    "1.2.5",
+    "1.3.5",
+    "1.4.4",
+    "1.5.3"
+   ]
+  },
+  "pandas.core.arrays.sparse:BaseAccessor": {
+   "current": "pandas.core.arrays.sparse.accessor:BaseAccessor",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.25.3"
+   ]
+  },
+  "pandas.core.arrays.sparse:SparseFrameAccessor": {
+   "current": "pandas.core.arrays.sparse.accessor:SparseFrameAccessor",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.25.3"
+   ]
+  },
+  "pandas.core.base:PandasDelegate": {
+   "current": "pandas.core.accessor:PandasDelegate",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.15.2",
+    "0.16.2",
+    "0.17.1",
+    "0.18.1",
+    "0.19.2",
+    "0.20.3"
+   ]
+  },
+  "pandas.core.common:EngFormatter": {
+   "current": "pandas.io.formats.format:EngFormatter",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.5.0",
+    "0.6.1"
+   ]
+  },
+  "pandas.core.describe:DataFrameDescriber": {
+   "current": "pandas.core.methods.describe:DataFrameDescriber",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "1.3.5",
+    "1.4.4",
+    "1.5.3"
+   ]
+  },
+  "pandas.core.describe:NDFrameDescriberAbstract": {
+   "current": "pandas.core.methods.describe:NDFrameDescriberAbstract",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "1.3.5",
+    "1.4.4",
+    "1.5.3"
+   ]
+  },
+  "pandas.core.describe:SeriesDescriber": {
+   "current": "pandas.core.methods.describe:SeriesDescriber",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "1.3.5",
+    "1.4.4",
+    "1.5.3"
+   ]
+  },
+  "pandas.core.dtypes.dtypes:Registry": {
+   "current": "pandas.core.dtypes.base:Registry",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.24.2",
+    "0.25.3",
+    "1.0.5"
+   ]
+  },
+  "pandas.core.format:CSVFormatter": {
+   "current": "pandas.io.formats.csvs:CSVFormatter",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.12.0",
+    "0.13.1",
+    "0.14.1",
+    "0.15.2",
+    "0.16.2",
+    "0.17.1"
+   ]
+  },
+  "pandas.core.format:DataFrameFormatter": {
+   "current": "pandas.io.formats.format:DataFrameFormatter",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.6.1",
+    "0.12.0",
+    "0.13.1",
+    "0.14.1",
+    "0.15.2",
+    "0.16.2",
+    "0.17.1"
+   ]
+  },
+  "pandas.core.format:EngFormatter": {
+   "current": "pandas.io.formats.format:EngFormatter",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.12.0",
+    "0.13.1",
+    "0.14.1",
+    "0.15.2",
+    "0.16.2",
+    "0.17.1"
+   ]
+  },
+  "pandas.core.format:ExcelFormatter": {
+   "current": "pandas.io.formats.excel:ExcelFormatter",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.12.0",
+    "0.13.1",
+    "0.14.1",
+    "0.15.2",
+    "0.16.2",
+    "0.17.1"
+   ]
+  },
+  "pandas.core.format:FloatArrayFormatter": {
+   "current": "pandas.io.formats.format:FloatArrayFormatter",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.12.0",
+    "0.13.1",
+    "0.14.1",
+    "0.15.2",
+    "0.16.2",
+    "0.17.1"
+   ]
+  },
+  "pandas.core.format:HTMLFormatter": {
+   "current": "pandas.io.formats.html:HTMLFormatter",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.12.0",
+    "0.13.1",
+    "0.14.1",
+    "0.15.2",
+    "0.16.2",
+    "0.17.1"
+   ]
+  },
+  "pandas.core.format:SeriesFormatter": {
+   "current": "pandas.io.formats.format:SeriesFormatter",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.12.0",
+    "0.13.1",
+    "0.14.1",
+    "0.15.2",
+    "0.16.2",
+    "0.17.1"
+   ]
+  },
+  "pandas.core.generic:PandasObject": {
+   "current": "pandas.core.base:PandasObject",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.4.3",
+    "0.5.0",
+    "0.6.1",
+    "0.7.3",
+    "0.8.1",
+    "0.9.1",
+    "0.10.1",
+    "0.11.0"
+   ]
+  },
+  "pandas.core.groupby:BaseGrouper": {
+   "current": "pandas.core.groupby.ops:BaseGrouper",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.14.1"
+   ]
+  },
+  "pandas.core.groupby:BinGrouper": {
+   "current": "pandas.core.groupby.ops:BinGrouper",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.13.1",
+    "0.14.1"
+   ]
+  },
+  "pandas.core.groupby:DataSplitter": {
+   "current": "pandas.core.groupby.ops:DataSplitter",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.13.1",
+    "0.14.1"
+   ]
+  },
+  "pandas.core.groupby:FrameSplitter": {
+   "current": "pandas.core.groupby.ops:FrameSplitter",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.13.1",
+    "0.14.1"
+   ]
+  },
+  "pandas.core.groupby:Grouping": {
+   "current": "pandas.core.groupby.grouper:Grouping",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.13.1",
+    "0.14.1"
+   ]
+  },
+  "pandas.core.groupby:SeriesSplitter": {
+   "current": "pandas.core.groupby.ops:SeriesSplitter",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.13.1",
+    "0.14.1"
+   ]
+  },
+  "pandas.core.internals:JoinUnit": {
+   "current": "pandas.core.internals.concat:JoinUnit",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.14.1",
+    "0.15.2",
+    "0.16.2",
+    "0.17.1",
+    "0.18.1",
+    "0.19.2",
+    "0.20.3",
+    "0.21.1",
+    "0.22.0",
+    "0.23.4"
+   ]
+  },
+  "pandas.core.reshape:_Unstacker": {
+   "current": "pandas.core.reshape.reshape:_Unstacker",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.4.3",
+    "0.5.0",
+    "0.6.1",
+    "0.7.3",
+    "0.8.1",
+    "0.9.1",
+    "0.10.1",
+    "0.11.0",
+    "0.12.0",
+    "0.13.1",
+    "0.14.1",
+    "0.15.2",
+    "0.16.2",
+    "0.17.1",
+    "0.18.1",
+    "0.19.2"
+   ]
+  },
+  "pandas.formats.format:CSVFormatter": {
+   "current": "pandas.io.formats.csvs:CSVFormatter",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.18.1",
+    "0.19.2"
+   ]
+  },
+  "pandas.formats.format:DataFrameFormatter": {
+   "current": "pandas.io.formats.format:DataFrameFormatter",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.18.1",
+    "0.19.2"
+   ]
+  },
+  "pandas.formats.format:EngFormatter": {
+   "current": "pandas.io.formats.format:EngFormatter",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.18.1",
+    "0.19.2"
+   ]
+  },
+  "pandas.formats.format:ExcelFormatter": {
+   "current": "pandas.io.formats.excel:ExcelFormatter",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.18.1",
+    "0.19.2"
+   ]
+  },
+  "pandas.formats.format:FloatArrayFormatter": {
+   "current": "pandas.io.formats.format:FloatArrayFormatter",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.18.1",
+    "0.19.2"
+   ]
+  },
+  "pandas.formats.format:HTMLFormatter": {
+   "current": "pandas.io.formats.html:HTMLFormatter",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.18.1",
+    "0.19.2"
+   ]
+  },
+  "pandas.formats.format:SeriesFormatter": {
+   "current": "pandas.io.formats.format:SeriesFormatter",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.18.1",
+    "0.19.2"
+   ]
+  },
+  "pandas.io.excel:_XlsxStyler": {
+   "current": "pandas.io.excel._xlsxwriter:_XlsxStyler",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.23.4",
+    "0.24.2"
+   ]
+  },
+  "pandas.io.formats.format:CSVFormatter": {
+   "current": "pandas.io.formats.csvs:CSVFormatter",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.20.3",
+    "0.21.1",
+    "0.22.0"
+   ]
+  },
+  "pandas.io.formats.format:HTMLFormatter": {
+   "current": "pandas.io.formats.html:HTMLFormatter",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.20.3",
+    "0.21.1",
+    "0.22.0"
+   ]
+  },
+  "pandas.io.json.json:FrameParser": {
+   "current": "pandas.io.json._json:FrameParser",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.20.3",
+    "0.21.1",
+    "0.22.0",
+    "0.23.4",
+    "0.24.2"
+   ]
+  },
+  "pandas.io.json.json:FrameWriter": {
+   "current": "pandas.io.json._json:FrameWriter",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.20.3",
+    "0.21.1",
+    "0.22.0",
+    "0.23.4",
+    "0.24.2"
+   ]
+  },
+  "pandas.io.json.json:JSONTableWriter": {
+   "current": "pandas.io.json._json:JSONTableWriter",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.20.3",
+    "0.21.1",
+    "0.22.0",
+    "0.23.4",
+    "0.24.2"
+   ]
+  },
+  "pandas.io.json.json:Parser": {
+   "current": "pandas.io.json._json:Parser",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.20.3",
+    "0.21.1",
+    "0.22.0",
+    "0.23.4",
+    "0.24.2"
+   ]
+  },
+  "pandas.io.json.json:SeriesParser": {
+   "current": "pandas.io.json._json:SeriesParser",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.20.3",
+    "0.21.1",
+    "0.22.0",
+    "0.23.4",
+    "0.24.2"
+   ]
+  },
+  "pandas.io.json.json:SeriesWriter": {
+   "current": "pandas.io.json._json:SeriesWriter",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.20.3",
+    "0.21.1",
+    "0.22.0",
+    "0.23.4",
+    "0.24.2"
+   ]
+  },
+  "pandas.io.json.json:Writer": {
+   "current": "pandas.io.json._json:Writer",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.20.3",
+    "0.21.1",
+    "0.22.0",
+    "0.23.4",
+    "0.24.2"
+   ]
+  },
+  "pandas.io.json:FrameParser": {
+   "current": "pandas.io.json._json:FrameParser",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.13.1",
+    "0.14.1",
+    "0.15.2",
+    "0.16.2",
+    "0.17.1",
+    "0.18.1",
+    "0.19.2"
+   ]
+  },
+  "pandas.io.json:FrameWriter": {
+   "current": "pandas.io.json._json:FrameWriter",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.13.1",
+    "0.14.1",
+    "0.15.2",
+    "0.16.2",
+    "0.17.1",
+    "0.18.1",
+    "0.19.2"
+   ]
+  },
+  "pandas.io.json:Parser": {
+   "current": "pandas.io.json._json:Parser",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.13.1",
+    "0.14.1",
+    "0.15.2",
+    "0.16.2",
+    "0.17.1",
+    "0.18.1",
+    "0.19.2"
+   ]
+  },
+  "pandas.io.json:SeriesParser": {
+   "current": "pandas.io.json._json:SeriesParser",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.13.1",
+    "0.14.1",
+    "0.15.2",
+    "0.16.2",
+    "0.17.1",
+    "0.18.1",
+    "0.19.2"
+   ]
+  },
+  "pandas.io.json:SeriesWriter": {
+   "current": "pandas.io.json._json:SeriesWriter",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.13.1",
+    "0.14.1",
+    "0.15.2",
+    "0.16.2",
+    "0.17.1",
+    "0.18.1",
+    "0.19.2"
+   ]
+  },
+  "pandas.io.json:Writer": {
+   "current": "pandas.io.json._json:Writer",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.13.1",
+    "0.14.1",
+    "0.15.2",
+    "0.16.2",
+    "0.17.1",
+    "0.18.1",
+    "0.19.2"
+   ]
+  },
+  "pandas.io.parsers:CParserWrapper": {
+   "current": "pandas.io.parsers.c_parser_wrapper:CParserWrapper",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.13.1",
+    "0.14.1",
+    "0.15.2",
+    "0.16.2",
+    "0.17.1",
+    "0.18.1",
+    "0.19.2",
+    "0.20.3",
+    "0.21.1",
+    "0.22.0",
+    "0.23.4",
+    "0.24.2",
+    "0.25.3",
+    "1.0.5",
+    "1.1.5",
+    "1.2.5"
+   ]
+  },
+  "pandas.io.parsers:FixedWidthFieldParser": {
+   "current": "pandas.io.parsers.python_parser:FixedWidthFieldParser",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.13.1",
+    "0.14.1",
+    "0.15.2",
+    "0.16.2",
+    "0.17.1",
+    "0.18.1",
+    "0.19.2",
+    "0.20.3",
+    "0.21.1",
+    "0.22.0",
+    "0.23.4",
+    "0.24.2",
+    "0.25.3",
+    "1.0.5",
+    "1.1.5",
+    "1.2.5"
+   ]
+  },
+  "pandas.io.parsers:ParserBase": {
+   "current": "pandas.io.parsers.base_parser:ParserBase",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.13.1",
+    "0.14.1",
+    "0.15.2",
+    "0.16.2",
+    "0.17.1",
+    "0.18.1",
+    "0.19.2",
+    "0.20.3",
+    "0.21.1",
+    "0.22.0",
+    "0.23.4",
+    "0.24.2",
+    "0.25.3",
+    "1.0.5",
+    "1.1.5",
+    "1.2.5"
+   ]
+  },
+  "pandas.io.parsers:PythonParser": {
+   "current": "pandas.io.parsers.python_parser:PythonParser",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.13.1",
+    "0.14.1",
+    "0.15.2",
+    "0.16.2",
+    "0.17.1",
+    "0.18.1",
+    "0.19.2",
+    "0.20.3",
+    "0.21.1",
+    "0.22.0",
+    "0.23.4",
+    "0.24.2",
+    "0.25.3",
+    "1.0.5",
+    "1.1.5",
+    "1.2.5"
+   ]
+  },
+  "pandas.tools.merge:_AsOfMerge": {
+   "current": "pandas.core.reshape.merge:_AsOfMerge",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.19.2"
+   ]
+  },
+  "pandas.tools.merge:_MergeOperation": {
+   "current": "pandas.core.reshape.merge:_MergeOperation",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.13.1",
+    "0.14.1",
+    "0.15.2",
+    "0.16.2",
+    "0.17.1",
+    "0.18.1",
+    "0.19.2"
+   ]
+  },
+  "pandas.tools.merge:_OrderedMerge": {
+   "current": "pandas.core.reshape.merge:_OrderedMerge",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.13.1",
+    "0.14.1",
+    "0.15.2",
+    "0.16.2",
+    "0.17.1",
+    "0.18.1",
+    "0.19.2"
+   ]
+  },
+  "pandas.tools.plotting:BarPlot": {
+   "current": "pandas.plotting._matplotlib.core:BarPlot",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.7.3",
+    "0.8.1",
+    "0.9.1",
+    "0.10.1",
+    "0.12.0",
+    "0.13.1"
+   ]
+  },
+  "pandas.tools.plotting:BoxPlot": {
+   "current": "pandas.plotting._matplotlib.boxplot:BoxPlot",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.7.3",
+    "0.8.1",
+    "0.9.1",
+    "0.10.1",
+    "0.12.0",
+    "0.13.1"
+   ]
+  },
+  "pandas.tools.plotting:HistPlot": {
+   "current": "pandas.plotting._matplotlib.hist:HistPlot",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.7.3",
+    "0.8.1",
+    "0.9.1",
+    "0.10.1",
+    "0.12.0",
+    "0.13.1"
+   ]
+  },
+  "pandas.tools.plotting:KdePlot": {
+   "current": "pandas.plotting._matplotlib.hist:KdePlot",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.8.1",
+    "0.9.1",
+    "0.10.1",
+    "0.12.0",
+    "0.13.1"
+   ]
+  },
+  "pandas.tools.plotting:LinePlot": {
+   "current": "pandas.plotting._matplotlib.core:LinePlot",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.7.3",
+    "0.8.1",
+    "0.9.1",
+    "0.10.1",
+    "0.12.0",
+    "0.13.1"
+   ]
+  },
+  "pandas.tools.plotting:MPLPlot": {
+   "current": "pandas.plotting._matplotlib.core:MPLPlot",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.7.3",
+    "0.8.1",
+    "0.9.1",
+    "0.10.1",
+    "0.12.0",
+    "0.13.1"
+   ]
+  },
+  "pandas.tools.plotting:ScatterPlot": {
+   "current": "pandas.plotting._matplotlib.core:ScatterPlot",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.13.1"
+   ]
+  },
+  "pandas.util.decorators:Appender": {
+   "current": "pandas.util._decorators:Appender",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.10.1",
+    "0.11.0",
+    "0.12.0",
+    "0.13.1",
+    "0.14.1",
+    "0.15.2",
+    "0.16.2",
+    "0.17.1",
+    "0.18.1",
+    "0.19.2"
+   ]
+  },
+  "pandas.util.decorators:Substitution": {
+   "current": "pandas.util._decorators:Substitution",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.10.1",
+    "0.11.0",
+    "0.12.0",
+    "0.13.1",
+    "0.14.1",
+    "0.15.2",
+    "0.16.2",
+    "0.17.1",
+    "0.18.1",
+    "0.19.2"
+   ]
+  },
+  "pandas.util.doctools:TablePlotter": {
+   "current": "pandas.util._doctools:TablePlotter",
+   "distribution": "pandas",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.16.2",
+    "0.17.1",
+    "0.18.1",
+    "0.19.2"
+   ]
+  },
+  "sentence_transformers.sampler:DefaultBatchSampler": {
+   "current": "sentence_transformers.base.sampler:DefaultBatchSampler",
+   "distribution": "sentence-transformers",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "3.0.1",
+    "3.1.1",
+    "3.2.1",
+    "3.3.1",
+    "3.4.1",
+    "4.0.2",
+    "4.1.0",
+    "5.0.0",
+    "5.1.2",
+    "5.2.3",
+    "5.3.0"
+   ]
+  },
+  "sentence_transformers.sampler:GroupByLabelBatchSampler": {
+   "current": "sentence_transformers.base.sampler:GroupByLabelBatchSampler",
+   "distribution": "sentence-transformers",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "3.0.1",
+    "3.1.1",
+    "3.2.1",
+    "3.3.1",
+    "3.4.1",
+    "4.0.2",
+    "4.1.0",
+    "5.0.0",
+    "5.1.2",
+    "5.2.3",
+    "5.3.0"
+   ]
+  },
+  "sentence_transformers.sampler:MultiDatasetDefaultBatchSampler": {
+   "current": "sentence_transformers.base.sampler:MultiDatasetDefaultBatchSampler",
+   "distribution": "sentence-transformers",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "5.0.0",
+    "5.1.2",
+    "5.2.3",
+    "5.3.0"
+   ]
+  },
+  "sentence_transformers.sampler:NoDuplicatesBatchSampler": {
+   "current": "sentence_transformers.base.sampler:NoDuplicatesBatchSampler",
+   "distribution": "sentence-transformers",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "3.0.1",
+    "3.1.1",
+    "3.2.1",
+    "3.3.1",
+    "3.4.1",
+    "4.0.2",
+    "4.1.0",
+    "5.0.0",
+    "5.1.2",
+    "5.2.3",
+    "5.3.0"
+   ]
+  },
+  "sentence_transformers.sampler:ProportionalBatchSampler": {
+   "current": "sentence_transformers.base.sampler:ProportionalBatchSampler",
+   "distribution": "sentence-transformers",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "3.0.1",
+    "3.1.1",
+    "3.2.1",
+    "3.3.1",
+    "3.4.1",
+    "4.0.2",
+    "4.1.0",
+    "5.0.0",
+    "5.1.2",
+    "5.2.3",
+    "5.3.0"
+   ]
+  },
+  "sentence_transformers.sampler:RoundRobinBatchSampler": {
+   "current": "sentence_transformers.base.sampler:RoundRobinBatchSampler",
+   "distribution": "sentence-transformers",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "3.0.1",
+    "3.1.1",
+    "3.2.1",
+    "3.3.1",
+    "3.4.1",
+    "4.0.2",
+    "4.1.0",
+    "5.0.0",
+    "5.1.2",
+    "5.2.3",
+    "5.3.0"
+   ]
+  },
+  "sentence_transformers.sampler:SetEpochMixin": {
+   "current": "sentence_transformers.base.sampler:SetEpochMixin",
+   "distribution": "sentence-transformers",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "3.0.1",
+    "3.1.1",
+    "3.2.1",
+    "3.3.1",
+    "3.4.1",
+    "4.0.2",
+    "4.1.0",
+    "5.0.0",
+    "5.1.2",
+    "5.2.3",
+    "5.3.0"
+   ]
+  },
+  "sentence_transformers.training_args:SentenceTransformerTrainingArguments": {
+   "current": "sentence_transformers.sentence_transformer.training_args:SentenceTransformerTrainingArguments",
+   "distribution": "sentence-transformers",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "3.0.1",
+    "3.1.1",
+    "3.2.1",
+    "3.3.1",
+    "3.4.1",
+    "4.0.2",
+    "4.1.0",
+    "5.0.0",
+    "5.1.2",
+    "5.2.3",
+    "5.3.0"
+   ]
+  },
+  "sklearn.cluster._hierarchical:AgglomerativeClustering": {
+   "current": "sklearn.cluster._agglomerative:AgglomerativeClustering",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.22"
+   ]
+  },
+  "sklearn.cluster._hierarchical:FeatureAgglomeration": {
+   "current": "sklearn.cluster._agglomerative:FeatureAgglomeration",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.22"
+   ]
+  },
+  "sklearn.cluster._k_means:KMeans": {
+   "current": "sklearn.cluster._kmeans:KMeans",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.22"
+   ]
+  },
+  "sklearn.cluster._k_means:MiniBatchKMeans": {
+   "current": "sklearn.cluster._kmeans:MiniBatchKMeans",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.22"
+   ]
+  },
+  "sklearn.cluster.affinity_propagation_:AffinityPropagation": {
+   "current": "sklearn.cluster._affinity_propagation:AffinityPropagation",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.cluster.bicluster:BaseSpectral": {
+   "current": "sklearn.cluster._bicluster:BaseSpectral",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.cluster.bicluster:SpectralBiclustering": {
+   "current": "sklearn.cluster._bicluster:SpectralBiclustering",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.cluster.bicluster:SpectralCoclustering": {
+   "current": "sklearn.cluster._bicluster:SpectralCoclustering",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.cluster.birch:Birch": {
+   "current": "sklearn.cluster._birch:Birch",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.cluster.birch:_CFNode": {
+   "current": "sklearn.cluster._birch:_CFNode",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.cluster.birch:_CFSubcluster": {
+   "current": "sklearn.cluster._birch:_CFSubcluster",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.cluster.dbscan_:DBSCAN": {
+   "current": "sklearn.cluster._dbscan:DBSCAN",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.cluster.hierarchical:AgglomerativeClustering": {
+   "current": "sklearn.cluster._agglomerative:AgglomerativeClustering",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.cluster.hierarchical:FeatureAgglomeration": {
+   "current": "sklearn.cluster._agglomerative:FeatureAgglomeration",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.cluster.k_means_:KMeans": {
+   "current": "sklearn.cluster._kmeans:KMeans",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.cluster.k_means_:MiniBatchKMeans": {
+   "current": "sklearn.cluster._kmeans:MiniBatchKMeans",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.cluster.mean_shift_:MeanShift": {
+   "current": "sklearn.cluster._mean_shift:MeanShift",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.cluster.optics_:OPTICS": {
+   "current": "sklearn.cluster._optics:OPTICS",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.cluster.spectral:SpectralClustering": {
+   "current": "sklearn.cluster._spectral:SpectralClustering",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.covariance.elliptic_envelope:EllipticEnvelope": {
+   "current": "sklearn.covariance._elliptic_envelope:EllipticEnvelope",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.covariance.empirical_covariance_:EmpiricalCovariance": {
+   "current": "sklearn.covariance._empirical_covariance:EmpiricalCovariance",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.covariance.graph_lasso_:GraphicalLasso": {
+   "current": "sklearn.covariance._graph_lasso:GraphicalLasso",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.covariance.graph_lasso_:GraphicalLassoCV": {
+   "current": "sklearn.covariance._graph_lasso:GraphicalLassoCV",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.covariance.outlier_detection:EllipticEnvelope": {
+   "current": "sklearn.covariance._elliptic_envelope:EllipticEnvelope",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2"
+   ]
+  },
+  "sklearn.covariance.robust_covariance:MinCovDet": {
+   "current": "sklearn.covariance._robust_covariance:MinCovDet",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.covariance.shrunk_covariance_:LedoitWolf": {
+   "current": "sklearn.covariance._shrunk_covariance:LedoitWolf",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.covariance.shrunk_covariance_:OAS": {
+   "current": "sklearn.covariance._shrunk_covariance:OAS",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.covariance.shrunk_covariance_:ShrunkCovariance": {
+   "current": "sklearn.covariance._shrunk_covariance:ShrunkCovariance",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.cross_decomposition._cca:CCA": {
+   "current": "sklearn.cross_decomposition._pls:CCA",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.22",
+    "0.22.1",
+    "0.22.2",
+    "0.22.2.post1",
+    "0.23.0",
+    "0.23.1",
+    "0.23.2"
+   ]
+  },
+  "sklearn.cross_decomposition.cca_:CCA": {
+   "current": "sklearn.cross_decomposition._pls:CCA",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.cross_decomposition.pls_:PLSCanonical": {
+   "current": "sklearn.cross_decomposition._pls:PLSCanonical",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.cross_decomposition.pls_:PLSRegression": {
+   "current": "sklearn.cross_decomposition._pls:PLSRegression",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.cross_decomposition.pls_:PLSSVD": {
+   "current": "sklearn.cross_decomposition._pls:PLSSVD",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.cross_decomposition.pls_:_PLS": {
+   "current": "sklearn.cross_decomposition._pls:_PLS",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.cross_validation:KFold": {
+   "current": "sklearn.model_selection._split:KFold",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1"
+   ]
+  },
+  "sklearn.cross_validation:LeaveOneOut": {
+   "current": "sklearn.model_selection._split:LeaveOneOut",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1"
+   ]
+  },
+  "sklearn.cross_validation:LeavePOut": {
+   "current": "sklearn.model_selection._split:LeavePOut",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1"
+   ]
+  },
+  "sklearn.cross_validation:ShuffleSplit": {
+   "current": "sklearn.model_selection._split:ShuffleSplit",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1"
+   ]
+  },
+  "sklearn.cross_validation:StratifiedKFold": {
+   "current": "sklearn.model_selection._split:StratifiedKFold",
+   "distribution": "scikit-learn",
+   "form": "state-only",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1"
+   ]
+  },
+  "sklearn.cross_validation:StratifiedShuffleSplit": {
+   "current": "sklearn.model_selection._split:StratifiedShuffleSplit",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1"
+   ]
+  },
+  "sklearn.decomposition._online_lda:LatentDirichletAllocation": {
+   "current": "sklearn.decomposition._lda:LatentDirichletAllocation",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.22"
+   ]
+  },
+  "sklearn.decomposition.base:_BasePCA": {
+   "current": "sklearn.decomposition._base:_BasePCA",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.decomposition.dict_learning:DictionaryLearning": {
+   "current": "sklearn.decomposition._dict_learning:DictionaryLearning",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.decomposition.dict_learning:MiniBatchDictionaryLearning": {
+   "current": "sklearn.decomposition._dict_learning:MiniBatchDictionaryLearning",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.decomposition.dict_learning:SparseCoder": {
+   "current": "sklearn.decomposition._dict_learning:SparseCoder",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.decomposition.factor_analysis:FactorAnalysis": {
+   "current": "sklearn.decomposition._factor_analysis:FactorAnalysis",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.decomposition.fastica_:FastICA": {
+   "current": "sklearn.decomposition._fastica:FastICA",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.decomposition.incremental_pca:IncrementalPCA": {
+   "current": "sklearn.decomposition._incremental_pca:IncrementalPCA",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.decomposition.kernel_pca:KernelPCA": {
+   "current": "sklearn.decomposition._kernel_pca:KernelPCA",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.decomposition.nmf:NMF": {
+   "current": "sklearn.decomposition._nmf:NMF",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.decomposition.online_lda:LatentDirichletAllocation": {
+   "current": "sklearn.decomposition._lda:LatentDirichletAllocation",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.decomposition.pca:PCA": {
+   "current": "sklearn.decomposition._pca:PCA",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.decomposition.sparse_pca:MiniBatchSparsePCA": {
+   "current": "sklearn.decomposition._sparse_pca:MiniBatchSparsePCA",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.decomposition.sparse_pca:SparsePCA": {
+   "current": "sklearn.decomposition._sparse_pca:SparsePCA",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.decomposition.truncated_svd:TruncatedSVD": {
+   "current": "sklearn.decomposition._truncated_svd:TruncatedSVD",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.ensemble._gb_losses:ExponentialLoss": {
+   "current": "sklearn._loss.loss:ExponentialLoss",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.23.0",
+    "0.23.1",
+    "0.23.2",
+    "0.24.0",
+    "0.24.1",
+    "0.24.2",
+    "1.0",
+    "1.0.1",
+    "1.0.2",
+    "1.1.0",
+    "1.1.1",
+    "1.1.2",
+    "1.1.3",
+    "1.2.0",
+    "1.2.1",
+    "1.2.2"
+   ]
+  },
+  "sklearn.ensemble._hist_gradient_boosting.loss:BaseLoss": {
+   "current": "sklearn._loss.loss:BaseLoss",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3",
+    "0.22",
+    "0.22.1",
+    "0.22.2",
+    "0.22.2.post1",
+    "0.23.0",
+    "0.23.1",
+    "0.23.2",
+    "0.24.0",
+    "0.24.1",
+    "0.24.2",
+    "1.0",
+    "1.0.1",
+    "1.0.2"
+   ]
+  },
+  "sklearn.ensemble.bagging:BaggingClassifier": {
+   "current": "sklearn.ensemble._bagging:BaggingClassifier",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.ensemble.bagging:BaggingRegressor": {
+   "current": "sklearn.ensemble._bagging:BaggingRegressor",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.ensemble.bagging:BaseBagging": {
+   "current": "sklearn.ensemble._bagging:BaseBagging",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.ensemble.base:BaseEnsemble": {
+   "current": "sklearn.ensemble._base:BaseEnsemble",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.ensemble.forest:BaseForest": {
+   "current": "sklearn.ensemble._forest:BaseForest",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.ensemble.forest:ExtraTreesClassifier": {
+   "current": "sklearn.ensemble._forest:ExtraTreesClassifier",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.ensemble.forest:ExtraTreesRegressor": {
+   "current": "sklearn.ensemble._forest:ExtraTreesRegressor",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.ensemble.forest:ForestClassifier": {
+   "current": "sklearn.ensemble._forest:ForestClassifier",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.ensemble.forest:ForestRegressor": {
+   "current": "sklearn.ensemble._forest:ForestRegressor",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.ensemble.forest:RandomForestClassifier": {
+   "current": "sklearn.ensemble._forest:RandomForestClassifier",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.ensemble.forest:RandomForestRegressor": {
+   "current": "sklearn.ensemble._forest:RandomForestRegressor",
+   "distribution": "scikit-learn",
+   "form": "state-only",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.ensemble.forest:RandomTreesEmbedding": {
+   "current": "sklearn.ensemble._forest:RandomTreesEmbedding",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.ensemble.gradient_boosting:GradientBoostingClassifier": {
+   "current": "sklearn.ensemble._gb:GradientBoostingClassifier",
+   "distribution": "scikit-learn",
+   "form": "state-only",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.ensemble.gradient_boosting:GradientBoostingRegressor": {
+   "current": "sklearn.ensemble._gb:GradientBoostingRegressor",
+   "distribution": "scikit-learn",
+   "form": "state-only",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.ensemble.iforest:IsolationForest": {
+   "current": "sklearn.ensemble._iforest:IsolationForest",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.ensemble.voting:VotingClassifier": {
+   "current": "sklearn.ensemble._voting:VotingClassifier",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.ensemble.voting:VotingRegressor": {
+   "current": "sklearn.ensemble._voting:VotingRegressor",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.ensemble.voting:_BaseVoting": {
+   "current": "sklearn.ensemble._voting:_BaseVoting",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.ensemble.voting_classifier:VotingClassifier": {
+   "current": "sklearn.ensemble._voting:VotingClassifier",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2"
+   ]
+  },
+  "sklearn.ensemble.weight_boosting:AdaBoostClassifier": {
+   "current": "sklearn.ensemble._weight_boosting:AdaBoostClassifier",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.ensemble.weight_boosting:AdaBoostRegressor": {
+   "current": "sklearn.ensemble._weight_boosting:AdaBoostRegressor",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.ensemble.weight_boosting:BaseWeightBoosting": {
+   "current": "sklearn.ensemble._weight_boosting:BaseWeightBoosting",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.externals.joblib.parallel:Parallel": {
+   "current": "sklearn.utils.parallel:Parallel",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0"
+   ]
+  },
+  "sklearn.feature_extraction._hashing:FeatureHasher": {
+   "current": "sklearn.feature_extraction._hash:FeatureHasher",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.22"
+   ]
+  },
+  "sklearn.feature_extraction.dict_vectorizer:DictVectorizer": {
+   "current": "sklearn.feature_extraction._dict_vectorizer:DictVectorizer",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.feature_extraction.hashing:FeatureHasher": {
+   "current": "sklearn.feature_extraction._hash:FeatureHasher",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.13",
+    "0.13.1",
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.feature_selection.base:SelectorMixin": {
+   "current": "sklearn.feature_selection._base:SelectorMixin",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.feature_selection.from_model:SelectFromModel": {
+   "current": "sklearn.feature_selection._from_model:SelectFromModel",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.feature_selection.rfe:RFE": {
+   "current": "sklearn.feature_selection._rfe:RFE",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.feature_selection.rfe:RFECV": {
+   "current": "sklearn.feature_selection._rfe:RFECV",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.feature_selection.selector_mixin:SelectorMixin": {
+   "current": "sklearn.feature_selection._base:SelectorMixin",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1"
+   ]
+  },
+  "sklearn.feature_selection.univariate_selection:GenericUnivariateSelect": {
+   "current": "sklearn.feature_selection._univariate_selection:GenericUnivariateSelect",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.feature_selection.univariate_selection:SelectFdr": {
+   "current": "sklearn.feature_selection._univariate_selection:SelectFdr",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.feature_selection.univariate_selection:SelectFpr": {
+   "current": "sklearn.feature_selection._univariate_selection:SelectFpr",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.feature_selection.univariate_selection:SelectFwe": {
+   "current": "sklearn.feature_selection._univariate_selection:SelectFwe",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.feature_selection.univariate_selection:SelectKBest": {
+   "current": "sklearn.feature_selection._univariate_selection:SelectKBest",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.feature_selection.univariate_selection:SelectPercentile": {
+   "current": "sklearn.feature_selection._univariate_selection:SelectPercentile",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.feature_selection.univariate_selection:_BaseFilter": {
+   "current": "sklearn.feature_selection._univariate_selection:_BaseFilter",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.feature_selection.variance_threshold:VarianceThreshold": {
+   "current": "sklearn.feature_selection._variance_threshold:VarianceThreshold",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.gaussian_process.gpc:GaussianProcessClassifier": {
+   "current": "sklearn.gaussian_process._gpc:GaussianProcessClassifier",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.gaussian_process.gpc:_BinaryGaussianProcessClassifierLaplace": {
+   "current": "sklearn.gaussian_process._gpc:_BinaryGaussianProcessClassifierLaplace",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.gaussian_process.gpr:GaussianProcessRegressor": {
+   "current": "sklearn.gaussian_process._gpr:GaussianProcessRegressor",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.grid_search:ParameterGrid": {
+   "current": "sklearn.model_selection._search:ParameterGrid",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1"
+   ]
+  },
+  "sklearn.grid_search:ParameterSampler": {
+   "current": "sklearn.model_selection._search:ParameterSampler",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1"
+   ]
+  },
+  "sklearn.impute:MissingIndicator": {
+   "current": "sklearn.impute._base:MissingIndicator",
+   "distribution": "scikit-learn",
+   "form": "state-only",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.20.4"
+   ]
+  },
+  "sklearn.impute:SimpleImputer": {
+   "current": "sklearn.impute._base:SimpleImputer",
+   "distribution": "scikit-learn",
+   "form": "state-only",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.20.4"
+   ]
+  },
+  "sklearn.inspection._partial_dependence:PartialDependenceDisplay": {
+   "current": "sklearn.inspection._plot.partial_dependence:PartialDependenceDisplay",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.22",
+    "0.22.1",
+    "0.22.2",
+    "0.22.2.post1"
+   ]
+  },
+  "sklearn.linear_model._glm.link:BaseLink": {
+   "current": "sklearn._loss.link:BaseLink",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.23.0",
+    "0.23.1",
+    "0.23.2",
+    "0.24.0",
+    "0.24.1",
+    "0.24.2",
+    "1.0",
+    "1.0.1",
+    "1.0.2"
+   ]
+  },
+  "sklearn.linear_model._glm.link:IdentityLink": {
+   "current": "sklearn._loss.link:IdentityLink",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.23.0",
+    "0.23.1",
+    "0.23.2",
+    "0.24.0",
+    "0.24.1",
+    "0.24.2",
+    "1.0",
+    "1.0.1",
+    "1.0.2"
+   ]
+  },
+  "sklearn.linear_model._glm.link:LogLink": {
+   "current": "sklearn._loss.link:LogLink",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.23.0",
+    "0.23.1",
+    "0.23.2",
+    "0.24.0",
+    "0.24.1",
+    "0.24.2",
+    "1.0",
+    "1.0.1",
+    "1.0.2"
+   ]
+  },
+  "sklearn.linear_model._glm.link:LogitLink": {
+   "current": "sklearn._loss.link:LogitLink",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.23.0",
+    "0.23.1",
+    "0.23.2",
+    "0.24.0",
+    "0.24.1",
+    "0.24.2",
+    "1.0",
+    "1.0.1",
+    "1.0.2"
+   ]
+  },
+  "sklearn.linear_model.base:BaseSGD": {
+   "current": "sklearn.linear_model._stochastic_gradient:BaseSGD",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11"
+   ]
+  },
+  "sklearn.linear_model.base:BaseSGDClassifier": {
+   "current": "sklearn.linear_model._stochastic_gradient:BaseSGDClassifier",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.9",
+    "0.10"
+   ]
+  },
+  "sklearn.linear_model.base:BaseSGDRegressor": {
+   "current": "sklearn.linear_model._stochastic_gradient:BaseSGDRegressor",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.9",
+    "0.10"
+   ]
+  },
+  "sklearn.linear_model.base:LinearClassifierMixin": {
+   "current": "sklearn.linear_model._base:LinearClassifierMixin",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.13",
+    "0.13.1",
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.linear_model.base:LinearModel": {
+   "current": "sklearn.linear_model._base:LinearModel",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.linear_model.base:LinearRegression": {
+   "current": "sklearn.linear_model._base:LinearRegression",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.linear_model.base:SparseCoefMixin": {
+   "current": "sklearn.linear_model._base:SparseCoefMixin",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.linear_model.bayes:ARDRegression": {
+   "current": "sklearn.linear_model._bayes:ARDRegression",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.linear_model.bayes:BayesianRidge": {
+   "current": "sklearn.linear_model._bayes:BayesianRidge",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.linear_model.coordinate_descent:ElasticNet": {
+   "current": "sklearn.linear_model._coordinate_descent:ElasticNet",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.linear_model.coordinate_descent:ElasticNetCV": {
+   "current": "sklearn.linear_model._coordinate_descent:ElasticNetCV",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.linear_model.coordinate_descent:Lasso": {
+   "current": "sklearn.linear_model._coordinate_descent:Lasso",
+   "distribution": "scikit-learn",
+   "form": "state-only",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.linear_model.coordinate_descent:LassoCV": {
+   "current": "sklearn.linear_model._coordinate_descent:LassoCV",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.linear_model.coordinate_descent:LinearModelCV": {
+   "current": "sklearn.linear_model._coordinate_descent:LinearModelCV",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.linear_model.coordinate_descent:MultiTaskElasticNet": {
+   "current": "sklearn.linear_model._coordinate_descent:MultiTaskElasticNet",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.linear_model.coordinate_descent:MultiTaskElasticNetCV": {
+   "current": "sklearn.linear_model._coordinate_descent:MultiTaskElasticNetCV",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.linear_model.coordinate_descent:MultiTaskLasso": {
+   "current": "sklearn.linear_model._coordinate_descent:MultiTaskLasso",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.linear_model.coordinate_descent:MultiTaskLassoCV": {
+   "current": "sklearn.linear_model._coordinate_descent:MultiTaskLassoCV",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.linear_model.huber:HuberRegressor": {
+   "current": "sklearn.linear_model._huber:HuberRegressor",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.linear_model.least_angle:Lars": {
+   "current": "sklearn.linear_model._least_angle:Lars",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.linear_model.least_angle:LarsCV": {
+   "current": "sklearn.linear_model._least_angle:LarsCV",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.linear_model.least_angle:LassoLars": {
+   "current": "sklearn.linear_model._least_angle:LassoLars",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.linear_model.least_angle:LassoLarsCV": {
+   "current": "sklearn.linear_model._least_angle:LassoLarsCV",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.linear_model.least_angle:LassoLarsIC": {
+   "current": "sklearn.linear_model._least_angle:LassoLarsIC",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.linear_model.logistic:LogisticRegression": {
+   "current": "sklearn.linear_model._logistic:LogisticRegression",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.linear_model.logistic:LogisticRegressionCV": {
+   "current": "sklearn.linear_model._logistic:LogisticRegressionCV",
+   "distribution": "scikit-learn",
+   "form": "state-only",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.linear_model.omp:OrthogonalMatchingPursuit": {
+   "current": "sklearn.linear_model._omp:OrthogonalMatchingPursuit",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.linear_model.omp:OrthogonalMatchingPursuitCV": {
+   "current": "sklearn.linear_model._omp:OrthogonalMatchingPursuitCV",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.linear_model.perceptron:Perceptron": {
+   "current": "sklearn.linear_model._perceptron:Perceptron",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.linear_model.ransac:RANSACRegressor": {
+   "current": "sklearn.linear_model._ransac:RANSACRegressor",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.linear_model.ridge:Ridge": {
+   "current": "sklearn.linear_model._ridge:Ridge",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.linear_model.ridge:RidgeCV": {
+   "current": "sklearn.linear_model._ridge:RidgeCV",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.linear_model.ridge:RidgeClassifier": {
+   "current": "sklearn.linear_model._ridge:RidgeClassifier",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.linear_model.ridge:RidgeClassifierCV": {
+   "current": "sklearn.linear_model._ridge:RidgeClassifierCV",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.linear_model.ridge:_BaseRidge": {
+   "current": "sklearn.linear_model._ridge:_BaseRidge",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.linear_model.ridge:_BaseRidgeCV": {
+   "current": "sklearn.linear_model._ridge:_BaseRidgeCV",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.linear_model.ridge:_RidgeGCV": {
+   "current": "sklearn.linear_model._ridge:_RidgeGCV",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.linear_model.sparse.coordinate_descent:ElasticNet": {
+   "current": "sklearn.linear_model._coordinate_descent:ElasticNet",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11"
+   ]
+  },
+  "sklearn.linear_model.sparse.coordinate_descent:Lasso": {
+   "current": "sklearn.linear_model._coordinate_descent:Lasso",
+   "distribution": "scikit-learn",
+   "form": "state-only",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11"
+   ]
+  },
+  "sklearn.linear_model.stochastic_gradient:BaseSGD": {
+   "current": "sklearn.linear_model._stochastic_gradient:BaseSGD",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.linear_model.stochastic_gradient:BaseSGDClassifier": {
+   "current": "sklearn.linear_model._stochastic_gradient:BaseSGDClassifier",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.linear_model.stochastic_gradient:BaseSGDRegressor": {
+   "current": "sklearn.linear_model._stochastic_gradient:BaseSGDRegressor",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.linear_model.stochastic_gradient:SGDClassifier": {
+   "current": "sklearn.linear_model._stochastic_gradient:SGDClassifier",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.linear_model.stochastic_gradient:SGDRegressor": {
+   "current": "sklearn.linear_model._stochastic_gradient:SGDRegressor",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.linear_model.stochastic_gradient:_ValidationScoreCallback": {
+   "current": "sklearn.linear_model._stochastic_gradient:_ValidationScoreCallback",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.linear_model.theil_sen:TheilSenRegressor": {
+   "current": "sklearn.linear_model._theil_sen:TheilSenRegressor",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.manifold.isomap:Isomap": {
+   "current": "sklearn.manifold._isomap:Isomap",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.manifold.locally_linear:LocallyLinearEmbedding": {
+   "current": "sklearn.manifold._locally_linear:LocallyLinearEmbedding",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.manifold.mds:MDS": {
+   "current": "sklearn.manifold._mds:MDS",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.manifold.spectral_embedding:SpectralEmbedding": {
+   "current": "sklearn.manifold._spectral_embedding:SpectralEmbedding",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.13",
+    "0.13.1"
+   ]
+  },
+  "sklearn.manifold.spectral_embedding_:SpectralEmbedding": {
+   "current": "sklearn.manifold._spectral_embedding:SpectralEmbedding",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.manifold.t_sne:TSNE": {
+   "current": "sklearn.manifold._t_sne:TSNE",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.metrics.scorer:_BaseScorer": {
+   "current": "sklearn.metrics._scorer:_BaseScorer",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.mixture.base:BaseMixture": {
+   "current": "sklearn.mixture._base:BaseMixture",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.mixture.bayesian_mixture:BayesianGaussianMixture": {
+   "current": "sklearn.mixture._bayesian_mixture:BayesianGaussianMixture",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.mixture.gaussian_mixture:GaussianMixture": {
+   "current": "sklearn.mixture._gaussian_mixture:GaussianMixture",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.model_selection._classification_threshold:_CurveScorer": {
+   "current": "sklearn.metrics._scorer:_CurveScorer",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "1.5.0",
+    "1.5.1",
+    "1.5.2"
+   ]
+  },
+  "sklearn.neighbors.base:KNeighborsMixin": {
+   "current": "sklearn.neighbors._base:KNeighborsMixin",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.neighbors.base:NeighborsBase": {
+   "current": "sklearn.neighbors._base:NeighborsBase",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.neighbors.base:RadiusNeighborsMixin": {
+   "current": "sklearn.neighbors._base:RadiusNeighborsMixin",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.neighbors.classification:KNeighborsClassifier": {
+   "current": "sklearn.neighbors._classification:KNeighborsClassifier",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.neighbors.classification:RadiusNeighborsClassifier": {
+   "current": "sklearn.neighbors._classification:RadiusNeighborsClassifier",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.neighbors.kde:KernelDensity": {
+   "current": "sklearn.neighbors._kde:KernelDensity",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.neighbors.lof:LocalOutlierFactor": {
+   "current": "sklearn.neighbors._lof:LocalOutlierFactor",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.neighbors.nca:NeighborhoodComponentsAnalysis": {
+   "current": "sklearn.neighbors._nca:NeighborhoodComponentsAnalysis",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.neighbors.nearest_centroid:NearestCentroid": {
+   "current": "sklearn.neighbors._nearest_centroid:NearestCentroid",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.neighbors.unsupervised:NearestNeighbors": {
+   "current": "sklearn.neighbors._unsupervised:NearestNeighbors",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.neural_network.multilayer_perceptron:BaseMultilayerPerceptron": {
+   "current": "sklearn.neural_network._multilayer_perceptron:BaseMultilayerPerceptron",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.neural_network.multilayer_perceptron:MLPClassifier": {
+   "current": "sklearn.neural_network._multilayer_perceptron:MLPClassifier",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.neural_network.multilayer_perceptron:MLPRegressor": {
+   "current": "sklearn.neural_network._multilayer_perceptron:MLPRegressor",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.neural_network.rbm:BernoulliRBM": {
+   "current": "sklearn.neural_network._rbm:BernoulliRBM",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.pls:CCA": {
+   "current": "sklearn.cross_decomposition._pls:CCA",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1"
+   ]
+  },
+  "sklearn.pls:PLSCanonical": {
+   "current": "sklearn.cross_decomposition._pls:PLSCanonical",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1"
+   ]
+  },
+  "sklearn.pls:PLSRegression": {
+   "current": "sklearn.cross_decomposition._pls:PLSRegression",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1"
+   ]
+  },
+  "sklearn.pls:PLSSVD": {
+   "current": "sklearn.cross_decomposition._pls:PLSSVD",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1"
+   ]
+  },
+  "sklearn.pls:_PLS": {
+   "current": "sklearn.cross_decomposition._pls:_PLS",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1"
+   ]
+  },
+  "sklearn.preprocessing._data:PolynomialFeatures": {
+   "current": "sklearn.preprocessing._polynomial:PolynomialFeatures",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.22",
+    "0.22.1",
+    "0.22.2",
+    "0.22.2.post1",
+    "0.23.0",
+    "0.23.1",
+    "0.23.2",
+    "0.24.0",
+    "0.24.1",
+    "0.24.2"
+   ]
+  },
+  "sklearn.preprocessing.data:Binarizer": {
+   "current": "sklearn.preprocessing._data:Binarizer",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.preprocessing.data:KernelCenterer": {
+   "current": "sklearn.preprocessing._data:KernelCenterer",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.preprocessing.data:MaxAbsScaler": {
+   "current": "sklearn.preprocessing._data:MaxAbsScaler",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.preprocessing.data:MinMaxScaler": {
+   "current": "sklearn.preprocessing._data:MinMaxScaler",
+   "distribution": "scikit-learn",
+   "form": "state-only",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.preprocessing.data:Normalizer": {
+   "current": "sklearn.preprocessing._data:Normalizer",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.preprocessing.data:OneHotEncoder": {
+   "current": "sklearn.preprocessing._encoders:OneHotEncoder",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2"
+   ]
+  },
+  "sklearn.preprocessing.data:PolynomialFeatures": {
+   "current": "sklearn.preprocessing._polynomial:PolynomialFeatures",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.preprocessing.data:PowerTransformer": {
+   "current": "sklearn.preprocessing._data:PowerTransformer",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.preprocessing.data:QuantileTransformer": {
+   "current": "sklearn.preprocessing._data:QuantileTransformer",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.preprocessing.data:RobustScaler": {
+   "current": "sklearn.preprocessing._data:RobustScaler",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.preprocessing.data:StandardScaler": {
+   "current": "sklearn.preprocessing._data:StandardScaler",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.preprocessing.label:LabelBinarizer": {
+   "current": "sklearn.preprocessing._label:LabelBinarizer",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.preprocessing.label:LabelEncoder": {
+   "current": "sklearn.preprocessing._label:LabelEncoder",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.preprocessing.label:MultiLabelBinarizer": {
+   "current": "sklearn.preprocessing._label:MultiLabelBinarizer",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.preprocessing:Binarizer": {
+   "current": "sklearn.preprocessing._data:Binarizer",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1"
+   ]
+  },
+  "sklearn.preprocessing:KernelCenterer": {
+   "current": "sklearn.preprocessing._data:KernelCenterer",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1"
+   ]
+  },
+  "sklearn.preprocessing:LabelBinarizer": {
+   "current": "sklearn.preprocessing._label:LabelBinarizer",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1"
+   ]
+  },
+  "sklearn.preprocessing:LabelEncoder": {
+   "current": "sklearn.preprocessing._label:LabelEncoder",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1"
+   ]
+  },
+  "sklearn.preprocessing:MinMaxScaler": {
+   "current": "sklearn.preprocessing._data:MinMaxScaler",
+   "distribution": "scikit-learn",
+   "form": "state-only",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.13",
+    "0.13.1"
+   ]
+  },
+  "sklearn.preprocessing:Normalizer": {
+   "current": "sklearn.preprocessing._data:Normalizer",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1"
+   ]
+  },
+  "sklearn.preprocessing:OneHotEncoder": {
+   "current": "sklearn.preprocessing._encoders:OneHotEncoder",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.13",
+    "0.13.1"
+   ]
+  },
+  "sklearn.preprocessing:StandardScaler": {
+   "current": "sklearn.preprocessing._data:StandardScaler",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.13",
+    "0.13.1"
+   ]
+  },
+  "sklearn.semi_supervised.label_propagation:BaseLabelPropagation": {
+   "current": "sklearn.semi_supervised._label_propagation:BaseLabelPropagation",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.semi_supervised.label_propagation:LabelPropagation": {
+   "current": "sklearn.semi_supervised._label_propagation:LabelPropagation",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.semi_supervised.label_propagation:LabelSpreading": {
+   "current": "sklearn.semi_supervised._label_propagation:LabelSpreading",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.svm.base:BaseLibSVM": {
+   "current": "sklearn.svm._base:BaseLibSVM",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.svm.base:BaseSVC": {
+   "current": "sklearn.svm._base:BaseSVC",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.svm.classes:LinearSVC": {
+   "current": "sklearn.svm._classes:LinearSVC",
+   "distribution": "scikit-learn",
+   "form": "state-only",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.svm.classes:LinearSVR": {
+   "current": "sklearn.svm._classes:LinearSVR",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.svm.classes:NuSVC": {
+   "current": "sklearn.svm._classes:NuSVC",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.svm.classes:NuSVR": {
+   "current": "sklearn.svm._classes:NuSVR",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.svm.classes:OneClassSVM": {
+   "current": "sklearn.svm._classes:OneClassSVM",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.svm.classes:SVC": {
+   "current": "sklearn.svm._classes:SVC",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.svm.classes:SVR": {
+   "current": "sklearn.svm._classes:SVR",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.tree.export:Sentinel": {
+   "current": "sklearn.tree._export:Sentinel",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3"
+   ]
+  },
+  "sklearn.tree.export:_BaseTreeExporter": {
+   "current": "sklearn.tree._export:_BaseTreeExporter",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.tree.export:_DOTTreeExporter": {
+   "current": "sklearn.tree._export:_DOTTreeExporter",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.tree.export:_MPLTreeExporter": {
+   "current": "sklearn.tree._export:_MPLTreeExporter",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.tree.tree:BaseDecisionTree": {
+   "current": "sklearn.tree._classes:BaseDecisionTree",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.tree.tree:DecisionTreeClassifier": {
+   "current": "sklearn.tree._classes:DecisionTreeClassifier",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.tree.tree:DecisionTreeRegressor": {
+   "current": "sklearn.tree._classes:DecisionTreeRegressor",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.tree.tree:ExtraTreeClassifier": {
+   "current": "sklearn.tree._classes:ExtraTreeClassifier",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.tree.tree:ExtraTreeRegressor": {
+   "current": "sklearn.tree._classes:ExtraTreeRegressor",
+   "distribution": "scikit-learn",
+   "form": "state-only",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.21.3"
+   ]
+  },
+  "sklearn.tree.tree:Tree": {
+   "current": "sklearn.tree._reingold_tilford:Tree",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.10",
+    "0.11"
+   ]
+  },
+  "sklearn.utils._estimator_html_repr:_HTMLDocumentationLinkMixin": {
+   "current": "sklearn.utils._repr_html.base:_HTMLDocumentationLinkMixin",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "1.5.0",
+    "1.5.1",
+    "1.5.2",
+    "1.6.0",
+    "1.6.1"
+   ]
+  },
+  "sklearn.utils._estimator_html_repr:_IDCounter": {
+   "current": "sklearn.utils._repr_html.base:_IDCounter",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "1.5.0",
+    "1.5.1",
+    "1.5.2",
+    "1.6.0",
+    "1.6.1"
+   ]
+  },
+  "sklearn.utils._estimator_html_repr:_VisualBlock": {
+   "current": "sklearn.utils._repr_html.estimator:_VisualBlock",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "1.5.0",
+    "1.5.1",
+    "1.5.2",
+    "1.6.0",
+    "1.6.1"
+   ]
+  },
+  "sklearn.utils._repr_html.estimator:_IDCounter": {
+   "current": "sklearn.utils._repr_html.base:_IDCounter",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "1.7.0",
+    "1.7.1",
+    "1.7.2",
+    "1.8.0"
+   ]
+  },
+  "sklearn.utils.mocking:ArraySlicingWrapper": {
+   "current": "sklearn.utils._mocking:ArraySlicingWrapper",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2"
+   ]
+  },
+  "sklearn.utils.mocking:CheckingClassifier": {
+   "current": "sklearn.utils._mocking:CheckingClassifier",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2"
+   ]
+  },
+  "sklearn.utils.mocking:MockDataFrame": {
+   "current": "sklearn.utils._mocking:MockDataFrame",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2"
+   ]
+  },
+  "sklearn.utils:deprecated": {
+   "current": "sklearn.utils.deprecation:deprecated",
+   "distribution": "scikit-learn",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1"
+   ]
+  },
+  "statsmodels.discrete.discrete_model:OrderedModel": {
+   "current": "statsmodels.miscmodels.ordinal_model:OrderedModel",
+   "distribution": "statsmodels",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.6.0",
+    "0.6.1",
+    "0.8.0",
+    "0.9.0",
+    "0.10.0",
+    "0.10.1",
+    "0.10.2",
+    "0.11.0",
+    "0.11.1",
+    "0.12.0",
+    "0.12.1",
+    "0.12.2"
+   ]
+  },
+  "statsmodels.miscmodels.count:NonlinearDeltaCov": {
+   "current": "statsmodels.stats._delta_method:NonlinearDeltaCov",
+   "distribution": "statsmodels",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.6.0",
+    "0.6.1",
+    "0.8.0",
+    "0.9.0",
+    "0.10.0",
+    "0.10.1",
+    "0.10.2",
+    "0.11.0",
+    "0.11.1",
+    "0.12.0",
+    "0.12.1",
+    "0.12.2",
+    "0.13.0",
+    "0.13.1",
+    "0.13.2",
+    "0.13.3",
+    "0.13.4",
+    "0.13.5"
+   ]
+  },
+  "statsmodels.sandbox.distributions.copula:CopulaDistribution": {
+   "current": "statsmodels.distributions.copula.copulas:CopulaDistribution",
+   "distribution": "statsmodels",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.10.0",
+    "0.10.1",
+    "0.10.2",
+    "0.11.0",
+    "0.11.1",
+    "0.12.0",
+    "0.12.1",
+    "0.12.2"
+   ]
+  },
+  "statsmodels.sandbox.distributions.copula:TransfClayton": {
+   "current": "statsmodels.distributions.copula.transforms:TransfClayton",
+   "distribution": "statsmodels",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.4.1",
+    "0.4.0",
+    "0.4.3",
+    "0.5.0",
+    "0.6.0",
+    "0.6.1",
+    "0.8.0",
+    "0.9.0",
+    "0.10.0",
+    "0.10.1",
+    "0.10.2",
+    "0.11.0",
+    "0.11.1",
+    "0.12.0",
+    "0.12.1",
+    "0.12.2"
+   ]
+  },
+  "statsmodels.sandbox.distributions.copula:TransfFrank": {
+   "current": "statsmodels.distributions.copula.transforms:TransfFrank",
+   "distribution": "statsmodels",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.4.1",
+    "0.4.0",
+    "0.4.3",
+    "0.5.0",
+    "0.6.0",
+    "0.6.1",
+    "0.8.0",
+    "0.9.0",
+    "0.10.0",
+    "0.10.1",
+    "0.10.2",
+    "0.11.0",
+    "0.11.1",
+    "0.12.0",
+    "0.12.1",
+    "0.12.2"
+   ]
+  },
+  "statsmodels.sandbox.distributions.copula:TransfGumbel": {
+   "current": "statsmodels.distributions.copula.transforms:TransfGumbel",
+   "distribution": "statsmodels",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.4.1",
+    "0.4.0",
+    "0.4.3",
+    "0.5.0",
+    "0.6.0",
+    "0.6.1",
+    "0.8.0",
+    "0.9.0",
+    "0.10.0",
+    "0.10.1",
+    "0.10.2",
+    "0.11.0",
+    "0.11.1",
+    "0.12.0",
+    "0.12.1",
+    "0.12.2"
+   ]
+  },
+  "statsmodels.sandbox.distributions.copula:TransfIndep": {
+   "current": "statsmodels.distributions.copula.transforms:TransfIndep",
+   "distribution": "statsmodels",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.4.1",
+    "0.4.0",
+    "0.4.3",
+    "0.5.0",
+    "0.6.0",
+    "0.6.1",
+    "0.8.0",
+    "0.9.0",
+    "0.10.0",
+    "0.10.1",
+    "0.10.2",
+    "0.11.0",
+    "0.11.1",
+    "0.12.0",
+    "0.12.1",
+    "0.12.2"
+   ]
+  },
+  "statsmodels.sandbox.distributions.copula:Transforms": {
+   "current": "statsmodels.distributions.copula.transforms:Transforms",
+   "distribution": "statsmodels",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.4.1",
+    "0.4.0",
+    "0.4.3",
+    "0.5.0",
+    "0.6.0",
+    "0.6.1",
+    "0.8.0",
+    "0.9.0",
+    "0.10.0",
+    "0.10.1",
+    "0.10.2",
+    "0.11.0",
+    "0.11.1",
+    "0.12.0",
+    "0.12.1",
+    "0.12.2"
+   ]
+  },
+  "statsmodels.sandbox.distributions.mixture_rvs:MixtureDistribution": {
+   "current": "statsmodels.distributions.mixture_rvs:MixtureDistribution",
+   "distribution": "statsmodels",
+   "form": "policy",
+   "kind": "source",
+   "rename": "package level removed",
+   "versions": [
+    "0.4.1",
+    "0.4.0",
+    "0.4.3"
+   ]
+  },
+  "statsmodels.stats.diagnostic:ResultsStore": {
+   "current": "statsmodels.stats._results_store:ResultsStore",
+   "distribution": "statsmodels",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.12.0",
+    "0.12.1",
+    "0.12.2",
+    "0.13.0",
+    "0.13.1",
+    "0.13.2",
+    "0.13.3",
+    "0.13.4",
+    "0.13.5",
+    "0.14.0",
+    "0.14.1",
+    "0.14.2",
+    "0.14.3",
+    "0.14.4",
+    "0.14.5",
+    "0.14.6"
+   ]
+  },
+  "statsmodels.tools.decorators:CachedAttribute": {
+   "current": "statsmodels.tools._decorators:CachedAttribute",
+   "distribution": "statsmodels",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.6.0",
+    "0.6.1",
+    "0.8.0",
+    "0.9.0",
+    "0.10.0",
+    "0.10.1",
+    "0.10.2",
+    "0.11.0",
+    "0.11.1",
+    "0.12.0",
+    "0.12.1",
+    "0.12.2",
+    "0.13.0",
+    "0.13.1",
+    "0.13.2",
+    "0.13.3",
+    "0.13.4",
+    "0.13.5",
+    "0.14.0",
+    "0.14.1",
+    "0.14.2",
+    "0.14.3",
+    "0.14.4",
+    "0.14.5",
+    "0.14.6"
+   ]
+  },
+  "statsmodels.tools.decorators:CachedWritableAttribute": {
+   "current": "statsmodels.tools._decorators:CachedWritableAttribute",
+   "distribution": "statsmodels",
+   "form": "policy",
+   "kind": "source",
+   "rename": "underscore rename",
+   "versions": [
+    "0.6.0",
+    "0.6.1",
+    "0.8.0",
+    "0.9.0",
+    "0.10.0",
+    "0.10.1",
+    "0.10.2",
+    "0.11.0",
+    "0.11.1",
+    "0.12.0",
+    "0.12.1",
+    "0.12.2",
+    "0.13.0",
+    "0.13.1",
+    "0.13.2",
+    "0.13.3",
+    "0.13.4",
+    "0.13.5",
+    "0.14.0",
+    "0.14.1",
+    "0.14.2",
+    "0.14.3",
+    "0.14.4",
+    "0.14.5",
+    "0.14.6"
+   ]
+  },
+  "statsmodels.tsa.seasonal:DecomposeResult": {
+   "current": "statsmodels.tsa.seasonal._seasonal:DecomposeResult",
+   "distribution": "statsmodels",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.6.0",
+    "0.6.1",
+    "0.8.0",
+    "0.9.0",
+    "0.10.0",
+    "0.10.1",
+    "0.10.2",
+    "0.11.0",
+    "0.11.1",
+    "0.12.0",
+    "0.12.1",
+    "0.12.2",
+    "0.13.0",
+    "0.13.1",
+    "0.13.2",
+    "0.13.3",
+    "0.13.4",
+    "0.13.5",
+    "0.14.0",
+    "0.14.1",
+    "0.14.2",
+    "0.14.3",
+    "0.14.4",
+    "0.14.5",
+    "0.14.6"
+   ]
+  },
+  "statsmodels.tsa.statespace.kalman_smoother:_KalmanSmoother": {
+   "current": "statsmodels.tsa.statespace._pykalman_smoother:_KalmanSmoother",
+   "distribution": "statsmodels",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.8.0"
+   ]
+  },
+  "statsmodels.tsa.stattools:ZivotAndrewsUnitRoot": {
+   "current": "statsmodels.tsa.stattools._stattools:ZivotAndrewsUnitRoot",
+   "distribution": "statsmodels",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.11.0",
+    "0.11.1",
+    "0.12.0",
+    "0.12.1",
+    "0.12.2",
+    "0.13.0",
+    "0.13.1",
+    "0.13.2",
+    "0.13.3",
+    "0.13.4",
+    "0.13.5",
+    "0.14.0",
+    "0.14.1",
+    "0.14.2",
+    "0.14.3",
+    "0.14.4",
+    "0.14.5",
+    "0.14.6"
+   ]
+  },
+  "statsmodels:PytestTester": {
+   "current": "statsmodels.tools._test_runner:PytestTester",
+   "distribution": "statsmodels",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.9.0"
+   ]
+  },
+  "torchvision.models.convnext:Permute": {
+   "current": "torchvision.ops.misc:Permute",
+   "distribution": "torchvision",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.12.0"
+   ]
+  },
+  "torchvision.models.detection.rpn:AnchorGenerator": {
+   "current": "torchvision.models.detection.anchor_utils:AnchorGenerator",
+   "distribution": "torchvision",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.3.0",
+    "0.4.2",
+    "0.5.0",
+    "0.6.1",
+    "0.7.0"
+   ]
+  },
+  "torchvision.models.mobilenet:MobileNetV2": {
+   "current": "torchvision.models.mobilenetv2:MobileNetV2",
+   "distribution": "torchvision",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.3.0",
+    "0.4.2",
+    "0.5.0",
+    "0.6.1",
+    "0.7.0",
+    "0.8.2"
+   ]
+  },
+  "torchvision.models.mobilenetv3:SqueezeExcitation": {
+   "current": "torchvision.ops.misc:SqueezeExcitation",
+   "distribution": "torchvision",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.9.1",
+    "0.10.1"
+   ]
+  },
+  "torchvision.models.quantization.mobilenet:QuantizableMobileNetV2": {
+   "current": "torchvision.models.quantization.mobilenetv2:QuantizableMobileNetV2",
+   "distribution": "torchvision",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "0.5.0",
+    "0.6.1",
+    "0.7.0",
+    "0.8.2"
+   ]
+  },
+  "torchvision.transforms:CenterCrop": {
+   "current": "torchvision.transforms.transforms:CenterCrop",
+   "distribution": "torchvision",
+   "form": "state-only",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.1.9"
+   ]
+  },
+  "torchvision.transforms:Compose": {
+   "current": "torchvision.transforms.transforms:Compose",
+   "distribution": "torchvision",
+   "form": "state-only",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.1.9"
+   ]
+  },
+  "torchvision.transforms:Lambda": {
+   "current": "torchvision.transforms.transforms:Lambda",
+   "distribution": "torchvision",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.1.9"
+   ]
+  },
+  "torchvision.transforms:Normalize": {
+   "current": "torchvision.transforms.transforms:Normalize",
+   "distribution": "torchvision",
+   "form": "state-only",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.1.9"
+   ]
+  },
+  "torchvision.transforms:Pad": {
+   "current": "torchvision.transforms.transforms:Pad",
+   "distribution": "torchvision",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.1.9"
+   ]
+  },
+  "torchvision.transforms:RandomCrop": {
+   "current": "torchvision.transforms.transforms:RandomCrop",
+   "distribution": "torchvision",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.1.9"
+   ]
+  },
+  "torchvision.transforms:RandomHorizontalFlip": {
+   "current": "torchvision.transforms.transforms:RandomHorizontalFlip",
+   "distribution": "torchvision",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.1.9"
+   ]
+  },
+  "torchvision.transforms:ToPILImage": {
+   "current": "torchvision.transforms.transforms:ToPILImage",
+   "distribution": "torchvision",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.1.9"
+   ]
+  },
+  "torchvision.transforms:ToTensor": {
+   "current": "torchvision.transforms.transforms:ToTensor",
+   "distribution": "torchvision",
+   "form": "state-only",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "0.1.9"
+   ]
+  },
+  "transformers.deepspeed:HfDeepSpeedConfig": {
+   "current": "transformers.integrations.deepspeed:HfDeepSpeedConfig",
+   "distribution": "transformers",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "4.7.0",
+    "4.8.2",
+    "4.9.2",
+    "4.10.3",
+    "4.11.3",
+    "4.12.5",
+    "4.13.0",
+    "4.14.1",
+    "4.15.0",
+    "4.16.2",
+    "4.17.0",
+    "4.18.0",
+    "4.19.4",
+    "4.20.1",
+    "4.21.3",
+    "4.22.2",
+    "4.23.1",
+    "4.24.0",
+    "4.25.1",
+    "4.26.1",
+    "4.27.4",
+    "4.28.1",
+    "4.29.2",
+    "4.30.2",
+    "4.31.0",
+    "4.32.1"
+   ]
+  },
+  "transformers.deepspeed:HfTrainerDeepSpeedConfig": {
+   "current": "transformers.integrations.deepspeed:HfTrainerDeepSpeedConfig",
+   "distribution": "transformers",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "4.7.0",
+    "4.8.2",
+    "4.9.2",
+    "4.10.3",
+    "4.11.3",
+    "4.12.5",
+    "4.13.0",
+    "4.14.1",
+    "4.15.0",
+    "4.16.2",
+    "4.17.0",
+    "4.18.0",
+    "4.19.4",
+    "4.20.1",
+    "4.21.3",
+    "4.22.2",
+    "4.23.1",
+    "4.24.0",
+    "4.25.1",
+    "4.26.1",
+    "4.27.4",
+    "4.28.1",
+    "4.29.2",
+    "4.30.2",
+    "4.31.0",
+    "4.32.1"
+   ]
+  },
+  "transformers.trainer_utils:TrainerState": {
+   "current": "transformers.trainer_callback:TrainerState",
+   "distribution": "transformers",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "3.3.1"
+   ]
+  },
+  "ultralytics.models.sam.modules.encoders:PositionEmbeddingRandom": {
+   "current": "ultralytics.models.sam.modules.blocks:PositionEmbeddingRandom",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.0.142",
+    "8.0.156",
+    "8.0.171",
+    "8.0.185",
+    "8.0.200",
+    "8.0.214",
+    "8.0.229",
+    "8.1.3",
+    "8.1.18",
+    "8.1.32",
+    "8.1.47",
+    "8.2.13",
+    "8.2.28",
+    "8.2.42",
+    "8.2.57",
+    "8.2.71"
+   ]
+  },
+  "ultralytics.models.sam2.modules.encoders:FpnNeck": {
+   "current": "ultralytics.models.sam.modules.encoders:FpnNeck",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.2.71"
+   ]
+  },
+  "ultralytics.models.sam2.modules.encoders:Hiera": {
+   "current": "ultralytics.models.sam.modules.encoders:Hiera",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.2.71"
+   ]
+  },
+  "ultralytics.models.sam2.modules.encoders:ImageEncoder": {
+   "current": "ultralytics.models.sam.modules.encoders:ImageEncoder",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.2.71"
+   ]
+  },
+  "ultralytics.models.sam2.modules.encoders:MemoryEncoder": {
+   "current": "ultralytics.models.sam.modules.encoders:MemoryEncoder",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.2.71"
+   ]
+  },
+  "ultralytics.models.sam2.modules.memory_attention:MemoryAttention": {
+   "current": "ultralytics.models.sam.modules.memory_attention:MemoryAttention",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.2.71"
+   ]
+  },
+  "ultralytics.models.sam2.modules.memory_attention:MemoryAttentionLayer": {
+   "current": "ultralytics.models.sam.modules.memory_attention:MemoryAttentionLayer",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.2.71"
+   ]
+  },
+  "ultralytics.models.sam2.modules.sam2:SAM2Model": {
+   "current": "ultralytics.models.sam.modules.sam:SAM2Model",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.2.71"
+   ]
+  },
+  "ultralytics.models.sam2.modules.sam2_blocks:CXBlock": {
+   "current": "ultralytics.models.sam.modules.blocks:CXBlock",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.2.71"
+   ]
+  },
+  "ultralytics.models.sam2.modules.sam2_blocks:DropPath": {
+   "current": "ultralytics.models.sam.modules.blocks:DropPath",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.2.71"
+   ]
+  },
+  "ultralytics.models.sam2.modules.sam2_blocks:Fuser": {
+   "current": "ultralytics.models.sam.modules.blocks:Fuser",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.2.71"
+   ]
+  },
+  "ultralytics.models.sam2.modules.sam2_blocks:MaskDownSampler": {
+   "current": "ultralytics.models.sam.modules.blocks:MaskDownSampler",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.2.71"
+   ]
+  },
+  "ultralytics.models.sam2.modules.sam2_blocks:MultiScaleAttention": {
+   "current": "ultralytics.models.sam.modules.blocks:MultiScaleAttention",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.2.71"
+   ]
+  },
+  "ultralytics.models.sam2.modules.sam2_blocks:MultiScaleBlock": {
+   "current": "ultralytics.models.sam.modules.blocks:MultiScaleBlock",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.2.71"
+   ]
+  },
+  "ultralytics.models.sam2.modules.sam2_blocks:PositionEmbeddingSine": {
+   "current": "ultralytics.models.sam.modules.blocks:PositionEmbeddingSine",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.2.71"
+   ]
+  },
+  "ultralytics.models.sam2.modules.sam2_blocks:RoPEAttention": {
+   "current": "ultralytics.models.sam.modules.blocks:RoPEAttention",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.2.71"
+   ]
+  },
+  "ultralytics.models.sam2.predict:SAM2Predictor": {
+   "current": "ultralytics.models.sam.predict:SAM2Predictor",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.2.71"
+   ]
+  },
+  "ultralytics.nn.modules:BottleneckCSP": {
+   "current": "ultralytics.nn.modules.block:BottleneckCSP",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84"
+   ]
+  },
+  "ultralytics.nn.modules:C1": {
+   "current": "ultralytics.nn.modules.block:C1",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84"
+   ]
+  },
+  "ultralytics.nn.modules:C2": {
+   "current": "ultralytics.nn.modules.block:C2",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84"
+   ]
+  },
+  "ultralytics.nn.modules:C3": {
+   "current": "ultralytics.nn.modules.block:C3",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84"
+   ]
+  },
+  "ultralytics.nn.modules:C3Ghost": {
+   "current": "ultralytics.nn.modules.block:C3Ghost",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84"
+   ]
+  },
+  "ultralytics.nn.modules:C3TR": {
+   "current": "ultralytics.nn.modules.block:C3TR",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84"
+   ]
+  },
+  "ultralytics.nn.modules:C3x": {
+   "current": "ultralytics.nn.modules.block:C3x",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84"
+   ]
+  },
+  "ultralytics.nn.modules:CBAM": {
+   "current": "ultralytics.nn.modules.conv:CBAM",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84"
+   ]
+  },
+  "ultralytics.nn.modules:ChannelAttention": {
+   "current": "ultralytics.nn.modules.conv:ChannelAttention",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84"
+   ]
+  },
+  "ultralytics.nn.modules:Classify": {
+   "current": "ultralytics.nn.modules.head:Classify",
+   "distribution": "ultralytics",
+   "form": "state-only",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84"
+   ]
+  },
+  "ultralytics.nn.modules:ConvTranspose": {
+   "current": "ultralytics.nn.modules.conv:ConvTranspose",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84"
+   ]
+  },
+  "ultralytics.nn.modules:DWConv": {
+   "current": "ultralytics.nn.modules.conv:DWConv",
+   "distribution": "ultralytics",
+   "form": "state-only",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84"
+   ]
+  },
+  "ultralytics.nn.modules:DWConvTranspose2d": {
+   "current": "ultralytics.nn.modules.conv:DWConvTranspose2d",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84"
+   ]
+  },
+  "ultralytics.nn.modules:Ensemble": {
+   "current": "ultralytics.nn.tasks:Ensemble",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84"
+   ]
+  },
+  "ultralytics.nn.modules:Focus": {
+   "current": "ultralytics.nn.modules.conv:Focus",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84"
+   ]
+  },
+  "ultralytics.nn.modules:GhostBottleneck": {
+   "current": "ultralytics.nn.modules.block:GhostBottleneck",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84"
+   ]
+  },
+  "ultralytics.nn.modules:GhostConv": {
+   "current": "ultralytics.nn.modules.conv:GhostConv",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84"
+   ]
+  },
+  "ultralytics.nn.modules:Pose": {
+   "current": "ultralytics.nn.modules.head:Pose",
+   "distribution": "ultralytics",
+   "form": "state-only",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "8.0.69",
+    "8.0.84"
+   ]
+  },
+  "ultralytics.nn.modules:SPP": {
+   "current": "ultralytics.nn.modules.block:SPP",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84"
+   ]
+  },
+  "ultralytics.nn.modules:SpatialAttention": {
+   "current": "ultralytics.nn.modules.conv:SpatialAttention",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84"
+   ]
+  },
+  "ultralytics.nn.modules:TransformerBlock": {
+   "current": "ultralytics.nn.modules.transformer:TransformerBlock",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84"
+   ]
+  },
+  "ultralytics.nn.modules:TransformerLayer": {
+   "current": "ultralytics.nn.modules.transformer:TransformerLayer",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "module split into a package",
+   "versions": [
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84"
+   ]
+  },
+  "ultralytics.tracker.trackers.basetrack:BaseTrack": {
+   "current": "ultralytics.trackers.basetrack:BaseTrack",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "package level removed",
+   "versions": [
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.tracker.trackers.basetrack:TrackState": {
+   "current": "ultralytics.trackers.basetrack:TrackState",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "package level removed",
+   "versions": [
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.tracker.trackers.bot_sort:BOTSORT": {
+   "current": "ultralytics.trackers.bot_sort:BOTSORT",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "package level removed",
+   "versions": [
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.tracker.trackers.bot_sort:BOTrack": {
+   "current": "ultralytics.trackers.bot_sort:BOTrack",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "package level removed",
+   "versions": [
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.tracker.utils.gmc:GMC": {
+   "current": "ultralytics.trackers.utils.gmc:GMC",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.tracker.utils.kalman_filter:KalmanFilterXYAH": {
+   "current": "ultralytics.trackers.utils.kalman_filter:KalmanFilterXYAH",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.tracker.utils.kalman_filter:KalmanFilterXYWH": {
+   "current": "ultralytics.trackers.utils.kalman_filter:KalmanFilterXYWH",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.trackers.bot_sort:ReID": {
+   "current": "ultralytics.trackers.utils.reid:ReID",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.3.116",
+    "8.3.131",
+    "8.3.145",
+    "8.3.160",
+    "8.3.174",
+    "8.3.189",
+    "8.3.203",
+    "8.3.218",
+    "8.3.232",
+    "8.3.247",
+    "8.4.7",
+    "8.4.22",
+    "8.4.36",
+    "8.4.51"
+   ]
+  },
+  "ultralytics.vit.rtdetr.predict:RTDETRPredictor": {
+   "current": "ultralytics.models.rtdetr.predict:RTDETRPredictor",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.vit.rtdetr.train:RTDETRTrainer": {
+   "current": "ultralytics.models.rtdetr.train:RTDETRTrainer",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.0.127"
+   ]
+  },
+  "ultralytics.vit.rtdetr.val:RTDETRDataset": {
+   "current": "ultralytics.models.rtdetr.val:RTDETRDataset",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.vit.rtdetr.val:RTDETRValidator": {
+   "current": "ultralytics.models.rtdetr.val:RTDETRValidator",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.vit.sam.modules.decoders:MaskDecoder": {
+   "current": "ultralytics.models.sam.modules.decoders:MaskDecoder",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.vit.sam.modules.encoders:ImageEncoderViT": {
+   "current": "ultralytics.models.sam.modules.encoders:ImageEncoderViT",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.vit.sam.modules.encoders:PositionEmbeddingRandom": {
+   "current": "ultralytics.models.sam.modules.blocks:PositionEmbeddingRandom",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.vit.sam.modules.encoders:PromptEncoder": {
+   "current": "ultralytics.models.sam.modules.encoders:PromptEncoder",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.vit.sam.modules.transformer:TwoWayAttentionBlock": {
+   "current": "ultralytics.models.sam.modules.transformer:TwoWayAttentionBlock",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.vit.sam.modules.transformer:TwoWayTransformer": {
+   "current": "ultralytics.models.sam.modules.transformer:TwoWayTransformer",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.vit.sam.predict:Predictor": {
+   "current": "ultralytics.models.sam.predict:Predictor",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.vit.utils.loss:DETRLoss": {
+   "current": "ultralytics.models.utils.loss:DETRLoss",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.0.127"
+   ]
+  },
+  "ultralytics.vit.utils.loss:RTDETRDetectionLoss": {
+   "current": "ultralytics.models.utils.loss:RTDETRDetectionLoss",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.0.127"
+   ]
+  },
+  "ultralytics.vit.utils.ops:HungarianMatcher": {
+   "current": "ultralytics.models.utils.ops:HungarianMatcher",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.0.127"
+   ]
+  },
+  "ultralytics.yolo.data.augment:Albumentations": {
+   "current": "ultralytics.data.augment:Albumentations",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "package level removed",
+   "versions": [
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.yolo.data.augment:BaseMixTransform": {
+   "current": "ultralytics.data.augment:BaseMixTransform",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "package level removed",
+   "versions": [
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.yolo.data.augment:BaseTransform": {
+   "current": "ultralytics.data.augment:BaseTransform",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "package level removed",
+   "versions": [
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.yolo.data.augment:CenterCrop": {
+   "current": "ultralytics.data.augment:CenterCrop",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "package level removed",
+   "versions": [
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.yolo.data.augment:ClassifyLetterBox": {
+   "current": "ultralytics.data.augment:ClassifyLetterBox",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "package level removed",
+   "versions": [
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.yolo.data.augment:Compose": {
+   "current": "ultralytics.data.augment:Compose",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "package level removed",
+   "versions": [
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.yolo.data.augment:CopyPaste": {
+   "current": "ultralytics.data.augment:CopyPaste",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "package level removed",
+   "versions": [
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.yolo.data.augment:Format": {
+   "current": "ultralytics.data.augment:Format",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "package level removed",
+   "versions": [
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.yolo.data.augment:LetterBox": {
+   "current": "ultralytics.data.augment:LetterBox",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "package level removed",
+   "versions": [
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.yolo.data.augment:MixUp": {
+   "current": "ultralytics.data.augment:MixUp",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "package level removed",
+   "versions": [
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.yolo.data.augment:Mosaic": {
+   "current": "ultralytics.data.augment:Mosaic",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "package level removed",
+   "versions": [
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.yolo.data.augment:RandomFlip": {
+   "current": "ultralytics.data.augment:RandomFlip",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "package level removed",
+   "versions": [
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.yolo.data.augment:RandomHSV": {
+   "current": "ultralytics.data.augment:RandomHSV",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "package level removed",
+   "versions": [
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.yolo.data.augment:RandomPerspective": {
+   "current": "ultralytics.data.augment:RandomPerspective",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "package level removed",
+   "versions": [
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.yolo.data.augment:ToTensor": {
+   "current": "ultralytics.data.augment:ToTensor",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "package level removed",
+   "versions": [
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.yolo.data.base:BaseDataset": {
+   "current": "ultralytics.data.base:BaseDataset",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "package level removed",
+   "versions": [
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.yolo.data.build:_RepeatSampler": {
+   "current": "ultralytics.data.build:_RepeatSampler",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "package level removed",
+   "versions": [
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.yolo.data.dataloaders.stream_loaders:LoadPilAndNumpy": {
+   "current": "ultralytics.data.loaders:LoadPilAndNumpy",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.yolo.data.dataloaders.stream_loaders:LoadTensor": {
+   "current": "ultralytics.data.loaders:LoadTensor",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.0.55",
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.yolo.data.dataloaders.stream_loaders:SourceTypes": {
+   "current": "ultralytics.data.loaders:SourceTypes",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.yolo.engine.exporter:Exporter": {
+   "current": "ultralytics.engine.exporter:Exporter",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "package level removed",
+   "versions": [
+    "8.0.40"
+   ]
+  },
+  "ultralytics.yolo.engine.predictor:BasePredictor": {
+   "current": "ultralytics.engine.predictor:BasePredictor",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "package level removed",
+   "versions": [
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.yolo.engine.trainer:BaseTrainer": {
+   "current": "ultralytics.engine.trainer:BaseTrainer",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "package level removed",
+   "versions": [
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.yolo.engine.validator:BaseValidator": {
+   "current": "ultralytics.engine.validator:BaseValidator",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "package level removed",
+   "versions": [
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.yolo.fastsam.predict:FastSAMPredictor": {
+   "current": "ultralytics.models.fastsam.predict:FastSAMPredictor",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.0.127"
+   ]
+  },
+  "ultralytics.yolo.fastsam.val:FastSAMValidator": {
+   "current": "ultralytics.models.fastsam.val:FastSAMValidator",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.0.127"
+   ]
+  },
+  "ultralytics.yolo.nas.predict:NASPredictor": {
+   "current": "ultralytics.models.nas.predict:NASPredictor",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.0.127"
+   ]
+  },
+  "ultralytics.yolo.nas.val:NASValidator": {
+   "current": "ultralytics.models.nas.val:NASValidator",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.0.127"
+   ]
+  },
+  "ultralytics.yolo.v8.classify.predict:ClassificationPredictor": {
+   "current": "ultralytics.models.yolo.classify.predict:ClassificationPredictor",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.yolo.v8.classify.train:ClassificationTrainer": {
+   "current": "ultralytics.models.yolo.classify.train:ClassificationTrainer",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.yolo.v8.classify.val:ClassificationValidator": {
+   "current": "ultralytics.models.yolo.classify.val:ClassificationValidator",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.yolo.v8.detect.predict:DetectionPredictor": {
+   "current": "ultralytics.models.yolo.detect.predict:DetectionPredictor",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.yolo.v8.detect.train:DetectionTrainer": {
+   "current": "ultralytics.models.yolo.detect.train:DetectionTrainer",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.yolo.v8.detect.val:DetectionValidator": {
+   "current": "ultralytics.models.yolo.detect.val:DetectionValidator",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.yolo.v8.pose.predict:PosePredictor": {
+   "current": "ultralytics.models.yolo.pose.predict:PosePredictor",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.yolo.v8.pose.train:PoseTrainer": {
+   "current": "ultralytics.models.yolo.pose.train:PoseTrainer",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.yolo.v8.pose.val:PoseValidator": {
+   "current": "ultralytics.models.yolo.pose.val:PoseValidator",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.yolo.v8.segment.predict:SegmentationPredictor": {
+   "current": "ultralytics.models.yolo.segment.predict:SegmentationPredictor",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.yolo.v8.segment.train:SegmentationTrainer": {
+   "current": "ultralytics.models.yolo.segment.train:SegmentationTrainer",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  },
+  "ultralytics.yolo.v8.segment.val:SegmentationValidator": {
+   "current": "ultralytics.models.yolo.segment.val:SegmentationValidator",
+   "distribution": "ultralytics",
+   "form": "policy",
+   "kind": "source",
+   "rename": "class name defined once in both releases",
+   "versions": [
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127"
+   ]
+  }
+ },
+ "read": {
+  "accelerate": {
+   "versions": [
+    "0.0.1",
+    "0.1.0",
+    "0.2.1",
+    "0.3.0",
+    "0.4.0",
+    "0.5.1",
+    "0.6.2",
+    "0.7.1",
+    "0.8.0",
+    "0.9.0",
+    "0.10.0",
+    "0.11.0",
+    "0.12.0",
+    "0.13.2",
+    "0.14.0",
+    "0.15.0",
+    "0.16.0",
+    "0.17.1",
+    "0.18.0",
+    "0.19.0",
+    "0.20.3",
+    "0.21.0",
+    "0.22.0",
+    "0.23.0",
+    "0.24.1",
+    "0.25.0",
+    "0.26.1",
+    "0.27.2",
+    "0.28.0",
+    "0.29.3",
+    "0.30.1",
+    "0.31.0",
+    "0.32.1",
+    "0.33.0",
+    "0.34.2",
+    "1.0.1",
+    "1.1.1",
+    "1.2.1",
+    "1.3.0",
+    "1.4.0",
+    "1.5.2",
+    "1.6.0",
+    "1.7.0",
+    "1.8.1",
+    "1.9.0",
+    "1.10.1",
+    "1.11.0",
+    "1.12.0",
+    "1.13.0",
+    "1.14.0"
+   ]
+  },
+  "pandas": {
+   "versions": [
+    "0.1",
+    "0.2",
+    "0.3.0",
+    "0.4.3",
+    "0.5.0",
+    "0.6.1",
+    "0.7.3",
+    "0.8.1",
+    "0.9.1",
+    "0.10.1",
+    "0.11.0",
+    "0.12.0",
+    "0.13.1",
+    "0.14.1",
+    "0.15.2",
+    "0.16.2",
+    "0.17.1",
+    "0.18.1",
+    "0.19.2",
+    "0.20.3",
+    "0.21.1",
+    "0.22.0",
+    "0.23.4",
+    "0.24.2",
+    "0.25.3",
+    "1.0.5",
+    "1.1.5",
+    "1.2.5",
+    "1.3.5",
+    "1.4.4",
+    "1.5.3",
+    "2.0.3",
+    "2.1.4",
+    "2.2.3",
+    "2.3.3",
+    "3.0.5"
+   ]
+  },
+  "scikit-learn": {
+   "versions": [
+    "0.9",
+    "0.10",
+    "0.11",
+    "0.12",
+    "0.12.1",
+    "0.13",
+    "0.13.1",
+    "0.14.1",
+    "0.14",
+    "0.15.0",
+    "0.15.1",
+    "0.15.2",
+    "0.16.0",
+    "0.16.1",
+    "0.17",
+    "0.17.1",
+    "0.18",
+    "0.18.1",
+    "0.18.2",
+    "0.19.0",
+    "0.19.1",
+    "0.19.2",
+    "0.20.0",
+    "0.20.1",
+    "0.20.2",
+    "0.20.3",
+    "0.21.0",
+    "0.21.1",
+    "0.21.2",
+    "0.20.4",
+    "0.21.3",
+    "0.22",
+    "0.22.1",
+    "0.22.2",
+    "0.22.2.post1",
+    "0.23.0",
+    "0.23.1",
+    "0.23.2",
+    "0.24.0",
+    "0.24.1",
+    "0.24.2",
+    "1.0",
+    "1.0.1",
+    "1.0.2",
+    "1.1.0",
+    "1.1.1",
+    "1.1.2",
+    "1.1.3",
+    "1.2.0",
+    "1.2.1",
+    "1.2.2",
+    "1.3.0",
+    "1.3.1",
+    "1.3.2",
+    "1.4.0",
+    "1.4.1.post1",
+    "1.4.2",
+    "1.5.0",
+    "1.5.1",
+    "1.5.2",
+    "1.6.0",
+    "1.6.1",
+    "1.7.0",
+    "1.7.1",
+    "1.7.2",
+    "1.8.0",
+    "1.9.0"
+   ]
+  },
+  "scipy": {
+   "versions": [
+    "0.8.0",
+    "0.9.0",
+    "0.10.1",
+    "0.11.0",
+    "0.12.1",
+    "0.13.3",
+    "0.14.1",
+    "0.15.1",
+    "0.16.1",
+    "0.17.1",
+    "0.18.1",
+    "0.19.1",
+    "1.0.1",
+    "1.1.0",
+    "1.2.3",
+    "1.3.3",
+    "1.4.1",
+    "1.5.4",
+    "1.6.3",
+    "1.7.3",
+    "1.8.1",
+    "1.9.3",
+    "1.10.1",
+    "1.11.4",
+    "1.12.0",
+    "1.13.1",
+    "1.14.1",
+    "1.15.3",
+    "1.16.3",
+    "1.17.1",
+    "1.18.0"
+   ]
+  },
+  "sentence-transformers": {
+   "versions": [
+    "0.1.0",
+    "0.2.6.2",
+    "0.3.9",
+    "0.4.1.2",
+    "1.0.4",
+    "1.1.1",
+    "1.2.1",
+    "2.0.0",
+    "2.1.0",
+    "2.2.2",
+    "2.3.1",
+    "2.4.0",
+    "2.5.1",
+    "2.6.1",
+    "2.7.0",
+    "3.0.1",
+    "3.1.1",
+    "3.2.1",
+    "3.3.1",
+    "3.4.1",
+    "4.0.2",
+    "4.1.0",
+    "5.0.0",
+    "5.1.2",
+    "5.2.3",
+    "5.3.0",
+    "5.4.1",
+    "5.5.1",
+    "5.6.1",
+    "5.7.0",
+    "6.0.1",
+    "6.1.0"
+   ]
+  },
+  "statsmodels": {
+   "versions": [
+    "0.4.1",
+    "0.4.0",
+    "0.4.3",
+    "0.5.0",
+    "0.6.0",
+    "0.6.1",
+    "0.8.0",
+    "0.9.0",
+    "0.10.0",
+    "0.10.1",
+    "0.10.2",
+    "0.11.0",
+    "0.11.1",
+    "0.12.0",
+    "0.12.1",
+    "0.12.2",
+    "0.13.0",
+    "0.13.1",
+    "0.13.2",
+    "0.13.3",
+    "0.13.4",
+    "0.13.5",
+    "0.14.0",
+    "0.14.1",
+    "0.14.2",
+    "0.14.3",
+    "0.14.4",
+    "0.14.5",
+    "0.14.6"
+   ]
+  },
+  "torch": {
+   "versions": [
+    "1.0.0",
+    "1.3.1",
+    "1.7.1",
+    "1.10.0",
+    "1.13.0",
+    "2.1.1",
+    "2.3.1",
+    "2.6.0",
+    "2.10.0",
+    "2.14.0"
+   ]
+  },
+  "torchvision": {
+   "versions": [
+    "0.1.9",
+    "0.2.2.post3",
+    "0.3.0",
+    "0.4.2",
+    "0.5.0",
+    "0.6.1",
+    "0.7.0",
+    "0.8.2",
+    "0.9.1",
+    "0.10.1",
+    "0.11.3",
+    "0.12.0",
+    "0.13.1",
+    "0.14.1",
+    "0.15.2",
+    "0.16.2",
+    "0.17.2",
+    "0.18.1",
+    "0.19.1",
+    "0.20.1",
+    "0.21.0",
+    "0.22.1",
+    "0.23.0",
+    "0.24.1",
+    "0.25.0",
+    "0.26.0",
+    "0.27.1",
+    "0.28.0",
+    "0.29.0"
+   ]
+  },
+  "transformers": {
+   "versions": [
+    "2.0.0",
+    "2.1.1",
+    "2.2.2",
+    "2.3.0",
+    "2.4.1",
+    "2.5.1",
+    "2.6.0",
+    "2.7.0",
+    "2.8.0",
+    "2.9.1",
+    "2.10.0",
+    "2.11.0",
+    "3.0.2",
+    "3.1.0",
+    "3.2.0",
+    "3.3.1",
+    "3.4.0",
+    "3.5.1",
+    "4.0.1",
+    "4.1.1",
+    "4.2.2",
+    "4.3.3",
+    "4.4.2",
+    "4.5.1",
+    "4.6.1",
+    "4.7.0",
+    "4.8.2",
+    "4.9.2",
+    "4.10.3",
+    "4.11.3",
+    "4.12.5",
+    "4.13.0",
+    "4.14.1",
+    "4.15.0",
+    "4.16.2",
+    "4.17.0",
+    "4.18.0",
+    "4.19.4",
+    "4.20.1",
+    "4.21.3",
+    "4.22.2",
+    "4.23.1",
+    "4.24.0",
+    "4.25.1",
+    "4.26.1",
+    "4.27.4",
+    "4.28.1",
+    "4.29.2",
+    "4.30.2",
+    "4.31.0",
+    "4.32.1",
+    "4.33.3",
+    "4.34.1",
+    "4.35.2",
+    "4.36.2",
+    "4.37.2",
+    "4.38.2",
+    "4.39.3",
+    "4.40.2",
+    "4.41.2",
+    "4.42.4",
+    "4.43.4",
+    "4.44.2",
+    "4.45.2",
+    "4.46.3",
+    "4.47.1",
+    "4.48.3",
+    "4.49.0",
+    "4.50.3",
+    "4.51.3",
+    "4.52.4",
+    "4.53.3",
+    "4.54.1",
+    "4.55.4",
+    "4.56.2",
+    "4.57.6",
+    "5.0.0",
+    "5.1.0",
+    "5.2.0",
+    "5.3.0",
+    "5.4.0",
+    "5.5.4",
+    "5.6.2",
+    "5.7.0",
+    "5.8.1",
+    "5.9.0",
+    "5.10.4",
+    "5.11.0",
+    "5.12.1",
+    "5.13.1",
+    "5.14.1",
+    "5.15.1",
+    "5.16.1",
+    "5.17.0",
+    "5.18.0",
+    "5.19.0",
+    "5.20.1"
+   ]
+  },
+  "trl": {
+   "versions": [
+    "0.0.3",
+    "0.1.0",
+    "0.2.1",
+    "0.3.1",
+    "0.4.7",
+    "0.5.0",
+    "0.6.0",
+    "0.7.11",
+    "0.8.6",
+    "0.9.6",
+    "0.10.1",
+    "0.11.4",
+    "0.12.2",
+    "0.13.0",
+    "0.14.0",
+    "0.15.2",
+    "0.16.1",
+    "0.17.0",
+    "0.18.2",
+    "0.19.1",
+    "0.20.0",
+    "0.21.0",
+    "0.22.2",
+    "0.23.1",
+    "0.24.0",
+    "0.25.1",
+    "0.26.2",
+    "0.27.2",
+    "0.28.0",
+    "0.29.1",
+    "1.0.0",
+    "1.1.0",
+    "1.2.0",
+    "1.3.0",
+    "1.4.0",
+    "1.5.1",
+    "1.6.0",
+    "1.7.1",
+    "1.8.0",
+    "1.9.2",
+    "1.10.0",
+    "1.11.0",
+    "1.12.0",
+    "1.13.0",
+    "1.14.2",
+    "1.15.0"
+   ]
+  },
+  "ultralytics": {
+   "versions": [
+    "0.0.13",
+    "0.0.27",
+    "0.0.42",
+    "8.0.11",
+    "8.0.26",
+    "8.0.40",
+    "8.0.55",
+    "8.0.69",
+    "8.0.84",
+    "8.0.98",
+    "8.0.113",
+    "8.0.127",
+    "8.0.142",
+    "8.0.156",
+    "8.0.171",
+    "8.0.185",
+    "8.0.200",
+    "8.0.214",
+    "8.0.229",
+    "8.1.3",
+    "8.1.18",
+    "8.1.32",
+    "8.1.47",
+    "8.2.13",
+    "8.2.28",
+    "8.2.42",
+    "8.2.57",
+    "8.2.71",
+    "8.2.86",
+    "8.2.100",
+    "8.3.11",
+    "8.3.25",
+    "8.3.40",
+    "8.3.58",
+    "8.3.73",
+    "8.3.87",
+    "8.3.102",
+    "8.3.116",
+    "8.3.131",
+    "8.3.145",
+    "8.3.160",
+    "8.3.174",
+    "8.3.189",
+    "8.3.203",
+    "8.3.218",
+    "8.3.232",
+    "8.3.247",
+    "8.4.7",
+    "8.4.22",
+    "8.4.36",
+    "8.4.51",
+    "8.4.65",
+    "8.4.80",
+    "8.4.94",
+    "8.4.109",
+    "8.4.123",
+    "8.4.138",
+    "8.4.152",
+    "8.4.167",
+    "8.4.181"
+   ]
+  },
+  "xgboost": {
+   "versions": [
+    "0.7.post3",
+    "0.7.post4",
+    "0.71",
+    "0.72.1",
+    "0.80",
+    "0.81",
+    "0.82",
+    "0.90",
+    "1.0.0",
+    "1.0.1",
+    "1.0.2",
+    "1.1.0",
+    "1.1.1",
+    "1.2.0",
+    "1.2.1",
+    "1.3.0.post0",
+    "1.3.1",
+    "1.3.2",
+    "1.3.3",
+    "1.4.0",
+    "1.4.1",
+    "1.4.2",
+    "1.5.0",
+    "1.5.1",
+    "1.5.2",
+    "1.6.0",
+    "1.6.1",
+    "1.6.2",
+    "1.7.0",
+    "1.7.0.post0",
+    "1.7.1",
+    "1.7.2",
+    "1.7.3",
+    "1.7.4",
+    "1.7.5",
+    "1.7.6",
+    "2.0.0",
+    "2.0.1",
+    "2.0.2",
+    "2.0.3",
+    "2.1.0",
+    "2.1.1",
+    "2.1.2",
+    "2.1.3",
+    "2.1.4",
+    "3.0.0",
+    "3.0.1",
+    "3.0.2",
+    "3.0.3",
+    "3.0.4",
+    "3.0.5",
+    "3.1.0",
+    "3.1.1",
+    "3.1.2",
+    "3.1.3",
+    "3.2.0",
+    "3.3.0",
+    "3.4.0"
+   ]
+  }
+ }
+}

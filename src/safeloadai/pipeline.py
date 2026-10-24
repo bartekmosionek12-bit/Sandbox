@@ -22,6 +22,7 @@ from .report import LayerResult, Report, Verdict, settle
 from .sandbox import Limits, RuntimeIntegrityError, emulate_keras_lambdas, emulate_pickle
 from .sandbox.host import scaled_limits
 from .static import clearance as clearance_mod
+from .static import data_formats
 from .static.torch_static import MAX_PICKLE_MEMBER_BYTES
 
 Progress = Callable[[str], None] | None
@@ -100,6 +101,9 @@ def emulation_layer(data: bytes, parser_report: dict, extra_allowed: frozenset,
                                reasons=["no executable content in the Keras config; nothing to emulate"])
         return behaviour.classify(emulate_keras_lambdas(lambdas, limits=limits))
     layer = LayerResult(name="emulation", verdict=Verdict.CLEAN, ran=False)
+    if fmt in detect_mod.DATA_ONLY:
+        layer.reasons.append("nothing to emulate: a data-only format runs no code on load")
+        return layer
     if parser_report.get("unsupported"):
         layer.reasons.append("nothing to emulate: the file is in no supported format (UNSUPPORTED)")
         return layer
@@ -318,6 +322,8 @@ def _scan(path: str, *, judge: bool, deep: bool, extra_allowed: frozenset, limit
         timings["judge"] = _ms(t)
 
     status, final, reasons, findings, category, tool_errors = settle(layers)
+    if final is Verdict.CLEAN and parser_report.get("data_only") and not extra_views:
+        reasons = [data_formats.DATA_ONLY_REASON]
     timings["total"] = _ms(started)
     return Report(path=path, file_name=os.path.basename(path), sha256=sha256, size=size,
                   file_format=file_format, verdict=final, reasons=reasons, layers=layers,

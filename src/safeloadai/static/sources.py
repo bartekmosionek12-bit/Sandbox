@@ -86,6 +86,45 @@ REVIEWED_HOOKS: dict[tuple[str, str, str], tuple[str, str]] = {
     ("ultralytics.utils", "SimpleClass", "__getattr__"): (
         "6ffd01d179f611273ddd45d8caf06e43c7a7c817294bbba4681d9816067092ec",
         "ultralytics 8.4.182: raises AttributeError with a help text"),
+    # 0.9.0 tune / tune-2 review (evaluation/results/source-review-4-20261023.md)
+    ("sklearn.isotonic", "IsotonicRegression", "__setstate__"): (
+        "679d16aa2ff2d2a733f09e31b00a3e40b6801e287ae8c6df0cb5d47e6e8e5d1c",
+        "scikit-learn 1.9.1: BaseEstimator.__setstate__, then when X_thresholds_ and y_thresholds_ are set "
+        "_build_f: compares out_of_bounds with 'raise', stores a lambda over y (not called) or "
+        "scipy.interpolate.interp1d(X, y, kind='linear') as f_; computation on state values only"),
+    ("ultralytics.nn.modules.block", "AAttn", "__setstate__"): (
+        "7e1355f657a1a8aa152cd7aeac5fb60eeae1069235cfee9573521c04ba2528ab",
+        "ultralytics 8.4.182: Module.__setstate__, then all_head_dim = head_dim * num_heads if missing"),
+    ("accelerate.utils.dataclasses", "DeepSpeedPlugin", "selected.setter"): (
+        "9a1f3cc36667f8a01ee87f881a5a829109acfa7abb4e03dcb5ca10a12cdf3572",
+        "accelerate 1.15.0: raises NotImplementedError; sets nothing"),
+}
+# Hooks of older library releases, read and judged benign for a dict-state BUILD by the same
+# rule (0.9.0, tools/gen_historical_paths.py): (module, class, hook) -> {sha256: note}. They
+# only let an old module path of a reviewed class be accepted (upstream/historical_paths.json)
+# and let trust_inert_from accept the same class in an installed old release.
+REVIEWED_OLD_HOOKS: dict[tuple[str, str, str], dict[str, str]] = {
+    # Each pops "_sklearn_version", may warn (the popped value is compared with __version__
+    # and formatted into the message, as in the reviewed 1.9.1 hook), then
+    # super().__setstate__ or a plain __dict__ update. Same behaviour as the reviewed one.
+    ("sklearn.base", "BaseEstimator", "__setstate__"): {
+        "53df01a877e185359278432e8fb1e04c15ab87c89694982280f47cc031cb37d8":
+            "scikit-learn 0.18 to 0.18.2: version warning, then __dict__.update",
+        "37d9581ea77618edcd46143b3e0ff09bc5e98dcea409dd661c95352859211d72":
+            "scikit-learn 0.19.0 to 0.20.4: version warning, then super(BaseEstimator, self).__setstate__ "
+            "or __dict__.update",
+        "a6176b9474b9d989e0e526b8b27c6fc1c4d75366aa924b0b07f23fc9b170eda9":
+            "scikit-learn 0.21.0 to 0.24.2: version warning, then super().__setstate__ or __dict__.update",
+        "d1a1490e41b866e2f4c3305a0f08127229abe3a73ce425aa09c88d19fe9504bc":
+            "scikit-learn 1.0 to 1.1.0: as 0.21, longer warning text",
+        "5b042d64998c26484d726caf588da9efe909946ff2e7d9bed268cd4146c0ceee":
+            "scikit-learn 1.1.1 to 1.2.2: as 1.0, another documentation link",
+    },
+    # the same source as the reviewed 1.9.1 setter, under the module it had before
+    ("sklearn.utils._estimator_html_repr", "_HTMLDocumentationLinkMixin", "_doc_link_template.setter"): {
+        "bd2e19fa5efc7035e8235fe5bd1b92a9c3d0bc12b2115be26d789c7f3c0e4250":
+            "scikit-learn 1.4.0 to 1.6.1: setattr(self, '__doc_link_template', value), a plain attribute",
+    },
 }
 # Read and left unreviewed on purpose (2026-10-19): torch.nn.modules.rnn.RNNBase.__setstate__
 # indexes and calls into objects from the state (_all_weights[0][0], weakref.ref) and
@@ -418,7 +457,7 @@ class SourceIndex:
                  known_tops: Iterable[str] = ()):
         self._read = read
         self.known_tops = frozenset(known_tops)
-        self._inert: dict[str, str | None] = {}
+        self._inert: dict[tuple[str, bool], str | None] = {}
         self._modules: dict[str, ModuleFacts | None] = {}
         self._namespaces: dict[str, dict[str, tuple]] = {}
         self._verdicts: dict[tuple[str, str], Verdict] = {}
@@ -523,12 +562,13 @@ class SourceIndex:
 
     # --- inert modules -----------------------------------------------------------------
 
-    def inert(self, module: str) -> str | None:
+    def inert(self, module: str, lazy: bool = False) -> str | None:
         """None when importing ``module`` (its own top level) runs only definitions and
         calls into in-process code: the module itself, the libraries in ``known_tops`` or
-        SAFE_STDLIB; otherwise why not. Parent packages are judged separately."""
-        if module in self._inert:
-            return self._inert[module]
+        SAFE_STDLIB; otherwise why not. Parent packages are judged separately. ``lazy``
+        also accepts the lazy-module store (``_lazy_store``)."""
+        if (module, lazy) in self._inert:
+            return self._inert[(module, lazy)]
         facts = self.module(module)
         why = None
         if facts is None:
@@ -544,11 +584,26 @@ class SourceIndex:
                 root, _ = _root(target)
                 if isinstance(target, ast.Attribute) and target.attr in METADATA_ATTRS:
                     continue
+                if lazy and self._lazy_store(module, target):
+                    continue
                 if root is None or root not in facts.names or root in facts.imported:
                     why = f"line {target.lineno}: top level stores into {ast.unparse(target)[:80]}"
                     break
-        self._inert[module] = why
+        self._inert[(module, lazy)] = why
         return why
+
+    def _lazy_store(self, module: str, target: ast.expr) -> bool:
+        """``sys.modules[__name__] = ...``: the lazy-module idiom (transformers, trl), where a
+        package replaces its own entry with a library object that imports submodules on
+        attribute access. The value's calls are checked like any other top-level call. Only
+        the import chains of state-only policy classes accept it (tools/gen_policies.py);
+        such a package never makes a module inert for the referenced-only rule."""
+        if not (isinstance(target, ast.Subscript) and isinstance(target.slice, ast.Name)
+                and target.slice.id == "__name__" and isinstance(target.value, ast.Attribute)
+                and target.value.attr == "modules" and isinstance(target.value.value, ast.Name)):
+            return False
+        entry = self.namespace(module).get(target.value.value.id)
+        return entry is not None and entry[0] == "module" and entry[1] == "sys"
 
     def _safe_callee(self, module: str, facts: ModuleFacts, callee: ast.expr) -> bool:
         root, attrs = _root(callee)
@@ -711,7 +766,7 @@ class SourceIndex:
         key = (cls.module, cls.name, hook)
         reviewed = self.reviewed_hooks.get(key)
         digest = source_sha256(text)
-        if reviewed and reviewed[0] == digest:
+        if (reviewed and reviewed[0] == digest) or digest in REVIEWED_OLD_HOOKS.get(key, {}):
             verdict.reviewed_hooks.append(f"{cls.module}.{cls.name}.{hook}")
             return
         verdict.state_only = False

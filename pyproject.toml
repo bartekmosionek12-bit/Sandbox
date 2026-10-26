@@ -30,7 +30,7 @@ classifiers = [
 # major version the test suite runs against.
 dependencies = [
     "safeloadai-runtime==0.1.0",
-    "wasmtime>=49.0.0,<50",
+    "wasmtime>=49.0.0,<51",
 ]
 
 [project.optional-dependencies]

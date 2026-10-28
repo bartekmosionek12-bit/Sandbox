@@ -164,6 +164,8 @@ STATE_ONLY_CLASSES = frozenset({
     ("scipy.sparse._csr", "csr_matrix"),
     # pandas Index: only as the class argument of _new_Index (PANDAS_NEW_INDEX below)
     ("pandas.core.indexes.base", "Index"),
+    ("pandas.core.indexes.range", "RangeIndex"),
+    ("pandas", "RangeIndex"),
     # scikit-learn 1.9.1 estimators: BaseEstimator.__setstate__ only (version warning,
     # then a __dict__ update); constructors only store their parameters
     ("sklearn.calibration", "CalibratedClassifierCV"),
@@ -195,6 +197,24 @@ STATE_ONLY_CLASSES = frozenset({
     # Bunch: a dict subclass; its items come back through dict.__setitem__ (SETITEMS, not
     # overridden) and its __setstate__ is a no-op that ignores the state
     ("sklearn.utils._bunch", "Bunch"),
+    # Training-argument dataclasses of public fine-tuning libraries (training_args.bin), 0.10.0
+    # review of the PyPI sources (llamafactory 0.9.5, FlagEmbedding 1.2.11 and 1.4.2, ms-swift
+    # 3.2.0 and 3.8.0, axolotl 0.6.0, 0.8.0 and 0.21.1; read with ast, never imported): each is
+    # @dataclass over transformers' TrainingArguments / trl's configs (reviewed above) and
+    # dataclass mixins, with no __setstate__, __reduce__, __getstate__, __setattr__, __getattr__
+    # or property setters anywhere in its own classes. Unpickling is object.__new__ plus a
+    # __dict__ update; __post_init__ (llamafactory's reads Ray settings) never runs.
+    ("llamafactory.hparams.training_args", "TrainingArguments"),
+    ("FlagEmbedding.baai_general_embedding.finetune.arguments", "RetrieverTrainingArguments"),
+    ("FlagEmbedding.finetune.embedder.encoder_only.m3.arguments", "EncoderOnlyEmbedderM3TrainingArguments"),
+    ("swift.trainers.rlhf_arguments", "GRPOConfig"),
+    ("axolotl.core.trainer_builder", "AxolotlTrainingArguments"),
+    ("axolotl.core.training_args", "AxolotlTrainingArguments"),
+    # lightgbm 3.3.5 and 4.7.0 sklearn.py: LGBMModel and its classifier/regressor define no
+    # pickling hooks; the base is scikit-learn's BaseEstimator. The Booster they hold is a
+    # global of its own (UNVERIFIABLE, or --validate-boosters)
+    ("lightgbm.sklearn", "LGBMClassifier"),
+    ("lightgbm.sklearn", "LGBMRegressor"),
     # stdlib argparse.Namespace (an old training_args.bin): no pickling hooks, attributes only
     ("argparse", "Namespace"),
     # transformers' training arguments (training_args.bin): plain dataclasses. Rebuilt
@@ -309,7 +329,14 @@ PANDAS_NEW_INDEX = ("pandas.core.indexes.base", "_new_Index")
 # class -> the dict keys its __reduce__ writes
 PANDAS_INDEX_KEYS = {
     ("pandas.core.indexes.base", "Index"): frozenset({"data", "name"}),
+    # RangeIndex.__reduce__ writes {"name", "start", "stop", "step"} (pandas 1.4.4 range.py and
+    # 3.1.0 range.py; 3.x names the class pandas.RangeIndex); _new_Index then calls
+    # RangeIndex.__new__(cls, start=, stop=, step=, name=, copy=False), which only builds a
+    # range. Accepted only with int start/stop/step (pickle_static._argument_check).
+    ("pandas.core.indexes.range", "RangeIndex"): frozenset({"name", "start", "stop", "step"}),
+    ("pandas", "RangeIndex"): frozenset({"name", "start", "stop", "step"}),
 }
+PANDAS_RANGE_INDEX = frozenset({("pandas.core.indexes.range", "RangeIndex"), ("pandas", "RangeIndex")})
 PANDAS_INDEX_CLASSES = frozenset(PANDAS_INDEX_KEYS)
 # collections.defaultdict(factory): the factory is called later, on a missing key, never
 # while loading. Accepted with no factory or one imported global, which the allowlist

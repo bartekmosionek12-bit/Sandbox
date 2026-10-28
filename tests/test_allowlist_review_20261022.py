@@ -131,7 +131,8 @@ def test_reviewed_pairs_are_argument_checked_exactly():
                  ("dabl.models", "SimpleRegressor")):
         assert pair in allowlists.ARGUMENT_CHECKED and pair in allowlists.PICKLE_GLOBALS, pair
     # exact pairs only: neighbours the review did not cover stay out
-    for pair in [("pandas.core.indexes.range", "RangeIndex"), ("pandas.core.arrays.categorical", "Categorical"),
+    # (RangeIndex was reviewed later, in 0.10.0: tests/test_allowlist_review_0_10_0.py)
+    for pair in [("pandas.core.arrays.categorical", "Categorical"),
                  ("pandas.io.pickle", "read_pickle"), ("sklearn.metrics._scorer", "_PredictScorer"),
                  ("sklearn.metrics._ranking", "roc_auc_score"), ("dabl.models", "AnyClassifier"),
                  ("_loss", "CyHalfBinomialLoss"), ("pandas.core.internals.blocks", "new_block")]:

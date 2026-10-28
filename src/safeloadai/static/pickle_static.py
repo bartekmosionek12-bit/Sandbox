@@ -61,6 +61,7 @@ from .allowlists import (
     PANDAS_DATAFRAME,
     PANDAS_INDEX_CLASSES,
     PANDAS_INDEX_KEYS,
+    PANDAS_RANGE_INDEX,
     PANDAS_NEW_INDEX,
     PANDAS_SERIES,
     PANDAS_SINGLE_BLOCK_MANAGER,
@@ -541,11 +542,13 @@ def _argument_check(how: str, pair: tuple[str, str], args, state_only=None) -> t
         return f"is called with {_short(args)}; only a member lookup with one str or int is accepted", None
     if pair == PANDAS_NEW_INDEX:
         if (len(args) == 2 and isinstance(args[0], Global) and args[0].pair in PANDAS_INDEX_CLASSES
-                and isinstance(args[1], dict) and set(args[1]) <= PANDAS_INDEX_KEYS[args[0].pair]):
+                and isinstance(args[1], dict) and set(args[1]) <= PANDAS_INDEX_KEYS[args[0].pair]
+                and (args[0].pair not in PANDAS_RANGE_INDEX
+                     or all(type(args[1].get(k)) is int for k in ("start", "stop", "step")))):
             return None, 0
         shown = (args[0], sorted(args[1]) if isinstance(args[1], dict) else args[1]) if len(args) == 2 else args
         return (f"is called with arguments pandas never writes ({_short(shown)}; it calls its first argument, "
-                "and only pandas.core.indexes.base.Index with a data/name dict is accepted)"), None
+                "and only pandas Index with a data/name dict or RangeIndex with int start/stop/step is accepted)"), None
     if pair == DEFAULTDICT:
         # The factory runs only on a missing key, after loading; as a global it is checked
         # against the allowlist like any other import.

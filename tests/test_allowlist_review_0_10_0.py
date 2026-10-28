@@ -112,3 +112,32 @@ def test_range_index_misuse_stays_flagged(cls, items):
 def test_a_sink_in_a_range_index_is_malicious(cls):
     items = (INTS[0], s("start") + call(g(*SYSTEM), s(MARKER_CMD)), INTS[2], INTS[3])
     assert parse_pickle(_range(cls, *items))["static_risk"] == "malicious"
+
+
+def _keras_findings(node: dict) -> list:
+    from safeloadai.static.keras_static import _empty_report, walk_config
+    report = _empty_report("m.keras")
+    walk_config({"class_name": "Sequential", "module": "keras",
+                 "config": {"layers": [], "metrics": [node]}}, report)
+    return report["unknown_imports"] + report["suspicious_imports"] + report["flagged_opcodes"]
+
+
+def _metric(name: str, config: dict, module: str = "keras.metrics") -> dict:
+    return {"class_name": name, "module": module, "config": config, "registered_name": None}
+
+
+@pytest.mark.parametrize("node", [
+    _metric("TopKCategoricalAccuracy", {"name": "top_k_categorical_accuracy", "dtype": "float32", "k": 5}),
+    _metric("SparseTopKCategoricalAccuracy", {"name": "top5", "dtype": "float32", "k": 5, "from_sorted_ids": True}),
+])
+def test_keras_top_k_metrics_are_known(node):
+    assert not _keras_findings(node)
+
+
+@pytest.mark.parametrize("node", [
+    _metric("TopKCategoricalAccuracy", {"k": {"class_name": "function", "module": "posix", "config": "system"}}),
+    _metric("SparseTopKCategoricalAccuracy", {"k": 5}, module="safeloadai_marker_pkg"),
+    _metric("TopKCategoricalAccuracyX", {"k": 5}),
+])
+def test_keras_top_k_neighbours_stay_flagged(node):
+    assert _keras_findings(node)

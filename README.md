@@ -292,12 +292,15 @@ non-CLEAN benign file, soft blocks included).
   TFLite, Flax msgpack, OpenVINO IR, Core ML `weight.bin`, CTranslate2 `model.bin`
   and whisper.cpp ggml files are CLEAN ("format runs no code on load") only when
   their structure is exactly what the pinned loader version reads; custom operators
-  are UNVERIFIABLE and any inconsistency is RISKY. A memory-safety bug in a native
+  (ONNX Runtime's `com.microsoft` domain, TFLite Flex and Edge TPU ops, OpenVINO
+  extension ops) are UNVERIFIABLE, because they run native code safeloadai cannot
+  see, and any inconsistency is RISKY. A memory-safety bug in a native
   runtime that a well-formed file can reach is out of scope, and so is the rest of a
   model directory (an `.mlpackage`'s `model.mil`, a CTranslate2 `config.json`).
   `safe_load` never loads these formats.
-- **UNSUPPORTED formats.** KenLM, raw arrays, other GGML variants and any other format
-  with no reading the scanner knows are UNSUPPORTED. safeloadai says nothing about
+- **UNSUPPORTED formats.** KenLM (its trie layouts and quantisations depend on each
+  other, and a partial check would claim more than it reads), raw arrays, other GGML
+  variants and any other format with no reading the scanner knows are UNSUPPORTED. safeloadai says nothing about
   them, and `safe_load` never loads them.
 - **joblib.** Supported: joblib 0.10 and newer, one stream of zlib, gzip, bz2, lzma,
   xz or lz4 (lz4 needs `pip install "safeloadai[lz4]"`). SUSPICIOUS by design: the

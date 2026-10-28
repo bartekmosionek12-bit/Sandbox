@@ -670,6 +670,9 @@ KERAS_CLASSES = frozenset({
     "OrthogonalInitializer",  # Keras 3's registered name for Orthogonal (gain, seed)
     "CategoricalFocalCrossentropy",  # loss; alpha, gamma, from_logits, label_smoothing, axis
     "R2Score",  # metric; class_aggregation, num_regressors
+    # 0.10.0 review (keras 3.0.5 and 3.12.0 src/metrics/accuracy_metrics.py): MeanMetricWrapper
+    # subclasses with a fixed fn; get_config is name, dtype, k (and from_sorted_ids, a bool)
+    "TopKCategoricalAccuracy", "SparseTopKCategoricalAccuracy",
 })
 
 # Keras serializes functions as {"class_name": "function", "config": "<name>",
@@ -726,8 +729,7 @@ KERAS2_CLASSES = KERAS_CLASSES | frozenset(
         "ThresholdedReLU", "LocallyConnected1D", "LocallyConnected2D", "CuDNNLSTM", "CuDNNGRU",
         "StackedRNNCells", "PeepholeLSTMCell", "SpatialDropout1D",
         "PolynomialDecay", "InverseTimeDecay", "CosineDecayRestarts",
-        "RootMeanSquaredError", "MeanIoU", "TopKCategoricalAccuracy",
-        "SparseTopKCategoricalAccuracy", "MeanAbsolutePercentageError", "MeanSquaredLogarithmicError",
+        "RootMeanSquaredError", "MeanIoU", "MeanAbsolutePercentageError", "MeanSquaredLogarithmicError",
         "Hinge", "SquaredHinge", "CategoricalHinge", "LogCosh", "KLDivergence", "Poisson",
         "CosineSimilarity", "BinaryFocalCrossentropy",
         "TrueDivide",  # 2026-10-19 review: Keras 3 elementwise op saved to .h5 without a module

@@ -5,7 +5,11 @@ This file follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Vers
 - `safeloadai` (the scanner);
 - `safeloadai-runtime` (the pinned sandbox runtime). It has its own version and changes only when the runtime does.
 
-## safeloadai 0.9.0 (unreleased)
+## safeloadai 0.10.0 (unreleased)
+
+In short: (filled in after the measurement).
+
+## safeloadai 0.9.0
 
 In short: data-only formats (safetensors, GGUF, npy, npz) are read and CLEAN when valid; old module paths of reviewed classes are accepted under the rule of the class they became; trl, sentence-transformers and DeepSpeed configuration classes are accepted after a source review; a new tune-2 split; the root causes of every blocked benign file are measured and published. Detection on the evaluation corpus: 902/902 (unchanged); benign held-out-2 FPR 0.149 (0.169 in 0.8.0), held-out 0.179 (0.181).
 

@@ -64,7 +64,7 @@ def main(out: str) -> None:
     model = catboost.CatBoostClassifier(iterations=5, depth=3, verbose=0, random_seed=0).fit(x, y)
     write("cb.cbm", model.__getstate__()["__model"])
     cats = [[str(int(v))] for v in rng.integers(0, 3, size=200)]
-    xo = [list(map(float, row)) + c for row, c in zip(x, cats)]
+    xo = [list(map(float, row)) + c for row, c in zip(x, cats, strict=True)]
     onehot = catboost.CatBoostClassifier(iterations=3, depth=2, verbose=0, random_seed=0, one_hot_max_size=10)
     write("cb_onehot.cbm", onehot.fit(xo, y, cat_features=[4]).__getstate__()["__model"])
     # a label the categorical feature decides, so the trees split on its CTR

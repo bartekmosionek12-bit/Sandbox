@@ -252,7 +252,7 @@ def _set_tree_line(text: str, key: str, value: str, tree: int = 0) -> str:
     old = _tree_line(text, key, tree)
     new = f"{key}={value}"
     out = _replace_once(text, old, new)
-    line = next(l for l in out.split("\n") if l.startswith("tree_sizes="))
+    line = next(x for x in out.split("\n") if x.startswith("tree_sizes="))
     sizes = [int(v) for v in line[len("tree_sizes="):].split(" ")]
     sizes[tree] += len(new) - len(old)
     return _replace_once(out, line, "tree_sizes=" + " ".join(map(str, sizes)))
@@ -286,7 +286,7 @@ def test_lightgbm_tree_inconsistencies_are_refused(key, values, match):
 
 def test_lightgbm_tree_sizes_must_match_exactly():
     text = lgb()
-    line = next(l for l in text.split("\n") if l.startswith("tree_sizes="))
+    line = next(x for x in text.split("\n") if x.startswith("tree_sizes="))
     values = [int(v) for v in line[len("tree_sizes="):].split(" ")]
     for delta in (-1, 1, 1000):
         bad = values.copy()
@@ -633,6 +633,15 @@ def test_validator_failure_never_clears(tmp_path, monkeypatch):
     import safeloadai.sandbox as sandbox
 
     monkeypatch.setattr(sandbox, "validate_boosters", lambda items, **kw: {"failed": "simulated fuel exhaustion"})
+    report = scan(booster_pickle(tmp_path, "xgboost", STATES["xgboost"]()), validate_boosters=True)
+    _assert_not_cleared(report, "did not finish")
+
+
+def test_missing_validator_results_never_clear(tmp_path, monkeypatch):
+    # fewer results than payloads (a cut-off guest answer) is a failed run, not a pass
+    import safeloadai.sandbox as sandbox
+
+    monkeypatch.setattr(sandbox, "validate_boosters", lambda items, **kw: {"results": []})
     report = scan(booster_pickle(tmp_path, "xgboost", STATES["xgboost"]()), validate_boosters=True)
     _assert_not_cleared(report, "did not finish")
 

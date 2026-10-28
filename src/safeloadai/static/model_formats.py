@@ -50,7 +50,16 @@ import re
 import struct
 from functools import lru_cache
 
-from ..parsing.detect import COREML_WEIGHTS, CTRANSLATE2, GGML_WHISPER, MSGPACK, ONNX, OPENVINO_BIN, OPENVINO_XML, TFLITE
+from ..parsing.detect import (
+    COREML_WEIGHTS,
+    CTRANSLATE2,
+    GGML_WHISPER,
+    MSGPACK,
+    ONNX,
+    OPENVINO_BIN,
+    OPENVINO_XML,
+    TFLITE,
+)
 from . import budget as budget_mod
 from .data_formats import Invalid
 
@@ -117,7 +126,8 @@ ONNX_SCHEMA: dict[str, dict[int, tuple[str, str]]] = {
                        4: ("metadata_props", "msg:StringStringEntryProto")},
     "TensorProto": {1: ("dims", PV), 2: ("data_type", V), 3: ("segment", "msg:Segment"), 4: ("float_data", PF32),
                     5: ("int32_data", PV), 6: ("string_data", BYTES), 7: ("int64_data", PV), 8: ("name", STR),
-                    12: ("doc_string", STR), 9: ("raw_data", BYTES), 13: ("external_data", "msg:StringStringEntryProto"),
+                    12: ("doc_string", STR), 9: ("raw_data", BYTES),
+                    13: ("external_data", "msg:StringStringEntryProto"),
                     14: ("data_location", V), 10: ("double_data", PF64), 11: ("uint64_data", PV),
                     16: ("metadata_props", "msg:StringStringEntryProto")},
     "Segment": {1: ("begin", V), 2: ("end", V)},
@@ -972,7 +982,8 @@ def check_coreml_weights(data: bytes) -> dict:
         if not length:
             raise Invalid(f"blob {index} is empty (the reader's Span::Slice refuses a zero-length read)")
         if offset + length > size:
-            raise Invalid(f"blob {index}: {length} bytes at offset {offset} run past the end of the file ({size} bytes)")
+            raise Invalid(f"blob {index}: {length} bytes at offset {offset} run past the end of the file "
+                          f"({size} bytes)")
         if bits % 8 == 0:
             # GetDataViewForByteAligned never reads padding_size_in_bits, which was a
             # reserved (uninitialised) field before sub-byte types. SpanCast would drop a
@@ -1155,7 +1166,7 @@ def check_ggml_whisper(data: bytes) -> dict:
     st = _Stream(data)
     if st.take(4, "magic") != GGML_MAGIC:
         raise Invalid("no ggml magic")
-    h = dict(zip(_WHISPER_HPARAMS, struct.unpack("<11i", st.take(44, "hyperparameters"))))
+    h = dict(zip(_WHISPER_HPARAMS, struct.unpack("<11i", st.take(44, "hyperparameters")), strict=True))
     if h["n_vocab"] not in WHISPER_VOCABS:
         raise Invalid(f"vocabulary size {h['n_vocab']} is not a whisper one")
     if any(h[k] <= 0 for k in _WHISPER_HPARAMS[:10]) or h["n_text_state"] != h["n_audio_state"]:
@@ -1212,6 +1223,7 @@ LOADERS = {ONNX: "onnx.load / onnxruntime.InferenceSession", TFLITE: "tf.lite.In
            CTRANSLATE2: "ctranslate2 runtime (model.bin of a converted model)",
            GGML_WHISPER: "whisper.cpp (legacy ggml model file)"}
 
-__all__ = ["CHECKS", "LOADERS", "NO_CODE_REASON", "Unverifiable", "check_coreml_weights", "check_ctranslate2", "check_ggml_whisper", "check_msgpack", "check_onnx",
-           "check_openvino_xml", "check_tflite", "external_location_problem", "looks_like_coreml_weights", "looks_like_ctranslate2", "looks_like_ggml_whisper",
-           "looks_like_onnx", "looks_like_openvino_xml"]
+__all__ = ["CHECKS", "LOADERS", "NO_CODE_REASON", "Unverifiable", "check_coreml_weights", "check_ctranslate2",
+           "check_ggml_whisper", "check_msgpack", "check_onnx", "check_openvino_xml", "check_tflite",
+           "external_location_problem", "looks_like_coreml_weights", "looks_like_ctranslate2",
+           "looks_like_ggml_whisper", "looks_like_onnx", "looks_like_openvino_xml"]

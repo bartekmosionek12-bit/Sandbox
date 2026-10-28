@@ -127,7 +127,8 @@ def no_code_format(data: bytes, file_name: str = "") -> str | None:
     msgpack checkpoint by a msgpack map when the name ends in ``.msgpack`` (a msgpack map
     has no magic number), a Core ML ``weight.bin`` by its version-2 storage header and
     the first blob's sentinel, a CTranslate2 ``model.bin`` by its binary version and spec name, a
-    whisper.cpp ggml model by its magic and hyperparameters. Whether the structure is valid is ``static.model_formats``' job."""
+    whisper.cpp ggml model by its magic and hyperparameters. Whether the structure is valid is
+    ``static.model_formats``' job."""
     from ..static import model_formats
 
     if data[4:8] == model_formats.TFLITE_IDENTIFIER:

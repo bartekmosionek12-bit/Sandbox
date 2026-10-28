@@ -258,6 +258,8 @@ def clear(report: dict, calls: list[tuple], uses: list[tuple], globals_at: dict,
         from ..sandbox import validate_boosters
 
         outcome = validate_boosters([(lib, payload) for _, lib, payload in items])
+        if "failed" not in outcome and len(outcome.get("results") or []) != len(items):
+            outcome = {"failed": f"{len(outcome.get('results') or [])} results for {len(items)} payloads"}
         if "failed" in outcome:
             for pair in sorted(candidates):
                 record.append({"item": ".".join(pair), "validated": False,
@@ -265,7 +267,7 @@ def clear(report: dict, calls: list[tuple], uses: list[tuple], globals_at: dict,
             return
         results = outcome["results"]
     for pair in sorted(candidates):
-        mine = [r for (p, _, _), r in zip(items, results) if p == pair]
+        mine = [r for (p, _, _), r in zip(items, results, strict=True) if p == pair]
         bad = [r["invalid"] for r in mine if "invalid" in r]
         if bad:
             record.append({"item": ".".join(pair), "validated": False, "reason": "model bytes refused: " + bad[0]})

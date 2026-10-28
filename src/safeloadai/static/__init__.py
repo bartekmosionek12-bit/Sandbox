@@ -86,7 +86,8 @@ def analyze_bytes(data: bytes, file_name: str = "<memory>", extra_allowed: froze
 def _analyze_bytes(data: bytes, file_name: str, extra_allowed: frozenset) -> dict:
     views = views_mod.find_views(data, file_name)
     views = _openvino_weights(views, data, file_name)
-    primary = views[0] if views and views[0].fmt == detect_mod.OPENVINO_BIN else views_mod.primary_view(views, file_name)
+    primary = (views[0] if views and views[0].fmt == detect_mod.OPENVINO_BIN
+               else views_mod.primary_view(views, file_name))
     report = _analyze_view(primary, data, file_name, extra_allowed)
     report["views"] = [v.describe() for v in views]
     report["_view"] = primary
@@ -370,7 +371,8 @@ def _refused_archive(data: bytes) -> str | None:
 
 
 UNSUPPORTED_REASON = ("unrecognised file format: no pickle, joblib, PyTorch, Keras, HDF5, safetensors, GGUF, "
-                      "NumPy, ONNX, TFLite, Flax msgpack, OpenVINO, Core ML weights, CTranslate2 or whisper.cpp reading of these bytes exists, so nothing "
+                      "NumPy, ONNX, TFLite, Flax msgpack, OpenVINO, Core ML weights, CTranslate2 or whisper.cpp "
+                      "reading of these bytes exists, so nothing "
                       "could be analysed")
 
 

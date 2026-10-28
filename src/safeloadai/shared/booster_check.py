@@ -344,7 +344,7 @@ def _check_tree(tree, index: int, num_feature: int) -> int:
         cats = _ints(tree["categories"], "categories", None, ("l",))
         _need(list(nodes) == sorted(set(nodes)), "categories_nodes not strictly increasing")
         _need([i for i in range(n) if kinds[i] == 1] == list(nodes), "split_type and categories_nodes disagree")
-        for node, begin, size in zip(nodes, segments, sizes):
+        for node, begin, size in zip(nodes, segments, sizes, strict=True):
             _need(0 <= node < n and seen[node] and left[node] != -1, f"categorical node {node} is not a split")
             _need(size > 0 and 0 <= begin and begin + size <= len(cats), f"categories of node {node} out of range")
             _need(all(0 <= c < MAX_CATEGORY for c in cats[begin:begin + size]), f"category of node {node} out of range")
@@ -375,7 +375,7 @@ def _check_gbtree(model, num_feature: int, groups: int) -> tuple[int, int]:
     if "iteration_indptr" in model:
         indptr = _ints(model["iteration_indptr"], "iteration_indptr", None, ("l", "L", "i", "U", "I"))
         _need(indptr and indptr[0] == 0 and indptr[-1] == num_trees
-              and all(a <= b for a, b in zip(indptr, indptr[1:])), "iteration_indptr is not 0..num_trees")
+              and all(a <= b for a, b in zip(indptr, indptr[1:], strict=False)), "iteration_indptr is not 0..num_trees")
     nodes = 0
     for index, tree in enumerate(trees):
         nodes += _check_tree(tree, index, num_feature)
@@ -580,7 +580,7 @@ def _lgb_tree(lines: list[str], index: int, num_features: int) -> int:
         if num_cat:
             _need("cat_boundaries" in kv and "cat_threshold" in kv, f"tree {index} lacks its categories")
             bounds = _lgb_ints(kv["cat_boundaries"], num_cat + 1, "cat_boundaries", 0, 1 << 30)
-            _need(bounds[0] == 0 and all(a <= b for a, b in zip(bounds, bounds[1:])),
+            _need(bounds[0] == 0 and all(a <= b for a, b in zip(bounds, bounds[1:], strict=False)),
                   "cat_boundaries are not increasing from 0")
             _lgb_ints(kv["cat_threshold"], bounds[-1], "cat_threshold", 0, (1 << 32) - 1)
             # A categorical split's threshold is the index of its category set (Tree::CategoricalDecision).
@@ -823,9 +823,10 @@ def check_catboost(data: bytes) -> dict:
         _need(position > last and 0 <= fb.scalar(flat, "<i", -1) < MAX_FEATURES and position < MAX_FEATURES,
               "float feature positions")
         last = position
-        _need(fb.scalar(nan_mode, "<b", 0) in (0, 1, 2) and fb.scalar(has_nans, "<B", 0) in (0, 1), "float feature flags")
+        _need(fb.scalar(nan_mode, "<b", 0) in (0, 1, 2) and fb.scalar(has_nans, "<B", 0) in (0, 1),
+              "float feature flags")
         values = fb.numbers(borders, "f")
-        _need(all(math.isfinite(v) for v in values) and all(a < b for a, b in zip(values, values[1:])),
+        _need(all(math.isfinite(v) for v in values) and all(a < b for a, b in zip(values, values[1:], strict=False)),
               "float feature borders are not increasing")
         fb.string(name)
         bins += len(values)

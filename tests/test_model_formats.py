@@ -445,7 +445,8 @@ def test_const_region_larger_than_its_tensor_is_read_like_openvino():
     xml = _xml('offset="0" size="16"=>offset="0" size="24"')
     report = _static(weights, "openvino_model.bin", _pair(xml=xml))
     assert report["static_risk"] == "clean", report["reasons"]
-    empty = _xml('element_type="f32" shape="1, 4" offset="0" size="16"=>element_type="u8" shape="0" offset="0" size="1"')
+    empty = _xml('element_type="f32" shape="1, 4" offset="0" size="16"'
+                 '=>element_type="u8" shape="0" offset="0" size="1"')
     assert _static(fixture("openvino_model.bin"), "openvino_model.bin", _pair(xml=empty))["static_risk"] == "clean"
     past = _xml('offset="0" size="16"=>offset="0" size="40"')
     assert _static(weights, "openvino_model.bin", _pair(xml=past))["static_risk"] == "suspicious"

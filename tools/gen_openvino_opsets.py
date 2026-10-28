@@ -4,9 +4,10 @@
 
 OpenVINO lists the operators of each opset in ``src/core/include/openvino/opsets/
 opsetN_tbl.hpp`` (one ``_OPENVINO_OP_REG(Type, namespace)`` line per operator, every
-opset complete; the IR writes four of them under another name, ``IR_NAMES``). This tool reads those headers for the pinned release tag (``TAG``) from
-GitHub, or from ``--source DIR`` when they were downloaded before, checks each against its
-recorded sha256 once recorded, and writes ``src/safeloadai/static/upstream/
+opset complete; the IR writes four of them under another name, ``IR_NAMES``). This tool
+reads those headers for the pinned release tag (``TAG``) from GitHub, or from
+``--source DIR`` when they were downloaded before, checks each against its recorded
+sha256 once recorded, and writes ``src/safeloadai/static/upstream/
 openvino_opsets.json``: opset name -> operator types. The OpenVINO IR validator
 (``static/model_formats.py``) accepts a layer only as one of these exact (opset, type)
 pairs; anything else is a custom or extension layer (UNVERIFIABLE).

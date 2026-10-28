@@ -6,8 +6,7 @@ import types
 
 import pytest
 
-from safeloadai import Verdict, scan
-from safeloadai import api
+from safeloadai import Verdict, api, scan
 from safeloadai.static import analyze_bytes, sklearn_loss
 
 MARKER = "SAFELOADAI_TEST_MARKER"

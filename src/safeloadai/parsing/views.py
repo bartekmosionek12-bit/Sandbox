@@ -12,7 +12,9 @@ The readers disagree about where a file starts:
 * ``h5py`` looks for the HDF5 superblock at offset 0, 512, 1024, 2048, ... (a user
   block may come before it);
 * the data-only loaders (safetensors, GGUF, ``numpy.load`` of ``.npy`` / ``.npz`` without
-  pickle) read a header at offset 0; a ``.npz`` is a ZIP archive of ``.npy`` members.
+  pickle) read a header at offset 0; a ``.npz`` is a ZIP archive of ``.npy`` members;
+* the no-code model loaders (ONNX, TFLite, Flax msgpack, OpenVINO IR) read the whole file
+  from offset 0.
 
 So one file can be a valid pickle for one loader and a valid ``.keras`` archive for
 another (a polyglot). ``find_views`` lists every reading that parses, and the scan
@@ -26,6 +28,7 @@ from dataclasses import dataclass
 
 from . import decompress
 from .detect import (
+    COREML_WEIGHTS,
     DATA_ONLY,
     EXTENSION_HINTS,
     GGUF,
@@ -33,14 +36,20 @@ from .detect import (
     HDF5_MAGIC,
     JOBLIB,
     KERAS,
+    MSGPACK,
+    NO_CODE,
     NPY,
     NPZ,
+    ONNX,
+    OPENVINO_XML,
     PICKLE,
     SAFETENSORS,
+    TFLITE,
     TORCH,
     UNKNOWN,
     _looks_like_pickle,
     data_only_format,
+    no_code_format,
 )
 from .zipsafe import ZIP_MAGIC, SafeZip, ZipRefused
 
@@ -107,11 +116,13 @@ def _h5_offsets(size: int):
         offset *= 2
 
 
-def find_views(data: bytes) -> list[View]:
-    """Every valid reading of ``data``, offset-0 readings first."""
+def find_views(data: bytes, file_name: str = "") -> list[View]:
+    """Every valid reading of ``data``, offset-0 readings first. ``file_name`` only decides
+    whether a msgpack map is taken for a Flax checkpoint (it has no magic number)."""
     views: list[View] = []
     zip_view = _zip_view(data)
     data_only = data_only_format(data)
+    no_code = no_code_format(data, file_name) if data_only is None else None
     if decompress.detect(data) is not None:
         # joblib reads exactly one compressed stream; an archive after it is a second reading.
         cut = zip_view.start if zip_view and zip_view.start > 0 else len(data)
@@ -129,13 +140,19 @@ def find_views(data: bytes) -> list[View]:
             break  # h5py uses the first superblock it finds
     if data_only is not None:
         views.append(View(data_only, 0, len(data), _DATA_LOADERS[data_only]))
+    if no_code is not None:
+        views.append(View(no_code, 0, len(data), _DATA_LOADERS[no_code]))
     if zip_view is not None:
         views.append(zip_view)
     return views
 
 
 _DATA_LOADERS = {SAFETENSORS: "safetensors (header at offset 0)", GGUF: "gguf / llama.cpp (magic at offset 0)",
-                 NPY: "numpy.load (allow_pickle=False)"}
+                 NPY: "numpy.load (allow_pickle=False)", ONNX: "onnx.load / onnxruntime (protobuf at offset 0)",
+                 TFLITE: "tf.lite.Interpreter (flatbuffer at offset 0)",
+                 MSGPACK: "flax.serialization.msgpack_restore (msgpack at offset 0)",
+                 OPENVINO_XML: "openvino.Core.read_model (XML)",
+                 COREML_WEIGHTS: "Core ML runtime (MIL blob storage at offset 0)"}
 
 
 # The view a loader picked by file extension reads first.
@@ -143,8 +160,9 @@ _EXTENSION_ORDER = {
     ".pkl": (JOBLIB, PICKLE), ".pickle": (JOBLIB, PICKLE), ".joblib": (JOBLIB, PICKLE),
     ".keras": (KERAS,), ".h5": (H5,), ".hdf5": (H5,),
     ".safetensors": (SAFETENSORS,), ".gguf": (GGUF,), ".npy": (NPY,), ".npz": (NPZ,),
+    ".onnx": (ONNX,), ".tflite": (TFLITE,), ".msgpack": (MSGPACK,), ".xml": (OPENVINO_XML,),
 }
-_DEFAULT_ORDER = (H5, KERAS, TORCH, JOBLIB, PICKLE, *DATA_ONLY, ZIP)
+_DEFAULT_ORDER = (H5, KERAS, TORCH, JOBLIB, PICKLE, *DATA_ONLY, *NO_CODE, ZIP)
 
 
 def primary_view(views: list[View], file_name: str) -> View | None:

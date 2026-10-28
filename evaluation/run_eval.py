@@ -64,9 +64,9 @@ from fetch_benign_hf import split_of  # noqa: E402
 from guard import activate  # noqa: E402
 
 from safeloadai import __version__, override, scan  # noqa: E402
-from safeloadai.parsing.detect import EXTENSION_HINTS  # noqa: E402
+from safeloadai.parsing.detect import SCAN_EXTENSIONS  # noqa: E402
 
-MODEL_EXTENSIONS = tuple(EXTENSION_HINTS)
+MODEL_EXTENSIONS = SCAN_EXTENSIONS
 # Columns next to the default run (each a result per file, like another tool):
 # * UPPER_BOUND: every UNVERIFIABLE item accepted (accept_unverified for all of them). An
 #   upper bound on what overrides can do, not a recommendation: it lets malicious lab
@@ -95,7 +95,8 @@ TOOLS = {
 SKIP = {("modelscan", ".h5"): "modelscan reads .h5 with h5py on the host"}
 EXT_FORMAT = {".pkl": "pickle", ".pickle": "pickle", ".joblib": "joblib", ".pt": "torch", ".pth": "torch",
               ".bin": "torch", ".keras": "keras", ".h5": "h5", ".hdf5": "h5", ".safetensors": "safetensors",
-              ".gguf": "gguf", ".npy": "numpy", ".npz": "numpy"}
+              ".gguf": "gguf", ".npy": "numpy", ".npz": "numpy", ".onnx": "onnx", ".tflite": "tflite",
+              ".msgpack": "msgpack", ".xml": "openvino"}
 
 
 def _files(directory: str) -> list[str]:
@@ -147,6 +148,8 @@ def load_entries(lab: str | None, hf: str | None, benign: list[str], mutations: 
                             "library": item.get("stratum") or item.get("library") or item["format"],
                             "hub_scan": item.get("hub_scan", "unknown"), "repo_id": item["repo_id"],
                             "revision": item["revision"], "sha256": item["sha256"], "size": item["size"]})
+            if item.get("companions"):  # files a loader reads beside it (0.10.0: an OpenVINO .xml)
+                entries[-1]["companions"] = [{k: c[k] for k in ("file", "sha256", "size")} for c in item["companions"]]
             label, reason = reviewed.get((item["repo_id"], item["filename"]), ("benign", None))
             if label != "benign":  # a scanner test file the benign discovery picked up
                 entries[-1].update(label=label, label_reason=reason,

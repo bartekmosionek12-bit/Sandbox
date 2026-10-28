@@ -8,6 +8,9 @@ production scans use the pickle and keras tasks.
 ``h5_meta``: reads the metadata of a legacy Keras HDF5 file with the shared
 ``hdf5_meta`` reader and sends the root attributes back in chunks. No code from
 the file runs here; the reader only parses bytes.
+``booster_check``: validates the model bytes of gradient-boosting Boosters with the
+shared ``booster_check`` module (``--validate-boosters``) and records one result per
+item. Nothing is loaded; the validator only parses bytes.
 """
 import base64
 import os
@@ -42,6 +45,8 @@ def run(task, record):
         emulate.run_keras_lambda(task, record)
     elif kind == "h5_meta":
         _h5_meta(task, record)
+    elif kind == "booster_check":
+        _booster_check(task, record)
     else:
         raise ValueError("unknown task kind: " + repr(kind))
 
@@ -65,3 +70,23 @@ def _h5_meta(task, record):
                    data=base64.b64encode(value[start:start + H5_CHUNK]).decode("ascii"))
     meta["sizes"] = sizes
     record("h5_meta", meta=meta)
+
+
+def _booster_check(task, record):
+    import booster_check
+
+    for index, item in enumerate(task["items"]):
+        with open("/in/artefacts/" + item["file"], "rb") as fh:
+            payload = fh.read()
+        if item["library"] == "lightgbm":
+            try:
+                payload = payload.decode("utf-8")
+            except UnicodeDecodeError:
+                record("booster", index=index, invalid="the model string is not UTF-8")
+                continue
+        try:
+            summary = booster_check.check(item["library"], payload)
+        except booster_check.Invalid as exc:
+            record("booster", index=index, invalid=str(exc)[:500])
+        else:
+            record("booster", index=index, summary=summary)

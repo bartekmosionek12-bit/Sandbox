@@ -7,6 +7,7 @@ anomaly or dangerous call, and nothing found by the optional layers.
 """
 from __future__ import annotations
 
+import dataclasses
 import hashlib
 import os
 import time
@@ -101,8 +102,8 @@ def emulation_layer(data: bytes, parser_report: dict, extra_allowed: frozenset,
                                reasons=["no executable content in the Keras config; nothing to emulate"])
         return behaviour.classify(emulate_keras_lambdas(lambdas, limits=limits))
     layer = LayerResult(name="emulation", verdict=Verdict.CLEAN, ran=False)
-    if fmt in detect_mod.DATA_ONLY:
-        layer.reasons.append("nothing to emulate: a data-only format runs no code on load")
+    if fmt in detect_mod.DATA_ONLY or fmt in detect_mod.NO_CODE:
+        layer.reasons.append("nothing to emulate: the format runs no code on load")
         return layer
     if parser_report.get("unsupported"):
         layer.reasons.append("nothing to emulate: the file is in no supported format (UNSUPPORTED)")
@@ -189,7 +190,8 @@ def _judge_layer(parser_report: dict, emulation: LayerResult) -> LayerResult | N
 def scan(path: str | os.PathLike, *, judge: bool = False, deep: bool = False,
          allow: Iterable[tuple[str, str]] = (), limits: Limits | None = None,
          progress: Progress = None, option_sources: Mapping[str, str] | None = None,
-         trust_inert_from: Iterable[str] = (), known_good: bool = True) -> Report:
+         trust_inert_from: Iterable[str] = (), known_good: bool = True,
+         validate_boosters: bool = False) -> Report:
     """Scan one model file. Never deserialises it on the host.
 
     Every keyword defaults to the strictest behaviour (docs/OPTIONS.md). Non-default
@@ -204,10 +206,14 @@ def scan(path: str | os.PathLike, *, judge: bool = False, deep: bool = False,
     try:
         allow = options_mod.validate_allow(allow)
         trust_inert_from = options_mod.validate_trust_inert_from(trust_inert_from)
+        if not isinstance(validate_boosters, bool):
+            raise options_mod.OptionError(f"validate_boosters must be True or False, got {validate_boosters!r}")
         used_options = options_mod.scan_options(allow=allow, judge=judge, deep=deep, limits=limits,
                                                 sources=option_sources, trust_inert_from=trust_inert_from,
-                                                known_good=known_good)
+                                                known_good=known_good, validate_boosters=validate_boosters)
         trust = clearance_mod.for_distributions(trust_inert_from)
+        if validate_boosters:
+            trust = dataclasses.replace(trust, validate_boosters=True, _cache={})
     except options_mod.OptionError as exc:
         return error_report(path, errors.error("E501", str(exc)))
     extra_allowed = frozenset(allow)
@@ -274,7 +280,8 @@ def _scan(path: str, *, judge: bool, deep: bool, extra_allowed: frozenset, limit
     step("static analysis")
     t = time.perf_counter()
     try:
-        parser_report = static_mod.analyze_bytes(data, os.path.basename(path), extra_allowed)
+        with static_mod.companions(static_mod.read_companions(path)):
+            parser_report = static_mod.analyze_bytes(data, os.path.basename(path), extra_allowed)
     except RuntimeIntegrityError:
         raise
     except Exception as exc:  # noqa: BLE001 - a bug in safeloadai fails closed as a tool error
@@ -323,7 +330,7 @@ def _scan(path: str, *, judge: bool, deep: bool, extra_allowed: frozenset, limit
 
     status, final, reasons, findings, category, tool_errors = settle(layers)
     if final is Verdict.CLEAN and parser_report.get("data_only") and not extra_views:
-        reasons = [data_formats.DATA_ONLY_REASON]
+        reasons = [parser_report.get("clean_reason") or data_formats.DATA_ONLY_REASON]
     timings["total"] = _ms(started)
     return Report(path=path, file_name=os.path.basename(path), sha256=sha256, size=size,
                   file_format=file_format, verdict=final, reasons=reasons, layers=layers,

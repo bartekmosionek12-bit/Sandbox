@@ -86,3 +86,51 @@ def read_h5_metadata(data: bytes, *, limits: Limits | None = None, reader_limits
     meta["values"] = values
     meta["timings_ms"] = run.timings_ms
     return meta
+
+
+# The booster validator walks every byte in Python: measured on the tune samples (up to
+# 51 MB of xgboost JSON) at well under this per byte; a payload over the ceiling stays
+# UNVERIFIABLE (the validation "failed", never "valid").
+BOOSTER_FUEL_PER_BYTE = 4096
+BOOSTER_MEMORY_PER_BYTE = 24
+
+
+def validate_boosters(items: list[tuple[str, bytes]], *, limits: Limits | None = None) -> dict:
+    """Validate Booster model bytes INSIDE the sandbox (``--validate-boosters``).
+
+    ``items`` are (library, payload) pairs. Returns ``{"results": [...]}`` with one
+    ``{"summary": ...}`` or ``{"invalid": reason}`` per item, or ``{"failed": reason}``
+    when the validator itself did not finish cleanly (then nothing counts as valid)."""
+    from .host import MAX_FUEL, MAX_GUEST_MEMORY, MAX_WALL_SECONDS
+
+    artefacts = {f"booster{i}.bin": payload for i, (_, payload) in enumerate(items)}
+    task = {"kind": "booster_check",
+            "items": [{"file": f"booster{i}.bin", "library": library} for i, (library, _) in enumerate(items)]}
+    if limits is None:
+        base = Limits()
+        size = sum(len(p) for _, p in items)
+        fuel = min(MAX_FUEL, base.fuel + BOOSTER_FUEL_PER_BYTE * size)
+        limits = Limits(fuel=fuel, wall_seconds=min(MAX_WALL_SECONDS, base.wall_seconds * fuel / base.fuel),
+                        memory_bytes=min(MAX_GUEST_MEMORY, base.memory_bytes + BOOSTER_MEMORY_PER_BYTE * size))
+    run = run_guest(task, artefacts, limits)
+    if run.tampered:
+        return {"failed": "evidence channel tampered with during the booster validation", "tampered": True}
+    failure = errors.guest_error(run.status, run.problems, layer="static")
+    if failure is not None:
+        return {"failed": failure["message"], "tool_error": failure}
+    anomalies = [e for e in run.events if e.get("kind") == "anomaly"]
+    if anomalies:
+        detail = "; ".join(f"{a.get('error')}: {a.get('detail')}" for a in anomalies[:3])
+        return {"failed": "booster validator raised: " + detail, "tool_error": errors.error("E203", detail)}
+    if not run.completed:
+        return {"failed": "booster validator did not complete: " + "; ".join(run.problems[:5])}
+    results = [e for e in run.events if e.get("kind") == "booster"]
+    if [r.get("index") for r in results] != list(range(len(items))):
+        return {"failed": f"booster validator sent {len(results)} results for {len(items)} items"}
+    out = []
+    for r in results:
+        if isinstance(r.get("summary"), dict) and "invalid" not in r:
+            out.append({"summary": r["summary"]})
+        else:
+            out.append({"invalid": str(r.get("invalid") or "no summary")})
+    return {"results": out, "timings_ms": run.timings_ms}

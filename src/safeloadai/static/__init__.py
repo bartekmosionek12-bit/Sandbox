@@ -5,7 +5,10 @@ metadata is read inside the WASI sandbox (``sandbox.read_h5_metadata``) and only
 the JSON it returns is analysed here."""
 from __future__ import annotations
 
+import contextlib
+import contextvars
 import dataclasses
+import hashlib
 import os
 
 from .. import errors
@@ -13,13 +16,51 @@ from ..parsing import decompress
 from ..parsing import detect as detect_mod
 from ..parsing import views as views_mod
 from . import budget as budget_mod
-from . import data_formats
+from . import data_formats, model_formats
 from .h5_static import parse_h5_metadata
 from .keras_static import parse_keras
 from .pickle_static import parse_pickle
 from .torch_static import parse_torch_zip
 
 MAX_FILE_BYTES = 4 * 1024 * 1024 * 1024
+
+
+# Files a loader reads next to the scanned one (0.10.0): the model directory (ONNX external
+# data) and the OpenVINO .xml of a .bin or the .bin of an .xml. Set by ``companions``.
+_COMPANIONS: contextvars.ContextVar[dict | None] = contextvars.ContextVar("safeloadai_companions", default=None)
+
+
+def read_companions(path: str) -> dict:
+    """What a loader of ``path`` reads beside it: ``dir``, and for an OpenVINO IR the other
+    file of the pair (``xml``: name, bytes and sha256 of the .xml beside a .bin; ``bin``:
+    name, bytes and sha256 of the .bin beside an .xml). A link, a missing file or one over
+    the size limit is left out (the scan then sees no pair)."""
+    directory = os.path.dirname(os.path.abspath(path))
+    stem, ext = os.path.splitext(path)
+    out: dict = {"dir": directory}
+    other = {".bin": (".xml", "xml", model_formats.MAX_COMPANION_BYTES),
+             ".xml": (".bin", "bin", MAX_FILE_BYTES)}.get(ext.lower())
+    if other is None:
+        return out
+    for suffix in dict.fromkeys((other[0], other[0].upper())):
+        candidate = stem + suffix
+        if os.path.isfile(candidate) and not os.path.islink(candidate) and os.path.getsize(candidate) <= other[2]:
+            with open(candidate, "rb") as fh:
+                raw = fh.read(other[2] + 1)
+            if len(raw) <= other[2]:
+                out[other[1]] = {"name": os.path.basename(candidate), "data": raw,
+                                 "sha256": hashlib.sha256(raw).hexdigest()}
+            break
+    return out
+
+
+@contextlib.contextmanager
+def companions(found: dict | None):
+    token = _COMPANIONS.set(found)
+    try:
+        yield
+    finally:
+        _COMPANIONS.reset(token)
 
 
 def analyze_bytes(data: bytes, file_name: str = "<memory>", extra_allowed: frozenset = frozenset()) -> dict:
@@ -43,13 +84,14 @@ def analyze_bytes(data: bytes, file_name: str = "<memory>", extra_allowed: froze
 
 
 def _analyze_bytes(data: bytes, file_name: str, extra_allowed: frozenset) -> dict:
-    views = views_mod.find_views(data)
-    primary = views_mod.primary_view(views, file_name)
+    views = views_mod.find_views(data, file_name)
+    views = _openvino_weights(views, data, file_name)
+    primary = views[0] if views and views[0].fmt == detect_mod.OPENVINO_BIN else views_mod.primary_view(views, file_name)
     report = _analyze_view(primary, data, file_name, extra_allowed)
     report["views"] = [v.describe() for v in views]
     report["_view"] = primary
     others = [v for v in views if v is not primary]
-    if others and report.get("data_only") and report["static_risk"] == "clean":
+    if others and report.get("data_only") and _only_unverifiable(report):
         views, others = _drop_accidental(views, others, data, file_name, extra_allowed, report)
     if others:
         listed = ", ".join(f"{v.fmt} at offset {v.start} ({v.loader})" for v in views)
@@ -70,6 +112,30 @@ def _analyze_bytes(data: bytes, file_name: str, extra_allowed: frozenset) -> dic
     if report["reasons"] and report["static_risk"] == "clean":
         report["static_risk"] = "suspicious"
     return report
+
+
+def _only_unverifiable(report: dict) -> bool:
+    """A valid data-only or no-code reading: CLEAN, or blocked only by UNVERIFIABLE operators."""
+    if report["static_risk"] == "clean":
+        return True
+    return (report["static_risk"] == "suspicious" and not report.get("error")
+            and set(report["reasons"]) <= set(report.get("unverifiable") or {}))
+
+
+def _openvino_weights(views: list, data: bytes, file_name: str) -> list:
+    """A ``.bin`` with an OpenVINO ``.xml`` beside it is also the weights reading of that IR.
+    It comes first when the only other readings are offset-0 pickle or joblib readings
+    (raw weights decode as a few pickle opcodes by chance; ``_drop_accidental`` keeps them
+    when they import anything); next to any other reading it is one reading among several."""
+    found = _COMPANIONS.get() or {}
+    xml = found.get("xml")
+    if not file_name.lower().endswith(".bin") or not xml or not model_formats.looks_like_openvino_xml(xml["data"]):
+        return views
+    weights = views_mod.View(detect_mod.OPENVINO_BIN, 0, len(data),
+                             f"openvino.Core.read_model ({xml['name']} beside it)")
+    if all(v.start == 0 and v.fmt in (detect_mod.PICKLE, detect_mod.JOBLIB) for v in views):
+        return [weights, *views]
+    return [*views, weights]
 
 
 # Opcodes through which pickle.load imports (and so can later call) anything chosen by the
@@ -148,6 +214,8 @@ def _read_view(view, fmt: str, data: bytes, file_name: str, extra_allowed: froze
         return report
     if fmt in detect_mod.DATA_ONLY:
         return _data_only(part, fmt, file_name)
+    if fmt in detect_mod.NO_CODE:
+        return _no_code(part, fmt, file_name)
     report = parse_pickle(b"", file_name, file_format=detect_mod.UNKNOWN)
     refused = _refused_archive(data) if view is None else None
     if refused:
@@ -200,6 +268,63 @@ def _data_only(data: bytes, fmt: str, file_name: str) -> dict:
     return report
 
 
+def _no_code(data: bytes, fmt: str, file_name: str) -> dict:
+    """A reading in a model format that runs no code (static/model_formats.py): CLEAN when the
+    structure is exactly what the format allows and every operator is standard, RISKY for
+    any inconsistency, UNVERIFIABLE (naming the domain or operator) for custom operators."""
+    report = parse_pickle(b"", file_name, file_format=fmt)
+    report["reasons"] = []
+    report["data_only"] = True
+    report["clean_reason"] = model_formats.NO_CODE_REASON
+    found = _COMPANIONS.get() or {}
+    try:
+        facts = _check_no_code(data, fmt, found, report)
+    except data_formats.Invalid as exc:
+        reason = f"invalid {fmt} structure: {exc}"
+        report.update(static_risk="suspicious", reasons=[reason], error=reason)
+        return report
+    report["data_format"] = facts
+    report["static_risk"] = "clean"
+    for item in facts.pop("unverifiable", []):
+        report["reasons"].append(item.reason)
+        report["unverifiable"][item.reason] = {"item": item.item, "explanation": item.explanation}
+        report["static_risk"] = "suspicious"
+    for reason in facts.pop("risky", []):
+        report["reasons"].append(reason)
+        report["static_risk"] = "suspicious"
+    report["notes"].append(f"{model_formats.NO_CODE_REASON} ({model_formats.LOADERS[fmt]})")
+    return report
+
+
+def _check_no_code(data: bytes, fmt: str, found: dict, report: dict) -> dict:
+    if fmt == detect_mod.ONNX:
+        return model_formats.check_onnx(data, found.get("dir"))
+    if fmt == detect_mod.OPENVINO_BIN:
+        xml = found["xml"]
+        report["companions"] = [{"file": xml["name"], "sha256": xml["sha256"], "role": "OpenVINO IR (.xml)"}]
+        try:
+            facts = model_formats.check_openvino_xml(xml["data"], len(data))
+        except data_formats.Invalid as exc:
+            raise data_formats.Invalid(f"{xml['name']}: {exc}") from None
+        report["notes"].append(f"weights of {xml['name']} (sha256 {xml['sha256']}): OpenVINO reads only the "
+                               "ranges its Const layers name")
+        return facts
+    if fmt == detect_mod.OPENVINO_XML:
+        weights = found.get("bin")
+        facts = model_formats.check_openvino_xml(data, len(weights["data"]) if weights else None)
+        facts["risky"] = []
+        if weights:
+            report["companions"] = [{"file": weights["name"], "sha256": weights["sha256"],
+                                     "role": "OpenVINO weights (.bin)"}]
+            readings = views_mod.find_views(weights["data"], weights["name"])
+            if readings:
+                listed = ", ".join(f"{v.fmt} at offset {v.start}" for v in readings)
+                facts["risky"].append(f"the weights file {weights['name']} is also readable as {listed}; "
+                                      f"scan {weights['name']} itself")
+        return facts
+    return model_formats.CHECKS[fmt](data)
+
+
 def _refused_archive(data: bytes) -> str | None:
     from ..parsing.zipsafe import ZIP_MAGIC, SafeZip, ZipRefused
 
@@ -212,8 +337,9 @@ def _refused_archive(data: bytes) -> str | None:
         return str(exc) or "invalid archive"
 
 
-UNSUPPORTED_REASON = ("unrecognised file format: no pickle, joblib, PyTorch, Keras, HDF5, safetensors, GGUF or "
-                      "NumPy reading of these bytes exists, so nothing could be analysed")
+UNSUPPORTED_REASON = ("unrecognised file format: no pickle, joblib, PyTorch, Keras, HDF5, safetensors, GGUF, "
+                      "NumPy, ONNX, TFLite, Flax msgpack, OpenVINO or Core ML weights reading of these bytes exists, so nothing "
+                      "could be analysed")
 
 
 MAX_TRAILING_VIEWS = 16
@@ -293,6 +419,11 @@ def _parse_compressed_joblib(data: bytes, file_name: str, extra_allowed: frozens
 
 def analyze_file(path: str | os.PathLike, extra_allowed: frozenset = frozenset()) -> dict:
     path = os.fspath(path)
+    with companions(read_companions(path)):
+        return _analyze_file(path, extra_allowed)
+
+
+def _analyze_file(path: str, extra_allowed: frozenset) -> dict:
     size = os.path.getsize(path)
     if size > MAX_FILE_BYTES:
         report = parse_pickle(b"", os.path.basename(path), file_format="unknown")

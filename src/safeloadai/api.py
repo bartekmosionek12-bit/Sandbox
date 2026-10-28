@@ -239,7 +239,7 @@ def safe_load(path: str | os.PathLike, *, judge: bool = False, deep: bool = Fals
               allow: Iterable[tuple[str, str]] = (),
               accept_unverified: Iterable[str] | Mapping[str, Iterable[str]] | None = None,
               trust_inert_from: Iterable[str] = (), known_good: bool = True,
-              **loader_kwargs) -> Any:
+              validate_boosters: bool = False, **loader_kwargs) -> Any:
     """Load ``path`` only if ``scan`` says CLEAN, or SUSPICIOUS with only UNVERIFIABLE
     reasons that ``accept_unverified`` names one by one; otherwise raise UnsafeModelError.
 
@@ -251,7 +251,7 @@ def safe_load(path: str | os.PathLike, *, judge: bool = False, deep: bool = Fals
     name = os.path.basename(os.fspath(path))
     with _private_copy(path) as staged:
         report = scan(staged, judge=judge, deep=deep, allow=allow, trust_inert_from=trust_inert_from,
-                      known_good=known_good)
+                      known_good=known_good, validate_boosters=validate_boosters)
         if not report.clean:
             items = override.items_for(report, accept_unverified)
             if items is not None:

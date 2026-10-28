@@ -8,8 +8,8 @@
 # Extra options go in "args" (for example [--config, safeloadai.toml]); each is announced.
 - id: safeloadai
   name: safeloadai model scan
-  description: Scan pickle, joblib, PyTorch, Keras, HDF5, safetensors, GGUF and NumPy model files without loading them.
+  description: Scan pickle, joblib, PyTorch, Keras, HDF5, safetensors, GGUF, NumPy, ONNX, TFLite, Flax msgpack and OpenVINO model files without loading them.
   entry: safeloadai scan --no-input
   language: python
-  files: '(?i)\.(pkl|pickle|joblib|pt|pth|bin|keras|h5|hdf5|safetensors|gguf|npy|npz)$'
+  files: '(?i)\.(pkl|pickle|joblib|pt|pth|bin|keras|h5|hdf5|safetensors|gguf|npy|npz|onnx|tflite|msgpack)$'
   require_serial: true

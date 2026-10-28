@@ -27,6 +27,16 @@ GGUF = "gguf"
 NPY = "npy"
 NPZ = "npz"
 DATA_ONLY = (SAFETENSORS, GGUF, NPY, NPZ)
+# Model formats that run no code on load (0.10.0, static/model_formats.py): they name
+# operators, not Python objects. An OpenVINO .bin holds raw weights and is read only
+# through the .xml beside it.
+ONNX = "onnx"
+TFLITE = "tflite"
+MSGPACK = "msgpack"
+OPENVINO_XML = "openvino-xml"
+OPENVINO_BIN = "openvino-bin"
+COREML_WEIGHTS = "coreml-weights"
+NO_CODE = (ONNX, TFLITE, MSGPACK, OPENVINO_XML, OPENVINO_BIN, COREML_WEIGHTS)
 
 GGUF_MAGIC = b"GGUF"
 NPY_MAGIC = b"\x93NUMPY"
@@ -38,7 +48,7 @@ EXTENSION_HINTS = {
     ".joblib": {PICKLE, JOBLIB},
     ".pt": {TORCH, PICKLE},
     ".pth": {TORCH, PICKLE},
-    ".bin": {TORCH, PICKLE},
+    ".bin": {TORCH, PICKLE, OPENVINO_BIN, COREML_WEIGHTS},
     ".keras": {KERAS},
     ".h5": {H5},
     ".hdf5": {H5},
@@ -46,9 +56,16 @@ EXTENSION_HINTS = {
     ".gguf": {GGUF},
     ".npy": {NPY},
     ".npz": {NPZ},
+    ".onnx": {ONNX},
+    ".tflite": {TFLITE},
+    ".msgpack": {MSGPACK},
+    ".xml": {OPENVINO_XML},
 }
 
 SUPPORTED_EXTENSIONS = tuple(EXTENSION_HINTS)
+# What a directory scan picks up: an OpenVINO .xml is checked with its .bin (and a
+# directory holds many .xml files that are no model).
+SCAN_EXTENSIONS = tuple(e for e in EXTENSION_HINTS if e != ".xml")
 
 
 # The unpickler does not check that an opcode belongs to the stream's protocol, and a
@@ -99,6 +116,27 @@ def data_only_format(data: bytes) -> str | None:
         n = int.from_bytes(data[:8], "little")
         if 2 <= n <= SAFETENSORS_MAX_HEADER and 8 + n <= len(data) and data[8:9] == b"{":
             return SAFETENSORS
+    return None
+
+
+def no_code_format(data: bytes, file_name: str = "") -> str | None:
+    """The no-code model format these bytes start with, or None: TFLite by its file
+    identifier, ONNX by a ModelProto header, an OpenVINO IR by its ``<net>`` root, a Flax
+    msgpack checkpoint by a msgpack map when the name ends in ``.msgpack`` (a msgpack map
+    has no magic number), a Core ML ``weight.bin`` by its version-2 storage header and
+    the first blob's sentinel. Whether the structure is valid is ``static.model_formats``' job."""
+    from ..static import model_formats
+
+    if data[4:8] == model_formats.TFLITE_IDENTIFIER:
+        return TFLITE
+    if model_formats.looks_like_onnx(data):
+        return ONNX
+    if model_formats.looks_like_openvino_xml(data):
+        return OPENVINO_XML
+    if model_formats.looks_like_coreml_weights(data):
+        return COREML_WEIGHTS
+    if file_name.lower().endswith(".msgpack") and data[:1] and (0x80 <= data[0] <= 0x8F or data[0] in (0xDE, 0xDF)):
+        return MSGPACK
     return None
 
 

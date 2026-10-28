@@ -138,6 +138,17 @@ def candidate_files(info, wanted: str, max_bytes: int, prefer: tuple[str, ...],
     return out[:MAX_FILES_PER_REPO]
 
 
+# A loader reads these files next to the weights file (0.10.0): the OpenVINO IR .xml of a
+# .bin. They are fetched from the same commit when the repo has them, recorded in the
+# manifest under ``companions`` and never scanned as files of their own.
+COMPANION_MAX_BYTES = 256 * 1024 * 1024
+
+
+def companion_names(name: str) -> list[str]:
+    stem, ext = os.path.splitext(name)
+    return [stem + ".xml"] if ext.lower() == ".bin" else []
+
+
 def download(api_module, out: str, repo_id: str, revision: str, name: str, lfs_sha: str | None) -> dict:
     target_dir = os.path.join(out, "files", repo_id.replace("/", "__"))
     path = api_module.hf_hub_download(repo_id=repo_id, filename=name, revision=revision, local_dir=target_dir)
@@ -145,7 +156,26 @@ def download(api_module, out: str, repo_id: str, revision: str, name: str, lfs_s
     if lfs_sha and digest != lfs_sha:
         os.remove(path)
         raise ValueError(f"sha256 {digest} does not match the Hub's LFS sha256 {lfs_sha}")
-    return {"path": os.path.relpath(path, out), "size": os.path.getsize(path), "sha256": digest}
+    result = {"path": os.path.relpath(path, out), "size": os.path.getsize(path), "sha256": digest}
+    companions = [c for c in (_companion(api_module, out, target_dir, repo_id, revision, n)
+                              for n in companion_names(name)) if c]
+    if companions:
+        result["companions"] = companions
+    return result
+
+
+def _companion(api_module, out: str, target_dir: str, repo_id: str, revision: str, name: str) -> dict | None:
+    try:
+        path = api_module.hf_hub_download(repo_id=repo_id, filename=name, revision=revision, local_dir=target_dir)
+    except Exception as exc:  # noqa: BLE001 - most .bin files have no .xml (EntryNotFoundError)
+        if type(exc).__name__ not in ("EntryNotFoundError", "RemoteEntryNotFoundError"):
+            print(f"{repo_id}/{name}: companion not fetched ({type(exc).__name__})", file=sys.stderr)
+        return None
+    if os.path.getsize(path) > COMPANION_MAX_BYTES:
+        os.remove(path)
+        return None
+    return {"file": name, "path": os.path.relpath(path, out), "size": os.path.getsize(path),
+            "sha256": sha256_file(path)}
 
 
 def split_of(repo_id: str) -> str:

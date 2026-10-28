@@ -53,6 +53,10 @@ OPTIONS: tuple[Option, ...] = (
            "experimental: treat classes of the named installed distributions as state-only when their installed "
            "source says so (read with ast, never imported)",
            "trust_inert_from", "--trust-inert-from DISTRIBUTION", config=True),
+    Option("validate_boosters", False, "looser", "medium",
+           "accept a pickled XGBoost, LightGBM or CatBoost Booster when its model bytes pass a strict structural "
+           "validator run in the WASI sandbox (the native parser still reads them when the file is loaded)",
+           "validate_boosters", "--validate-boosters", config=True),
     Option("known_good", True, "stricter", "low",
            "use the shipped list of reviewed benign files (exact sha256); turning it off only makes verdicts stricter",
            "known_good", "--no-known-good", config=True),
@@ -111,12 +115,13 @@ def record(name: str, value, source: str) -> dict:
 
 
 def scan_options(*, allow, judge: bool, deep: bool, limits, sources: Mapping[str, str] | None,
-                 trust_inert_from=(), known_good: bool = True) -> list[dict]:
+                 trust_inert_from=(), known_good: bool = True, validate_boosters: bool = False) -> list[dict]:
     """Report.options entries for the non-default scan() arguments, plus environment
     settings that change how an enabled option runs."""
     sources = sources or {}
     out = []
-    for name, value in (("allow", allow), ("trust_inert_from", trust_inert_from), ("known_good", known_good),
+    for name, value in (("allow", allow), ("trust_inert_from", trust_inert_from),
+                        ("validate_boosters", validate_boosters), ("known_good", known_good),
                         ("deep", deep), ("judge", judge), ("limits", limits)):
         if not is_default(name, value):
             out.append(record(name, value, sources.get(name, ARGUMENT)))
@@ -171,7 +176,7 @@ def validate_trust_inert_from(names: Iterable[str]) -> tuple[str, ...]:
 # --- config file -----------------------------------------------------------------------
 
 CONFIG_KEYS = {"allow": list, "accept_unverified": list, "deep": bool, "judge": bool, "trust_inert_from": list,
-               "known_good": bool}
+               "known_good": bool, "validate_boosters": bool}
 
 
 def load_config(path: str | os.PathLike) -> dict:

@@ -298,8 +298,13 @@ def parse_pickle(data: bytes, file_name: str = "<memory>", *, torch: bool = Fals
     index_ref = [0]
     on_opcode, on_import = _recorders(report, index_ref)
     calls: list[tuple] = []
+    record_call = calls.append
+    if clearance.validate_boosters:
+        from . import boosters
+
+        record_call = boosters.recorder(calls)
     machine = Machine(data, joblib=joblib, on_import=on_import, on_opcode=on_opcode,
-                      on_call=lambda *call: calls.append(call), max_opcodes=MAX_OPCODES)
+                      on_call=lambda *call: record_call(call), max_opcodes=MAX_OPCODES)
     try:
         while machine.stream.tell() < len(data):
             if index_ref[0] >= MAX_PICKLES:
@@ -362,6 +367,8 @@ def parse_pickle(data: bytes, file_name: str = "<memory>", *, torch: bool = Fals
             extra = {(i["module"], i["symbol"]): ("torch-weights-only", detail) for i in report["imports"]}
     if not report["error"] and depth == 0:
         _profile(report, file_name if profile_name is None else profile_name, machine, calls, legacy_torch, extra)
+    if clearance.validate_boosters and not report["error"]:
+        boosters.clear(report, calls, machine.uses, machine.globals, extra, record_call.states)
     report["raw_disasm"] = _disasm(data)
     _score(report, allow, torch, clearance, machine.globals, used, extra)
     return report

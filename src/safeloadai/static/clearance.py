@@ -54,6 +54,8 @@ class Clearance:
 
     installed: dict[str, tuple] = field(default_factory=dict)
     _cache: dict = field(default_factory=dict)
+    # --validate-boosters: clear Boosters whose model bytes pass shared/booster_check.py
+    validate_boosters: bool = False
 
     def state_only(self, pair: tuple[str, str]) -> tuple[str, str] | None:
         """(mechanism, detail) when ``pair`` is a state-only class, else None."""

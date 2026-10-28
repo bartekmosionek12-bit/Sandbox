@@ -73,8 +73,12 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.dirname(HERE)
 SPLIT = "heldout2"
 # Splits planned here (repos no earlier corpus used). A file the Hub flags is ``unclear`` in
-# them until reviewed. tune2 may be read for allowlist work; heldout2 never.
-NEW_SPLITS = (SPLIT, "tune2")
+# them until reviewed. tune2 may be read for allowlist work; heldout2 and heldout3 never.
+NEW_SPLITS = (SPLIT, "tune2", "heldout3")
+# held-out-3 (0.10.0) is blind: nothing per file is read before the final measurement, so a
+# file the Hub flags stays unclear (its Hub evidence is not reviewed) and only aggregates leave
+# the working directory.
+BLIND_SPLITS = frozenset({"heldout3"})
 DOWNLOAD_THREADS = 8
 LISTING_EXPAND = ["siblings", "sha", "gated", "private", "downloads"]
 FLAGGED_LEVELS = frozenset({"unsafe", "suspicious", "caution", "error", "issue"})
@@ -96,7 +100,7 @@ def _append(path: str, entry: dict) -> None:
 def used_repos(work: str) -> set[str]:
     """Every repo an earlier corpus used: the split lists, committed results, hf-malicious."""
     repos: set[str] = set()
-    for name in ("hf-tune.txt", "hf-heldout.txt", "hf-tune2.txt"):
+    for name in ("hf-tune.txt", "hf-heldout.txt", "hf-tune2.txt", "hf-heldout3.txt"):
         path = os.path.join(HERE, "splits", name)
         if os.path.exists(path):
             with open(path, encoding="utf-8") as fh:
@@ -307,7 +311,7 @@ def batches(entries: list[dict], max_files: int, max_bytes: int) -> list[list[di
 
 def run(work: str, which: str, max_files: int, max_gb: float, eval_args: list[str], limit: int | None,
         final: bool = False, before: str | None = None, skip_before: frozenset[str] = frozenset(),
-        skip: frozenset[str] = frozenset(), scanner: str | None = None) -> int:
+        skip: frozenset[str] = frozenset(), scanner: str | None = None, keep: str | None = None) -> int:
     """Download, scan and delete one batch after another. A batch whose results file
     exists is skipped, so an interrupted run continues where it stopped. ``before`` is a
     checkout of the previous release: its run_eval.py and src/ scan the same files first
@@ -319,12 +323,17 @@ def run(work: str, which: str, max_files: int, max_gb: float, eval_args: list[st
     is recorded in ``WORK/skipped.jsonl`` and reported apart. ``scanner`` is a checkout
     (git worktree) whose run_eval.py and src/ make the after column instead of this tree,
     so a long run keeps one scanner version while this tree changes. Up to
-    ``DOWNLOAD_THREADS`` files of a batch download at once."""
+    ``DOWNLOAD_THREADS`` files of a batch download at once. ``keep`` (tuning splits only,
+    0.10.0) is a directory outside the repository where files that are not CLEAN in the
+    after column are moved instead of deleted, with their manifest, for allowlist and
+    validator work (``run_eval.py --hf KEEP`` scans them again)."""
     from concurrent.futures import ThreadPoolExecutor
 
     import huggingface_hub as hub
 
     entries = _jsonl(os.path.join(work, f"plan-{which}.jsonl"))
+    if keep and any(_group_of(e) not in TUNE_GROUPS for e in entries):
+        raise SystemExit("--keep-flagged is for tuning splits only: a held-out file is never kept")
     todo = batches(entries, max_files, int(max_gb * 1024 ** 3))
     results = os.path.join(work, "results", which)
     os.makedirs(results, exist_ok=True)
@@ -389,11 +398,42 @@ def run(work: str, which: str, max_files: int, max_gb: float, eval_args: list[st
             print(f"{label}: scanned in {time.time() - started:.0f} s", file=sys.stderr)
             for entry in fetched:  # the manifest outlives the files
                 _append(os.path.join(work, "manifest.jsonl"), {k: v for k, v in entry.items() if k != "path"})
+            if keep:
+                _keep_flagged(directory, fetched, os.path.join(results, "after"), label, keep)
         shutil.rmtree(directory)
         for name in ("before", "after"):
             shutil.rmtree(f"{directory}-{name}", ignore_errors=True)
         done += 1
     return 0
+
+
+KEEP_MAX_BYTES = int(float(os.environ.get("SAFELOADAI_KEEP_GB", "12")) * 1024 ** 3)
+TUNE_GROUPS = frozenset({"hf-tune", "hf-tune2"})
+
+
+def _group_of(entry: dict) -> str | None:
+    return entry.get("group") or PLAN_GROUP.get(entry.get("split"))
+
+
+def _keep_flagged(directory: str, fetched: list[dict], results: str, label: str, keep: str) -> None:
+    """Move the files of a tuning batch that safeloadai did not find CLEAN into ``keep``."""
+    path = sorted(glob.glob(os.path.join(results, f"eval-{label}-*.json")))[-1]
+    with open(path, encoding="utf-8") as fh:
+        flagged = {e["file"] for e in json.load(fh)["entries"]
+                   if (e["results"].get("safeloadai") or {}).get("block") != "clean"}
+    kept = sum(e["size"] for e in _jsonl(os.path.join(keep, "manifest.jsonl")))
+    for entry in fetched:
+        if f"{entry['repo_id']}/{entry['filename']}" not in flagged:
+            continue
+        if kept + entry["size"] > KEEP_MAX_BYTES:  # pinned in the manifest, so it can be fetched again
+            _append(os.path.join(keep, "not-kept.jsonl"), {k: v for k, v in entry.items() if k != "path"})
+            continue
+        kept += entry["size"]
+        for rel in [entry["path"]] + [c["path"] for c in entry.get("companions") or []]:
+            target = os.path.join(keep, rel)
+            os.makedirs(os.path.dirname(target), exist_ok=True)
+            shutil.move(os.path.join(directory, rel), target)
+        _append(os.path.join(keep, "manifest.jsonl"), entry)
 
 
 def _without(directory: str, skip: frozenset[str], name: str) -> str:
@@ -410,9 +450,10 @@ def _without(directory: str, skip: frozenset[str], name: str) -> str:
                         {"file": f"{e['repo_id']}/{e['filename']}", "run": name, "size": e["size"],
                          "reason": "out of memory on this machine"})
                 continue
-            target = os.path.join(copy, e["path"])
-            os.makedirs(os.path.dirname(target), exist_ok=True)
-            os.link(os.path.join(directory, e["path"]), target)
+            for rel in [e["path"]] + [c["path"] for c in e.get("companions") or []]:
+                target = os.path.join(copy, rel)
+                os.makedirs(os.path.dirname(target), exist_ok=True)
+                os.link(os.path.join(directory, rel), target)
             fh.write(json.dumps(e, sort_keys=True) + "\n")
     return copy
 
@@ -459,7 +500,8 @@ def write_labels(work: str, path: str) -> None:
                                     label, reason.replace("\t", " ")]) + "\n")
 
 
-PLAN_GROUP = {"tune": "hf-tune", "heldout": "hf-heldout", SPLIT: "hf-heldout2", "tune2": "hf-tune2"}
+PLAN_GROUP = {"tune": "hf-tune", "heldout": "hf-heldout", SPLIT: "hf-heldout2", "tune2": "hf-tune2",
+              "heldout3": "hf-heldout3"}
 
 
 def plan_labels(work: str) -> dict[str, list[tuple[str, str, str]]]:
@@ -557,6 +599,8 @@ def main(argv: list[str] | None = None) -> int:
             p.add_argument("--scanner", help="checkout (git worktree) that scans the after column instead of this tree")
             p.add_argument("--tool-bin", help="directory with picklescan, fickling and modelscan")
             p.add_argument("--opt-in-site", help="unpacked distributions for the --trust-inert-from column")
+            p.add_argument("--keep-flagged", metavar="DIR",
+                           help="tuning splits only: move files that are not CLEAN here instead of deleting them")
         if name in ("labels", "merge"):
             p.add_argument("--out", required=True)
         if name == "merge":
@@ -567,6 +611,9 @@ def main(argv: list[str] | None = None) -> int:
     if any(os.path.commonpath([w, REPO_ROOT]) == REPO_ROOT for w in works):
         parser.error("--work must be outside the repository (downloaded model files are never committed)")
     work = works[0]
+    keep = getattr(args, "keep_flagged", None)
+    if keep and os.path.commonpath([os.path.abspath(keep), REPO_ROOT]) == REPO_ROOT:
+        parser.error("--keep-flagged must be outside the repository")
     os.makedirs(work, exist_ok=True)
     if args.cmd == "plan-benign":
         print(f"planned {plan_benign(work, args.target, int(args.max_mb * 1024 * 1024), args.split)} files",
@@ -586,7 +633,8 @@ def main(argv: list[str] | None = None) -> int:
         before = os.path.abspath(args.before) if args.before else None
         return run(work, args.plan, args.batch_files, args.batch_gb, extra, args.batches, args.final, before,
                    frozenset(args.skip_before), frozenset(args.skip),
-                   os.path.abspath(args.scanner) if args.scanner else None)
+                   os.path.abspath(args.scanner) if args.scanner else None,
+                   os.path.abspath(args.keep_flagged) if args.keep_flagged else None)
     elif args.cmd == "labels":
         write_labels(work, args.out)
     else:

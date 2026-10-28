@@ -36,6 +36,7 @@ from .static.allowlists import (
     DILL_MODULES,
     GETATTR,
     KNOWN_GADGETS,
+    PATH_CLASSES,
     PICKLE_GLOBALS,
     SCORER_FUNCTIONS,
     TORCH_GLOBALS,
@@ -97,6 +98,9 @@ SAFE_IMPORTS = frozenset({"math", "functools", "itertools", "operator", "collect
                           "numpy", "np"})
 WRITE_MODES = set("wax+")
 MAX_EVIDENCE = 200
+
+
+PATH_CLASS_CALLS = frozenset(f"{m}.{n}{suffix}" for m, n in PATH_CLASSES for suffix in ("", ".__new__"))
 
 
 def _matches(target: str, prefix: str) -> bool:
@@ -165,6 +169,10 @@ def _classify_call(event: dict, allowed_names: frozenset[str], framework: bool) 
         # copies and the code a function is rebuilt from, whose bytecode the static layer
         # and the dill code emulation judge. Other dill helpers stay code_exec sinks.
         return "dill", S
+    if target in PATH_CLASS_CALLS:
+        # building a path object parses strings only (allowlists.PATH_CLASSES); a method
+        # called on it is "pathlib.X().name" and still matches the pathlib sink below
+        return "unexpected_call", S
     found = sink_for(target)
     if found:
         return found

@@ -26,7 +26,7 @@ SAFE_API_DEFAULTS = {"judge": False, "deep": False, "allow": (), "limits": None,
                      "option_sources": None, "accept_unverified": None,
                      # off: no installed distribution is trusted; on: the shipped reviewed-hash list
                      # (turning it off is the stricter setting, docs/OPTIONS.md)
-                     "trust_inert_from": (), "known_good": True}
+                     "trust_inert_from": (), "known_good": True, "validate_boosters": False}
 
 
 @pytest.mark.parametrize("func", [pipeline.scan, api.safe_load])

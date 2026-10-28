@@ -55,6 +55,7 @@ class Limits:
     wall_seconds: float = 30.0
     max_records: int = 10_000
     max_record_bytes: int = 64 * 1024
+    max_record_total_bytes: int = 128 * 1024 * 1024
     max_stdio_bytes: int = 64 * 1024
 
 
@@ -68,6 +69,13 @@ FUEL_PER_OPCODE = 100_000
 MAX_FUEL = 250_000_000_000
 MAX_WALL_SECONDS = 120.0
 MAX_GUEST_MEMORY = 2 * 1024 * 1024 * 1024
+# Every call the guest records needs at least one opcode, and a REDUCE or NEWOBJ + BUILD
+# records two (the call and its __setstate__). 0.10.0: the fixed 10 000 cut off benign
+# files with many small objects (300 006 numpy scalars in one tune joblib file), and a run
+# whose records are dropped is never complete. The host keeps at most
+# max_record_total_bytes of records whatever the count.
+RECORDS_PER_OPCODE = 2
+MAX_RECORDS = 1_000_000
 
 
 def scaled_limits(size: int, opcodes: int, base: Limits | None = None) -> Limits:
@@ -76,7 +84,8 @@ def scaled_limits(size: int, opcodes: int, base: Limits | None = None) -> Limits
     Wall time grows with the fuel; guest memory with the data the guest holds."""
     base = base or Limits()
     fuel = min(MAX_FUEL, base.fuel + FUEL_PER_BYTE * max(0, size) + FUEL_PER_OPCODE * max(0, opcodes))
-    return replace(base, fuel=max(fuel, base.fuel),
+    records = min(MAX_RECORDS, base.max_records + RECORDS_PER_OPCODE * max(0, opcodes))
+    return replace(base, fuel=max(fuel, base.fuel), max_records=max(base.max_records, records),
                    wall_seconds=max(base.wall_seconds, min(MAX_WALL_SECONDS, base.wall_seconds * fuel / base.fuel)),
                    memory_bytes=max(base.memory_bytes, min(MAX_GUEST_MEMORY, base.memory_bytes + 2 * max(0, size))))
 
@@ -196,6 +205,7 @@ def run_guest(task: dict, artefacts: dict[str, bytes], limits: Limits | None = N
             "fuel": limits.fuel,
             "max_records": limits.max_records,
             "max_record_bytes": limits.max_record_bytes,
+            "max_record_total_bytes": limits.max_record_total_bytes,
             "max_stdio_bytes": limits.max_stdio_bytes,
         }
         started = time.perf_counter()
@@ -238,7 +248,8 @@ def run_guest(task: dict, artefacts: dict[str, bytes], limits: Limits | None = N
     events, problems, tampered, completed = validate_records(raw, nonce)
     flags = result.get("flags", {})
     if flags.get("records_dropped"):
-        problems.append(f"{flags['records_dropped']} evidence records dropped (limit {limits.max_records})")
+        problems.append(f"{flags['records_dropped']} evidence records dropped (limit {limits.max_records} "
+                        f"records, {limits.max_record_total_bytes} bytes)")
         completed = False
     if flags.get("records_truncated"):
         problems.append(f"{flags['records_truncated']} evidence records over {limits.max_record_bytes} bytes")

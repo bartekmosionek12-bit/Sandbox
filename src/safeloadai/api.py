@@ -25,6 +25,7 @@ import hashlib
 import os
 import pickle
 import shutil
+import sys
 import tempfile
 from collections.abc import Iterable, Iterator, Mapping
 from typing import Any
@@ -35,6 +36,7 @@ from .parsing import detect as detect_mod
 from .pipeline import scan
 from .report import Report
 from .shared import joblib_layout
+from .static import sklearn_loss
 from .static.allowlists import PICKLE_GLOBALS
 
 
@@ -48,6 +50,16 @@ class UnsafeModelError(Exception):
         self.error = report.error if report is not None else None
 
 
+def _sklearn_loss_class(name: str):
+    """``_loss.X`` (scikit-learn 1.5-1.8, static/sklearn_loss.py), only from the extension
+    registered as both ``_loss`` and ``sklearn._loss._loss``: never ``import _loss``, which
+    would search ``sys.path``."""
+    real = sys.modules.get(sklearn_loss.REAL_MODULE)
+    if real is None or sys.modules.get(sklearn_loss.MODULE) is not real:
+        raise UnsafeModelError(f"global _loss.{name}: _loss is not scikit-learn's {sklearn_loss.REAL_MODULE} here")
+    return getattr(real, name)
+
+
 class RestrictedUnpickler(pickle.Unpickler):
     """Resolves only exact allowlisted globals; everything else is refused before import."""
 
@@ -58,6 +70,8 @@ class RestrictedUnpickler(pickle.Unpickler):
     def find_class(self, module: str, name: str):
         if (module, name) not in self._allowed:
             raise UnsafeModelError(f"global {module}.{name} is not on the allowlist")
+        if module == sklearn_loss.MODULE:
+            return _sklearn_loss_class(name)
         return super().find_class(module, name)
 
 
@@ -128,6 +142,8 @@ class _RestrictedPlainUnpickler(pickle._Unpickler):
             raise UnsafeModelError(f"global {module}.{name} is not on the allowlist")
         if (module, name) == joblib_layout.WRAPPER:
             return _ArrayWrapper
+        if module == sklearn_loss.MODULE:
+            return _sklearn_loss_class(name)
         return super().find_class(module, name)
 
 

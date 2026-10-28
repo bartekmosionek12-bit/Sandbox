@@ -29,8 +29,10 @@ from dataclasses import dataclass
 from . import decompress
 from .detect import (
     COREML_WEIGHTS,
+    CTRANSLATE2,
     DATA_ONLY,
     EXTENSION_HINTS,
+    GGML_WHISPER,
     GGUF,
     H5,
     HDF5_MAGIC,
@@ -152,7 +154,9 @@ _DATA_LOADERS = {SAFETENSORS: "safetensors (header at offset 0)", GGUF: "gguf / 
                  TFLITE: "tf.lite.Interpreter (flatbuffer at offset 0)",
                  MSGPACK: "flax.serialization.msgpack_restore (msgpack at offset 0)",
                  OPENVINO_XML: "openvino.Core.read_model (XML)",
-                 COREML_WEIGHTS: "Core ML runtime (MIL blob storage at offset 0)"}
+                 COREML_WEIGHTS: "Core ML runtime (MIL blob storage at offset 0)",
+                 CTRANSLATE2: "ctranslate2 runtime (model.bin at offset 0)",
+                 GGML_WHISPER: "whisper.cpp (ggml magic at offset 0)"}
 
 
 # The view a loader picked by file extension reads first.

@@ -637,6 +637,15 @@ def test_validator_failure_never_clears(tmp_path, monkeypatch):
     _assert_not_cleared(report, "did not finish")
 
 
+@pytest.mark.wasi
+def test_model_data_above_the_validator_limit_is_not_cleared(tmp_path, monkeypatch):
+    from safeloadai.sandbox import emulate
+
+    monkeypatch.setattr(emulate, "MAX_BOOSTER_BYTES", 16)
+    report = scan(booster_pickle(tmp_path, "xgboost", STATES["xgboost"]()), validate_boosters=True)
+    _assert_not_cleared(report, "more than the validator reads")
+
+
 def _text(value: str) -> bytes:
     raw = value.encode("utf-8")
     return b"X" + struct.pack("<I", len(raw)) + raw

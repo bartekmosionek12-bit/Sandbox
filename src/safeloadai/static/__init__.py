@@ -91,6 +91,8 @@ def _analyze_bytes(data: bytes, file_name: str, extra_allowed: frozenset) -> dic
     report["views"] = [v.describe() for v in views]
     report["_view"] = primary
     others = [v for v in views if v is not primary]
+    if others and primary is not None and primary.fmt == detect_mod.TFLITE and _only_unverifiable(report):
+        views, others = _tflite_associated(views, others, data, report)
     if others and report.get("data_only") and _only_unverifiable(report):
         views, others = _drop_accidental(views, others, data, file_name, extra_allowed, report)
     if others:
@@ -120,6 +122,36 @@ def _only_unverifiable(report: dict) -> bool:
         return True
     return (report["static_risk"] == "suspicious" and not report.get("error")
             and set(report["reasons"]) <= set(report.get("unverifiable") or {}))
+
+
+# What tflite_support's MetadataPopulator packs as a TFLite model's associated files (label
+# and vocabulary files, ultralytics' metadata.json): zipfile in append mode on the model
+# (tflite-support 0.4.4 metadata/python/metadata.py, _copy_archived_files / load_associated_files).
+TFLITE_ASSOCIATED_SUFFIXES = (".txt", ".json")
+
+
+def _tflite_associated(views: list, others: list, data: bytes, report: dict) -> tuple[list, list]:
+    """Next to a valid TFLite reading at offset 0, a plain ZIP reading (not Keras, PyTorch
+    or NumPy) whose members are all text or JSON files is the model's associated files:
+    the TFLite interpreter reads the flatbuffer from offset 0 and never the archive, and no
+    loader runs code from such an archive. It is noted instead of being a second reading.
+    Any other member (a pickle, a nested archive, anything else) keeps the reading."""
+    from ..parsing.zipsafe import SafeZip, ZipRefused
+
+    zips = [v for v in others if v.fmt == views_mod.ZIP]
+    if len(zips) != 1 or len(others) != 1:
+        return views, others
+    try:
+        with SafeZip(data) as zf:
+            names = list(zf.names)
+    except ZipRefused:
+        return views, others
+    if not names or not all(n.lower().endswith(TFLITE_ASSOCIATED_SUFFIXES) and "/" not in n and "\\" not in n
+                            for n in names):
+        return views, others
+    report["notes"].append(f"a ZIP archive of {len(names)} text/JSON file(s) is appended ({', '.join(names[:5])}): "
+                           "TFLite associated files, which the interpreter never reads")
+    return [v for v in views if v is not zips[0]], []
 
 
 def _openvino_weights(views: list, data: bytes, file_name: str) -> list:
@@ -338,7 +370,7 @@ def _refused_archive(data: bytes) -> str | None:
 
 
 UNSUPPORTED_REASON = ("unrecognised file format: no pickle, joblib, PyTorch, Keras, HDF5, safetensors, GGUF, "
-                      "NumPy, ONNX, TFLite, Flax msgpack, OpenVINO or Core ML weights reading of these bytes exists, so nothing "
+                      "NumPy, ONNX, TFLite, Flax msgpack, OpenVINO, Core ML weights, CTranslate2 or whisper.cpp reading of these bytes exists, so nothing "
                       "could be analysed")
 
 

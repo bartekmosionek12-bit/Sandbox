@@ -31,12 +31,14 @@ from typing import Any
 from .. import errors, override
 from . import budget as budget_mod
 from . import clearance as clearance_mod
+from . import sklearn_loss
 from .allowlists import (
     ARGUMENT_CHECKED,
     ARRAY_RECONSTRUCTORS,
     BUILD_HOOK_KEYS,
     BUILD_STATE_KEYS,
     CLASS_BUILDERS,
+    PATH_CLASSES,
     CLOUDPICKLE_IMPORT,
     CLOUDPICKLE_MODULES,
     CLOUDPICKLE_TYPES,
@@ -190,7 +192,7 @@ def is_dangerous_import(module: str, name: str) -> bool:
     root = module.split(".", 1)[0]
     leaf = name.rsplit(".", 1)[-1]
     head = name.split(".", 1)[0]
-    if (module, name) in CLASS_BUILDERS:
+    if (module, name) in CLASS_BUILDERS or (module, name) in PATH_CLASSES:
         return False
     return (
         (module in DILL_MODULES and name in DILL_SINKS)
@@ -367,6 +369,8 @@ def parse_pickle(data: bytes, file_name: str = "<memory>", *, torch: bool = Fals
             extra = {(i["module"], i["symbol"]): ("torch-weights-only", detail) for i in report["imports"]}
     if not report["error"] and depth == 0:
         _profile(report, file_name if profile_name is None else profile_name, machine, calls, legacy_torch, extra)
+    if not report["error"]:
+        sklearn_loss.clear(report, extra)
     if clearance.validate_boosters and not report["error"]:
         boosters.clear(report, calls, machine.uses, machine.globals, extra, record_call.states)
     report["raw_disasm"] = _disasm(data)

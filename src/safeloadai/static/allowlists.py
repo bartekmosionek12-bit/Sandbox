@@ -113,6 +113,11 @@ PICKLE_GLOBALS: frozenset[tuple[str, str]] = frozenset(
         ("sklearn.preprocessing._label", "LabelEncoder"),  # plain estimator (classes_ array)
         # 2026-10-19 review: Cython unpickle helper, same as the CyHalfMultinomialLoss one above
         ("sklearn._loss._loss", "__pyx_unpickle_CyHalfBinomialLoss"),
+        # 0.10.0 review (scikit-learn 1.5.1-1.9.1 _loss.pyx.tp): CyPinballLoss(quantile) is
+        # __reduce__ (cls, (quantile,)) since 1.6 and the Cython unpickle helper before; the
+        # constructor takes one double. Also reachable as _loss.* (static/sklearn_loss.py)
+        ("sklearn._loss._loss", "CyPinballLoss"),
+        ("sklearn._loss._loss", "__pyx_unpickle_CyPinballLoss"),
         # the type object and numpy's abstract scalar type, as values (copyreg._reconstructor's
         # base, make_column_selector's dtype_exclude); calling either makes a bare object or raises
         ("builtins", "object"),
@@ -178,6 +183,18 @@ STATE_ONLY_CLASSES = frozenset({
     ("sklearn.tree._classes", "ExtraTreeRegressor"),
     # sklearn 1.9.1: __init__ stores pattern / dtype_include / dtype_exclude; no pickling hooks
     ("sklearn.compose._column_transformer", "make_column_selector"),
+    # 0.10.0 review (evaluation/results/source-review-0.10.0.md; scikit-learn 1.5.1, 1.6.1, 1.7.2,
+    # 1.8.0 and 1.9.1 sources): pickled as NEWOBJ () + BUILD.
+    # HistGradientBoostingRegressor: no hooks of its own or in BaseHistGradientBoosting, so
+    # BaseEstimator.__setstate__ (as for the classifier above)
+    ("sklearn.ensemble._hist_gradient_boosting.gradient_boosting", "HistGradientBoostingRegressor"),
+    # _RemainderColsList (1.5 and 1.6 only): a collections.UserList with three plain attributes
+    # (future_dtype, warning_was_emitted, warning_enabled); neither it nor UserList defines a
+    # pickling hook, __setattr__ or __getattr__, so BUILD is a __dict__ update
+    ("sklearn.compose._column_transformer", "_RemainderColsList"),
+    # Bunch: a dict subclass; its items come back through dict.__setitem__ (SETITEMS, not
+    # overridden) and its __setstate__ is a no-op that ignores the state
+    ("sklearn.utils._bunch", "Bunch"),
     # stdlib argparse.Namespace (an old training_args.bin): no pickling hooks, attributes only
     ("argparse", "Namespace"),
     # transformers' training arguments (training_args.bin): plain dataclasses. Rebuilt
@@ -461,6 +478,13 @@ CLASS_BUILDERS = frozenset({(m, n) for m in ("builtins", "__builtin__")
 # call an argument (tests/corpus/build_corpus.py:bypass_payloads). EXEC_GADGETS are known
 # sinks; the others do not change the verdict, they only keep the reason RISKY instead of
 # UNVERIFIABLE, because the scanner does know what they do, so no override can accept them.
+# pathlib's path classes (CPython 3.8-3.14 Lib/pathlib): PurePath.__reduce__ is (cls, parts)
+# and constructing one only parses the strings, with no filesystem access; a Windows
+# checkpoint holds WindowsPath objects (ultralytics train_args). Not known sinks (0.10.0,
+# DECISIONS.md "pathlib path classes"): RISKY like CLASS_BUILDERS. Their methods
+# (Path.write_text, Path.unlink, ...) as globals, or reached through getattr, stay sinks.
+PATH_CLASSES = frozenset({("pathlib", n) for n in ("PurePath", "PurePosixPath", "PureWindowsPath", "Path",
+                                                   "PosixPath", "WindowsPath")})
 KNOWN_GADGETS = frozenset({
     ("numpy.testing._private.utils", "runstring"),  # exec() of a string
     ("_osx_support", "_read_output"),  # runs a shell command
@@ -469,7 +493,7 @@ KNOWN_GADGETS = frozenset({
     ("functools", "reduce"),  # calls its first argument
     ("operator", "methodcaller"),  # calls a method by name
     ("operator", "attrgetter"),  # attribute access by name
-}) | CLASS_BUILDERS
+}) | CLASS_BUILDERS | PATH_CLASSES
 
 # dill (0.3.8 and 0.4.1, dill/_dill.py; evaluation/results/source-review-2-20261019.md).
 # Helpers that import, eval, call an argument, read attributes by name, unmarshal or open

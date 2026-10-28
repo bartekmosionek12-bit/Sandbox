@@ -93,6 +93,9 @@ def read_h5_metadata(data: bytes, *, limits: Limits | None = None, reader_limits
 # UNVERIFIABLE (the validation "failed", never "valid").
 BOOSTER_FUEL_PER_BYTE = 4096
 BOOSTER_MEMORY_PER_BYTE = 24
+# the guest holds the payload and its parsed form in a 32-bit address space; above this a
+# model is left UNVERIFIABLE without trying (137 MB of UBJSON ran out of guest memory)
+MAX_BOOSTER_BYTES = 64 << 20
 
 
 def validate_boosters(items: list[tuple[str, bytes]], *, limits: Limits | None = None) -> dict:
@@ -103,12 +106,14 @@ def validate_boosters(items: list[tuple[str, bytes]], *, limits: Limits | None =
     when the validator itself did not finish cleanly (then nothing counts as valid)."""
     from .host import MAX_FUEL, MAX_GUEST_MEMORY, MAX_WALL_SECONDS
 
+    size = sum(len(p) for _, p in items)
+    if size > MAX_BOOSTER_BYTES:
+        return {"failed": f"{size} bytes of model data, more than the validator reads ({MAX_BOOSTER_BYTES})"}
     artefacts = {f"booster{i}.bin": payload for i, (_, payload) in enumerate(items)}
     task = {"kind": "booster_check",
             "items": [{"file": f"booster{i}.bin", "library": library} for i, (library, _) in enumerate(items)]}
     if limits is None:
         base = Limits()
-        size = sum(len(p) for _, p in items)
         fuel = min(MAX_FUEL, base.fuel + BOOSTER_FUEL_PER_BYTE * size)
         limits = Limits(fuel=fuel, wall_seconds=min(MAX_WALL_SECONDS, base.wall_seconds * fuel / base.fuel),
                         memory_bytes=min(MAX_GUEST_MEMORY, base.memory_bytes + BOOSTER_MEMORY_PER_BYTE * size))
@@ -121,7 +126,7 @@ def validate_boosters(items: list[tuple[str, bytes]], *, limits: Limits | None =
     anomalies = [e for e in run.events if e.get("kind") == "anomaly"]
     if anomalies:
         detail = "; ".join(f"{a.get('error')}: {a.get('detail')}" for a in anomalies[:3])
-        return {"failed": "booster validator raised: " + detail, "tool_error": errors.error("E203", detail)}
+        return {"failed": "booster validator raised: " + detail}
     if not run.completed:
         return {"failed": "booster validator did not complete: " + "; ".join(run.problems[:5])}
     results = [e for e in run.events if e.get("kind") == "booster"]

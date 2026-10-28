@@ -36,7 +36,9 @@ MSGPACK = "msgpack"
 OPENVINO_XML = "openvino-xml"
 OPENVINO_BIN = "openvino-bin"
 COREML_WEIGHTS = "coreml-weights"
-NO_CODE = (ONNX, TFLITE, MSGPACK, OPENVINO_XML, OPENVINO_BIN, COREML_WEIGHTS)
+CTRANSLATE2 = "ctranslate2"
+GGML_WHISPER = "ggml-whisper"
+NO_CODE = (ONNX, TFLITE, MSGPACK, OPENVINO_XML, OPENVINO_BIN, COREML_WEIGHTS, CTRANSLATE2, GGML_WHISPER)
 
 GGUF_MAGIC = b"GGUF"
 NPY_MAGIC = b"\x93NUMPY"
@@ -48,7 +50,7 @@ EXTENSION_HINTS = {
     ".joblib": {PICKLE, JOBLIB},
     ".pt": {TORCH, PICKLE},
     ".pth": {TORCH, PICKLE},
-    ".bin": {TORCH, PICKLE, OPENVINO_BIN, COREML_WEIGHTS},
+    ".bin": {TORCH, PICKLE, OPENVINO_BIN, COREML_WEIGHTS, CTRANSLATE2, GGML_WHISPER},
     ".keras": {KERAS},
     ".h5": {H5},
     ".hdf5": {H5},
@@ -124,7 +126,8 @@ def no_code_format(data: bytes, file_name: str = "") -> str | None:
     identifier, ONNX by a ModelProto header, an OpenVINO IR by its ``<net>`` root, a Flax
     msgpack checkpoint by a msgpack map when the name ends in ``.msgpack`` (a msgpack map
     has no magic number), a Core ML ``weight.bin`` by its version-2 storage header and
-    the first blob's sentinel. Whether the structure is valid is ``static.model_formats``' job."""
+    the first blob's sentinel, a CTranslate2 ``model.bin`` by its binary version and spec name, a
+    whisper.cpp ggml model by its magic and hyperparameters. Whether the structure is valid is ``static.model_formats``' job."""
     from ..static import model_formats
 
     if data[4:8] == model_formats.TFLITE_IDENTIFIER:
@@ -135,6 +138,10 @@ def no_code_format(data: bytes, file_name: str = "") -> str | None:
         return OPENVINO_XML
     if model_formats.looks_like_coreml_weights(data):
         return COREML_WEIGHTS
+    if model_formats.looks_like_ctranslate2(data):
+        return CTRANSLATE2
+    if model_formats.looks_like_ggml_whisper(data):
+        return GGML_WHISPER
     if file_name.lower().endswith(".msgpack") and data[:1] and (0x80 <= data[0] <= 0x8F or data[0] in (0xDE, 0xDF)):
         return MSGPACK
     return None

@@ -34,6 +34,13 @@ The references (sources read, never imported or run):
 * coremltools 9.0 ``mlmodel/src/MILBlob/Blob/StorageFormat.hpp``, ``StorageReader.cpp``,
   ``StorageWriter.cpp`` and ``BlobDataType.hpp``: the ``weight.bin`` of an ML Program
   (``.mlpackage``), read by the Core ML runtime, never by Python.
+* CTranslate2 4.6.0 ``src/models/model.cc`` (``Model::load``, binary versions 1 to 6),
+  ``src/models/model_factory.cc`` (the registered specs) and
+  ``python/ctranslate2/specs/model_spec.py`` (``ModelSpec._serialize``): the ``model.bin``
+  of a converted model, read by the C++ runtime.
+* whisper.cpp 1.8.2 ``src/whisper.cpp`` (``whisper_model_load``), ``src/whisper-arch.h``
+  and ggml ``ggml.h`` / ``ggml-common.h`` / ``ggml.c`` (type ids, block sizes,
+  ``ggml_ftype_to_ggml_type``): the legacy ``ggml`` whisper model file.
 """
 from __future__ import annotations
 
@@ -43,7 +50,7 @@ import re
 import struct
 from functools import lru_cache
 
-from ..parsing.detect import COREML_WEIGHTS, MSGPACK, ONNX, OPENVINO_BIN, OPENVINO_XML, TFLITE
+from ..parsing.detect import COREML_WEIGHTS, CTRANSLATE2, GGML_WHISPER, MSGPACK, ONNX, OPENVINO_BIN, OPENVINO_XML, TFLITE
 from . import budget as budget_mod
 from .data_formats import Invalid
 
@@ -983,12 +990,228 @@ def check_coreml_weights(data: bytes) -> dict:
     return {"bytes": size, "blobs": count}
 
 
-CHECKS = {ONNX: check_onnx, TFLITE: check_tflite, MSGPACK: check_msgpack, COREML_WEIGHTS: check_coreml_weights}
+# --- CTranslate2 model.bin --------------------------------------------------------------
+
+CT2_MAX_VERSION = 6  # CURRENT_BINARY_VERSION in 4.6.0
+# model_factory.cc register_supported_models (the empty spec name is binary version 1's)
+CT2_SPECS = frozenset({"TransformerBase", "TransformerBig", "TransformerSpec", "TransformerDecoderSpec",
+                       "TransformerEncoderSpec", "WhisperSpec", "Wav2Vec2Spec", "Wav2Vec2BertSpec"})
+CT2_ITEM_SIZES = (4, 1, 2, 4, 2, 2)  # DataType: FLOAT32, INT8, INT16, INT32, FLOAT16, BFLOAT16
+
+
+def looks_like_ctranslate2(data: bytes) -> bool:
+    """A CTranslate2 ``model.bin``: binary version 2 to 6, then a registered spec name."""
+    if len(data) < 8 or not 2 <= int.from_bytes(data[:4], "little") <= CT2_MAX_VERSION:
+        return False
+    n = int.from_bytes(data[4:6], "little")
+    return n >= 2 and data[6 + n - 1:6 + n] == b"\0" and data[6:5 + n].decode("ascii", "replace") in CT2_SPECS
+
+
+class _Stream:
+    def __init__(self, data: bytes) -> None:
+        self.data, self.pos = data, 0
+
+    def take(self, n: int, what: str) -> bytes:
+        if self.pos + n > len(self.data):
+            raise Invalid(f"{what} at offset {self.pos} runs past the end of the file ({len(self.data)} bytes)")
+        self.pos += n
+        return self.data[self.pos - n:self.pos]
+
+    def u(self, fmt: str, what: str) -> int:
+        return struct.unpack(fmt, self.take(struct.calcsize(fmt), what))[0]
+
+    def string(self, what: str) -> str:
+        # consume<std::string> builds std::string(c_str): the length counts a final NUL,
+        # and a missing one makes the runtime read past its buffer
+        n = self.u("<H", what)
+        raw = self.take(n, what) if n else b""
+        if not raw or raw[-1:] != b"\0" or b"\0" in raw[:-1]:
+            raise Invalid(f"{what} ending at offset {self.pos} is not one NUL-terminated string")
+        try:
+            return raw[:-1].decode("ascii")
+        except UnicodeDecodeError:
+            raise Invalid(f"{what} ending at offset {self.pos} is not ASCII (the writer counts characters, "
+                          "not bytes)") from None
+
+
+def check_ctranslate2(data: bytes) -> dict:
+    """Facts of a valid CTranslate2 ``model.bin``: the layout ``Model::load`` reads for its
+    binary version, a registered spec, every variable's byte count equal to its shape
+    times its type's size (the runtime reads that many bytes into a buffer sized by the
+    shape), unique names, aliases of existing variables and nothing after the aliases;
+    Invalid otherwise."""
+    st = _Stream(data)
+    version = st.u("<I", "binary version")
+    if not 1 <= version <= CT2_MAX_VERSION:
+        raise Invalid(f"binary version {version} (the reader knows 1 to {CT2_MAX_VERSION})")
+    spec = ""
+    if version >= 2:
+        spec = st.string("spec name")
+        st.u("<I", "spec revision")
+    if spec not in CT2_SPECS and not (version == 1 and spec == ""):
+        raise Invalid(f"spec {spec!r} is not one the runtime registers")
+    names: set[str] = set()
+    for index in range(st.u("<I", "variable count")):
+        _charge()
+        name = st.string(f"variable {index} name")
+        if name in names:
+            raise Invalid(f"variable {name!r} appears twice")
+        names.add(name)
+        rank = st.u("<B", f"variable {name!r} rank")
+        shape = struct.unpack(f"<{rank}I", st.take(4 * rank, f"variable {name!r} shape"))
+        if version >= 4:
+            dtype = st.u("<B", f"variable {name!r} type")
+            if dtype >= len(CT2_ITEM_SIZES):
+                raise Invalid(f"variable {name!r}: data type {dtype} is not one the runtime knows")
+            item = CT2_ITEM_SIZES[dtype]
+            length = st.u("<I", f"variable {name!r} size")
+        else:
+            item = st.u("<B", f"variable {name!r} item size")
+            if item not in (1, 2, 4):
+                raise Invalid(f"variable {name!r}: item size {item} is not one the runtime knows")
+            length = st.u("<I", f"variable {name!r} size") * item
+        if length != math.prod(shape) * item:
+            raise Invalid(f"variable {name!r}: {length} bytes for shape {list(shape)} of {item}-byte items")
+        st.take(length, f"variable {name!r} data")
+    aliases = 0
+    if version >= 3:
+        aliases = st.u("<I", "alias count")
+        for index in range(aliases):
+            _charge()
+            alias = st.string(f"alias {index}")
+            target = st.string(f"alias {alias!r} target")
+            if alias in names or target not in names:
+                raise Invalid(f"alias {alias!r} -> {target!r} does not name one existing variable by a new name")
+            names.add(alias)
+    if st.pos != len(data):
+        raise Invalid(f"{len(data) - st.pos} bytes after the aliases (trailing data)")
+    return {"bytes": len(data), "binary_version": version, "spec": spec, "variables": len(names) - aliases}
+
+
+# --- whisper.cpp legacy ggml model ------------------------------------------------------
+
+GGML_MAGIC = b"lmgg"  # GGML_FILE_MAGIC 0x67676d6c, little-endian
+# ggml_type -> (block size, bytes per block) for the types whisper.cpp stores
+GGML_TYPES = {0: (1, 4), 1: (1, 2), 2: (32, 18), 3: (32, 20), 6: (32, 22), 7: (32, 24), 8: (32, 34),
+              10: (256, 84), 11: (256, 110), 12: (256, 144), 13: (256, 176), 14: (256, 210)}
+# ggml_ftype -> the weights' ggml_type (ggml_ftype_to_ggml_type); other ftypes are not read here
+GGML_FTYPES = {0: 0, 1: 1, 2: 2, 3: 3, 7: 8, 8: 6, 9: 7, 10: 10, 11: 11, 12: 12, 13: 13, 14: 14}
+# English-only, multilingual and large-v3 vocabularies: whisper.cpp derives the language
+# count from n_vocab and indexes its language table with it
+WHISPER_VOCABS = (51864, 51865, 51866)
+_I32_MAX = 2 ** 31 - 1
+
+
+def looks_like_ggml_whisper(data: bytes) -> bool:
+    """A whisper.cpp ggml model: the ggml magic, then hyperparameters with a vocabulary size
+    and weight type whisper.cpp knows."""
+    if len(data) < 48 or not data.startswith(GGML_MAGIC):
+        return False
+    n_vocab, ftype = struct.unpack_from("<i", data, 4)[0], struct.unpack_from("<i", data, 44)[0]
+    return n_vocab in WHISPER_VOCABS and ftype >= 0 and ftype % 1000 in GGML_FTYPES
+
+
+def _whisper_tensors(h: dict, wtype: int) -> dict[str, tuple[tuple[int, ...], int]]:
+    """name -> (ne padded to 3, ggml_type), as whisper_model_load creates them."""
+    f32, vtype = 0, 0 if wtype == 0 else 1
+    a, t = h["n_audio_state"], h["n_text_state"]
+    out = {"encoder.positional_embedding": ((a, h["n_audio_ctx"], 1), f32),
+           "encoder.conv1.weight": ((3, h["n_mels"], a), vtype), "encoder.conv1.bias": ((1, a, 1), f32),
+           "encoder.conv2.weight": ((3, a, a), vtype), "encoder.conv2.bias": ((1, a, 1), f32),
+           "encoder.ln_post.weight": ((a, 1, 1), f32), "encoder.ln_post.bias": ((a, 1, 1), f32),
+           "decoder.positional_embedding": ((t, h["n_text_ctx"], 1), f32),
+           "decoder.token_embedding.weight": ((t, h["n_vocab"], 1), wtype),
+           "decoder.ln.weight": ((t, 1, 1), f32), "decoder.ln.bias": ((t, 1, 1), f32)}
+
+    def block(prefix: str, n: int, attn: tuple[str, ...]) -> None:
+        out.update({f"{prefix}.mlp_ln.weight": ((n, 1, 1), f32), f"{prefix}.mlp_ln.bias": ((n, 1, 1), f32),
+                    f"{prefix}.mlp.0.weight": ((n, 4 * n, 1), wtype), f"{prefix}.mlp.0.bias": ((4 * n, 1, 1), f32),
+                    f"{prefix}.mlp.2.weight": ((4 * n, n, 1), wtype), f"{prefix}.mlp.2.bias": ((n, 1, 1), f32)})
+        for kind in attn:
+            out.update({f"{prefix}.{kind}_ln.weight": ((n, 1, 1), f32), f"{prefix}.{kind}_ln.bias": ((n, 1, 1), f32)})
+            for part in ("query", "key", "value", "out"):
+                out[f"{prefix}.{kind}.{part}.weight"] = ((n, n, 1), wtype)
+                if part != "key":
+                    out[f"{prefix}.{kind}.{part}.bias"] = ((n, 1, 1), f32)
+
+    for i in range(h["n_audio_layer"]):
+        block(f"encoder.blocks.{i}", a, ("attn",))
+    for i in range(h["n_text_layer"]):
+        block(f"decoder.blocks.{i}", t, ("attn", "cross_attn"))
+    return out
+
+
+_WHISPER_HPARAMS = ("n_vocab", "n_audio_ctx", "n_audio_state", "n_audio_head", "n_audio_layer", "n_text_ctx",
+                    "n_text_state", "n_text_head", "n_text_layer", "n_mels", "ftype")
+
+
+def check_ggml_whisper(data: bytes) -> dict:
+    """Facts of a valid whisper.cpp ggml model: what ``whisper_model_load`` reads (magic,
+    hyperparameters, mel filters, vocabulary, then tensors up to the end of the file),
+    with every tensor one the model has, of its shape and type, each exactly once, and no
+    bytes after the last one; Invalid otherwise. The reader writes up to four dimensions
+    into a four-element array and multiplies element counts in 32 bits, so more than four
+    dimensions or a count past 2**31 is refused before anything else."""
+    st = _Stream(data)
+    if st.take(4, "magic") != GGML_MAGIC:
+        raise Invalid("no ggml magic")
+    h = dict(zip(_WHISPER_HPARAMS, struct.unpack("<11i", st.take(44, "hyperparameters"))))
+    if h["n_vocab"] not in WHISPER_VOCABS:
+        raise Invalid(f"vocabulary size {h['n_vocab']} is not a whisper one")
+    if any(h[k] <= 0 for k in _WHISPER_HPARAMS[:10]) or h["n_text_state"] != h["n_audio_state"]:
+        raise Invalid("hyperparameters are not positive, or the text and audio widths differ")
+    if h["ftype"] < 0 or h["ftype"] % 1000 not in GGML_FTYPES:
+        raise Invalid(f"ftype {h['ftype']} is not one this reader knows")
+    if max(h["n_audio_layer"], h["n_text_layer"]) > 1024 or 4 * h["n_audio_state"] * h["n_audio_state"] > _I32_MAX:
+        raise Invalid("hyperparameters describe tensors past the reader's 32-bit counts")
+    wtype = GGML_FTYPES[h["ftype"] % 1000]
+    n_mel, n_fft = struct.unpack("<ii", st.take(8, "mel filter size"))
+    if n_mel < 0 or n_fft < 0:
+        raise Invalid("negative mel filter size")
+    st.take(4 * n_mel * n_fft, "mel filters")
+    n_vocab = st.u("<i", "vocabulary count")
+    if not 0 <= n_vocab <= h["n_vocab"]:
+        raise Invalid(f"{n_vocab} vocabulary entries for a vocabulary of {h['n_vocab']}")
+    for index in range(n_vocab):
+        if index % 1024 == 0:
+            _charge()
+        st.take(st.u("<I", f"token {index} length"), f"token {index}")
+    expected = _whisper_tensors(h, wtype)
+    seen: set[str] = set()
+    while st.pos < len(data):
+        _charge()
+        n_dims, length, ttype = struct.unpack("<iii", st.take(12, "tensor header"))
+        if not 1 <= n_dims <= 4 or length <= 0:
+            raise Invalid(f"tensor header at offset {st.pos - 12}: {n_dims} dimensions, name of {length} bytes")
+        ne = struct.unpack(f"<{n_dims}i", st.take(4 * n_dims, "tensor shape"))
+        name = st.take(length, "tensor name").decode("ascii", "replace")
+        if name not in expected or name in seen:
+            raise Invalid(f"tensor {name!r} is not one the model has, or appears twice")
+        seen.add(name)
+        shape, want = expected[name]
+        if any(n <= 0 for n in ne) or math.prod(ne) > _I32_MAX or tuple((*ne, 1, 1, 1)[:3]) != shape \
+                or math.prod(ne) != math.prod(shape):
+            raise Invalid(f"tensor {name!r}: shape {list(ne)}, expected {list(shape)}")
+        if ttype != want:
+            raise Invalid(f"tensor {name!r}: type {ttype}, the model reads type {want}")
+        block, size = GGML_TYPES[want]
+        if shape[0] % block:
+            raise Invalid(f"tensor {name!r}: rows of {shape[0]} are not whole blocks of {block}")
+        st.take(math.prod(shape) // block * size, f"tensor {name!r} data")
+    if seen and seen != set(expected):
+        raise Invalid(f"{len(expected) - len(seen)} of the model's tensors are missing")
+    return {"bytes": len(data), "tensors": len(seen)}
+
+
+CHECKS = {ONNX: check_onnx, TFLITE: check_tflite, MSGPACK: check_msgpack, COREML_WEIGHTS: check_coreml_weights,
+          CTRANSLATE2: check_ctranslate2, GGML_WHISPER: check_ggml_whisper}
 LOADERS = {ONNX: "onnx.load / onnxruntime.InferenceSession", TFLITE: "tf.lite.Interpreter",
            MSGPACK: "flax.serialization.msgpack_restore", OPENVINO_XML: "openvino.Core.read_model",
            OPENVINO_BIN: "openvino.Core.read_model (weights of the .xml beside it)",
-           COREML_WEIGHTS: "Core ML runtime (MIL blob storage weight.bin of an ML Program)"}
+           COREML_WEIGHTS: "Core ML runtime (MIL blob storage weight.bin of an ML Program)",
+           CTRANSLATE2: "ctranslate2 runtime (model.bin of a converted model)",
+           GGML_WHISPER: "whisper.cpp (legacy ggml model file)"}
 
-__all__ = ["CHECKS", "LOADERS", "NO_CODE_REASON", "Unverifiable", "check_coreml_weights", "check_msgpack", "check_onnx",
-           "check_openvino_xml", "check_tflite", "external_location_problem", "looks_like_coreml_weights",
+__all__ = ["CHECKS", "LOADERS", "NO_CODE_REASON", "Unverifiable", "check_coreml_weights", "check_ctranslate2", "check_ggml_whisper", "check_msgpack", "check_onnx",
+           "check_openvino_xml", "check_tflite", "external_location_problem", "looks_like_coreml_weights", "looks_like_ctranslate2", "looks_like_ggml_whisper",
            "looks_like_onnx", "looks_like_openvino_xml"]

@@ -10,6 +10,7 @@ their bytes or from the small encoders below. No framework is imported."""
 from __future__ import annotations
 
 import io
+import math
 import os
 import shutil
 import struct
@@ -613,15 +614,213 @@ def test_pickle_with_coreml_weights_after_stop_is_not_clean():
     assert _static(data, "weight.bin")["static_risk"] != "clean"
 
 
+# --- CTranslate2 model.bin -------------------------------------------------------------
+
+def _ct2_string(text: str, raw: bytes | None = None) -> bytes:
+    raw = text.encode() + b"\0" if raw is None else raw
+    return struct.pack("<H", len(raw)) + raw
+
+
+def ct2_model(variables=(("w", (2, 3), 0, None),), aliases=(("w2", "w"),), *, version: int = 6,
+              spec: str = "TransformerSpec", trailer: bytes = b"") -> bytes:
+    """A model.bin laid out like ModelSpec._serialize: (name, shape, type id, bytes or None)."""
+    out = struct.pack("<I", version)
+    if version >= 2:
+        out += _ct2_string(spec) + struct.pack("<I", 7)
+    out += struct.pack("<I", len(variables))
+    for name, shape, dtype, data in variables:
+        item = (4, 1, 2, 4, 2, 2)[dtype] if dtype < 6 else 1
+        if data is None:
+            data = b"\0" * (math.prod(shape) * item)
+        out += _ct2_string(name) + struct.pack(f"<B{len(shape)}I", len(shape), *shape)
+        if version >= 4:
+            out += struct.pack("<BI", dtype, len(data))
+        else:
+            out += struct.pack("<BI", item, len(data) // item)
+        out += data
+    if version >= 3:
+        out += struct.pack("<I", len(aliases))
+        for alias, target in aliases:
+            out += _ct2_string(alias) + _ct2_string(target)
+    return out + trailer
+
+
+@pytest.mark.parametrize("data", [ct2_model(), ct2_model(version=3), ct2_model(version=2, aliases=()),
+                                  ct2_model(spec="WhisperSpec", variables=(("s", (), 0, None),
+                                                                           ("e", (0, 4), 4, None)), aliases=())])
+def test_valid_ctranslate2_model_is_clean(data):
+    report = _static(data, "model.bin")
+    assert report["static_risk"] == "clean", report["reasons"]
+    assert detect.no_code_format(data) == detect.CTRANSLATE2
+
+
+@pytest.mark.wasi
+def test_ctranslate2_model_scans_clean(tmp_path):
+    path = tmp_path / "model.bin"
+    path.write_bytes(ct2_model())
+    assert scan(str(path)).verdict is Verdict.CLEAN
+
+
+@pytest.mark.parametrize("data", [
+    ct2_model(trailer=b"\0"),                                          # bytes after the aliases
+    ct2_model(variables=(("w", (2, 3), 0, b"\0" * 28),)),             # more bytes than the shape holds
+    ct2_model(variables=(("w", (2, 3), 0, b"\0" * 20),)),             # fewer
+    ct2_model(variables=(("w", (2,), 6, b"\0\0"),)),                   # unknown data type
+    ct2_model(variables=(("w", (1,), 0, None), ("w", (1,), 0, None))),  # a name twice
+    ct2_model(aliases=(("w2", "missing"),)),
+    ct2_model(aliases=(("w", "w"),)),
+    ct2_model()[:-3],                                                    # truncated
+    ct2_model().replace(_ct2_string("w2"), _ct2_string("", b"w2")),      # no NUL: the runtime over-reads
+    ct2_model().replace(_ct2_string("w2"), _ct2_string("", b"w\x002\0")),
+    ct2_model().replace(_ct2_string("w2"), _ct2_string("", b"")),
+    ct2_model().replace(_ct2_string("w2"), _ct2_string("", "w\u00e9".encode() + b"\0")),
+])
+def test_malformed_ctranslate2_model_is_risky(data):
+    report = _static(data, "model.bin")
+    assert report["static_risk"] == "suspicious" and report["error"], report["reasons"]
+
+
+@pytest.mark.parametrize("data", [ct2_model(spec="EvilSpec"), ct2_model(version=7)])
+def test_unknown_ctranslate2_spec_or_version_is_not_taken_for_one(data):
+    assert detect.no_code_format(data) is None
+    assert _static(data, "model.bin")["unsupported"]
+    with pytest.raises(Invalid):
+        model_formats.check_ctranslate2(data)
+
+
+def test_payload_after_ctranslate2_aliases_is_caught():
+    report = _static(ct2_model(trailer=_payload()), "model.bin")
+    assert report["static_risk"] != "clean"
+
+
+@pytest.mark.wasi
+def test_ctranslate2_model_with_a_pickle_in_front_is_malicious(tmp_path):
+    path = tmp_path / "model.bin"
+    path.write_bytes(_payload() + ct2_model())
+    assert scan(str(path)).verdict is Verdict.MALICIOUS
+
+
+# --- whisper.cpp legacy ggml model -----------------------------------------------------
+
+WHISPER_H = dict(n_vocab=51864, n_audio_ctx=2, n_audio_state=32, n_audio_head=1, n_audio_layer=1, n_text_ctx=2,
+                 n_text_state=32, n_text_head=1, n_text_layer=1, n_mels=2, ftype=1)
+
+
+def ggml_whisper(*, drop: str = "", extra=(), retype: dict | None = None, reshape: dict | None = None,
+                 trailer: bytes = b"", vocab=(b"a", b""), **hparams) -> bytes:
+    """A whisper.cpp model laid out like convert-pt-to-ggml.py and whisper-quantize write it."""
+    h = {**WHISPER_H, **hparams}
+    out = model_formats.GGML_MAGIC + struct.pack("<11i", *h.values())
+    out += struct.pack("<ii", 2, 3) + b"\0" * 24
+    out += struct.pack("<i", len(vocab)) + b"".join(struct.pack("<I", len(w)) + w for w in vocab)
+    wtype = model_formats.GGML_FTYPES.get(h["ftype"] % 1000, 1)
+    tensors = list(model_formats._whisper_tensors(h, wtype).items()) + list(extra)
+    for name, (shape, ttype) in tensors:
+        if name == drop:
+            continue
+        ttype = (retype or {}).get(name, ttype)
+        ne = (reshape or {}).get(name) or tuple(shape[:max([1] + [i + 1 for i, n in enumerate(shape) if n != 1])])
+        block, size = model_formats.GGML_TYPES.get(ttype, (1, 1))
+        raw = name.encode()
+        out += struct.pack(f"<iii{len(ne)}i", len(ne), len(raw), ttype, *ne) + raw
+        out += b"\0" * (math.prod(shape) // block * size)
+    return out + trailer
+
+
+@pytest.mark.parametrize("ftype", [0, 1, 1008, 7])
+def test_valid_ggml_whisper_model_is_clean(ftype):
+    data = ggml_whisper(ftype=ftype)
+    assert detect.no_code_format(data) == detect.GGML_WHISPER
+    report = _static(data, "ggml-model.bin")
+    assert report["static_risk"] == "clean", report["reasons"]
+
+
+@pytest.mark.wasi
+def test_ggml_whisper_model_scans_clean(tmp_path):
+    path = tmp_path / "ggml-model.bin"
+    path.write_bytes(ggml_whisper())
+    assert scan(str(path)).verdict is Verdict.CLEAN
+
+
+@pytest.mark.parametrize("data", [
+    ggml_whisper(trailer=b"\0"),                                                       # bytes after the tensors
+    ggml_whisper(trailer=_payload()),
+    ggml_whisper(drop="decoder.ln.bias"),                                              # a tensor missing
+    ggml_whisper(extra=[("decoder.ln.bias", ((32, 1, 1), 0))]),                        # one twice
+    ggml_whisper(extra=[("evil", ((1, 1, 1), 0))]),                                    # one the model has not
+    ggml_whisper(retype={"decoder.blocks.0.attn.key.weight": 64}),                     # a type id past ggml's
+    ggml_whisper(retype={"decoder.blocks.0.attn.key.weight": 0}),                      # f32 where f16 is read
+    ggml_whisper(reshape={"decoder.ln.bias": (16, 2)}),
+    ggml_whisper(reshape={"decoder.ln.bias": (32, 1, 1, 1, 1)}),                       # five dimensions
+    ggml_whisper(n_text_state=16),                                                     # widths differ
+    ggml_whisper(vocab=[b"a"] * 3)[:-1],                                               # truncated
+    ggml_whisper(ftype=2, n_audio_state=48, n_text_state=48),                          # rows not whole q4_0 blocks
+])
+def test_malformed_ggml_whisper_model_is_risky(data):
+    report = _static(data, "ggml-model.bin")
+    assert report["static_risk"] == "suspicious" and report["error"], report["reasons"]
+
+
+@pytest.mark.parametrize("data", [ggml_whisper(n_vocab=60000), ggml_whisper(ftype=24), ggml_whisper()[:40]])
+def test_unknown_ggml_variants_are_not_taken_for_whisper(data):
+    assert detect.no_code_format(data) is None
+    assert _static(data, "ggml-model.bin")["unsupported"]
+
+
+@pytest.mark.wasi
+def test_ggml_whisper_model_with_a_pickle_in_front_is_malicious(tmp_path):
+    path = tmp_path / "ggml-model.bin"
+    path.write_bytes(_payload() + ggml_whisper())
+    assert scan(str(path)).verdict is Verdict.MALICIOUS
+
+
+def _with_zip(data: bytes, members: dict) -> bytes:
+    out = io.BytesIO()
+    out.write(data)
+    with zipfile.ZipFile(out, "a") as zf:  # what tflite_support's MetadataPopulator does
+        for name, body in members.items():
+            zf.writestr(name, body)
+    return out.getvalue()
+
+
+def test_tflite_with_associated_files_appended_is_clean():
+    data = _with_zip(fixture("tiny.tflite"), {"labels.txt": "cat\ndog\n", "metadata.json": "{}"})
+    report = _static(data, "model.tflite")
+    assert report["static_risk"] == "clean", report["reasons"]
+    assert any("TFLite associated files" in n for n in report["notes"])
+
+
+@pytest.mark.parametrize("members", [
+    {"labels.txt": "a", "data.pkl": _payload()},           # a pickle beside the labels
+    {"archive/data.pkl": _payload()},                      # a PyTorch reading
+    {"labels.txt": "a", "run.py": "print(1)"},
+    {"dir/labels.txt": "a"},
+    {"inner.zip": b"PK\x05\x06" + b"\0" * 18},
+])
+def test_other_archives_appended_to_tflite_stay_a_second_reading(members):
+    report = _static(_with_zip(fixture("tiny.tflite"), members), "model.tflite")
+    assert report["static_risk"] != "clean", report["notes"]
+
+
+@pytest.mark.wasi
+def test_payload_in_an_archive_appended_to_tflite_is_malicious(tmp_path):
+    path = tmp_path / "model.tflite"
+    path.write_bytes(_with_zip(fixture("tiny.tflite"), {"archive/data.pkl": _payload()}))
+    assert scan(str(path)).verdict is Verdict.MALICIOUS
+
+
 # --- every no-code format: random bytes never pass ------------------------------------
 
 @pytest.mark.parametrize("fmt,check", [("onnx", model_formats.check_onnx), ("tflite", model_formats.check_tflite),
                                        ("msgpack", model_formats.check_msgpack),
-                                       ("coreml", model_formats.check_coreml_weights)])
+                                       ("coreml", model_formats.check_coreml_weights),
+                                       ("ct2", model_formats.check_ctranslate2),
+                                       ("ggml", model_formats.check_ggml_whisper)])
 def test_mutated_fixtures_never_crash(fmt, check):
     import random
 
-    data = _two_blobs() if fmt == "coreml" else fixture({"onnx": "tiny.onnx", "tflite": "tiny.tflite",
+    built = {"coreml": _two_blobs, "ct2": ct2_model, "ggml": lambda: ggml_whisper(n_vocab=51864)}
+    data = built[fmt]() if fmt in built else fixture({"onnx": "tiny.onnx", "tflite": "tiny.tflite",
                                                          "msgpack": "flax_model.msgpack"}[fmt])
     rng = random.Random(1234)
     for _ in range(400):

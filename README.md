@@ -282,10 +282,23 @@ non-CLEAN benign file, soft blocks included).
     `__bit_generator_ctor` call one of their arguments, so they are accepted
     only with the exact arguments numpy itself writes.
   - **TorchScript** is always SUSPICIOUS.
-  - **xgboost `Booster`** stays UNVERIFIABLE (it hands raw bytes to a native parser);
-    save with `save_model("model.json")` instead.
-- **UNSUPPORTED formats.** OpenVINO and CTranslate2 weights and any other format with no pickle, joblib, ZIP or HDF5 reading are UNSUPPORTED. safeloadai
-  says nothing about them, and `safe_load` never loads them.
+  - **XGBoost, LightGBM and CatBoost Boosters** stay UNVERIFIABLE by default (they
+    hand raw bytes to a native parser); save with the library's own `save_model`
+    instead. `--validate-boosters` (off) clears them when a strict validator in the
+    WASI sandbox accepts every payload; the native parser still reads the bytes on
+    load, so a parser bug a well-formed model can reach is not caught (see
+    [docs/OPTIONS.md](docs/OPTIONS.md#validate_boosters)).
+- **No-code formats are checked against their loaders' structure, not run.** ONNX,
+  TFLite, Flax msgpack, OpenVINO IR, Core ML `weight.bin`, CTranslate2 `model.bin`
+  and whisper.cpp ggml files are CLEAN ("format runs no code on load") only when
+  their structure is exactly what the pinned loader version reads; custom operators
+  are UNVERIFIABLE and any inconsistency is RISKY. A memory-safety bug in a native
+  runtime that a well-formed file can reach is out of scope, and so is the rest of a
+  model directory (an `.mlpackage`'s `model.mil`, a CTranslate2 `config.json`).
+  `safe_load` never loads these formats.
+- **UNSUPPORTED formats.** KenLM, raw arrays, other GGML variants and any other format
+  with no reading the scanner knows are UNSUPPORTED. safeloadai says nothing about
+  them, and `safe_load` never loads them.
 - **joblib.** Supported: joblib 0.10 and newer, one stream of zlib, gzip, bz2, lzma,
   xz or lz4 (lz4 needs `pip install "safeloadai[lz4]"`). SUSPICIOUS by design: the
   multi-file format of joblib < 0.10, structured dtypes holding Python objects, a

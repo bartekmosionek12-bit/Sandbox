@@ -57,24 +57,24 @@
     "benign_malicious_verdict": 0,
     "blocks": {
      "benign": 1415,
-     "clean": 1237,
+     "clean": 1254,
      "error": 0,
-     "fp": 166,
-     "fpr_readable": 0.1183,
+     "fp": 149,
+     "fpr_readable": 0.1062,
      "hard": 21,
      "readable": 1403,
-     "soft": 145,
+     "soft": 128,
      "unsupported": 12
     },
     "blocks_without_poc_rule": {
      "benign": 1428,
-     "clean": 1240,
+     "clean": 1257,
      "error": 0,
-     "fp": 176,
-     "fpr_readable": 0.1243,
+     "fp": 159,
+     "fpr_readable": 0.1123,
      "hard": 25,
      "readable": 1416,
-     "soft": 151,
+     "soft": 134,
      "unsupported": 12
     },
     "malicious_let_through": 2

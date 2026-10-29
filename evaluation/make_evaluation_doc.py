@@ -282,7 +282,8 @@ def held_out_section(entries: list[dict], before: dict | None, version: str) -> 
                       f"sha256) with safeloadai {before['safeloadai']} (before) and {version} (after).", "",
                       BLOCKS_HEAD.format(first="configuration")]
             for tool, name in variants.items():
-                lines.append(blocks_rows(f"before: {name}", prior, tool))
+                if any(tool in e["results"] for e in prior):  # an option the release before did not have
+                    lines.append(blocks_rows(f"before: {name}", prior, tool))
                 lines.append(blocks_rows(f"**after: {name}**", paired, tool))
         else:
             lines += [BLOCKS_HEAD.format(first="configuration")]
@@ -422,7 +423,7 @@ def poc_rule_section(entries: list[dict]) -> list[str]:
             f"| **all** | **{sum(counts.values())}** |"]
 
 
-# Bugs in the code (not allowlist tuning) that the held-out sets surfaced in 0.8.0. Each was
+# Bugs in the code (not allowlist tuning) that the held-out sets surfaced (0.8.0 and 0.10.0). Each was
 # reproduced on a synthetic file, fixed generally and tested (owner's decision of 2026-10-23).
 HELDOUT_BUGS = (
     ("host memory", "a large dill pickle made the static analysis on the host hold more than 13 GB "
@@ -437,6 +438,10 @@ HELDOUT_BUGS = (
      "tests/test_cloudpickle.py"),
     ("emulation budget", "large pickles ran out of the emulation's compute budget (ERROR E304); the budget now "
                          "grows with the file, up to a fixed ceiling", "tests/test_emulation.py"),
+    ("--validate-boosters (0.10.0)", "a Booster stored in an `XGBClassifier`'s state was refused, because the walk "
+                                     "for other uses of the class went into the stored instance and found its class; "
+                                     "the option's column was scanned again after the fix (the default is not "
+                                     "affected)", "tests/test_boosters.py"),
 )
 
 
@@ -517,7 +522,7 @@ def pct(values: list[float], q: float) -> str:
     return f"{values[min(len(values) - 1, int(q * len(values)))]:.2f}" if values else "-"
 
 
-def cost_section(data: dict, blind: dict | None) -> list[str]:
+def cost_section(data: dict, blind: dict | None, before: dict | None = None) -> list[str]:
     """Time and memory per scan (default configuration)."""
     lines = ["## Time and memory", "",
              "Wall time of one default scan, in seconds, and the peak resident memory of the scanning process and "
@@ -526,19 +531,27 @@ def cost_section(data: dict, blind: dict | None) -> list[str]:
              "15 GB of memory.", "",
              "| group | files | median s | p95 s | max s | peak RSS MiB | file behind the peak |",
              "|---|---|---|---|---|---|---|"]
-    for group, rows in by_group(data["entries"]).items():
-        timed = [e for e in rows if seconds_of(e) is not None]
-        if not timed:
-            continue
-        values = [seconds_of(e) for e in timed]
-        top = max(timed, key=peak_of)
-        lines.append(f"| {group} | {len(timed)} | {pct(values, 0.5)} | {pct(values, 0.95)} | {max(values):.2f} | "
-                     f"{peak_of(top):.0f} | `{top['file']}` ({top.get('size', 0) // 2 ** 20} MiB) |")
+    runs = [(data, "")] + ([(before, f" ({before['safeloadai']})")] if before else [])
+    for group in GROUP_ORDER:
+        for run, suffix in runs:
+            timed = [e for e in run["entries"] if e["group"] == group and seconds_of(e) is not None]
+            if timed:
+                lines.append(cost_row(f"{group}{suffix}", timed))
     if blind:
-        a = blind["after"]
-        lines.append(f"| hf-heldout3 (blind) | {a['files']} | {a['seconds']['median']:.2f} | {a['seconds']['p95']:.2f} "
-                     f"| {a['seconds']['max']:.2f} | {a['rss_peak_mb']:.0f} | withheld (blind split) |")
+        for key in ("after", "before"):
+            a = blind.get(key)
+            if a:
+                name = "hf-heldout3 (blind)" + ("" if key == "after" else f" ({a['safeloadai']})")
+                lines.append(f"| {name} | {a['files']} | {a['seconds']['median']:.2f} | {a['seconds']['p95']:.2f} "
+                             f"| {a['seconds']['max']:.2f} | {a['rss_peak_mb']:.0f} | withheld (blind split) |")
     return lines + [""]
+
+
+def cost_row(name: str, timed: list[dict]) -> str:
+    values = [seconds_of(e) for e in timed]
+    top = max(timed, key=peak_of)
+    return (f"| {name} | {len(timed)} | {pct(values, 0.5)} | {pct(values, 0.95)} | {max(values):.2f} | "
+            f"{peak_of(top):.0f} | `{top['file']}` ({top.get('size', 0) // 2 ** 20} MiB) |")
 
 
 def frac(k: int, n: int) -> str:
@@ -668,7 +681,7 @@ def render(data: dict, source: str, before: dict | None = None, anatomy: dict | 
             lines += matrix_rows(f"{group} / {fmt}", [e for e in rows if e["format"] == fmt])
 
     lines += [""] + held_out_section(entries, before, data["safeloadai"]) + blind_section(blind) \
-        + anatomy_section(anatomy) + cost_section(data, blind) + malicious_only_section(entries) + [
+        + anatomy_section(anatomy) + cost_section(data, blind, before) + malicious_only_section(entries) + [
         "## Limits of this evaluation",
         "",
         "- The other scanners are measured on every file here, including formats they do not read; their "
@@ -758,7 +771,8 @@ def readme_block(data: dict, source: str, before: dict | None, anatomy: dict | N
             paired = [e for e in rows if (group, e["file"]) in old]
             prior = [old[(group, e["file"])] for e in paired]
             for tool, name in variants.items():
-                lines.append(blocks_rows(f"{group}, {before['safeloadai']}, {name}", prior, tool))
+                if any(tool in e["results"] for e in prior):
+                    lines.append(blocks_rows(f"{group}, {before['safeloadai']}, {name}", prior, tool))
                 lines.append(blocks_rows(f"**{group}, {data['safeloadai']}, {name}**", paired, tool))
         else:
             lines += [blocks_rows(f"{group}, {name}", rows, tool) for tool, name in variants.items()]

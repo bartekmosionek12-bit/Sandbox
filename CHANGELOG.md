@@ -7,7 +7,31 @@ This file follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Vers
 
 ## safeloadai 0.10.0 (unreleased)
 
-In short: (filled in after the measurement).
+In short: Core ML, CTranslate2 and whisper.cpp weights are read and CLEAN when valid; scikit-learn's `_loss` alias, training-argument dataclasses, LightGBM's wrappers, pandas `RangeIndex` and Keras top-k metrics are accepted after a source review; pathlib path classes are RISKY instead of MALICIOUS; an opt-in `--validate-boosters`; a new blind split, held-out-3. No rule was loosened by default. Detection unchanged (lab 66/66, mutations 774/774, Hub malicious 49/49); benign FPR on readable files 0.149 to 0.124 (held-out-2), 0.179 to 0.164 (held-out), 0.142 to 0.118 (held-out-3, blind).
+
+### Added
+- **No-code formats** ([src/safeloadai/static/model_formats.py](src/safeloadai/static/model_formats.py)): Core ML weight blobs (coremltools 9.0), CTranslate2 `model.bin` (4.6.0) and whisper.cpp ggml models (1.8.2), each checked field by field against its reader; valid is CLEAN, inconsistent is RISKY, readable as anything else is a polyglot. TFLite Model Maker's appended label files are a note, not a second reading. KenLM stays UNSUPPORTED (README, LIMITATIONS).
+- **`--validate-boosters`** (`validate_boosters=True`, off by default, looser, recorded and announced; [docs/OPTIONS.md](docs/OPTIONS.md#validate_boosters)): a pickled XGBoost, LightGBM or CatBoost model is accepted for that file only when the class is used exactly as its library writes it and every payload passes a strict structural validator in the WASI sandbox. Payloads over 64 MiB stay UNVERIFIABLE. The default (owner decision A2) is unchanged.
+- **held-out-3** (`evaluation/splits/hf-heldout3.txt`, plan committed): 1,842 benign-stratum files from 1,403 repositories in no earlier split, measured once and blind; only aggregates are published (`evaluation/results/heldout3-v0100.json`, `evaluation/blind_aggregate.py`).
+- Evaluation: a `--validate-boosters` column, FPR excluding the irreducible floor, time and memory per group with the file behind the peak (`evaluation/make_evaluation_doc.py`), and `evaluation/rescan_boosters.py`.
+
+### Security
+- **Reviewed classes** ([evaluation/results/source-review-0.10.0.md](evaluation/results/source-review-0.10.0.md), tune and tune-2 only): scikit-learn's `_loss.*` alias only after a module that registers it was imported, and in `safe_load` only when `sys.modules['_loss']` is scikit-learn's own module; `HistGradientBoostingRegressor`, `_RemainderColsList`, `Bunch`; six training-argument dataclasses (llamafactory, FlagEmbedding, ms-swift, axolotl); `LGBMClassifier`, `LGBMRegressor`; pandas `RangeIndex` with int start, stop and step only; Keras 3 `TopKCategoricalAccuracy` and `SparseTopKCategoricalAccuracy`. Each exact pair with its version; misuse and sinks stay flagged (`tests/test_allowlist_review_0_10_0.py`, `tests/test_sklearn_loss.py`). [LLM03]
+- **pathlib path classes** are RISKY, not MALICIOUS: constructing a path parses strings and touches no filesystem; their methods stay sinks (`tests/test_pathlib_classes.py`). A benign Windows checkpoint was MALICIOUS in 0.9.0.
+- `--validate-boosters` never clears a Booster when the sandbox returns fewer results than payloads.
+
+### Changed
+- Emulation evidence limits scale with the stream (2 records per opcode, at most 1,000,000 records and 128 MiB); a run that drops records is still SUSPICIOUS, never CLEAN.
+- Structure checks follow the loaders where they read a field identically whatever it holds (DECISIONS.md N2 to N4): Core ML `padding_size_in_bits` of byte types, OpenVINO Const regions larger than their tensor, TFLite associated files. Each has a test that a payload in the same place is still caught.
+
+### Fixed
+- `--validate-boosters` refused a Booster stored in its `XGBClassifier`'s state (DECISIONS.md B3).
+
+### Measured (0.9.0 and 0.10.0 on the same files, same commits and sha256)
+- Detection: lab 66/66, mutations 774/774, Hub malicious 49/49, Hub unsafe 5/5 and every malicious file of held-out and held-out-2, with and without `--validate-boosters`; 0 let through. No benign file is MALICIOUS. On held-out-3, two files the Hub antivirus flags (label from its evidence, not reviewed while blind) are CLEAN in both releases; looked at after the measurement, both are TF-IDF vocabularies holding words such as `runpy` (EVALUATION.md, held-out-3).
+- held-out-2 (2,806 benign): UNSUPPORTED 114 to 20, hard blocks 79 to 56, FPR on readable files 0.149 to 0.124 (0.095 with `--validate-boosters`). held-out (496): UNSUPPORTED 33 to 2, FPR 0.179 to 0.164 (0.121). held-out-3 (1,415 benign, blind): UNSUPPORTED 36 to 12, FPR 0.142 to 0.118 (0.106).
+- Without the irreducible floor (code the model author wrote: 4.3 %, 6.1 % and 5.0 % of readable files), FPR 0.085, 0.110 and 0.072 by default, 0.055, 0.065 and 0.059 with `--validate-boosters`.
+- Time per held-out-2 file: median 0.83 s, p95 3.01 s (0.85 s and 3.15 s in 0.9.0); peak memory 1,256 MiB (1,242 MiB).
 
 ## safeloadai 0.9.0
 

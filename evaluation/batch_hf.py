@@ -74,11 +74,11 @@ REPO_ROOT = os.path.dirname(HERE)
 SPLIT = "heldout2"
 # Splits planned here (repos no earlier corpus used). A file the Hub flags is ``unclear`` in
 # them until reviewed. tune2 may be read for allowlist work; heldout2 and heldout3 never.
-NEW_SPLITS = (SPLIT, "tune2", "heldout3")
-# held-out-3 (0.10.0) is blind: nothing per file is read before the final measurement, so a
-# file the Hub flags stays unclear (its Hub evidence is not reviewed) and only aggregates leave
-# the working directory.
-BLIND_SPLITS = frozenset({"heldout3"})
+NEW_SPLITS = (SPLIT, "tune2", "heldout3", "heldout4")
+# held-out-3 (0.10.0) and held-out-4 (0.11.0) are blind: nothing per file is read before the
+# final measurement, so a file the Hub flags stays unclear (its Hub evidence is not reviewed)
+# and only aggregates leave the working directory. held-out-3 is no longer blind after 0.10.0.
+BLIND_SPLITS = frozenset({"heldout3", "heldout4"})
 DOWNLOAD_THREADS = 8
 LISTING_EXPAND = ["siblings", "sha", "gated", "private", "downloads"]
 FLAGGED_LEVELS = frozenset({"unsafe", "suspicious", "caution", "error", "issue"})
@@ -100,7 +100,7 @@ def _append(path: str, entry: dict) -> None:
 def used_repos(work: str) -> set[str]:
     """Every repo an earlier corpus used: the split lists, committed results, hf-malicious."""
     repos: set[str] = set()
-    for name in ("hf-tune.txt", "hf-heldout.txt", "hf-tune2.txt", "hf-heldout3.txt"):
+    for name in ("hf-tune.txt", "hf-heldout.txt", "hf-tune2.txt", "hf-heldout3.txt", "hf-heldout4.txt"):
         path = os.path.join(HERE, "splits", name)
         if os.path.exists(path):
             with open(path, encoding="utf-8") as fh:
@@ -258,6 +258,57 @@ def plan_pinned(work: str, source: str, groups: tuple[str, ...] = PINNED_GROUPS)
                        "label": e["label"], "label_reason": e.get("label_reason") or "",
                        "group": e["group"], "pinned_from": os.path.basename(source)})
         added += 1
+    return added
+
+
+def plan_pinned_labels(work: str, source: str, group: str) -> int:
+    """The files of a reviewed labels file (``repo, file, commit, sha256, label, reason``, as
+    ``hf_tune2_labels.tsv``) pinned to their commit and sha256, so a split planned by an
+    earlier release is scanned again on exactly the same files. Sizes come from the Hub API
+    at the pinned commit (nothing is downloaded here)."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    import huggingface_hub as hub
+
+    rows = []
+    with open(source, encoding="utf-8") as fh:
+        for line in fh:
+            if line.strip() and not line.startswith("#"):
+                repo, name, commit, sha, label, reason = (line.rstrip("\n").split("\t", 5) + [""])[:6]
+                rows.append((repo, name, commit, sha, label, reason))
+    plan = os.path.join(work, "plan-pinned.jsonl")
+    planned = {(e["repo_id"], e["filename"]) for e in _jsonl(plan)}
+    by_repo: dict[tuple[str, str], list[tuple]] = {}
+    for row in rows:
+        if (row[0], row[1]) not in planned:
+            by_repo.setdefault((row[0], row[2]), []).append(row)
+    api = hub.HfApi()
+
+    def sizes(key):
+        repo, commit = key
+        for attempt in range(6):
+            try:
+                return key, {p.path: p.size for p in api.get_paths_info(repo, [r[1] for r in by_repo[key]],
+                                                                        revision=commit)}
+            except Exception as exc:  # noqa: BLE001 - a repo deleted or gated since: recorded, not planned
+                if "429" not in str(exc) or attempt == 5:
+                    return key, exc
+                time.sleep(30 * (attempt + 1))  # the Hub's rate limit
+        return key, None
+
+    added = 0
+    with ThreadPoolExecutor(4) as pool:
+        for key, found in pool.map(sizes, list(by_repo)):
+            for repo, name, commit, sha, label, reason in by_repo[key]:
+                if isinstance(found, Exception) or name not in found:
+                    _append(os.path.join(work, "failed.jsonl"), {"repo_id": repo, "filename": name, "revision": commit,
+                                                                 "error": f"not planned: {found!r}"[:300]})
+                    continue
+                _append(plan, {"repo_id": repo, "revision": commit, "filename": name, "size": found[name],
+                               "lfs_sha256": sha, "format": file_format(name), "library": None, "stratum": None,
+                               "split": group.removeprefix("hf-"), "hub_scan": "unknown", "label": label,
+                               "label_reason": reason, "group": group, "pinned_from": os.path.basename(source)})
+                added += 1
     return added
 
 
@@ -501,7 +552,7 @@ def write_labels(work: str, path: str) -> None:
 
 
 PLAN_GROUP = {"tune": "hf-tune", "heldout": "hf-heldout", SPLIT: "hf-heldout2", "tune2": "hf-tune2",
-              "heldout3": "hf-heldout3"}
+              "heldout3": "hf-heldout3", "heldout4": "hf-heldout4"}
 
 
 def plan_labels(work: str) -> dict[str, list[tuple[str, str, str]]]:
@@ -579,7 +630,9 @@ def main(argv: list[str] | None = None) -> int:
         if name in ("plan-benign", "plan-unsafe"):
             p.add_argument("--max-mb", type=float, default=DEFAULT_MAX_MB)
         if name == "plan-pinned":
-            p.add_argument("--from-json", required=True, help="an evaluation results file (run_eval.py output)")
+            source = p.add_mutually_exclusive_group(required=True)
+            source.add_argument("--from-json", help="an evaluation results file (run_eval.py output)")
+            source.add_argument("--from-labels", help="a reviewed labels file (hf_tune2_labels.tsv); needs --group")
             p.add_argument("--group", action="append", help=f"groups to pin (default: {', '.join(PINNED_GROUPS)})")
         if name == "plan-benign":
             p.add_argument("--target", type=int, default=3000)
@@ -618,6 +671,10 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "plan-benign":
         print(f"planned {plan_benign(work, args.target, int(args.max_mb * 1024 * 1024), args.split)} files",
               file=sys.stderr)
+    elif args.cmd == "plan-pinned" and args.from_labels:
+        if not args.group or len(args.group) != 1:
+            parser.error("--from-labels needs exactly one --group (the group its files belong to)")
+        print(f"planned {plan_pinned_labels(work, args.from_labels, args.group[0])} files", file=sys.stderr)
     elif args.cmd == "plan-pinned":
         groups = tuple(args.group) if args.group else PINNED_GROUPS
         print(f"planned {plan_pinned(work, args.from_json, groups)} files", file=sys.stderr)

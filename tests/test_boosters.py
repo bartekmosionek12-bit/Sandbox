@@ -529,6 +529,33 @@ def test_booster_stored_in_a_container(tmp_path):
     assert report.verdict is Verdict.CLEAN, report.reasons
 
 
+def test_booster_in_the_state_of_its_sklearn_wrapper(tmp_path):
+    # XGBClassifier is rebuilt with NEWOBJ () and BUILD {"_Booster": <Booster>, ...}: the Booster
+    # instance is stored, and the class global inside it is not a second use of the class.
+    path = tmp_path / "model.pkl"
+    with stand_in("xgboost.core", "Booster") as booster, stand_in("xgboost.sklearn", "XGBClassifier") as cls:
+        inner = booster()
+        inner.__dict__.update(STATES["xgboost"]())
+        outer = cls()
+        outer.__dict__.update(_Booster=inner, n_estimators=5)
+        path.write_bytes(pickle.dumps(outer, protocol=4))
+    assert scan(str(path)).verdict is Verdict.SUSPICIOUS
+    report = scan(str(path), validate_boosters=True)
+    assert report.verdict is Verdict.CLEAN, report.reasons
+
+
+def test_booster_class_as_a_value_in_a_wrapper_state_is_not_cleared(tmp_path):
+    # the class global itself (not an instance) in another object's state stays a use
+    path = tmp_path / "model.pkl"
+    with stand_in("xgboost.core", "Booster") as booster, stand_in("xgboost.sklearn", "XGBClassifier") as cls:
+        inner = booster()
+        inner.__dict__.update(STATES["xgboost"]())
+        outer = cls()
+        outer.__dict__.update(_Booster=inner, factory=booster)
+        path.write_bytes(pickle.dumps(outer, protocol=4))
+    _assert_not_cleared(scan(str(path), validate_boosters=True), "reaches a BUILD call")
+
+
 def _assert_not_cleared(report, why: str | None = None):
     assert report.verdict is not Verdict.CLEAN
     assert not any(c["mechanism"] == boosters.MECHANISM for c in report.cleared)

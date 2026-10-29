@@ -120,8 +120,10 @@ def _catboost_payloads(state: dict) -> list[bytes]:
 _PAYLOADS = {"xgboost": _xgboost_payloads, "lightgbm": _lightgbm_payloads, "catboost": _catboost_payloads}
 
 
-def _occurrences(value, targets: set[int], steps: list[int]) -> bool:
-    """Whether any of the objects with ids ``targets`` is reachable in ``value``."""
+def _occurrences(value, targets: set[int], steps: list[int], leaves: frozenset[int] = frozenset()) -> bool:
+    """Whether any of the objects with ids ``targets`` is reachable in ``value``. Objects with
+    ids ``leaves`` are not walked into: a Booster instance stored in another object's state
+    holds its own class global, and its own uses are checked on their own."""
     todo, seen = [value], set()
     while todo:
         item = todo.pop()
@@ -130,7 +132,7 @@ def _occurrences(value, targets: set[int], steps: list[int]) -> bool:
             return True  # undecided counts as used
         if id(item) in targets:
             return True
-        if id(item) in seen:
+        if id(item) in seen or id(item) in leaves:
             continue
         if isinstance(item, Obj):
             seen.add(id(item))
@@ -227,7 +229,7 @@ def find(report: dict, calls: list[tuple], uses: list[tuple], globals_at: dict,
             values, watch = ((args,) if id(func) in instance_ids else (func, args)), class_globals
         else:
             values, watch = (func, args), everything
-        if _occurrences(values, watch, steps):
+        if _occurrences(values, watch, steps, frozenset(instance_ids) if how == "build" else frozenset()):
             for pair in wanted:
                 refused.setdefault(pair, f"the class or an instance reaches a {how.upper()} call at {pos}; "
                                          "it may only be instantiated and stored")

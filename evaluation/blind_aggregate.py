@@ -69,8 +69,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--anatomy", help="fp_anatomy.py aggregate JSON of the after run")
     parser.add_argument("--group", default="hf-heldout3")
     parser.add_argument("--out", required=True)
+    parser.add_argument("--post-review", help="what a review after the measurement found (free text, aggregate)")
     args = parser.parse_args(argv)
     result = {"generated_by": "evaluation/blind_aggregate.py", "group": args.group}
+    if args.post_review:
+        result["post_review"] = args.post_review
     for name in ("after", "before"):
         path = getattr(args, name)
         if path:

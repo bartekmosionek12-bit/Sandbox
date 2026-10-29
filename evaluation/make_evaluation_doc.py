@@ -30,9 +30,9 @@ import sys
 from collections import Counter, defaultdict
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DEFAULT_RESULT = os.path.join(ROOT, "evaluation", "results", "eval-v090-20261023T212503Z.json")
-DEFAULT_BEFORE = os.path.join(ROOT, "evaluation", "results", "eval-v090-before-v080-20261023T212432Z.json")
-DEFAULT_ANATOMY = os.path.join(ROOT, "evaluation", "results", "fp-anatomy-v090-20261023.json")
+DEFAULT_RESULT = os.path.join(ROOT, "evaluation", "results", "eval-v0100-20261029T052707Z.json")
+DEFAULT_BEFORE = os.path.join(ROOT, "evaluation", "results", "eval-v0100-before-v090-20261029T052656Z.json")
+DEFAULT_ANATOMY = os.path.join(ROOT, "evaluation", "results", "fp-anatomy-v0100-20261029.json")
 DEFAULT_BLIND = os.path.join(ROOT, "evaluation", "results", "heldout3-v0100.json")
 OUT = os.path.join(ROOT, "docs", "EVALUATION.md")
 README = os.path.join(ROOT, "README.md")
@@ -478,7 +478,8 @@ def blind_section(blind: dict | None) -> list[str]:
              "0.10.0 work and measured once, with the final scanner. Nobody looked at its files or per-file "
              "results: the results stay outside the repository and only the aggregates below "
              f"([`{blind['source']}`](../evaluation/results/{blind['source']})) were read. A file the Hub flags "
-             "stays unclear, because reviewing its evidence would mean looking at it. Labels: "
+             "keeps the label the automatic rule gives its Hub evidence (`fetch_malicious_hf.proposed_label`), "
+             "without the review by hand the other sets had, because that review means looking at it. Labels: "
              f"{after['labels']['benign']} benign, {after['labels']['malicious']} malicious, "
              f"{after['labels']['unclear']} unclear.", "",
              BLOCKS_HEAD.format(first="configuration")]
@@ -488,6 +489,8 @@ def blind_section(blind: dict | None) -> list[str]:
     col = after["columns"]["safeloadai"]
     lines += ["", f"Benign files MALICIOUS by default: {col['benign_malicious_verdict']}. Malicious files let "
               f"through: {col['malicious_let_through']}."]
+    if blind.get("post_review"):
+        lines += ["", blind["post_review"]]
     anatomy = blind.get("anatomy")
     if anatomy:
         lines += ["", "| cause | files | share of benign |", "|---|---|---|"]

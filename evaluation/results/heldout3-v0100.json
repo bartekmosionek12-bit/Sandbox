@@ -1,0 +1,272 @@
+{
+ "after": {
+  "columns": {
+   "safeloadai": {
+    "benign_malicious_verdict": 0,
+    "blocks": {
+     "benign": 1415,
+     "clean": 1237,
+     "error": 0,
+     "fp": 166,
+     "fpr_readable": 0.1183,
+     "hard": 21,
+     "readable": 1403,
+     "soft": 145,
+     "unsupported": 12
+    },
+    "blocks_without_poc_rule": {
+     "benign": 1428,
+     "clean": 1240,
+     "error": 0,
+     "fp": 176,
+     "fpr_readable": 0.1243,
+     "hard": 25,
+     "readable": 1416,
+     "soft": 151,
+     "unsupported": 12
+    },
+    "malicious_let_through": 2
+   },
+   "safeloadai upper bound": {
+    "benign_malicious_verdict": 0,
+    "blocks": {
+     "benign": 1415,
+     "clean": 1382,
+     "error": 0,
+     "fp": 21,
+     "fpr_readable": 0.015,
+     "hard": 21,
+     "readable": 1403,
+     "soft": 0,
+     "unsupported": 12
+    },
+    "blocks_without_poc_rule": {
+     "benign": 1428,
+     "clean": 1391,
+     "error": 0,
+     "fp": 25,
+     "fpr_readable": 0.0177,
+     "hard": 25,
+     "readable": 1416,
+     "soft": 0,
+     "unsupported": 12
+    },
+    "malicious_let_through": 2
+   },
+   "safeloadai validate-boosters": {
+    "benign_malicious_verdict": 0,
+    "blocks": {
+     "benign": 1415,
+     "clean": 1237,
+     "error": 0,
+     "fp": 166,
+     "fpr_readable": 0.1183,
+     "hard": 21,
+     "readable": 1403,
+     "soft": 145,
+     "unsupported": 12
+    },
+    "blocks_without_poc_rule": {
+     "benign": 1428,
+     "clean": 1240,
+     "error": 0,
+     "fp": 176,
+     "fpr_readable": 0.1243,
+     "hard": 25,
+     "readable": 1416,
+     "soft": 151,
+     "unsupported": 12
+    },
+    "malicious_let_through": 2
+   },
+   "safeloadai without known-file list": {
+    "benign_malicious_verdict": 0,
+    "blocks": {
+     "benign": 1415,
+     "clean": 1237,
+     "error": 0,
+     "fp": 166,
+     "fpr_readable": 0.1183,
+     "hard": 21,
+     "readable": 1403,
+     "soft": 145,
+     "unsupported": 12
+    },
+    "blocks_without_poc_rule": {
+     "benign": 1428,
+     "clean": 1240,
+     "error": 0,
+     "fp": 176,
+     "fpr_readable": 0.1243,
+     "hard": 25,
+     "readable": 1416,
+     "soft": 151,
+     "unsupported": 12
+    },
+    "malicious_let_through": 2
+   }
+  },
+  "created": "20261029T065657Z",
+  "files": 1840,
+  "labels": {
+   "benign": 1415,
+   "malicious": 6,
+   "unclear": 419
+  },
+  "poc_rule_unclear": 13,
+  "rss_peak_mb": 1070.7,
+  "safeloadai": "0.10.0",
+  "seconds": {
+   "max": 166.826,
+   "median": 0.66,
+   "p95": 2.283
+  }
+ },
+ "anatomy": {
+  "benign_files": 1415,
+  "classes": {
+   "a": {
+    "files": 21,
+    "share_of_benign": 0.0148,
+    "text": "user-defined classes (__main__, modules in no public package)"
+   },
+   "b": {
+    "files": 49,
+    "share_of_benign": 0.0346,
+    "text": "custom Keras objects registered by the model author"
+   },
+   "c": {
+    "files": 77,
+    "share_of_benign": 0.0544,
+    "text": "classes from known public libraries missing from the allowlist"
+   },
+   "d": {
+    "files": 0,
+    "share_of_benign": 0.0,
+    "text": "old module paths of already reviewed classes"
+   },
+   "e": {
+    "files": 12,
+    "share_of_benign": 0.0085,
+    "text": "data-only formats safeloadai does not parse (UNSUPPORTED)"
+   },
+   "f": {
+    "files": 19,
+    "share_of_benign": 0.0134,
+    "text": "other (code in the file, emulation limits, structure, tool errors)"
+   }
+  },
+  "floor": {
+   "files": 70,
+   "share_of_benign": 0.0495,
+   "share_of_not_clean": 0.3933
+  },
+  "not_clean": 178,
+  "reducible_by_allowlist": {
+   "files": 77,
+   "only_native_parser_classes": 20,
+   "share_of_benign": 0.0544,
+   "share_of_not_clean": 0.4326
+  }
+ },
+ "before": {
+  "columns": {
+   "safeloadai": {
+    "benign_malicious_verdict": 0,
+    "blocks": {
+     "benign": 1415,
+     "clean": 1183,
+     "error": 0,
+     "fp": 196,
+     "fpr_readable": 0.1421,
+     "hard": 38,
+     "readable": 1379,
+     "soft": 158,
+     "unsupported": 36
+    },
+    "blocks_without_poc_rule": {
+     "benign": 1428,
+     "clean": 1186,
+     "error": 0,
+     "fp": 206,
+     "fpr_readable": 0.148,
+     "hard": 42,
+     "readable": 1392,
+     "soft": 164,
+     "unsupported": 36
+    },
+    "malicious_let_through": 2
+   },
+   "safeloadai upper bound": {
+    "benign_malicious_verdict": 0,
+    "blocks": {
+     "benign": 1415,
+     "clean": 1341,
+     "error": 0,
+     "fp": 38,
+     "fpr_readable": 0.0276,
+     "hard": 38,
+     "readable": 1379,
+     "soft": 0,
+     "unsupported": 36
+    },
+    "blocks_without_poc_rule": {
+     "benign": 1428,
+     "clean": 1350,
+     "error": 0,
+     "fp": 42,
+     "fpr_readable": 0.0302,
+     "hard": 42,
+     "readable": 1392,
+     "soft": 0,
+     "unsupported": 36
+    },
+    "malicious_let_through": 2
+   },
+   "safeloadai without known-file list": {
+    "benign_malicious_verdict": 0,
+    "blocks": {
+     "benign": 1415,
+     "clean": 1183,
+     "error": 0,
+     "fp": 196,
+     "fpr_readable": 0.1421,
+     "hard": 38,
+     "readable": 1379,
+     "soft": 158,
+     "unsupported": 36
+    },
+    "blocks_without_poc_rule": {
+     "benign": 1428,
+     "clean": 1186,
+     "error": 0,
+     "fp": 206,
+     "fpr_readable": 0.148,
+     "hard": 42,
+     "readable": 1392,
+     "soft": 164,
+     "unsupported": 36
+    },
+    "malicious_let_through": 2
+   }
+  },
+  "created": "20261029T065623Z",
+  "files": 1840,
+  "labels": {
+   "benign": 1415,
+   "malicious": 6,
+   "unclear": 419
+  },
+  "poc_rule_unclear": 13,
+  "rss_peak_mb": 480.7,
+  "safeloadai": "0.9.0",
+  "seconds": {
+   "max": 109.267,
+   "median": 0.674,
+   "p95": 2.28
+  }
+ },
+ "generated_by": "evaluation/blind_aggregate.py",
+ "group": "hf-heldout3",
+ "post_review": "Malicious-labelled files CLEAN in both releases: 2. After the measurement was final these two files only were looked at (by scan() and a byte search; nothing was loaded): both are scikit-learn TfidfVectorizer pickles whose vocabulary holds words such as `runpy`, `urllib3` and `pathlib` taken from chat text. Their only imports are the vectorizer, its transformer and NumPy, all allowlisted, and the emulation recorded nothing. The Hub antivirus matched those strings; the files are benign, so the label is the error, not the verdict. Nothing was changed because of them."
+}

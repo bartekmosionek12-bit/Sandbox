@@ -26,7 +26,8 @@ that is only referenced, from a module of a known library whose import is inert
 (``trust_inert_from``) finds state-only is accepted like the reviewed
 ``STATE_ONLY_CLASSES``: only rebuilt from its saved state (NEWOBJ () + one dict BUILD),
 never called, never passed around as a value. The installed analysis only adds classes
-the pinned policies do not have; it never removes one (0.11.0).
+the pinned policies do not have, and removes one only when the installed source gives the
+class code of its own that runs on load (a hook the pinned review did not see; 0.11.0).
 """
 from __future__ import annotations
 
@@ -66,15 +67,19 @@ class Clearance:
             return self._cache[pair]
         found = None
         entry = upstream.state_only(pair)
-        if entry:
+        if entry and self._installed_hook(pair):
+            entry = None  # the installed version runs code of its own on load (0.11.0, DECISIONS.md T2)
+        elif entry:
             found = ("policy", f"state-only class ({upstream.label(entry['distribution'])} source)")
             if entry.get("historical"):
                 old = entry["historical"]
                 found = ("policy", f"state-only class ({upstream.label(entry['distribution'])} source); old "
                                    f"module path of {old['current']} ({upstream.span(old)})")
         else:
-            # trust_inert_from only adds to the pinned policies, never takes from them (0.11.0,
-            # DECISIONS.md T2): replacing them made 230 pinned classes and old paths stricter.
+            # trust_inert_from adds to the pinned policies (0.11.0, DECISIONS.md T2): replacing
+            # them made 230 pinned classes and old paths stricter for reasons that are limits of
+            # the installed analysis (an old module path it does not have, an import chain read
+            # eagerly), not code the class runs
             top = pair[0].split(".")[0]
             for dist, (index, version, tops) in self.installed.items():
                 if top in tops:
@@ -82,6 +87,19 @@ class Clearance:
                     break
         self._cache[pair] = found
         return found
+
+    def _installed_hook(self, pair: tuple[str, str]) -> str | None:
+        """The first hook (``__setstate__``, a property setter, a metaclass, ...) that the
+        installed source of a named distribution gives this class or a base, when it has the
+        class; such a class is never state-only for this scan, even when the pins accept it."""
+        top = pair[0].split(".")[0]
+        for index, _version, tops in self.installed.values():
+            if top in tops:
+                if "." in pair[1] or index.module(pair[0]) is None:
+                    return None
+                verdict = index.state_only(*pair)
+                return verdict.hooks[0] if verdict.hooks else None
+        return None
 
     def is_state_only(self, pair) -> bool:
         return pair in STATE_ONLY_CLASSES or (pair is not None and self.state_only(pair) is not None)

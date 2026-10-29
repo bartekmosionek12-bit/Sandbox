@@ -442,6 +442,9 @@ class Verdict:
     reasons: list[str] = field(default_factory=list)
     mro: list[tuple[str, str]] = field(default_factory=list)
     reviewed_hooks: list[str] = field(default_factory=list)
+    # the reasons that are code of the class itself or a base (a hook, a property setter, a
+    # metaclass, a decorator, slots), as opposed to what the index cannot read (0.11.0)
+    hooks: list[str] = field(default_factory=list)
 
 
 def source_sha256(text: str) -> str:
@@ -714,12 +717,18 @@ class SourceIndex:
             parent = self.state_only(found[1].module, found[1].name)
             verdict.mro += [p for p in parent.mro if p not in verdict.mro]
             verdict.reviewed_hooks += [h for h in parent.reviewed_hooks if h not in verdict.reviewed_hooks]
+            verdict.hooks += [h for h in parent.hooks if h not in verdict.hooks]
             if not parent.state_only:
                 verdict.state_only = False
                 verdict.reasons += [r for r in parent.reasons if r not in verdict.reasons]
         return verdict
 
     def _own_checks(self, cls: ClassFacts, verdict: Verdict) -> None:
+        before = len(verdict.reasons)
+        self._own_code(cls, verdict)
+        verdict.hooks += verdict.reasons[before:]
+
+    def _own_code(self, cls: ClassFacts, verdict: Verdict) -> None:
         facts = self.module(cls.module)
         source = facts.source if facts else ""
         for keyword in cls.node.keywords:

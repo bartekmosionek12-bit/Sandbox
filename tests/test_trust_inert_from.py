@@ -225,3 +225,23 @@ def test_installed_analysis_still_adds_a_class_the_pins_lack(fake_dists):
     # the other half: a state-only class outside the pinned policies is what the option is for
     report = check(rebuilt("fakelib.models", "Plain"), ("fakelib",))
     assert report["static_risk"] == "clean" and report["cleared"][0]["mechanism"] == "inert-class"
+
+
+def test_a_hook_in_the_installed_version_still_removes_a_pinned_class(fake_dists, monkeypatch):
+    # What the option keeps from replacing: when the installed source gives a pinned class
+    # code of its own that runs on load (here __setstate__, as if a newer release added it),
+    # the class is not state-only for that scan. Only a hook does this, never a limit of the
+    # installed analysis (an old path it lacks, a base it cannot read).
+    from safeloadai.static import upstream
+
+    real = upstream.state_only
+    pinned = {("fakelib.models", "WithState"), ("fakelib.models", "ChildOfNative")}
+    monkeypatch.setattr(upstream, "state_only",
+                        lambda pair: {"distribution": "fakelib"} if pair in pinned else real(pair))
+    monkeypatch.setattr(upstream, "label", lambda dist: dist)
+    hooked = rebuilt("fakelib.models", "WithState")
+    assert parse_pickle(hooked)["static_risk"] == "clean"  # the pinned policy, option off
+    report = check(hooked, ("fakelib",))
+    assert report["static_risk"] != "clean" and not report["cleared"]
+    native = check(rebuilt("fakelib.models", "ChildOfNative"), ("fakelib",))
+    assert native["static_risk"] == "clean" and native["cleared"][0]["mechanism"] == "policy"

@@ -31,6 +31,7 @@ from typing import Any
 from .. import errors, override
 from . import budget as budget_mod
 from . import clearance as clearance_mod
+from . import sklearn_loss
 from .allowlists import (
     ARGUMENT_CHECKED,
     ARRAY_RECONSTRUCTORS,
@@ -50,7 +51,6 @@ from .allowlists import (
     EXEC_GADGETS,
     GETATTR,
     GUARDED_CALLS,
-    KNOWN_GADGETS,
     NUMPY_BIT_GENERATOR_CLASSES,
     NUMPY_BIT_GENERATOR_CTOR,
     NUMPY_BIT_GENERATOR_NAMES,
@@ -60,6 +60,7 @@ from .allowlists import (
     PANDAS_INDEX_CLASSES,
     PANDAS_INDEX_KEYS,
     PANDAS_NEW_INDEX,
+    PANDAS_RANGE_INDEX,
     PANDAS_SERIES,
     PANDAS_SINGLE_BLOCK_MANAGER,
     PANDAS_UNPICKLE_BLOCK,
@@ -70,6 +71,8 @@ from .allowlists import (
     TF_DANGEROUS,
     TORCH_GLOBALS,
     ZERO_ARG_CLASSES,
+    is_known_gadget,
+    is_path_class,
 )
 from .lookalike import imitates
 from .lookalike import reason as lookalike_reason
@@ -190,7 +193,7 @@ def is_dangerous_import(module: str, name: str) -> bool:
     root = module.split(".", 1)[0]
     leaf = name.rsplit(".", 1)[-1]
     head = name.split(".", 1)[0]
-    if (module, name) in CLASS_BUILDERS:
+    if (module, name) in CLASS_BUILDERS or is_path_class(module, name):
         return False
     return (
         (module in DILL_MODULES and name in DILL_SINKS)
@@ -298,8 +301,13 @@ def parse_pickle(data: bytes, file_name: str = "<memory>", *, torch: bool = Fals
     index_ref = [0]
     on_opcode, on_import = _recorders(report, index_ref)
     calls: list[tuple] = []
+    record_call = calls.append
+    if clearance.validate_boosters:
+        from . import boosters
+
+        record_call = boosters.recorder(calls)
     machine = Machine(data, joblib=joblib, on_import=on_import, on_opcode=on_opcode,
-                      on_call=lambda *call: calls.append(call), max_opcodes=MAX_OPCODES)
+                      on_call=lambda *call: record_call(call), max_opcodes=MAX_OPCODES)
     try:
         while machine.stream.tell() < len(data):
             if index_ref[0] >= MAX_PICKLES:
@@ -362,6 +370,10 @@ def parse_pickle(data: bytes, file_name: str = "<memory>", *, torch: bool = Fals
             extra = {(i["module"], i["symbol"]): ("torch-weights-only", detail) for i in report["imports"]}
     if not report["error"] and depth == 0:
         _profile(report, file_name if profile_name is None else profile_name, machine, calls, legacy_torch, extra)
+    if not report["error"]:
+        sklearn_loss.clear(report, extra)
+    if clearance.validate_boosters and not report["error"]:
+        boosters.clear(report, calls, machine.uses, machine.globals, extra, record_call.states)
     report["raw_disasm"] = _disasm(data)
     _score(report, allow, torch, clearance, machine.globals, used, extra)
     return report
@@ -530,11 +542,13 @@ def _argument_check(how: str, pair: tuple[str, str], args, state_only=None) -> t
         return f"is called with {_short(args)}; only a member lookup with one str or int is accepted", None
     if pair == PANDAS_NEW_INDEX:
         if (len(args) == 2 and isinstance(args[0], Global) and args[0].pair in PANDAS_INDEX_CLASSES
-                and isinstance(args[1], dict) and set(args[1]) <= PANDAS_INDEX_KEYS[args[0].pair]):
+                and isinstance(args[1], dict) and set(args[1]) <= PANDAS_INDEX_KEYS[args[0].pair]
+                and (args[0].pair not in PANDAS_RANGE_INDEX
+                     or all(type(args[1].get(k)) is int for k in ("start", "stop", "step")))):
             return None, 0
         shown = (args[0], sorted(args[1]) if isinstance(args[1], dict) else args[1]) if len(args) == 2 else args
         return (f"is called with arguments pandas never writes ({_short(shown)}; it calls its first argument, "
-                "and only pandas.core.indexes.base.Index with a data/name dict is accepted)"), None
+                "and only pandas Index with a data/name dict or RangeIndex with int start/stop/step is accepted)"), None
     if pair == DEFAULTDICT:
         # The factory runs only on a missing key, after loading; as a global it is checked
         # against the allowlist like any other import.
@@ -1362,7 +1376,7 @@ def _score(report: dict, allow: frozenset, torch: bool,
         if imp["module"] is not None:
             reason = f"import outside the allowlist: {imp['module']}.{imp['symbol']}"
             reasons.append(reason)
-            if (imp["module"], imp["symbol"]) in KNOWN_GADGETS:
+            if is_known_gadget(imp["module"], imp["symbol"]):
                 continue
             ref = imitates(imp["module"])
             if ref:

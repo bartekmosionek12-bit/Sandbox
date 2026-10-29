@@ -64,9 +64,10 @@ from fetch_benign_hf import split_of  # noqa: E402
 from guard import activate  # noqa: E402
 
 from safeloadai import __version__, override, scan  # noqa: E402
-from safeloadai.parsing.detect import EXTENSION_HINTS  # noqa: E402
+from safeloadai.parsing.detect import SCAN_EXTENSIONS  # noqa: E402
+from safeloadai.static.boosters import BOOSTERS as BOOSTER_CLASSES  # noqa: E402
 
-MODEL_EXTENSIONS = tuple(EXTENSION_HINTS)
+MODEL_EXTENSIONS = SCAN_EXTENSIONS
 # Columns next to the default run (each a result per file, like another tool):
 # * UPPER_BOUND: every UNVERIFIABLE item accepted (accept_unverified for all of them). An
 #   upper bound on what overrides can do, not a recommendation: it lets malicious lab
@@ -74,13 +75,18 @@ MODEL_EXTENSIONS = tuple(EXTENSION_HINTS)
 # * TRUST: the real opt-in, default + trust_inert_from for the distributions named with
 #   --opt-in-trust (scikit-learn, transformers and torch unless given).
 # * NO_KNOWN_GOOD: default with the reviewed known-file list turned off (known_good=False).
+# * BOOSTERS: default + validate_boosters (0.10.0 opt-in). Only files whose missing entries
+#   name a Booster class are scanned again; every other file has the default result.
 UPPER_BOUND = "safeloadai upper bound"
 OLD_UPPER_BOUND = "safeloadai opt-in"
 TRUST = "safeloadai trust-inert-from"
 NO_KNOWN_GOOD = "safeloadai without known-file list"
+BOOSTERS = "safeloadai validate-boosters"
 COLUMN_TITLES = {UPPER_BOUND: "upper bound: accept all unverifiable (not recommended)",
-                 TRUST: "opt-in: --trust-inert-from", NO_KNOWN_GOOD: "default without the known-file list"}
+                 TRUST: "opt-in: --trust-inert-from", NO_KNOWN_GOOD: "default without the known-file list",
+                 BOOSTERS: "opt-in: --validate-boosters"}
 DEFAULT_TRUST = ("scikit-learn", "transformers", "torch")
+BOOSTER_NAMES = frozenset(f"{m}.{q}" for m, q in BOOSTER_CLASSES)  # as _missing_entries names them
 TOOL_TIMEOUT_S = 300
 ERROR_MARKERS = ("Traceback", "NotImplementedError", "Parsing errors", "Error:")
 
@@ -95,7 +101,8 @@ TOOLS = {
 SKIP = {("modelscan", ".h5"): "modelscan reads .h5 with h5py on the host"}
 EXT_FORMAT = {".pkl": "pickle", ".pickle": "pickle", ".joblib": "joblib", ".pt": "torch", ".pth": "torch",
               ".bin": "torch", ".keras": "keras", ".h5": "h5", ".hdf5": "h5", ".safetensors": "safetensors",
-              ".gguf": "gguf", ".npy": "numpy", ".npz": "numpy"}
+              ".gguf": "gguf", ".npy": "numpy", ".npz": "numpy", ".onnx": "onnx", ".tflite": "tflite",
+              ".msgpack": "msgpack", ".xml": "openvino"}
 
 
 def _files(directory: str) -> list[str]:
@@ -147,6 +154,8 @@ def load_entries(lab: str | None, hf: str | None, benign: list[str], mutations: 
                             "library": item.get("stratum") or item.get("library") or item["format"],
                             "hub_scan": item.get("hub_scan", "unknown"), "repo_id": item["repo_id"],
                             "revision": item["revision"], "sha256": item["sha256"], "size": item["size"]})
+            if item.get("companions"):  # files a loader reads beside it (0.10.0: an OpenVINO .xml)
+                entries[-1]["companions"] = [{k: c[k] for k in ("file", "sha256", "size")} for c in item["companions"]]
             label, reason = reviewed.get((item["repo_id"], item["filename"]), ("benign", None))
             if label != "benign":  # a scanner test file the benign discovery picked up
                 entries[-1].update(label=label, label_reason=reason,
@@ -246,7 +255,7 @@ def _run_safeloadai(path: str, trust: tuple[str, ...] = ()) -> dict:
     if not report.ok:
         result = _error_column(report, seconds)
         result.update(file_format=report.file_format, timings_ms=report.timings_ms, reasons=report.reasons[:8])
-        for column in ("no_known_good", "upper_bound"):
+        for column in ("no_known_good", "upper_bound", "boosters"):
             result[column] = _error_column(report, seconds)
         if trust:
             result["trust"] = _error_column(report, seconds)
@@ -287,6 +296,16 @@ def _run_safeloadai(path: str, trust: tuple[str, ...] = ()) -> dict:
             except Exception as exc:  # noqa: BLE001
                 result["trust"] = {"outcome": "error", "error": f"{type(exc).__name__}: {exc}", "seconds": 0.0,
                                    "block": "error"}
+    # --validate-boosters: scanned again only when a Booster class is what blocked the file.
+    result["boosters"] = {k: result[k] for k in ("outcome", "verdict", "category", "unverifiable_only",
+                                                 "seconds", "block")}
+    if not report.clean and BOOSTER_NAMES.intersection(result["missing"]):
+        t = time.perf_counter()
+        try:
+            result["boosters"] = _column(scan(path, validate_boosters=True), time.perf_counter() - t)
+        except Exception as exc:  # noqa: BLE001
+            result["boosters"] = {"outcome": "error", "error": f"{type(exc).__name__}: {exc}", "seconds": 0.0,
+                                  "block": "error"}
     # The upper bound: the same report with every UNVERIFIABLE item accepted, as a user who
     # passes --accept-unverified for each of them would (refused on any RISKY or MALICIOUS reason).
     accepted = override.apply(report, report.unverifiable_items, how="api") if not report.clean else False
@@ -660,7 +679,7 @@ def group_markdown(groups: dict, tools: list[str]) -> list[str]:
 
 def markdown(summary: dict, fps: dict, entries: list[dict], tools: list[str], meta: dict,
              groups: dict | None = None) -> str:
-    columns = ["safeloadai", *[t for t in (NO_KNOWN_GOOD, TRUST, UPPER_BOUND) if t in tools]]
+    columns = ["safeloadai", *[t for t in (NO_KNOWN_GOOD, TRUST, BOOSTERS, UPPER_BOUND) if t in tools]]
     lines = [f"# Evaluation {meta['label']} ({meta['created']})", "",
              f"safeloadai {meta['safeloadai']}, Python {meta['python']}, {meta['platform']}. "
              f"{len(entries)} files.", "",
@@ -796,7 +815,8 @@ def main(argv: list[str] | None = None) -> int:
         results = map(_evaluate, jobs)
     for i, (entry, result) in enumerate(zip(entries, results, strict=True), 1):
         entry["results"] = result
-        for key, column in (("no_known_good", NO_KNOWN_GOOD), ("trust", TRUST), ("upper_bound", UPPER_BOUND)):
+        for key, column in (("no_known_good", NO_KNOWN_GOOD), ("trust", TRUST), ("boosters", BOOSTERS),
+                            ("upper_bound", UPPER_BOUND)):
             if key in result["safeloadai"]:
                 result[column] = result["safeloadai"].pop(key)
             elif key != "trust" or trust:
@@ -807,7 +827,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.jobs > 1:
         pool.shutdown()
 
-    tools = [NO_KNOWN_GOOD, *([TRUST] if trust else []), UPPER_BOUND, *tools]
+    tools = [NO_KNOWN_GOOD, *([TRUST] if trust else []), BOOSTERS, UPPER_BOUND, *tools]
     summary = summarise(entries, tools)
     groups = summarise_groups(entries, tools)
     fps = false_positives(entries)

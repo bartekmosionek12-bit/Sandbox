@@ -54,13 +54,13 @@ import sys
 
 from . import options as options_mod
 from . import override
-from .parsing.detect import EXTENSION_HINTS
+from .parsing.detect import SCAN_EXTENSIONS
 from .pipeline import scan
 from .report import Report, Verdict
 
 EXIT_CLEAN, EXIT_MALICIOUS, EXIT_USAGE, EXIT_SUSPICIOUS, EXIT_INTEGRITY, EXIT_UNSUPPORTED = 0, 1, 2, 3, 4, 5
 EXIT_ERROR = 6
-SUPPORTED = tuple(EXTENSION_HINTS)
+SUPPORTED = SCAN_EXTENSIONS
 
 
 def _collect(paths: list[str]) -> list[str]:
@@ -116,6 +116,10 @@ def _build_parser() -> argparse.ArgumentParser:
                         "(read, never imported); a class whose rebuild runs no code of its own is accepted "
                         "(repeatable). Changes no verdict in the 0.8.0 evaluation: for the pinned distributions "
                         "it gives the same answer as the shipped policies")
+    s.add_argument("--validate-boosters", action="store_true",
+                   help="accept a pickled XGBoost, LightGBM or CatBoost Booster when its model bytes pass a strict "
+                        "structural validator run in the WASI sandbox (off by default; the library's native "
+                        "parser still reads those bytes when you load the file, see docs/OPTIONS.md)")
     s.add_argument("--no-known-good", action="store_true",
                    help="do not use the shipped list of reviewed benign files (only makes verdicts stricter)")
     s.add_argument("--no-input", action="store_true", help="never prompt, even on a terminal")
@@ -251,7 +255,7 @@ def main(argv: list[str] | None = None) -> int:
     for path in files:
         report = scan(path, judge=settings["judge"], deep=settings["deep"], allow=settings["allow"],
                       trust_inert_from=settings["trust_inert_from"], known_good=settings["known_good"],
-                      option_sources=settings["sources"])
+                      validate_boosters=settings["validate_boosters"], option_sources=settings["sources"])
         if not report.ok:
             print(f"safeloadai: {path}: {report.error['code']} {report.error['message']}", file=sys.stderr)
         reports.append(report)
@@ -311,11 +315,13 @@ def _settings(args) -> dict:
     where each non-default option came from."""
     settings = {"allow": list(args.allow), "judge": args.judge, "deep": args.deep,
                 "trust_inert_from": list(args.trust_inert_from), "known_good": not args.no_known_good,
+                "validate_boosters": args.validate_boosters,
                 "accept_unverified": [(sha, item, "CLI flag --accept-unverified")
                                       for sha, item in args.accept_unverified],
                 "sources": {}, "config": None}
     flag_sources = {"allow": "CLI flag --allow", "judge": "CLI flag --judge", "deep": "CLI flag --deep",
-                    "trust_inert_from": "CLI flag --trust-inert-from"}
+                    "trust_inert_from": "CLI flag --trust-inert-from",
+                    "validate_boosters": "CLI flag --validate-boosters"}
     for name, source in flag_sources.items():
         if settings[name]:
             settings["sources"][name] = source
@@ -330,14 +336,14 @@ def _settings(args) -> dict:
         for text in config.get("accept_unverified", []):
             sha, item = _accept_item(text)
             settings["accept_unverified"].append((sha, item, source))
-        for name in ("judge", "deep"):
+        for name in ("judge", "deep", "validate_boosters"):
             if config.get(name):
                 settings[name] = True
         settings["trust_inert_from"] += config.get("trust_inert_from", [])
         if config.get("known_good") is False:
             settings["known_good"] = False
             settings["sources"]["known_good"] = source
-        for name in ("allow", "judge", "deep", "trust_inert_from"):
+        for name in ("allow", "judge", "deep", "trust_inert_from", "validate_boosters"):
             if config.get(name):
                 settings["sources"][name] = (settings["sources"][name] + " and " + source
                                              if name in settings["sources"] else source)
@@ -355,7 +361,7 @@ def _announce(settings: dict) -> list[str]:
     if settings["config"]:
         lines.append(f"safeloadai: reading options from config file {settings['config']}")
     entries = [options_mod.record(name, settings[name], settings["sources"][name])
-               for name in ("allow", "trust_inert_from", "known_good", "deep", "judge")
+               for name in ("allow", "trust_inert_from", "validate_boosters", "known_good", "deep", "judge")
                if not options_mod.is_default(name, settings[name])]
     if settings["accept_unverified"]:
         sources = sorted({source for _sha, _item, source in settings["accept_unverified"]})

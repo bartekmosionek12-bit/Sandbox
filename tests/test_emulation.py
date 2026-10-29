@@ -273,3 +273,52 @@ def test_over_the_ceiling_is_still_an_error(tmp_path, monkeypatch):
     path.write_bytes(pickle.dumps(list(range(400_000)), protocol=2))
     report = scan(path)
     assert report.status == "error" and report.error["code"] == "E304", report.error
+
+
+# --- the evidence record limit grows with the opcodes (0.10.0) ----------------------------
+
+def test_scaled_record_limit_grows_with_the_opcodes_up_to_a_ceiling():
+    from safeloadai.sandbox import host
+
+    base = host.Limits()
+    assert host.scaled_limits(1000, 100_000).max_records == base.max_records + 2 * 100_000
+    assert host.scaled_limits(1000, 10 ** 9).max_records == host.MAX_RECORDS
+    assert host.scaled_limits(1000, 10 ** 9).max_record_total_bytes == base.max_record_total_bytes
+
+
+def _many_scalars(tmp_path):
+    import pickle
+
+    import numpy as np
+
+    path = tmp_path / "scalars.pkl"
+    path.write_bytes(pickle.dumps([np.float64(i) for i in range(3000)], protocol=4))
+    return path
+
+
+def test_many_small_objects_complete_with_the_scaled_record_limit(tmp_path, monkeypatch):
+    import functools
+
+    from safeloadai import Verdict, pipeline, scan
+    from safeloadai.sandbox import host
+
+    path = _many_scalars(tmp_path)
+    small = host.Limits(max_records=1000)
+    fixed = scan(path, limits=small)
+    assert fixed.verdict is not Verdict.CLEAN
+    assert any("evidence records dropped" in r for r in fixed.reasons), fixed.reasons
+    monkeypatch.setattr(pipeline, "scaled_limits", functools.partial(host.scaled_limits, base=small))
+    assert scan(path).verdict is Verdict.CLEAN
+
+
+def test_records_over_the_byte_limit_leave_the_run_incomplete(tmp_path, monkeypatch):
+    import functools
+
+    from safeloadai import Verdict, pipeline, scan
+    from safeloadai.sandbox import host
+
+    small = host.Limits(max_record_total_bytes=20_000)
+    monkeypatch.setattr(pipeline, "scaled_limits", functools.partial(host.scaled_limits, base=small))
+    report = scan(_many_scalars(tmp_path))
+    assert report.verdict is not Verdict.CLEAN
+    assert any("evidence records dropped" in r for r in report.reasons), report.reasons

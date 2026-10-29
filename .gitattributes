@@ -1,0 +1,3 @@
+# Test fixtures are byte-exact model files: no line-ending conversion on checkout
+# (a LightGBM model string with CR is refused, as LightGBM writes none).
+tests/fixtures/** -text

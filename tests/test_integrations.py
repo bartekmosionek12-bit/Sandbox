@@ -4,7 +4,7 @@ import re
 
 import yaml
 
-from safeloadai.parsing.detect import SUPPORTED_EXTENSIONS
+from safeloadai.parsing.detect import SCAN_EXTENSIONS
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -17,7 +17,8 @@ def _yaml(name):
 def test_pre_commit_hook_covers_every_supported_extension():
     (hook,) = _yaml(".pre-commit-hooks.yaml")
     pattern = re.compile(hook["files"])
-    assert all(pattern.search(f"model{ext}") for ext in SUPPORTED_EXTENSIONS)
+    # what a directory scan picks up (an OpenVINO .xml is checked with its .bin)
+    assert all(pattern.search(f"model{ext}") for ext in SCAN_EXTENSIONS)
     assert not pattern.search("notes.txt")
     assert hook["entry"].startswith("safeloadai scan") and "--no-input" in hook["entry"]
 

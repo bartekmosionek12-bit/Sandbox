@@ -29,6 +29,7 @@ file is not used unless you name it.
 | [`allow`](#allow) | `()` (none) | looser | high |
 | [`accept_unverified`](#accept_unverified) | `None` (none) | looser | medium |
 | [`trust_inert_from`](#trust_inert_from) (experimental) | `()` (none) | looser | medium |
+| [`validate_boosters`](#validate_boosters) | `False` | looser | medium |
 | [`known_good`](#known_good) | `True` (shipped list used) | stricter when turned off | low |
 | [`deep`](#deep) | `False` | stricter (but runs the file's code) | high |
 | [`judge`](#judge) | `False` | stricter (but sends data out) | medium |
@@ -202,6 +203,61 @@ Every entry in `Report.options` looks like this:
    scikit-learn, not pinned): SUSPICIOUS by default, CLEAN with
    `--trust-inert-from threadpoolctl`, and still SUSPICIOUS when only scikit-learn is
    named.
+
+## `validate_boosters`
+
+1. **What it does.** A pickled gradient-boosting model (`xgboost.core.Booster`,
+   `lightgbm.basic.Booster`, `catboost.core.CatBoost`, `CatBoostClassifier`,
+   `CatBoostRegressor`, `CatBoostRanker`) carries its model as bytes that the library's
+   native parser reads on unpickling. By default such a file is SUSPICIOUS
+   (UNVERIFIABLE): the scanner cannot see that native code. With this option the
+   scanner reads each payload with a strict validator of its own, inside the WASI
+   sandbox, and clears the class only when every payload of that class is a model the
+   validator fully understands:
+   - XGBoost: the JSON or UBJSON model (gbtree or dart, from 1.0 to 3.x), with every
+     tree's arrays, node links, split features and categorical segments in range;
+   - LightGBM: the text model (`_handle` or `handle`), with `tree_sizes` that frame
+     each tree exactly, every tree's arrays of the declared length and nothing the
+     reader would skip over except the feature importances and parameters sections;
+   - CatBoost: the CBM file whose flatbuffer core is the whole file, with oblivious
+     trees over float and one-hot features only.
+
+   The pickle around the payload must still be plain: the class may be built only as
+   `NEWOBJ ()` and get one `BUILD` with a dict of string keys that is not changed after
+   it, and nothing may call the class or the instance. Anything else stays as without
+   the option. The option never turns MALICIOUS into anything else.
+2. **Risk you accept.** The library's native parser still reads the bytes when you
+   load the file, and it does not check everything the validator checks: XGBoost's
+   UBJSON reader copies strings without a bounds check and indexes nodes by the file's
+   values; LightGBM's reader trusts `tree_sizes` and reads numbers past a line's end;
+   CatBoost indexes `BinFeatures` by the file's split indices. A file the validator
+   accepts has none of these defects as far as the validator can tell, but a bug in
+   the native parser that a well-formed model can still reach, or a validator bug,
+   would not be caught. Categorical XGBoost models (a non-empty `cats` container),
+   CatBoost models with CTR, text, embedding or non-symmetric trees and LightGBM
+   files with a `parser:` section are never cleared.
+3. **When to use it, and when not to.**
+   - **Use it** when you load XGBoost, LightGBM or CatBoost models from pickles and
+     need a CLEAN verdict for plain models from sources you otherwise trust.
+   - **Do not use it** for files from sources you do not trust at all: prefer the
+     library's own format (`Booster.save_model` to `.ubj`/`.json`, LightGBM `.txt`,
+     CatBoost `.cbm`), which needs no pickle.
+4. **How to use it.**
+   ```python
+   report = scan("model.pkl", validate_boosters=True)
+   ```
+   ```bash
+   safeloadai scan model.pkl --validate-boosters
+   ```
+   or `validate_boosters = true` in a config file named with `--config`.
+5. **How to check it in the report.** Look at:
+   - `report.options[*]` with `name == "validate_boosters"`;
+   - the static layer's `cleared` entries with mechanism `validated-booster`, and its
+     `boosters` details: one entry per Booster class with `validated` and either the
+     validator's summary of each model (library, encoding, version, booster, trees) or
+     the reason it was refused.
+6. **Safer alternative.** Leave it off and save the model in the library's own format
+   rather than pickling it.
 
 ## `known_good`
 

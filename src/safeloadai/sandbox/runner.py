@@ -102,6 +102,7 @@ def run(job: dict) -> dict:
 
     max_records = int(job["max_records"])
     max_record_bytes = int(job["max_record_bytes"])
+    record_room = [int(job.get("max_record_total_bytes", 128 * 1024 * 1024))]
     max_stdio = int(job["max_stdio_bytes"])
     records: list[bytes] = []
     stdio = {1: bytearray(), 2: bytearray()}
@@ -112,12 +113,13 @@ def run(job: dict) -> dict:
         try:
             total = _iov_total(caller, memory, iovs, iovs_len)
             if fd == EVIDENCE_FD:
-                if len(records) >= max_records:
+                if len(records) >= max_records or min(total, max_record_bytes) > record_room[0]:
                     flags["records_dropped"] += 1
                 else:
                     data = _read_iovs(caller, memory, iovs, iovs_len, max_record_bytes)
                     if total > max_record_bytes:
                         flags["records_truncated"] += 1
+                    record_room[0] -= len(data)
                     records.append(data)
             elif fd in stdio:
                 room = max_stdio - len(stdio[fd])

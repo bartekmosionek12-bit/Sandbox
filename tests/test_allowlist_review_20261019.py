@@ -141,7 +141,7 @@ def test_pandas_new_index_as_pandas_writes_it_is_clean(data):
     P2 + call(g(*NEW_INDEX), g(*INDEX), b"]") + STOP,
     P2 + call(g(*NEW_INDEX), s("pandas"), _state()) + STOP,
     P2 + call(g(*NEW_INDEX), g(*RANGE), _state(s("data") + b"N")) + STOP,
-    # RangeIndex is not reviewed (seen only in held-out files)
+    # RangeIndex (reviewed in 0.10.0) needs int start, stop and step
     P2 + call(g(*NEW_INDEX), g(*RANGE), _state(s("name") + b"N", s("start") + b"K\x00")) + STOP,
     # defaultdict: no factory or one imported global; the global itself is checked
     P2 + call(g(*DD), g(*TA)) + STOP,  # a state-only class passed as a value

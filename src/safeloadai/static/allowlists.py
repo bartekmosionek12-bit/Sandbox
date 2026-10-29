@@ -113,6 +113,11 @@ PICKLE_GLOBALS: frozenset[tuple[str, str]] = frozenset(
         ("sklearn.preprocessing._label", "LabelEncoder"),  # plain estimator (classes_ array)
         # 2026-10-19 review: Cython unpickle helper, same as the CyHalfMultinomialLoss one above
         ("sklearn._loss._loss", "__pyx_unpickle_CyHalfBinomialLoss"),
+        # 0.10.0 review (scikit-learn 1.5.1-1.9.1 _loss.pyx.tp): CyPinballLoss(quantile) is
+        # __reduce__ (cls, (quantile,)) since 1.6 and the Cython unpickle helper before; the
+        # constructor takes one double. Also reachable as _loss.* (static/sklearn_loss.py)
+        ("sklearn._loss._loss", "CyPinballLoss"),
+        ("sklearn._loss._loss", "__pyx_unpickle_CyPinballLoss"),
         # the type object and numpy's abstract scalar type, as values (copyreg._reconstructor's
         # base, make_column_selector's dtype_exclude); calling either makes a bare object or raises
         ("builtins", "object"),
@@ -159,6 +164,8 @@ STATE_ONLY_CLASSES = frozenset({
     ("scipy.sparse._csr", "csr_matrix"),
     # pandas Index: only as the class argument of _new_Index (PANDAS_NEW_INDEX below)
     ("pandas.core.indexes.base", "Index"),
+    ("pandas.core.indexes.range", "RangeIndex"),
+    ("pandas", "RangeIndex"),
     # scikit-learn 1.9.1 estimators: BaseEstimator.__setstate__ only (version warning,
     # then a __dict__ update); constructors only store their parameters
     ("sklearn.calibration", "CalibratedClassifierCV"),
@@ -178,6 +185,36 @@ STATE_ONLY_CLASSES = frozenset({
     ("sklearn.tree._classes", "ExtraTreeRegressor"),
     # sklearn 1.9.1: __init__ stores pattern / dtype_include / dtype_exclude; no pickling hooks
     ("sklearn.compose._column_transformer", "make_column_selector"),
+    # 0.10.0 review (evaluation/results/source-review-0.10.0.md; scikit-learn 1.5.1, 1.6.1, 1.7.2,
+    # 1.8.0 and 1.9.1 sources): pickled as NEWOBJ () + BUILD.
+    # HistGradientBoostingRegressor: no hooks of its own or in BaseHistGradientBoosting, so
+    # BaseEstimator.__setstate__ (as for the classifier above)
+    ("sklearn.ensemble._hist_gradient_boosting.gradient_boosting", "HistGradientBoostingRegressor"),
+    # _RemainderColsList (1.5 and 1.6 only): a collections.UserList with three plain attributes
+    # (future_dtype, warning_was_emitted, warning_enabled); neither it nor UserList defines a
+    # pickling hook, __setattr__ or __getattr__, so BUILD is a __dict__ update
+    ("sklearn.compose._column_transformer", "_RemainderColsList"),
+    # Bunch: a dict subclass; its items come back through dict.__setitem__ (SETITEMS, not
+    # overridden) and its __setstate__ is a no-op that ignores the state
+    ("sklearn.utils._bunch", "Bunch"),
+    # Training-argument dataclasses of public fine-tuning libraries (training_args.bin), 0.10.0
+    # review of the PyPI sources (llamafactory 0.9.5, FlagEmbedding 1.2.11 and 1.4.2, ms-swift
+    # 3.2.0 and 3.8.0, axolotl 0.6.0, 0.8.0 and 0.21.1; read with ast, never imported): each is
+    # @dataclass over transformers' TrainingArguments / trl's configs (reviewed above) and
+    # dataclass mixins, with no __setstate__, __reduce__, __getstate__, __setattr__, __getattr__
+    # or property setters anywhere in its own classes. Unpickling is object.__new__ plus a
+    # __dict__ update; __post_init__ (llamafactory's reads Ray settings) never runs.
+    ("llamafactory.hparams.training_args", "TrainingArguments"),
+    ("FlagEmbedding.baai_general_embedding.finetune.arguments", "RetrieverTrainingArguments"),
+    ("FlagEmbedding.finetune.embedder.encoder_only.m3.arguments", "EncoderOnlyEmbedderM3TrainingArguments"),
+    ("swift.trainers.rlhf_arguments", "GRPOConfig"),
+    ("axolotl.core.trainer_builder", "AxolotlTrainingArguments"),
+    ("axolotl.core.training_args", "AxolotlTrainingArguments"),
+    # lightgbm 3.3.5 and 4.7.0 sklearn.py: LGBMModel and its classifier/regressor define no
+    # pickling hooks; the base is scikit-learn's BaseEstimator. The Booster they hold is a
+    # global of its own (UNVERIFIABLE, or --validate-boosters)
+    ("lightgbm.sklearn", "LGBMClassifier"),
+    ("lightgbm.sklearn", "LGBMRegressor"),
     # stdlib argparse.Namespace (an old training_args.bin): no pickling hooks, attributes only
     ("argparse", "Namespace"),
     # transformers' training arguments (training_args.bin): plain dataclasses. Rebuilt
@@ -292,7 +329,14 @@ PANDAS_NEW_INDEX = ("pandas.core.indexes.base", "_new_Index")
 # class -> the dict keys its __reduce__ writes
 PANDAS_INDEX_KEYS = {
     ("pandas.core.indexes.base", "Index"): frozenset({"data", "name"}),
+    # RangeIndex.__reduce__ writes {"name", "start", "stop", "step"} (pandas 1.4.4 range.py and
+    # 3.1.0 range.py; 3.x names the class pandas.RangeIndex); _new_Index then calls
+    # RangeIndex.__new__(cls, start=, stop=, step=, name=, copy=False), which only builds a
+    # range. Accepted only with int start/stop/step (pickle_static._argument_check).
+    ("pandas.core.indexes.range", "RangeIndex"): frozenset({"name", "start", "stop", "step"}),
+    ("pandas", "RangeIndex"): frozenset({"name", "start", "stop", "step"}),
 }
+PANDAS_RANGE_INDEX = frozenset({("pandas.core.indexes.range", "RangeIndex"), ("pandas", "RangeIndex")})
 PANDAS_INDEX_CLASSES = frozenset(PANDAS_INDEX_KEYS)
 # collections.defaultdict(factory): the factory is called later, on a missing key, never
 # while loading. Accepted with no factory or one imported global, which the allowlist
@@ -461,6 +505,24 @@ CLASS_BUILDERS = frozenset({(m, n) for m in ("builtins", "__builtin__")
 # call an argument (tests/corpus/build_corpus.py:bypass_payloads). EXEC_GADGETS are known
 # sinks; the others do not change the verdict, they only keep the reason RISKY instead of
 # UNVERIFIABLE, because the scanner does know what they do, so no override can accept them.
+# pathlib's path classes (CPython 3.8-3.14 Lib/pathlib): PurePath.__reduce__ is (cls, parts)
+# and constructing one only parses the strings, with no filesystem access; a Windows
+# checkpoint holds WindowsPath objects (ultralytics train_args). Not known sinks (0.10.0,
+# DECISIONS.md "pathlib path classes"): RISKY like CLASS_BUILDERS. Their methods
+# (Path.write_text, Path.unlink, ...) as globals, or reached through getattr, stay sinks.
+# Matched by the root package and the exact class name (is_path_class): CPython 3.13 defines
+# the classes in pathlib._local, so a 3.13 pickle names that module; 3.8-3.12 and 3.14 name
+# pathlib. Every pathlib submodule of 3.8-3.14 that has one of these names (pathlib._local,
+# 3.14's pathlib.types) holds the same class.
+PATH_CLASS_NAMES = frozenset({"PurePath", "PurePosixPath", "PureWindowsPath", "Path", "PosixPath", "WindowsPath"})
+PATH_CLASSES = frozenset({("pathlib", n) for n in PATH_CLASS_NAMES})
+
+
+def is_path_class(module: str, name: str) -> bool:
+    """One of pathlib's path classes, under ``pathlib`` or any module inside it."""
+    return module.split(".", 1)[0] == "pathlib" and name in PATH_CLASS_NAMES
+
+
 KNOWN_GADGETS = frozenset({
     ("numpy.testing._private.utils", "runstring"),  # exec() of a string
     ("_osx_support", "_read_output"),  # runs a shell command
@@ -469,7 +531,12 @@ KNOWN_GADGETS = frozenset({
     ("functools", "reduce"),  # calls its first argument
     ("operator", "methodcaller"),  # calls a method by name
     ("operator", "attrgetter"),  # attribute access by name
-}) | CLASS_BUILDERS
+}) | CLASS_BUILDERS | PATH_CLASSES
+
+
+def is_known_gadget(module: str, name: str) -> bool:
+    """In KNOWN_GADGETS, or a path class under a pathlib submodule (is_path_class)."""
+    return (module, name) in KNOWN_GADGETS or is_path_class(module, name)
 
 # dill (0.3.8 and 0.4.1, dill/_dill.py; evaluation/results/source-review-2-20261019.md).
 # Helpers that import, eval, call an argument, read attributes by name, unmarshal or open
@@ -619,6 +686,9 @@ KERAS_CLASSES = frozenset({
     "OrthogonalInitializer",  # Keras 3's registered name for Orthogonal (gain, seed)
     "CategoricalFocalCrossentropy",  # loss; alpha, gamma, from_logits, label_smoothing, axis
     "R2Score",  # metric; class_aggregation, num_regressors
+    # 0.10.0 review (keras 3.0.5 and 3.12.0 src/metrics/accuracy_metrics.py): MeanMetricWrapper
+    # subclasses with a fixed fn; get_config is name, dtype, k (and from_sorted_ids, a bool)
+    "TopKCategoricalAccuracy", "SparseTopKCategoricalAccuracy",
 })
 
 # Keras serializes functions as {"class_name": "function", "config": "<name>",
@@ -675,8 +745,7 @@ KERAS2_CLASSES = KERAS_CLASSES | frozenset(
         "ThresholdedReLU", "LocallyConnected1D", "LocallyConnected2D", "CuDNNLSTM", "CuDNNGRU",
         "StackedRNNCells", "PeepholeLSTMCell", "SpatialDropout1D",
         "PolynomialDecay", "InverseTimeDecay", "CosineDecayRestarts",
-        "RootMeanSquaredError", "MeanIoU", "TopKCategoricalAccuracy",
-        "SparseTopKCategoricalAccuracy", "MeanAbsolutePercentageError", "MeanSquaredLogarithmicError",
+        "RootMeanSquaredError", "MeanIoU", "MeanAbsolutePercentageError", "MeanSquaredLogarithmicError",
         "Hinge", "SquaredHinge", "CategoricalHinge", "LogCosh", "KLDivergence", "Poisson",
         "CosineSimilarity", "BinaryFocalCrossentropy",
         "TrueDivide",  # 2026-10-19 review: Keras 3 elementwise op saved to .h5 without a module

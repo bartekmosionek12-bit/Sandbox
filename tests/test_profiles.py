@@ -88,9 +88,10 @@ def test_a_sink_stays_malicious():
 
 
 def test_an_unknown_root_subclass_stays_unverifiable():
-    report = static(training_args(root=("axolotl.core.training_args", "AxolotlTrainingArguments")))
+    # axolotl.utils.trainer has no source on PyPI (the axolotl.core paths were reviewed in 0.10.0)
+    report = static(training_args(root=("axolotl.utils.trainer", "AxolotlTrainingArguments")))
     assert report["profile"] == "transformers-training-args"
-    reason = "import outside the allowlist: axolotl.core.training_args.AxolotlTrainingArguments"
+    reason = "import outside the allowlist: axolotl.utils.trainer.AxolotlTrainingArguments"
     assert reason in report["reasons"]
     assert set(report["unverifiable"]) == {reason}
 

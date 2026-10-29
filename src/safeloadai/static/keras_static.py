@@ -48,6 +48,7 @@ from .allowlists import (
     KERAS_CLASS_PAIRS,
     KERAS_CLASSES,
     KERAS_CODE_LAYERS,
+    KERAS_DATA_MARKERS,
     KERAS_FUNCTIONS,
     KERAS_METRIC_NAMES,
     KERAS_MODULES,
@@ -212,6 +213,74 @@ def _check_activations(node: dict, path: str, report: dict) -> None:
             report["unknown_imports"].append(dict(_entry("activation", value, f"{path}.config.{key}"), kind="named"))
 
 
+# dtypes a __tensor__ marker may name: numbers and bools (keras backend.standardize_dtype names)
+TENSOR_DTYPES = frozenset({"float16", "bfloat16", "float32", "float64", "int8", "int16", "int32", "int64",
+                           "uint8", "uint16", "uint32", "uint64", "bool"})
+TEXT_VECTORIZATION_STANDARDIZE = frozenset({"lower_and_strip_punctuation", "lower", "strip_punctuation"})
+TEXT_VECTORIZATION_SPLIT = frozenset({"whitespace", "character"})
+
+
+def _plain_number(value) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def _numbers(value, depth: int = 0) -> bool:
+    """A number, a bool or nested lists of them (a tensor's value as Keras writes it)."""
+    if isinstance(value, (bool, int, float)):
+        return True
+    return isinstance(value, list) and depth < 64 and all(_numbers(v, depth + 1) for v in value)
+
+
+def marker_problem(class_name: str, node: dict) -> str | None:
+    """None when a Keras 3 data marker (allowlists.KERAS_DATA_MARKERS) has exactly the form
+    serialization_lib writes; otherwise what is wrong. No module and no registered name."""
+    if node.get("module") is not None or node.get("registered_name") is not None:
+        return "a data marker with a module or registered name"
+    config = node.get("config")
+    if class_name == "__ellipsis__":
+        return None if config in ({}, None) else "an Ellipsis marker with a config"
+    if not isinstance(config, dict):
+        return "a data marker whose config is not an object"
+    if class_name == "__slice__":
+        if set(config) != {"start", "stop", "step"}:
+            return "a slice marker with other keys than start, stop and step"
+        if not all(v is None or (isinstance(v, int) and not isinstance(v, bool)) for v in config.values()):
+            return "a slice marker whose bounds are not integers or None"
+        return None
+    if class_name == "__tensor__":
+        if set(config) != {"value", "dtype"}:
+            return "a tensor marker with other keys than value and dtype"
+        if not (isinstance(config["dtype"], str) and config["dtype"] in TENSOR_DTYPES):
+            return "a tensor marker whose dtype is not a number or bool type"
+        if not _numbers(config["value"]):
+            return "a tensor marker whose value is not numbers"
+        return None
+    return "an unknown data marker"
+
+
+def text_vectorization_problem(config) -> str | None:
+    """None when a TextVectorization config only names built-in behaviour (keras 3.0.5 and
+    3.15.1 layers/preprocessing/text_vectorization.py): standardize and split built-in
+    names or None, the vocabulary and idf weights inline (a string vocabulary is a file
+    path the layer reads, unchecked before keras 3.9's safe-mode check), utf-8."""
+    if not isinstance(config, dict):
+        return "TextVectorization config is not an object"
+    standardize, split = config.get("standardize"), config.get("split")
+    if standardize is not None and not (isinstance(standardize, str) and standardize in TEXT_VECTORIZATION_STANDARDIZE):
+        return "TextVectorization standardize is not a built-in name"
+    if split is not None and not (isinstance(split, str) and split in TEXT_VECTORIZATION_SPLIT):
+        return "TextVectorization split is not a built-in name"
+    vocabulary = config.get("vocabulary")
+    if vocabulary is not None and not (isinstance(vocabulary, list) and all(isinstance(v, str) for v in vocabulary)):
+        return "TextVectorization vocabulary is not an inline list of strings (a string is a file path)"
+    weights = config.get("idf_weights")
+    if weights is not None and not (isinstance(weights, list) and all(_plain_number(w) for w in weights)):
+        return "TextVectorization idf_weights is not an inline list of numbers"
+    if config.get("encoding", "utf-8") not in ("utf-8",):
+        return "TextVectorization encoding is not utf-8"
+    return None
+
+
 def _check_object(node: dict, path: str, report: dict, keras2: bool = False) -> None:
     class_name = node.get("class_name")
     module = node.get("module")
@@ -219,6 +288,9 @@ def _check_object(node: dict, path: str, report: dict, keras2: bool = False) -> 
     report["opcodes"].append({"name": class_name, "arg": path, "pos": 0})
     if keras2:
         _check_activations(node, path, report)
+
+    if class_name in KERAS_DATA_MARKERS and marker_problem(class_name, node) is None:
+        return  # any other form stays an object outside the allowlist, as before 0.11.0
 
     if class_name == "__lambda__":
         # The marshalled function inside a Lambda layer's config, already captured
@@ -294,6 +366,8 @@ def _check_object(node: dict, path: str, report: dict, keras2: bool = False) -> 
     else:
         known_class = class_name in KERAS_CLASSES
         known_module = module is None or module in KERAS_MODULES
+    if class_name == "TextVectorization" and text_vectorization_problem(node.get("config")) is not None:
+        known_class = False  # only the reviewed form is accepted; any other stays as before 0.11.0
     if not (known_class and known_module):
         report["unknown_imports"].append(
             {"module": str(module), "symbol": str(class_name), "pos": None, "path": path,

@@ -59,6 +59,7 @@ from .allowlists import (
     PANDAS_DATAFRAME,
     PANDAS_INDEX_CLASSES,
     PANDAS_INDEX_KEYS,
+    PANDAS_MULTI_INDEX,
     PANDAS_NEW_INDEX,
     PANDAS_RANGE_INDEX,
     PANDAS_SERIES,
@@ -544,11 +545,13 @@ def _argument_check(how: str, pair: tuple[str, str], args, state_only=None) -> t
         if (len(args) == 2 and isinstance(args[0], Global) and args[0].pair in PANDAS_INDEX_CLASSES
                 and isinstance(args[1], dict) and set(args[1]) <= PANDAS_INDEX_KEYS[args[0].pair]
                 and (args[0].pair not in PANDAS_RANGE_INDEX
-                     or all(type(args[1].get(k)) is int for k in ("start", "stop", "step")))):
+                     or all(type(args[1].get(k)) is int for k in ("start", "stop", "step")))
+                and (args[0].pair not in PANDAS_MULTI_INDEX or _multi_index_ok(args[1]))):
             return None, 0
         shown = (args[0], sorted(args[1]) if isinstance(args[1], dict) else args[1]) if len(args) == 2 else args
         return (f"is called with arguments pandas never writes ({_short(shown)}; it calls its first argument, "
-                "and only pandas Index with a data/name dict or RangeIndex with int start/stop/step is accepted)"), None
+                "and only pandas Index with a data/name dict, RangeIndex with int start/stop/step or MultiIndex "
+                "as pandas writes it is accepted)"), None
     if pair == DEFAULTDICT:
         # The factory runs only on a missing key, after loading; as a global it is checked
         # against the allowlist like any other import.
@@ -562,7 +565,8 @@ def _argument_check(how: str, pair: tuple[str, str], args, state_only=None) -> t
         return (f"is called with {_short(args)}; only (numpy array, slice, ndim 1 or 2) as pandas "
                 "writes a block is accepted"), None
     if pair == PANDAS_BLOCK_MANAGER:
-        if (len(args) == 2 and isinstance(args[0], tuple) and args[0]
+        # an empty DataFrame's manager has no blocks: () (0.11.0, seen in a tune file)
+        if (len(args) == 2 and isinstance(args[0], tuple)
                 and all(_is_unpickled_block(b) for b in args[0])
                 and isinstance(args[1], list) and len(args[1]) == 2 and all(_is_pandas_index(a) for a in args[1])):
             return None, None
@@ -604,6 +608,17 @@ def _is_block_locs(value) -> bool:
 
 def _is_pandas_index(value) -> bool:
     return _reduce_of(value, {PANDAS_NEW_INDEX})  # its arguments are checked at its own call
+
+
+def _multi_index_ok(d: dict) -> bool:
+    """MultiIndex.__reduce__'s dict (allowlists.PANDAS_INDEX_KEYS): every key, levels made by
+    _new_Index, numpy arrays as codes (as many as levels), plain names, int or None sortorder."""
+    levels, codes, names = d.get("levels"), d.get("codes"), d.get("names")
+    return (set(d) == {"levels", "codes", "sortorder", "names"}
+            and isinstance(levels, list) and levels and all(_is_pandas_index(v) for v in levels)
+            and isinstance(codes, list) and len(codes) == len(levels) and all(_is_ndarray(c) for c in codes)
+            and isinstance(names, list) and all(type(n) in PLAIN_SCALARS for n in names)
+            and (d["sortorder"] is None or type(d["sortorder"]) is int))
 
 
 def _is_unpickled_block(value) -> bool:

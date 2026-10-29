@@ -51,7 +51,6 @@ from .allowlists import (
     EXEC_GADGETS,
     GETATTR,
     GUARDED_CALLS,
-    KNOWN_GADGETS,
     NUMPY_BIT_GENERATOR_CLASSES,
     NUMPY_BIT_GENERATOR_CTOR,
     NUMPY_BIT_GENERATOR_NAMES,
@@ -65,7 +64,6 @@ from .allowlists import (
     PANDAS_SERIES,
     PANDAS_SINGLE_BLOCK_MANAGER,
     PANDAS_UNPICKLE_BLOCK,
-    PATH_CLASSES,
     PICKLE_GLOBALS,
     SCORER_FUNCTIONS,
     SKLEARN_THRESHOLD_SCORER,
@@ -73,6 +71,8 @@ from .allowlists import (
     TF_DANGEROUS,
     TORCH_GLOBALS,
     ZERO_ARG_CLASSES,
+    is_known_gadget,
+    is_path_class,
 )
 from .lookalike import imitates
 from .lookalike import reason as lookalike_reason
@@ -193,7 +193,7 @@ def is_dangerous_import(module: str, name: str) -> bool:
     root = module.split(".", 1)[0]
     leaf = name.rsplit(".", 1)[-1]
     head = name.split(".", 1)[0]
-    if (module, name) in CLASS_BUILDERS or (module, name) in PATH_CLASSES:
+    if (module, name) in CLASS_BUILDERS or is_path_class(module, name):
         return False
     return (
         (module in DILL_MODULES and name in DILL_SINKS)
@@ -1376,7 +1376,7 @@ def _score(report: dict, allow: frozenset, torch: bool,
         if imp["module"] is not None:
             reason = f"import outside the allowlist: {imp['module']}.{imp['symbol']}"
             reasons.append(reason)
-            if (imp["module"], imp["symbol"]) in KNOWN_GADGETS:
+            if is_known_gadget(imp["module"], imp["symbol"]):
                 continue
             ref = imitates(imp["module"])
             if ref:

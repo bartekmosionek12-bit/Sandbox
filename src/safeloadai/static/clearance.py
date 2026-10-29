@@ -34,7 +34,7 @@ import contextvars
 from dataclasses import dataclass, field
 
 from . import upstream
-from .allowlists import BUILD_HOOK_KEYS, GETATTR, KNOWN_GADGETS, STATE_ONLY_CLASSES
+from .allowlists import BUILD_HOOK_KEYS, GETATTR, STATE_ONLY_CLASSES, is_known_gadget
 from .lookalike import imitates
 from .pickle_vm import Global, Obj, class_of
 from .sources import DENIED_MODULES
@@ -145,7 +145,7 @@ def active(value: Clearance):
 
 def referenced_ok(module: str, name: str) -> bool:
     """May a global that is only referenced be imported without a finding?"""
-    if module.split(".")[0] in DENIED_MODULES or (module, name) in KNOWN_GADGETS or (module, name) in GETATTR:
+    if module.split(".")[0] in DENIED_MODULES or is_known_gadget(module, name) or (module, name) in GETATTR:
         return False
     if imitates(module):
         return False

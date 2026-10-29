@@ -136,7 +136,7 @@ def scan_options(*, allow, judge: bool, deep: bool, limits, sources: Mapping[str
 def validate_allow(allow: Iterable[tuple[str, str]]) -> tuple[tuple[str, str], ...]:
     """Exact, non-sink pairs only: a user allowlist can never turn a sink, a known gadget
     or getattr into an allowed global (MALICIOUS stays MALICIOUS)."""
-    from .static.allowlists import GETATTR, KNOWN_GADGETS
+    from .static.allowlists import GETATTR, is_known_gadget
     from .static.pickle_static import is_dangerous_import
 
     pairs = []
@@ -148,7 +148,7 @@ def validate_allow(allow: Iterable[tuple[str, str]]) -> tuple[tuple[str, str], .
         module, name = str(module), str(name)
         if not module or not name or any(c in module + name for c in "*? \t\n:"):
             raise OptionError(f"allow entry {module}:{name} is not an exact module and qualname")
-        if (module, name) in GETATTR or (module, name) in KNOWN_GADGETS or is_dangerous_import(module, name):
+        if (module, name) in GETATTR or is_known_gadget(module, name) or is_dangerous_import(module, name):
             raise OptionError(f"allow entry {module}:{name} is a known sink or gadget; it can never be allowed")
         pairs.append((module, name))
     return tuple(pairs)

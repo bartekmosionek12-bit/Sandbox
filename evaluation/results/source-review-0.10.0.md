@@ -107,6 +107,20 @@ strings, with no filesystem access. The six path classes are RISKY (like the cla
 not sinks; their methods as globals (`Path.write_text`, `Path.unlink`, ...) or reached through
 `getattr` stay sinks (`tests/test_pathlib_classes.py`).
 
+CPython 3.13 moved the classes to `pathlib._local` (their `__module__`), so a pickle written
+by 3.13 names `pathlib._local.WindowsPath`; 3.8 to 3.12 and 3.14 write `pathlib`. Checked in
+3.13.17 (`pathlib`, `pathlib._abc`, `pathlib._local`) and in the 3.14.0 sources
+(`pathlib/__init__.py`, `_os.py`, `types.py`): every pathlib module that has one of the six
+names holds the same class, and `__reduce__` is still `(cls, tuple(self._raw_paths))`. The
+rule therefore matches the root package `pathlib` and the exact class name
+(`allowlists.is_path_class`), wherever the class lives inside the package.
+
+The fix changes no measured result. A `pathlib._local` class was a sink before it, so only a
+MALICIOUS verdict could move, and no benign held-out, held-out-2 or held-out-3 file was
+MALICIOUS. The 18 Hub files of those splits that were MALICIOUS (labelled malicious or
+unclear) were fetched again at their pinned commits and scanned with the fixed scanner: all 18
+stay MALICIOUS. The lab and mutation corpora give the same verdicts as before.
+
 ## Keras top-k metrics
 
 keras 3.0.5 and 3.12.0 `src/metrics/accuracy_metrics.py`: `TopKCategoricalAccuracy` and

@@ -35,11 +35,11 @@ from .static.allowlists import (
     DILL_DATA,
     DILL_MODULES,
     GETATTR,
-    KNOWN_GADGETS,
-    PATH_CLASSES,
     PICKLE_GLOBALS,
     SCORER_FUNCTIONS,
     TORCH_GLOBALS,
+    is_known_gadget,
+    is_path_class,
 )
 from .static.lookalike import imitates
 from .static.pickle_static import is_dangerous_import
@@ -100,7 +100,11 @@ WRITE_MODES = set("wax+")
 MAX_EVIDENCE = 200
 
 
-PATH_CLASS_CALLS = frozenset(f"{m}.{n}{suffix}" for m, n in PATH_CLASSES for suffix in ("", ".__new__"))
+def _path_class_call(target: str) -> bool:
+    """A call of a pathlib path class (allowlists.is_path_class) or of its ``__new__``."""
+    target = target.removesuffix(".__new__")
+    module, _, name = target.rpartition(".")
+    return is_path_class(module, name)
 
 
 def _matches(target: str, prefix: str) -> bool:
@@ -169,7 +173,7 @@ def _classify_call(event: dict, allowed_names: frozenset[str], framework: bool) 
         # copies and the code a function is rebuilt from, whose bytecode the static layer
         # and the dill code emulation judge. Other dill helpers stay code_exec sinks.
         return "dill", S
-    if target in PATH_CLASS_CALLS:
+    if _path_class_call(target):
         # building a path object parses strings only (allowlists.PATH_CLASSES); a method
         # called on it is "pathlib.X().name" and still matches the pathlib sink below
         return "unexpected_call", S
@@ -222,7 +226,7 @@ def classify(run: GuestRun, *, name: str = "emulation", torch: bool = False,
     for event in run.events:
         if event.get("kind") == "import":
             pair = (str(event.get("module")), str(event.get("name")))
-            if (event.get("resolved") != "real" and pair not in allow_pairs and pair not in KNOWN_GADGETS
+            if (event.get("resolved") != "real" and pair not in allow_pairs and not is_known_gadget(*pair)
                     and pair not in GETATTR and pair not in referenced
                     and not is_dangerous_import(*pair) and not imitates(pair[0])):
                 unknown[f"{pair[0]}.{pair[1]}"] = pair

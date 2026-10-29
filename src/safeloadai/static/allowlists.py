@@ -510,8 +510,19 @@ CLASS_BUILDERS = frozenset({(m, n) for m in ("builtins", "__builtin__")
 # checkpoint holds WindowsPath objects (ultralytics train_args). Not known sinks (0.10.0,
 # DECISIONS.md "pathlib path classes"): RISKY like CLASS_BUILDERS. Their methods
 # (Path.write_text, Path.unlink, ...) as globals, or reached through getattr, stay sinks.
-PATH_CLASSES = frozenset({("pathlib", n) for n in ("PurePath", "PurePosixPath", "PureWindowsPath", "Path",
-                                                   "PosixPath", "WindowsPath")})
+# Matched by the root package and the exact class name (is_path_class): CPython 3.13 defines
+# the classes in pathlib._local, so a 3.13 pickle names that module; 3.8-3.12 and 3.14 name
+# pathlib. Every pathlib submodule of 3.8-3.14 that has one of these names (pathlib._local,
+# 3.14's pathlib.types) holds the same class.
+PATH_CLASS_NAMES = frozenset({"PurePath", "PurePosixPath", "PureWindowsPath", "Path", "PosixPath", "WindowsPath"})
+PATH_CLASSES = frozenset({("pathlib", n) for n in PATH_CLASS_NAMES})
+
+
+def is_path_class(module: str, name: str) -> bool:
+    """One of pathlib's path classes, under ``pathlib`` or any module inside it."""
+    return module.split(".", 1)[0] == "pathlib" and name in PATH_CLASS_NAMES
+
+
 KNOWN_GADGETS = frozenset({
     ("numpy.testing._private.utils", "runstring"),  # exec() of a string
     ("_osx_support", "_read_output"),  # runs a shell command
@@ -521,6 +532,11 @@ KNOWN_GADGETS = frozenset({
     ("operator", "methodcaller"),  # calls a method by name
     ("operator", "attrgetter"),  # attribute access by name
 }) | CLASS_BUILDERS | PATH_CLASSES
+
+
+def is_known_gadget(module: str, name: str) -> bool:
+    """In KNOWN_GADGETS, or a path class under a pathlib submodule (is_path_class)."""
+    return (module, name) in KNOWN_GADGETS or is_path_class(module, name)
 
 # dill (0.3.8 and 0.4.1, dill/_dill.py; evaluation/results/source-review-2-20261019.md).
 # Helpers that import, eval, call an argument, read attributes by name, unmarshal or open

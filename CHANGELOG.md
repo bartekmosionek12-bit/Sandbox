@@ -17,7 +17,7 @@ In short: Core ML, CTranslate2 and whisper.cpp weights are read and CLEAN when v
 
 ### Security
 - **Reviewed classes** ([evaluation/results/source-review-0.10.0.md](evaluation/results/source-review-0.10.0.md), tune and tune-2 only): scikit-learn's `_loss.*` alias only after a module that registers it was imported, and in `safe_load` only when `sys.modules['_loss']` is scikit-learn's own module; `HistGradientBoostingRegressor`, `_RemainderColsList`, `Bunch`; six training-argument dataclasses (llamafactory, FlagEmbedding, ms-swift, axolotl); `LGBMClassifier`, `LGBMRegressor`; pandas `RangeIndex` with int start, stop and step only; Keras 3 `TopKCategoricalAccuracy` and `SparseTopKCategoricalAccuracy`. Each exact pair with its version; misuse and sinks stay flagged (`tests/test_allowlist_review_0_10_0.py`, `tests/test_sklearn_loss.py`). [LLM03]
-- **pathlib path classes** are RISKY, not MALICIOUS: constructing a path parses strings and touches no filesystem; their methods stay sinks (`tests/test_pathlib_classes.py`). A benign Windows checkpoint was MALICIOUS in 0.9.0.
+- **pathlib path classes** are RISKY, not MALICIOUS: constructing a path parses strings and touches no filesystem; their methods stay sinks (`tests/test_pathlib_classes.py`). Matched by the root package and the exact class name, so the `pathlib._local` module CPython 3.13 writes is covered too. A benign Windows checkpoint was MALICIOUS in 0.9.0.
 - `--validate-boosters` never clears a Booster when the sandbox returns fewer results than payloads.
 
 ### Changed

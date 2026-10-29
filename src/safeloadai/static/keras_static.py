@@ -51,9 +51,9 @@ from .allowlists import (
     KERAS_FUNCTIONS,
     KERAS_METRIC_NAMES,
     KERAS_MODULES,
-    KNOWN_GADGETS,
     TF_DANGEROUS,
     TF_OP_ALLOWED,
+    is_known_gadget,
 )
 from .lookalike import imitates
 from .lookalike import reason as lookalike_reason
@@ -474,7 +474,7 @@ def _promote_sinks(report: dict) -> None:
                                       or target[0].split(".")[0] in DANGEROUS_MODULES):
             report["suspicious_imports"].append({k: v for k, v in imp.items() if k != "kind"})
             continue
-        if target and not custom and (is_dangerous_import(*target) or target in KNOWN_GADGETS):
+        if target and not custom and (is_dangerous_import(*target) or is_known_gadget(*target)):
             imp = dict(imp, sink_like=".".join(part for part in target if part))
         unknown.append(imp)
     report["unknown_imports"] = unknown

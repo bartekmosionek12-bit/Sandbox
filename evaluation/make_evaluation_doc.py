@@ -33,6 +33,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEFAULT_RESULT = os.path.join(ROOT, "evaluation", "results", "eval-v090-20261023T212503Z.json")
 DEFAULT_BEFORE = os.path.join(ROOT, "evaluation", "results", "eval-v090-before-v080-20261023T212432Z.json")
 DEFAULT_ANATOMY = os.path.join(ROOT, "evaluation", "results", "fp-anatomy-v090-20261023.json")
+DEFAULT_BLIND = os.path.join(ROOT, "evaluation", "results", "heldout3-v0100.json")
 OUT = os.path.join(ROOT, "docs", "EVALUATION.md")
 README = os.path.join(ROOT, "README.md")
 README_START, README_END = "<!-- evaluation:start -->", "<!-- evaluation:end -->"
@@ -40,7 +41,9 @@ SPLITS = os.path.join(ROOT, "evaluation", "splits")
 GROUP_ORDER = ("lab", "mutations", "hf-malicious", "hf-unsafe", "hf-tune", "hf-heldout", "hf-heldout2")
 HELD_OUT = ("hf-heldout", "hf-heldout2")
 DEFAULT, TRUST, UPPER = "safeloadai", "safeloadai trust-inert-from", "safeloadai upper bound"
-VARIANTS = {DEFAULT: "default", TRUST: "`--trust-inert-from`", UPPER: "upper bound (not recommended)"}
+BOOSTERS = "safeloadai validate-boosters"
+VARIANTS = {DEFAULT: "default", TRUST: "`--trust-inert-from`", BOOSTERS: "`--validate-boosters`",
+            UPPER: "upper bound (not recommended)"}
 
 
 def measured(entries: list[dict]) -> dict[str, str]:
@@ -250,6 +253,11 @@ TRUST_SKIPPED = ("- **`--trust-inert-from`**: not measured in this run (it needs
                  "`run_eval.py --opt-in-site`).")
 
 
+BOOSTERS_NOTE = ("- **`--validate-boosters`**: pickled XGBoost, LightGBM and CatBoost models whose model bytes pass "
+                 "the structural validator in the sandbox are accepted (off by default; docs/OPTIONS.md). Only "
+                 "files a Booster blocks are scanned again.")
+
+
 def held_out_section(entries: list[dict], before: dict | None, version: str) -> list[str]:
     variants = measured(entries)
     lines = ["## What a user meets on held-out benign files", "",
@@ -258,6 +266,7 @@ def held_out_section(entries: list[dict], before: dict | None, version: str) -> 
              "is soft plus hard blocks over the files in a format safeloadai reads (CLEAN, soft or hard).", "",
              "- **default**: no options.",
              TRUST_NOTE if TRUST in variants else TRUST_SKIPPED,
+             *([BOOSTERS_NOTE] if BOOSTERS in variants else []),
              "- **upper bound**: every UNVERIFIABLE item of every file accepted. Not a switch and not recommended: "
              "it is the most any override could clear.", ""]
     old = {(e["group"], e["file"]): e for e in (before or {}).get("entries", [])}
@@ -441,11 +450,100 @@ def heldout_bugs_section() -> list[str]:
             *[f"| {kind} | {what} | `{test}` |" for kind, what, test in HELDOUT_BUGS]]
 
 
+BLIND_NAMES = {"safeloadai": "default", BOOSTERS: "`--validate-boosters`",
+               "safeloadai without known-file list": "default without the known-file list",
+               UPPER: "upper bound (not recommended)"}
+
+
+def blind_rows(run: dict, label: str) -> list[str]:
+    rows = []
+    for tool, name in BLIND_NAMES.items():
+        col = run["columns"].get(tool)
+        if not col:
+            continue
+        b, n = col["blocks"], col["blocks_without_poc_rule"]
+        rows.append(f"| {label}: {name} | " + " | ".join(str(b[k]) for k in BLOCKS) +
+                    f" | {b['benign']} | {rate(b['fp'], b['readable'])} | {n['benign']} | "
+                    f"{rate(n['fp'], n['readable'])} |")
+    return rows
+
+
+def blind_section(blind: dict | None) -> list[str]:
+    """held-out-3: aggregates only (evaluation/blind_aggregate.py); nobody looked at its files."""
+    if not blind:
+        return []
+    after, before = blind["after"], blind.get("before")
+    lines = ["## held-out-3 (blind)", "",
+             f"{after['files']} files from repositories no earlier split or results file used, planned before any "
+             "0.10.0 work and measured once, with the final scanner. Nobody looked at its files or per-file "
+             "results: the results stay outside the repository and only the aggregates below "
+             f"([`{blind['source']}`](../evaluation/results/{blind['source']})) were read. A file the Hub flags "
+             "stays unclear, because reviewing its evidence would mean looking at it. Labels: "
+             f"{after['labels']['benign']} benign, {after['labels']['malicious']} malicious, "
+             f"{after['labels']['unclear']} unclear.", "",
+             BLOCKS_HEAD.format(first="configuration")]
+    if before:
+        lines += blind_rows(before, f"before ({before['safeloadai']})")
+    lines += blind_rows(after, f"**after ({after['safeloadai']})**")
+    col = after["columns"]["safeloadai"]
+    lines += ["", f"Benign files MALICIOUS by default: {col['benign_malicious_verdict']}. Malicious files let "
+              f"through: {col['malicious_let_through']}."]
+    anatomy = blind.get("anatomy")
+    if anatomy:
+        lines += ["", "| cause | files | share of benign |", "|---|---|---|"]
+        for c in ANATOMY_CLASSES:
+            row = anatomy["classes"][c]
+            lines.append(f"| **{c}** {row['text'].replace('__main__', '`__main__`')} | {row['files']} | "
+                         f"{100 * (row['share_of_benign'] or 0):.1f} % |")
+        lines.append(f"| **irreducible floor (a + b)** | {anatomy['floor']['files']} | "
+                     f"{100 * (anatomy['floor']['share_of_benign'] or 0):.1f} % |")
+    return lines + [""]
+
+
+def seconds_of(entry: dict) -> float | None:
+    return (entry["results"].get("safeloadai") or {}).get("seconds")
+
+
+def peak_of(entry: dict) -> float:
+    r = entry["results"].get("safeloadai") or {}
+    return max(r.get("rss_peak_mb") or 0, r.get("children_rss_peak_mb") or 0)
+
+
+def pct(values: list[float], q: float) -> str:
+    values = sorted(values)
+    return f"{values[min(len(values) - 1, int(q * len(values)))]:.2f}" if values else "-"
+
+
+def cost_section(data: dict, blind: dict | None) -> list[str]:
+    """Time and memory per scan (default configuration)."""
+    lines = ["## Time and memory", "",
+             "Wall time of one default scan, in seconds, and the peak resident memory of the scanning process and "
+             "its sandbox (MiB). Workers are reused, so a worker's peak is the largest of every scan it ran up to "
+             "then; the file named is the first whose scan reached the group's peak. Four workers on four cores, "
+             "15 GB of memory.", "",
+             "| group | files | median s | p95 s | max s | peak RSS MiB | file behind the peak |",
+             "|---|---|---|---|---|---|---|"]
+    for group, rows in by_group(data["entries"]).items():
+        timed = [e for e in rows if seconds_of(e) is not None]
+        if not timed:
+            continue
+        values = [seconds_of(e) for e in timed]
+        top = max(timed, key=peak_of)
+        lines.append(f"| {group} | {len(timed)} | {pct(values, 0.5)} | {pct(values, 0.95)} | {max(values):.2f} | "
+                     f"{peak_of(top):.0f} | `{top['file']}` ({top.get('size', 0) // 2 ** 20} MiB) |")
+    if blind:
+        a = blind["after"]
+        lines.append(f"| hf-heldout3 (blind) | {a['files']} | {a['seconds']['median']:.2f} | {a['seconds']['p95']:.2f} "
+                     f"| {a['seconds']['max']:.2f} | {a['rss_peak_mb']:.0f} | withheld (blind split) |")
+    return lines + [""]
+
+
 def frac(k: int, n: int) -> str:
     return f"{k} / {n}" if n else "-"
 
 
-def render(data: dict, source: str, before: dict | None = None, anatomy: dict | None = None) -> str:
+def render(data: dict, source: str, before: dict | None = None, anatomy: dict | None = None,
+           blind: dict | None = None) -> str:
     entries = data["entries"]
     tools = [t for t in data["tools"] if not t.startswith("safeloadai")]
     groups = by_group(entries)
@@ -566,8 +664,8 @@ def render(data: dict, source: str, before: dict | None = None, anatomy: dict | 
         for fmt in sorted({e["format"] for e in rows}):
             lines += matrix_rows(f"{group} / {fmt}", [e for e in rows if e["format"] == fmt])
 
-    lines += [""] + held_out_section(entries, before, data["safeloadai"]) + anatomy_section(anatomy) \
-        + malicious_only_section(entries) + [
+    lines += [""] + held_out_section(entries, before, data["safeloadai"]) + blind_section(blind) \
+        + anatomy_section(anatomy) + cost_section(data, blind) + malicious_only_section(entries) + [
         "## Limits of this evaluation",
         "",
         "- The other scanners are measured on every file here, including formats they do not read; their "
@@ -586,7 +684,39 @@ def day(created: str) -> str:
     return f"{created[:4]}-{created[4:6]}-{created[6:8]}" if created[:8].isdigit() else created[:10]
 
 
-def readme_block(data: dict, source: str, before: dict | None, anatomy: dict | None = None) -> str:
+def headline(data: dict, anatomy: dict | None, blind: dict | None) -> list[str]:
+    """FPR on readable benign files without the irreducible floor, and the floor itself."""
+    if not anatomy:
+        return []
+    variants = {t: n for t, n in measured(data["entries"]).items() if t in (DEFAULT, BOOSTERS)}
+    lines = ["**Headline: false positives a review can still remove.** The FPR on readable benign files with the "
+             "irreducible floor (files that need code their author wrote) taken out of both sides, and the floor "
+             "itself.", "",
+             "| set | configuration | FPR excluding the floor [95 % CI] | floor | FPR including the floor |",
+             "|---|---|---|---|---|"]
+    sets = [(g, [e for e in data["entries"] if e["group"] == g], anatomy["groups"].get(g)) for g in HELD_OUT]
+    for group, rows, s in sets:
+        if not rows or not s:
+            continue
+        floor = s["floor"]["files"]
+        for tool, name in variants.items():
+            c = blocks_of(rows, tool)
+            fp, readable = c["soft"] + c["hard"], c["clean"] + c["soft"] + c["hard"]
+            lines.append(f"| {group} | {name} | {rate(fp - floor, readable - floor)} | {floor} "
+                         f"({ratio(floor, readable)}) | {rate(fp, readable)} |")
+    if blind and blind.get("anatomy"):
+        floor = blind["anatomy"]["floor"]["files"]
+        for tool, name in (("safeloadai", "default"), (BOOSTERS, "`--validate-boosters`")):
+            col = blind["after"]["columns"].get(tool)
+            if col:
+                b = col["blocks"]
+                lines.append(f"| hf-heldout3 (blind) | {name} | {rate(b['fp'] - floor, b['readable'] - floor)} | "
+                             f"{floor} ({ratio(floor, b['readable'])}) | {rate(b['fp'], b['readable'])} |")
+    return lines + [""]
+
+
+def readme_block(data: dict, source: str, before: dict | None, anatomy: dict | None = None,
+                 blind: dict | None = None) -> str:
     """The results section of README.md: headline numbers only, every one from the JSON."""
     entries = data["entries"]
     groups = by_group(entries)
@@ -635,7 +765,14 @@ def readme_block(data: dict, source: str, before: dict | None, anatomy: dict | N
         top = sorted(missing.items(), key=lambda item: (-item[1], item[0]))[:6]
         lines += ["", "What still blocks held-out files most often (by default; files that need the item): " +
                   ", ".join(f"`{name}` ({n})" for name, n in top) + "."]
-    lines += [""] + floor_note(anatomy) + side_by_side(data) + rerun_note(data) + [README_END]
+    if blind:
+        lines += ["", f"**held-out-3 (blind; aggregates only, [`{blind['source']}`]"
+                  f"(evaluation/results/{blind['source']})).**", "", BLOCKS_HEAD.format(first="configuration")]
+        if blind.get("before"):
+            lines += blind_rows(blind["before"], f"before ({blind['before']['safeloadai']})")
+        lines += blind_rows(blind["after"], f"**after ({blind['after']['safeloadai']})**")
+    lines += [""] + headline(data, anatomy, blind) + floor_note(anatomy) + side_by_side(data) + rerun_note(data) \
+        + [README_END]
     return "\n".join(lines)
 
 
@@ -729,6 +866,7 @@ def main(argv: list[str] | None = None) -> int:
                         help="run_eval.py JSON of the release before, on the same held-out files")
     parser.add_argument("--readme", default=README, help="README with the evaluation markers")
     parser.add_argument("--anatomy", default=DEFAULT_ANATOMY, help="evaluation/fp_anatomy.py JSON (aggregates)")
+    parser.add_argument("--blind", default=DEFAULT_BLIND, help="evaluation/blind_aggregate.py JSON (held-out-3)")
     parser.add_argument("--check", action="store_true", help="exit 1 if a page differs from what would be written")
     args = parser.parse_args(argv)
     with open(args.result, encoding="utf-8") as fh:
@@ -741,13 +879,17 @@ def main(argv: list[str] | None = None) -> int:
     if args.anatomy and os.path.exists(args.anatomy):
         with open(args.anatomy, encoding="utf-8") as fh:
             anatomy = json.load(fh)
+    blind = None
+    if args.blind and os.path.exists(args.blind):
+        with open(args.blind, encoding="utf-8") as fh:
+            blind = dict(json.load(fh), source=os.path.basename(args.blind))
     source = os.path.relpath(args.result, ROOT).replace(os.sep, "/")
-    pages = {args.out: render(data, source, before, anatomy)}
+    pages = {args.out: render(data, source, before, anatomy, blind)}
     if args.readme and os.path.exists(args.readme):
         with open(args.readme, encoding="utf-8") as fh:
             readme = fh.read()
         if README_START in readme:
-            pages[args.readme] = with_readme_block(readme, readme_block(data, source, before, anatomy))
+            pages[args.readme] = with_readme_block(readme, readme_block(data, source, before, anatomy, blind))
     stale = False
     for path, text in pages.items():
         current = open(path, encoding="utf-8").read() if os.path.exists(path) else ""

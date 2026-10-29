@@ -38,8 +38,9 @@ OUT = os.path.join(ROOT, "docs", "EVALUATION.md")
 README = os.path.join(ROOT, "README.md")
 README_START, README_END = "<!-- evaluation:start -->", "<!-- evaluation:end -->"
 SPLITS = os.path.join(ROOT, "evaluation", "splits")
-GROUP_ORDER = ("lab", "mutations", "hf-malicious", "hf-unsafe", "hf-tune", "hf-heldout", "hf-heldout2")
-HELD_OUT = ("hf-heldout", "hf-heldout2")
+GROUP_ORDER = ("lab", "mutations", "hf-malicious", "hf-unsafe", "hf-tune", "hf-heldout", "hf-heldout2",
+               "hf-heldout3")
+HELD_OUT = ("hf-heldout", "hf-heldout2", "hf-heldout3")
 DEFAULT, TRUST, UPPER = "safeloadai", "safeloadai trust-inert-from", "safeloadai upper bound"
 BOOSTERS = "safeloadai validate-boosters"
 VARIANTS = {DEFAULT: "default", TRUST: "`--trust-inert-from`", BOOSTERS: "`--validate-boosters`",
@@ -59,6 +60,8 @@ GROUP_TEXT = {
     "hf-unsafe": "Further Hub files the Hub's scanners flag, scanned in batches and deleted (`evaluation/batch_hf.py`)",
     "hf-heldout2": "Second benign held-out set: repositories no earlier corpus used, scanned in batches and deleted "
                    "(`evaluation/batch_hf.py`); never used for tuning",
+    "hf-heldout3": "Third benign held-out set (0.10.0), from repositories no earlier corpus used; blind in 0.10.0, "
+                   "reported with the other held-out sets since 0.11.0; never used for tuning",
 }
 LABEL_ORIGIN = {
     "lab": "by construction (we wrote the payload or the benign control)",
@@ -72,6 +75,9 @@ LABEL_ORIGIN = {
                  "verdict; unclear until reviewed",
     "hf-heldout2": "benign by selection; files the Hub flags are unclear until reviewed by hand "
                    "(`evaluation/hf_batches_labels.tsv`, rules in `evaluation/review_heldout2_labels.py`)",
+    "hf-heldout3": "benign by selection; a file the Hub flags keeps the label the automatic rule gives its Hub "
+                   "evidence (`fetch_malicious_hf.proposed_label`), except two reviewed after the 0.10.0 measurement "
+                   "(`evaluation/hf_heldout3_labels.tsv`)",
 }
 POSITIVE = {"SUSPICIOUS", "MALICIOUS"}
 # batch_hf.declared_poc: a benign-by-selection file from a repository whose name declares a
@@ -247,8 +253,11 @@ BLOCKS_HEAD = ("| {first} | CLEAN | soft block | hard block | UNSUPPORTED | ERRO
                "|---|---|---|---|---|---|---|---|---|---|")
 
 
-TRUST_NOTE = ("- **`--trust-inert-from`**: `--trust-inert-from scikit-learn transformers torch`, reading those "
-              "libraries' source (the evaluation reads unpacked distributions, `run_eval.py --opt-in-site`).")
+def trust_note(trust: list[str]) -> str:
+    named = " ".join(f"--trust-inert-from {t}" for t in trust) or "--trust-inert-from"
+    return (f"- **`--trust-inert-from`**: `{named}`, reading those libraries' source (the evaluation reads "
+            "unpacked distributions, `run_eval.py --opt-in-site`). Every file is scanned again with it, so a "
+            "verdict it makes stricter shows too.")
 TRUST_SKIPPED = ("- **`--trust-inert-from`**: not measured in this run (it needs unpacked distributions, "
                  "`run_eval.py --opt-in-site`).")
 
@@ -258,14 +267,14 @@ BOOSTERS_NOTE = ("- **`--validate-boosters`**: pickled XGBoost, LightGBM and Cat
                  "files a Booster blocks are scanned again.")
 
 
-def held_out_section(entries: list[dict], before: dict | None, version: str) -> list[str]:
+def held_out_section(entries: list[dict], before: dict | None, version: str, trust: tuple = ()) -> list[str]:
     variants = measured(entries)
     lines = ["## What a user meets on held-out benign files", "",
              "A false positive is not one thing. A *soft block* has only UNVERIFIABLE reasons and can be accepted "
              "item by item for that file; a *hard block* has a RISKY or MALICIOUS reason and cannot. The FPR here "
              "is soft plus hard blocks over the files in a format safeloadai reads (CLEAN, soft or hard).", "",
              "- **default**: no options.",
-             TRUST_NOTE if TRUST in variants else TRUST_SKIPPED,
+             trust_note(trust) if TRUST in variants else TRUST_SKIPPED,
              *([BOOSTERS_NOTE] if BOOSTERS in variants else []),
              "- **upper bound**: every UNVERIFIABLE item of every file accepted. Not a switch and not recommended: "
              "it is the most any override could clear.", ""]
@@ -455,7 +464,7 @@ def heldout_bugs_section() -> list[str]:
             *[f"| {kind} | {what} | `{test}` |" for kind, what, test in HELDOUT_BUGS]]
 
 
-BLIND_NAMES = {"safeloadai": "default", BOOSTERS: "`--validate-boosters`",
+BLIND_NAMES = {"safeloadai": "default", TRUST: "`--trust-inert-from`", BOOSTERS: "`--validate-boosters`",
                "safeloadai without known-file list": "default without the known-file list",
                UPPER: "upper bound (not recommended)"}
 
@@ -473,14 +482,20 @@ def blind_rows(run: dict, label: str) -> list[str]:
     return rows
 
 
+def blind_title(blind: dict) -> str:
+    """"held-out-4 (blind)" for group hf-heldout4."""
+    return f"{blind.get('group', 'hf-heldout3').removeprefix('hf-').replace('heldout', 'held-out-')} (blind)"
+
+
 def blind_section(blind: dict | None) -> list[str]:
-    """held-out-3: aggregates only (evaluation/blind_aggregate.py); nobody looked at its files."""
+    """The blind split: aggregates only (evaluation/blind_aggregate.py); nobody looked at its files."""
     if not blind:
         return []
     after, before = blind["after"], blind.get("before")
-    lines = ["## held-out-3 (blind)", "",
-             f"{after['files']} files from repositories no earlier split or results file used, planned before any "
-             "0.10.0 work and measured once, with the final scanner. Nobody looked at its files or per-file "
+    lines = [f"## {blind_title(blind)}", "",
+             f"{after['files']} files from repositories no earlier split or results file used, planned before the "
+             f"{after['safeloadai']} allowlist work and measured once, with the final scanner. Nobody looked at its "
+             "files or per-file "
              "results: the results stay outside the repository and only the aggregates below "
              f"([`{blind['source']}`](../evaluation/results/{blind['source']})) were read. A file the Hub flags "
              "keeps the label the automatic rule gives its Hub evidence (`fetch_malicious_hf.proposed_label`), "
@@ -494,6 +509,10 @@ def blind_section(blind: dict | None) -> list[str]:
     col = after["columns"]["safeloadai"]
     lines += ["", f"Benign files MALICIOUS by default: {col['benign_malicious_verdict']}. Malicious files let "
               f"through: {col['malicious_let_through']}."]
+    trust = after.get("trust_vs_default")
+    if trust:
+        lines += ["", f"`--trust-inert-from` against the default, on benign files: {trust['loosened']} made CLEAN that "
+                  f"the default blocks, {trust['tightened']} blocked that the default finds CLEAN."]
     if blind.get("post_review"):
         lines += ["", blind["post_review"]]
     anatomy = blind.get("anatomy")
@@ -541,7 +560,8 @@ def cost_section(data: dict, blind: dict | None, before: dict | None = None) -> 
         for key in ("after", "before"):
             a = blind.get(key)
             if a:
-                name = "hf-heldout3 (blind)" + ("" if key == "after" else f" ({a['safeloadai']})")
+                name = f"{blind.get('group', 'hf-heldout3')} (blind)" + (
+                    "" if key == "after" else f" ({a['safeloadai']})")
                 lines.append(f"| {name} | {a['files']} | {a['seconds']['median']:.2f} | {a['seconds']['p95']:.2f} "
                              f"| {a['seconds']['max']:.2f} | {a['rss_peak_mb']:.0f} | withheld (blind split) |")
     return lines + [""]
@@ -680,7 +700,8 @@ def render(data: dict, source: str, before: dict | None = None, anatomy: dict | 
         for fmt in sorted({e["format"] for e in rows}):
             lines += matrix_rows(f"{group} / {fmt}", [e for e in rows if e["format"] == fmt])
 
-    lines += [""] + held_out_section(entries, before, data["safeloadai"]) + blind_section(blind) \
+    trust = data.get("opt_in_trust") or []
+    lines += [""] + held_out_section(entries, before, data["safeloadai"], trust) + blind_section(blind) \
         + anatomy_section(anatomy) + cost_section(data, blind, before) + malicious_only_section(entries) + [
         "## Limits of this evaluation",
         "",
@@ -726,7 +747,8 @@ def headline(data: dict, anatomy: dict | None, blind: dict | None) -> list[str]:
             col = blind["after"]["columns"].get(tool)
             if col:
                 b = col["blocks"]
-                lines.append(f"| hf-heldout3 (blind) | {name} | {rate(b['fp'] - floor, b['readable'] - floor)} | "
+                lines.append(f"| {blind.get('group', 'hf-heldout3')} (blind) | {name} | "
+                             f"{rate(b['fp'] - floor, b['readable'] - floor)} | "
                              f"{floor} ({ratio(floor, b['readable'])}) | {rate(b['fp'], b['readable'])} |")
     return lines + [""]
 
@@ -783,7 +805,7 @@ def readme_block(data: dict, source: str, before: dict | None, anatomy: dict | N
         lines += ["", "What still blocks held-out files most often (by default; files that need the item): " +
                   ", ".join(f"`{name}` ({n})" for name, n in top) + "."]
     if blind:
-        lines += ["", f"**held-out-3 (blind; aggregates only, [`{blind['source']}`]"
+        lines += ["", f"**{blind_title(blind).replace(' (blind)', '')} (blind; aggregates only, [`{blind['source']}`]"
                   f"(evaluation/results/{blind['source']})).**", "", BLOCKS_HEAD.format(first="configuration")]
         if blind.get("before"):
             lines += blind_rows(blind["before"], f"before ({blind['before']['safeloadai']})")
@@ -883,7 +905,7 @@ def main(argv: list[str] | None = None) -> int:
                         help="run_eval.py JSON of the release before, on the same held-out files")
     parser.add_argument("--readme", default=README, help="README with the evaluation markers")
     parser.add_argument("--anatomy", default=DEFAULT_ANATOMY, help="evaluation/fp_anatomy.py JSON (aggregates)")
-    parser.add_argument("--blind", default=DEFAULT_BLIND, help="evaluation/blind_aggregate.py JSON (held-out-3)")
+    parser.add_argument("--blind", default=DEFAULT_BLIND, help="evaluation/blind_aggregate.py JSON (the blind split)")
     parser.add_argument("--check", action="store_true", help="exit 1 if a page differs from what would be written")
     args = parser.parse_args(argv)
     with open(args.result, encoding="utf-8") as fh:

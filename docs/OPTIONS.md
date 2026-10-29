@@ -131,7 +131,7 @@ Every entry in `Report.options` looks like this:
 
 ## `trust_inert_from`
 
-**Experimental.** In the 0.8.0 evaluation it changes no verdict: the evaluation names scikit-learn, transformers and torch at the pinned versions, and for those the option gives the same answer as the pinned policies that ship with safeloadai (point 7 below). It only changes a verdict for a distribution that is not pinned, or for a class that your installed version has and the pinned one does not; `tests/test_trust_inert_from.py` shows such a change.
+**Experimental. It has not yet loosened a verdict on any evaluated file.** On tune, tune-2, held-out, held-out-2, held-out-3 and held-out-4, with scikit-learn, transformers and torch named, no file the default finds SUSPICIOUS becomes CLEAN with it. That is not because it is disconnected: a pickle of a state-only class from an installed distribution that is not pinned is SUSPICIOUS without it and CLEAN with it (`tests/test_trust_inert_from.py`). The Hub files simply never reach a class it could add: every class that reaches the question fails the same rule the pinned analysis applies (point 8). Before 0.11.0 it could also make a verdict *stricter*, a bug now fixed (point 8).
 
 1. **What it does.** For each named distribution that is installed where the scan
    runs, it reads that distribution's own Python files and decides which of its classes
@@ -145,8 +145,12 @@ Every entry in `Report.options` looks like this:
      source, and every module on its import path must be inert.
    - **What the scan then accepts.** A pickle may rebuild such a class from a dict
      state. It may not call the class, use a slot state, or call the rebuilt instance.
-   - **What it replaces.** For the named distributions, this analysis replaces the
-     pinned policy that ships with safeloadai (`static/upstream/policies.json`).
+   - **What it adds.** For the named distributions, this analysis is asked only about
+     classes the pinned policies that ship with safeloadai (`static/upstream/policies.json`,
+     with their table of old module paths) do not accept. It removes a class the pinned
+     policies accept only when your installed version gives that class, or a base, code of
+     its own that runs on load (a `__setstate__` or other hook, a property setter, a
+     metaclass, a decorator, slots) that the pinned review did not see (0.11.0).
    - **What it never accepts.** Classes the owner's review keeps out
      (`excluded` in `static/upstream/policies.json`: for example scikit-learn's
      `FunctionTransformer` and `TransformedTargetRegressor`, which store a callable,
@@ -203,6 +207,29 @@ Every entry in `Report.options` looks like this:
    scikit-learn, not pinned): SUSPICIOUS by default, CLEAN with
    `--trust-inert-from threadpoolctl`, and still SUSPICIOUS when only scikit-learn is
    named.
+8. **What it changes in practice (0.11.0).**
+   - **A bug, fixed in 0.11.0: it made verdicts stricter.** Until 0.10.0 the installed
+     analysis *replaced* the pinned policies for a named distribution. At the pinned
+     versions it refused 230 classes that the pinned policies accept: 224 old scikit-learn
+     module paths (only the pinned table of old paths maps them; the installed source no
+     longer has those modules), `joblib`'s `Parallel` and DeepSpeed configuration classes.
+     In the 0.10.0 evaluation 12 tune-2 `training_args.bin` files were CLEAN by default and
+     SUSPICIOUS with the option. The evaluation did not show it, because its column scanned
+     again only the files the default had not found CLEAN; it now scans every file. None of
+     the 230 was refused for a hook: each was a limit of the installed analysis. A hook
+     your installed version adds to a pinned class still makes it refused (point 1).
+   - **Why it still loosens nothing on the Hub files.** 60 classes outside the pinned
+     policies reach the question on tune, tune-2, held-out and held-out-2 (on the blind
+     held-out-3 and held-out-4 only the column's totals were read). None qualifies, and for the same
+     reasons the pinned analysis gives: a module on the class's import path runs code at
+     import (scikit-learn's `KNeighborsRegressor` module appends to a dict at top level), a
+     hook the review has not seen (`MultiheadAttention.__setstate__`, a `theta` property
+     setter on every Gaussian-process kernel), a function or `REDUCE` target rather than a
+     class (`accuracy_score`, `_rebuild_tensor_v2`), a compiled module with no Python
+     source (`_gb_losses`, `_ball_tree`, `sgd_fast`), or an owner exclusion
+     (`FunctionTransformer`). The option is for classes your installed version has and the
+     pinned one lacks, or for distributions safeloadai does not pin; the evaluation has
+     neither.
 
 ## `validate_boosters`
 

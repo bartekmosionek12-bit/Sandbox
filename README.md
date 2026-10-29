@@ -224,9 +224,12 @@ What still blocks held-out files most often (by default; files that need the ite
 
 - **soft block**: only UNVERIFIABLE reasons; a user can accept them item by item for that
   file. **hard block**: a RISKY or MALICIOUS reason; no override exists.
-- **`--trust-inert-from scikit-learn transformers torch`** reads the installed source of
-  the named libraries instead of the pinned one. It helps when your installed version
-  differs from the pinned policies.
+- **`--trust-inert-from scikit-learn transformers torch`** also reads the installed source
+  of the named libraries, for classes the pinned policies do not have. It has not yet
+  loosened a verdict on any evaluated file: no Hub file here needs a class it could add
+  ([docs/OPTIONS.md](docs/OPTIONS.md#trust_inert_from)). Before 0.11.0 it replaced the
+  pinned policies and so made some verdicts stricter; now it adds to them, and removes a
+  pinned class only when your installed version gives it a hook the pinned review did not see.
 - **Upper bound** accepts every UNVERIFIABLE item without reading it. It is the most any
   override could clear, and it lets lab payloads through (the detection table shows how
   many), which is why no switch does this.
@@ -286,8 +289,9 @@ non-CLEAN benign file, soft blocks included).
 - **Source-derived policies trust the pinned library versions.** A state-only class
   is judged from the source of the version listed in `static/upstream/REVIEW.md`. If a
   newer version adds a `__setstate__` that does something dangerous, the pinned policy
-  does not know. `--trust-inert-from DIST` judges the installed version instead, and so
-  trusts that installation (see [docs/OPTIONS.md](docs/OPTIONS.md#trust_inert_from)).
+  does not know. `--trust-inert-from DIST` also judges the installed version: it refuses a
+  pinned class to which that version adds a hook, accepts state-only classes the pinned
+  policies lack, and so trusts that installation (see [docs/OPTIONS.md](docs/OPTIONS.md#trust_inert_from)).
 - **Profiles use the file name and the producer's imports.** A file that matches both
   but not the structure gets a RISKY reason; a payload in a file outside any profile is
   judged by the usual rules. A profile never accepts a sink.

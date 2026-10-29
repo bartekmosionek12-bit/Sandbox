@@ -187,3 +187,100 @@ def test_cache_location_never_changes_the_verdict(tmp_path, monkeypatch):
     in_memory = scan(model).to_dict()
     assert cached["verdict"] == in_memory["verdict"]
     assert cached["reasons"] == in_memory["reasons"]
+
+
+# A compiled module is native code for one wasmtime build: changing the recorded wasmtime
+# version must make the runner compile again, never load the other version's entry.
+
+def test_cache_key_includes_the_wasmtime_version():
+    from safeloadai.sandbox.runner import compiled_cache_key
+
+    sha = runtime.PINNED.sha256
+    assert compiled_cache_key(sha, "fuel", "49.0.0") == compiled_cache_key(sha, "fuel", "49.0.0")
+    assert compiled_cache_key(sha, "fuel", "49.0.0") != compiled_cache_key(sha, "fuel", "50.0.1")
+    assert compiled_cache_key(sha, "fuel", "50.0.0") != compiled_cache_key(sha, "fuel", "50.0.1")
+    assert compiled_cache_key(sha, "fuel", "49.0.0") != compiled_cache_key(sha, "nofuel", "49.0.0")
+    assert compiled_cache_key("0" * 64, "fuel", "49.0.0") != compiled_cache_key(sha, "fuel", "49.0.0")
+
+
+def test_unknown_wasmtime_version_is_never_cached(tmp_path, monkeypatch):
+    from safeloadai.sandbox import runner
+
+    assert runner.compiled_cache_key(runtime.PINNED.sha256, "fuel", "unknown") is None
+    assert runner.compiled_cache_key(runtime.PINNED.sha256, "fuel", "") is None
+    wasm = tmp_path / "m.wasm"
+    wasm.write_bytes(b"\0asm\1\0\0\0")
+    sha = runtime.sha256_file(wasm)
+    monkeypatch.setattr(runner, "_wasmtime_version", lambda: "unknown")
+    _module, how = runner._load_module(_FakeWasmtime, None, str(wasm), sha, str(tmp_path / "c"), "fuel")
+    assert how == "compiled" and not (tmp_path / "c").exists()
+
+
+class _FakeWasmtime:
+    """Records which cache entry the runner deserialises; 'compiles' to the version's bytes."""
+
+    version = "49.0.0"
+    loaded: list = []
+
+    class Module:
+        def __init__(self, engine, data):
+            self.blob = f"native code for wasmtime {_FakeWasmtime.version}".encode()
+
+        def serialize(self):
+            return self.blob
+
+        @staticmethod
+        def deserialize_file(engine, path):
+            _FakeWasmtime.loaded.append(Path(path).read_bytes())
+            return "deserialized"
+
+
+def test_changing_the_wasmtime_version_invalidates_the_cache(tmp_path, monkeypatch):
+    from safeloadai.sandbox import runner
+
+    wasm, cache = tmp_path / "m.wasm", tmp_path / "compiled"
+    wasm.write_bytes(b"\0asm\1\0\0\0")
+    cache.mkdir()
+    sha = runtime.sha256_file(wasm)
+    wt = _FakeWasmtime
+    monkeypatch.setattr(wt, "loaded", [])
+    monkeypatch.setattr(wt, "version", "49.0.0")
+    monkeypatch.setattr(runner, "_wasmtime_version", lambda: wt.version)
+
+    def load():
+        return runner._load_module(wt, None, str(wasm), sha, str(cache), "fuel")[1]
+
+    assert load() == "compiled" and load() == "cache"
+    assert wt.loaded == [b"native code for wasmtime 49.0.0"]
+    monkeypatch.setattr(wt, "version", "50.0.1")
+    assert load() == "compiled"  # the 49 entry is not even looked at
+    assert wt.loaded == [b"native code for wasmtime 49.0.0"]
+    assert load() == "cache" and wt.loaded[-1] == b"native code for wasmtime 50.0.1"
+    assert len(list(cache.glob("*.cwasm"))) == 2
+    monkeypatch.setattr(wt, "version", "49.0.0")
+    assert load() == "cache" and wt.loaded[-1] == b"native code for wasmtime 49.0.0"
+
+
+def test_real_wasmtime_recompiles_when_the_version_changes(tmp_path, monkeypatch):
+    wt = pytest.importorskip("wasmtime")
+    from safeloadai.sandbox import runner
+
+    wasm, cache = tmp_path / "m.wasm", tmp_path / "compiled"
+    wasm.write_bytes(wt.wat2wasm('(module (func (export "f") (result i32) i32.const 7))'))
+    cache.mkdir()
+    sha = runtime.sha256_file(wasm)
+    cfg = wt.Config()
+    cfg.consume_fuel = True
+    engine = wt.Engine(cfg)
+
+    def load():
+        return runner._load_module(wt, engine, str(wasm), sha, str(cache), "fuel")
+
+    real = runner._wasmtime_version()
+    assert load()[1] == "compiled" and load()[1] == "cache"
+    monkeypatch.setattr(runner, "_wasmtime_version", lambda: real + "+other")
+    module, how = load()
+    assert how == "compiled" and len(list(cache.glob("*.cwasm"))) == 2
+    store = wt.Store(engine)
+    store.set_fuel(1000)
+    assert wt.Instance(store, module, []).exports(store)["f"](store) == 7

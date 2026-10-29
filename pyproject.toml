@@ -27,10 +27,10 @@ classifiers = [
 ]
 # The sandbox boundary is only as good as its runtime: the CPython-on-WASI build is
 # pinned exactly (and its sha256 is checked again at run time), wasmtime to the
-# major version the test suite runs against.
+# major versions the test suite runs against (CI tests each of them).
 dependencies = [
     "safeloadai-runtime==0.1.0",
-    "wasmtime>=49.0.0,<50",
+    "wasmtime>=49.0.0,<51",
 ]
 
 [project.optional-dependencies]

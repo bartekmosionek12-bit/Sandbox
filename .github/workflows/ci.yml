@@ -72,6 +72,9 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ["3.11", "3.12", "3.13"]
+        # Every wasmtime major that pyproject.toml admits (tests/test_automation.py checks
+        # that the two agree), so a new major is exercised on every PR, not only weekly.
+        wasmtime: ["49", "50"]
     env:
       SAFELOADAI_EXPECT_INSTALLED: "1"   # conftest refuses to test the source tree
       SAFELOADAI_REQUIRE_WASI: "1"       # a missing runtime is an error, not a skip
@@ -95,6 +98,8 @@ jobs:
           "$BIN/python" -m pip install --no-index --find-links dist safeloadai-runtime==0.1.0
           WHEEL=$(ls dist/safeloadai-*-py3-none-any.whl)
           "$BIN/python" -m pip install "$WHEEL[test]"
+          "$BIN/python" -m pip install "wasmtime==${{ matrix.wasmtime }}.*"
+          "$BIN/python" -c "from importlib.metadata import version; v = version('wasmtime'); assert v.split('.')[0] == '${{ matrix.wasmtime }}', v"
           "$BIN/python" -m pip list
           echo "BIN=$BIN" >> "$GITHUB_ENV"
 

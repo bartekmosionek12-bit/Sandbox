@@ -87,11 +87,16 @@ Do one at a time, in its own PR, so a failure points at one cause.
 
 1. Read wasmtime's release notes for changes to WASI preview 1, fuel, epochs,
    memory limits and the Python API that `sandbox/runner.py` uses.
-2. Change the requirement in `pyproject.toml` to the new major
-   (`wasmtime>=N.0.0,<N+1`).
-3. Run steps 7 and 8 above (installed wheels, full suite, `safeloadai doctor`,
-   evaluation before and after).
-4. Release as a new `safeloadai` version, with a CHANGELOG entry.
+2. Check that the compiled-module cache key still holds the wasmtime version
+   (`sandbox/runner.py`, `compiled_cache_key`; `tests/test_compiled_cache.py`).
+3. Widen the requirement in `pyproject.toml` by one major
+   (`wasmtime>=A.0.0,<N+1`), with `WASMTIME_RANGE` in `doctor.py` and the
+   `wasmtime` axis of the test matrix in `.github/workflows/ci.yml` (one entry per
+   admitted major). `tests/test_automation.py` checks that they agree. Drop the
+   oldest major only in its own change.
+4. Run steps 7 and 8 above (installed wheels, full suite, `safeloadai doctor`,
+   evaluation before and after) on the new major.
+5. Release as a new `safeloadai` version, with a CHANGELOG entry.
 
 ## What never happens
 

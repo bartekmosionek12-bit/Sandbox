@@ -1,0 +1,17 @@
+{
+  "_comment": "Benign files from evaluation/make_local_benign.py whose expected drift result is not CLEAN. Every other file is expected CLEAN. A file listed here must match exactly: the verdict, UNVERIFIABLE-only, and the same items. Coming back CLEAN is drift too, since that would mean a bare name was trusted (DECISIONS.md, A1, V1 and W3). Changing this file is a reviewed change, like an allowlist.",
+  "files": {
+    "k2_convnext_tiny.h5": {
+      "verdict": "SUSPICIOUS",
+      "unverifiable_only": true,
+      "unverifiable_items": ["LayerScale"],
+      "decisions": "A1, V1, W3"
+    },
+    "k3_convnext_tiny.h5": {
+      "verdict": "SUSPICIOUS",
+      "unverifiable_only": true,
+      "unverifiable_items": ["LayerScale"],
+      "decisions": "A1, V1, W3"
+    }
+  }
+}

@@ -5,17 +5,22 @@
 Run by the ``upstream-drift`` workflow after ``evaluation/make_local_benign.py`` has
 written benign models with the LATEST scikit-learn, numpy, keras and tensorflow.
 Every file is only scanned (``safeloadai.scan``), under the evaluation guard. Any
-file that is not CLEAN is drift: a class was added, renamed or moved upstream, or the
-scanner broke on a new layout. The Markdown report lists the names the flagged files
-need, the library versions and a diff against the expected all-CLEAN result.
+file that differs from its expected result is drift: a class was added, renamed or
+moved upstream, or the scanner broke on a new layout. The Markdown report lists the names the flagged files
+need, the library versions and a diff against the expected result.
+
+The expected result is CLEAN for every file except the few listed in
+``tools/drift_expected.json``, which must come back exactly as recorded there (verdict,
+UNVERIFIABLE-only, same items). A listed file that comes back CLEAN is drift too.
 
 This tool never edits an allowlist. Adding a name stays a reviewed, human change
-(DECISIONS.md, U2). Exit code 0: every file CLEAN; 1: drift found; 2: nothing to scan.
+(DECISIONS.md, U2). Exit code 0: every file as expected; 1: drift found; 2: nothing to scan.
 """
 from __future__ import annotations
 
 import argparse
 import difflib
+import json
 import os
 import sys
 from collections import defaultdict
@@ -23,6 +28,7 @@ from collections import defaultdict
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "evaluation"))
 
+EXPECTED_PATH = os.path.join(ROOT, "tools", "drift_expected.json")
 LIBRARIES = ("numpy", "scikit-learn", "joblib", "keras", "tensorflow", "tensorflow-cpu", "tf-keras", "jax",
              "h5py", "wasmtime", "safeloadai", "safeloadai-runtime")
 
@@ -45,25 +51,55 @@ def versions(freeze_text: str) -> dict[str, str]:
     found = {}
     for line in freeze_text.splitlines():
         name, sep, version = line.partition("==")
-        if sep and name.strip().lower() in LIBRARIES:
-            found[name.strip().lower()] = version.strip()
+        name = name.strip().lower().replace("_", "-")  # pip freeze writes tensorflow_cpu
+        if sep and name in LIBRARIES:
+            found[name] = version.strip()
     return found
 
 
-def build_report(results: list[dict], library_versions: dict[str, str], extras: list[str] = ()) -> tuple[str, bool]:
-    """Markdown body and whether drift was found. ``results``: {file, verdict, names, reasons}."""
-    flagged = [r for r in results if r["verdict"] != "CLEAN"]
+def load_expected(path: str = EXPECTED_PATH) -> dict[str, dict]:
+    """The recorded non-CLEAN results, by file name (every other file is expected CLEAN)."""
+    with open(path, encoding="utf-8") as fh:
+        return json.load(fh)["files"]
+
+
+def _line(r: dict) -> str:
+    """One comparable line per file: an UNVERIFIABLE-only result is named by its items, so it
+    matches a recorded one exactly; anything else shows its first reasons."""
+    if r["verdict"] == "CLEAN":
+        return f"{r['file']}: CLEAN"
+    if r.get("unverifiable_only"):
+        return f"{r['file']}: {r['verdict']} (UNVERIFIABLE only: {', '.join(r['unverifiable_items'])})"
+    return f"{r['file']}: {r['verdict']} ({'; '.join(r['reasons'][:3])})"
+
+
+def _expected_line(name: str, expected: dict[str, dict]) -> str:
+    if name not in expected:
+        return f"{name}: CLEAN"
+    e = expected[name]
+    return _line({"file": name, "verdict": e["verdict"], "unverifiable_only": e.get("unverifiable_only", False),
+                  "unverifiable_items": sorted(e.get("unverifiable_items", [])), "reasons": ["(recorded)"]})
+
+
+def build_report(results: list[dict], library_versions: dict[str, str], extras: list[str] = (),
+                 expected: dict[str, dict] | None = None) -> tuple[str, bool]:
+    """Markdown body and whether drift was found. ``results``: {file, verdict, names, reasons,
+    unverifiable_only, unverifiable_items}; ``expected``: the recorded non-CLEAN results."""
+    expected = expected or {}
+    flagged = [r for r in results if _line(r) != _expected_line(r["file"], expected)]
     needs: dict[str, list[str]] = defaultdict(list)
     for r in flagged:
         for name in r["names"]:
             needs[name].append(r["file"])
     lines = ["Benign models written with the latest upstream libraries were scanned by safeloadai.", ""]
     if flagged:
-        lines.append(f"**{len(flagged)} of {len(results)} benign files are not CLEAN.** Nothing was added to any "
-                     "allowlist: review each name below and add it, if it is safe, in a reviewed change with a "
-                     "regression test (DECISIONS.md, U2).")
+        lines.append(f"**{len(flagged)} of {len(results)} benign files differ from the expected result.** Nothing "
+                     "was added to any allowlist: review each name below and add it, if it is safe, in a reviewed "
+                     "change with a regression test (DECISIONS.md, U2).")
     else:
-        lines.append(f"All {len(results)} benign files are CLEAN.")
+        known = sum(1 for r in results if r["file"] in expected)
+        lines.append(f"All {len(results)} benign files match the expected result"
+                     + (f" ({known} recorded in tools/drift_expected.json, the rest CLEAN)." if known else ": CLEAN."))
     lines += ["", "## Names the flagged files need", ""]
     if needs:
         lines += ["| name | files |", "|---|---|"]
@@ -72,10 +108,9 @@ def build_report(results: list[dict], library_versions: dict[str, str], extras: 
         lines.append("None." if not flagged else "None by name; see the reasons in the diff.")
     lines += ["", "## Library versions", "", "| library | version |", "|---|---|"]
     lines += [f"| {name} | {version} |" for name, version in sorted(library_versions.items())]
-    expected = [f"{r['file']}: CLEAN" for r in results]
-    actual = [f"{r['file']}: {r['verdict']}" + (f" ({'; '.join(r['reasons'][:3])})" if r["verdict"] != "CLEAN" else "")
-              for r in results]
-    diff = list(difflib.unified_diff(expected, actual, "expected", "scanned", lineterm="", n=0))
+    want = [_expected_line(r["file"], expected) for r in results]
+    actual = [_line(r) for r in results]
+    diff = list(difflib.unified_diff(want, actual, "expected", "scanned", lineterm="", n=0))
     lines += ["", "## Diff against the expected result", "", "```diff", *(diff or ["(no difference)"]), "```"]
     for extra in extras:
         lines += ["", extra.rstrip()]
@@ -97,7 +132,9 @@ def scan_dir(directory: str) -> list[dict]:
         report = scan(path)
         results.append({"file": name, "verdict": report.outcome,
                         "names": names_needed(report) if not report.clean else [],
-                        "reasons": [r[:200] for r in report.reasons[:5]]})
+                        "reasons": [r[:200] for r in report.reasons[:5]],
+                        "unverifiable_only": report.unverifiable_only,
+                        "unverifiable_items": report.unverifiable_items if report.unverifiable_only else []})
     return results
 
 
@@ -118,7 +155,7 @@ def main(argv: list[str] | None = None) -> int:
         if os.path.exists(path):
             with open(path, encoding="utf-8") as fh:
                 extras.append(fh.read())
-    text, drift = build_report(results, versions(freeze), extras)
+    text, drift = build_report(results, versions(freeze), extras, load_expected())
     if not results:
         text = "No benign file was generated: make_local_benign.py failed with the latest libraries.\n\n" + text
     if args.out:

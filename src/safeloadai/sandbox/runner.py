@@ -59,6 +59,19 @@ def _wasmtime_version() -> str:
         return "unknown"
 
 
+def compiled_cache_key(runtime_sha256: str, config_tag: str, wasmtime_version: str) -> str | None:
+    """File name stem of a compiled module, or None when it must not be cached.
+
+    A compiled module is native code for one wasmtime build and engine config, so the
+    key holds the wasmtime version: a module compiled under one version is never handed
+    to another (wasmtime also refuses a foreign one, which is then recompiled). Without
+    a known version there is nothing to key on, and the module is compiled in memory.
+    """
+    if not wasmtime_version or wasmtime_version == "unknown":
+        return None
+    return hashlib.sha256((runtime_sha256 + config_tag + wasmtime_version).encode()).hexdigest()[:32]
+
+
 class IntegrityError(Exception):
     """The bytes read here are not the runtime the parent verified."""
 
@@ -69,9 +82,8 @@ def _load_module(wt, engine, wasm_path: str, expected_sha256: str, cache_dir: st
     if actual != expected_sha256:
         # The parent checked the file; this re-check covers a swap in between.
         raise IntegrityError(f"runtime {wasm_path} has sha256 {actual}, expected {expected_sha256}")
-    if cache_dir:
-        version = _wasmtime_version()
-        key = hashlib.sha256((actual + config_tag + version).encode()).hexdigest()[:32]
+    key = compiled_cache_key(actual, config_tag, _wasmtime_version()) if cache_dir else None
+    if key:
         cached = Path(cache_dir) / f"{key}.cwasm"
         if cached.is_file():
             try:

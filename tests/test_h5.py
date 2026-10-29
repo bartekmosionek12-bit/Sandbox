@@ -385,3 +385,25 @@ def test_safe_load_does_not_load_h5():
 
     with pytest.raises(UnsafeModelError, match="no loader"):
         safe_load(FIXTURES / "k2_sequential.h5")
+
+
+def test_keras_3_15_legacy_h5_layerscale_is_unverifiable_only():
+    # Issue #30. Keras 3.15.1 writes a legacy .h5 config with the legacy serializer
+    # (keras/src/legacy/saving/serialization.py, serialize_keras_class_and_config), so every
+    # layer is {"class_name", "config"} with no module. Keras then resolves "LayerScale" from
+    # the caller's custom_objects, so the item is UNVERIFIABLE and only that item.
+    layers = [
+        {"class_name": "Dense", "config": {"name": "pointwise_conv_2", "units": 768}, "name": "pointwise_conv_2",
+         "inbound_nodes": []},
+        {"class_name": "LayerScale", "config": {"name": "layer_scale", "init_values": 1e-6, "projection_dim": 768},
+         "name": "layer_scale", "inbound_nodes": []},
+    ]
+    config = {"class_name": "Functional", "config": {"name": "convnext_tiny", "layers": layers}}
+    values = {"model_config": json.dumps(config).encode(), "keras_version": b"3.15.1", "backend": b"tensorflow"}
+    meta = {"superblock_version": 0, "root_attr_names": list(values), "values": values,
+            "counts": {}, "problems": [], "notes": []}
+    report = parse_h5_metadata(meta)
+    assert report["static_risk"] == "suspicious"
+    assert report["reasons"] == ["config.layers[1]: object outside the allowlist None.LayerScale"]
+    assert [m["item"] for m in report["unverifiable"].values()] == ["LayerScale"]
+    assert "custom_objects" in report["unverifiable"][report["reasons"][0]]["explanation"]

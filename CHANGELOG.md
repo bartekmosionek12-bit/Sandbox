@@ -33,6 +33,11 @@ In short: Core ML, CTranslate2 and whisper.cpp weights are read and CLEAN when v
 - Without the irreducible floor (code the model author wrote: 4.3 %, 6.1 % and 5.0 % of readable files), FPR 0.085, 0.110 and 0.072 by default, 0.055, 0.065 and 0.059 with `--validate-boosters`.
 - Time per held-out-2 file: median 0.83 s, p95 3.01 s (0.85 s and 3.15 s in 0.9.0); peak memory 1,256 MiB (1,242 MiB).
 
+### Compatibility (wasmtime 50, upstream drift)
+- **wasmtime 50**: the requirement is `wasmtime>=49.0.0,<51` and CI runs the whole matrix on wasmtime 49 and 50 on every push and PR; `safeloadai doctor` accepts both. The full suite and the drift check pass on 50.0.1; fuel used per run differs from 49 by about 0.1% (DECISIONS.md W1).
+- The compiled-module cache key keeps the wasmtime version, now with tests that a version change compiles again instead of loading the other version's entry; with no known wasmtime version the module is compiled in memory, never cached (W2).
+- `tools/drift_check.py` compares with a recorded baseline (`tools/drift_expected.json`) instead of assuming every benign file is CLEAN. The legacy `.h5` ConvNeXt files are expected SUSPICIOUS, UNVERIFIABLE only, item `LayerScale`; nothing was added to an allowlist (W3, issue #30). The report now lists `tensorflow-cpu`'s version too.
+
 ## safeloadai 0.9.0
 
 In short: data-only formats (safetensors, GGUF, npy, npz) are read and CLEAN when valid; old module paths of reviewed classes are accepted under the rule of the class they became; trl, sentence-transformers and DeepSpeed configuration classes are accepted after a source review; a new tune-2 split; the root causes of every blocked benign file are measured and published. Detection on the evaluation corpus: 902/902 (unchanged); benign held-out-2 FPR 0.149 (0.169 in 0.8.0), held-out 0.179 (0.181).

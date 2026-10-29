@@ -70,6 +70,48 @@ def test_drift_report_lists_names_versions_and_diff():
     assert drift.build_report(results[:1], versions)[1] is False
 
 
+def _convnext_h5(verdict="SUSPICIOUS", only=True, items=("LayerScale",)):
+    clean = verdict == "CLEAN"
+    return {"file": "k2_convnext_tiny.h5", "verdict": verdict, "names": [] if clean else ["None.LayerScale"],
+            "reasons": [] if clean else
+            ["[static] SUSPICIOUS: config.layers[147]: object outside the allowlist None.LayerScale"],
+            "unverifiable_only": only, "unverifiable_items": list(items) if only else []}
+
+
+def test_drift_baseline_records_the_bare_layerscale_as_unverifiable():
+    # Issue #30: a legacy .h5 names LayerScale without its module, which Keras resolves from the
+    # caller's custom_objects. The baseline expects that, and never a bare name on an allowlist.
+    drift = _tool("drift_check")
+    expected = drift.load_expected()
+    assert set(expected) == {"k2_convnext_tiny.h5", "k3_convnext_tiny.h5"}
+    for entry in expected.values():
+        assert entry == {"verdict": "SUSPICIOUS", "unverifiable_only": True, "unverifiable_items": ["LayerScale"],
+                         "decisions": "A1, V1, W3"}
+    clean = {"file": "a.pkl", "verdict": "CLEAN", "names": [], "reasons": []}
+    text, found = drift.build_report([clean, _convnext_h5()], {}, expected=expected)
+    assert not found and "match the expected result" in text and "(no difference)" in text
+    # a recorded file that comes back CLEAN, RISKY or with another item is drift
+    for changed in (_convnext_h5("CLEAN"), _convnext_h5(only=False), _convnext_h5(items=("LayerScale", "Other"))):
+        text, found = drift.build_report([clean, changed], {}, expected=expected)
+        assert found and "-k2_convnext_tiny.h5: SUSPICIOUS (UNVERIFIABLE only: LayerScale)" in text
+    # without the record the same file is drift, as in the issue
+    assert drift.build_report([_convnext_h5()], {})[1] is True
+
+
+def test_bare_layerscale_stays_off_every_allowlist():
+    from safeloadai.static import allowlists
+
+    assert ("keras.src.applications.convnext", "LayerScale") in allowlists.KERAS_CLASS_PAIRS
+    assert "LayerScale" not in allowlists.KERAS_CLASSES
+    assert "LayerScale" not in allowlists.KERAS2_CLASSES
+
+
+def test_drift_versions_read_pip_freeze_names():
+    drift = _tool("drift_check")
+    assert drift.versions("tensorflow_cpu==2.21.0\ntf_keras==2.21.0\n") == {"tensorflow-cpu": "2.21.0",
+                                                                         "tf-keras": "2.21.0"}
+
+
 def test_runtime_watch_compares_with_the_pins():
     watch = _tool("runtime_watch")
     from safeloadai.sandbox.runtime import PINNED
@@ -92,3 +134,16 @@ def test_updating_runtime_procedure_is_documented():
     for step in ("sha256", "safeloadai-runtime", "pytest", "run_eval.py", "version"):
         assert step in text, step
     assert os.path.exists(ROOT / "packages" / "safeloadai-runtime" / "fetch_runtime.py")
+
+
+def test_wasmtime_requirement_doctor_and_ci_matrix_agree():
+    from safeloadai import doctor
+
+    text = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    low, high = re.search(r'"wasmtime>=(\d+)\.0\.0,<(\d+)"', text).groups()
+    assert doctor.WASMTIME_RANGE == (int(low), int(high))
+    assert _tool("runtime_watch").pinned_wasmtime_upper() == int(high)
+    # Every major the requirement admits is tested on every push and PR, not only by the drift schedule.
+    ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    matrix = re.search(r"^\s+wasmtime:\s*\[(.*)\]", ci, re.M).group(1)
+    assert sorted(int(v.strip().strip("\"'")) for v in matrix.split(",")) == list(range(int(low), int(high)))

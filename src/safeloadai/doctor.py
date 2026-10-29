@@ -13,7 +13,8 @@ from importlib.metadata import PackageNotFoundError, version
 
 from .sandbox import runtime
 
-WASMTIME_RANGE = (49, 50)  # tested major versions: >=49, <50 (matches pyproject.toml)
+WASMTIME_RANGE = (49, 51)  # tested major versions: >=49, <51 (matches pyproject.toml)
+WASMTIME_REQUIREMENT = f"wasmtime>={WASMTIME_RANGE[0]}.0.0,<{WASMTIME_RANGE[1]}"
 REINSTALL = (f"pip install --force-reinstall --no-cache-dir "
              f"{runtime.RUNTIME_PACKAGE}=={runtime.PINNED.package_version}")
 
@@ -36,11 +37,12 @@ def _wasmtime() -> Check:
         installed = version("wasmtime")
         import wasmtime  # noqa: F401
     except (PackageNotFoundError, ImportError) as exc:
-        return Check("wasmtime", False, f"not importable: {exc}", "pip install 'wasmtime>=49.0.0,<50'")
+        return Check("wasmtime", False, f"not importable: {exc}", f"pip install '{WASMTIME_REQUIREMENT}'")
     major = int(installed.split(".")[0]) if installed.split(".")[0].isdigit() else -1
     if not WASMTIME_RANGE[0] <= major < WASMTIME_RANGE[1]:
-        return Check("wasmtime", False, f"version {installed} is outside the tested range >=49,<50",
-                     "pip install 'wasmtime>=49.0.0,<50'")
+        return Check("wasmtime", False, f"version {installed} is outside the tested range "
+                     f">={WASMTIME_RANGE[0]},<{WASMTIME_RANGE[1]}",
+                     f"pip install '{WASMTIME_REQUIREMENT}'")
     return Check("wasmtime", True, f"version {installed}")
 
 

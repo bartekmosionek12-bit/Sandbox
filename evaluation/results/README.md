@@ -133,3 +133,10 @@ Differences from the v070 run:
 Results:
 - **The new payloads.** safeloadai 0.7.1 calls 4 MALICIOUS and the fifth SUSPICIOUS (RISKY). safeloadai 0.7.0 called `x_setstate_estimator_remove.pkl` CLEAN and the other four SUSPICIOUS.
 - **False positives are unchanged.** Not one safeloadai verdict changed on the files both runs share: 215 of the 1002 benign files are not CLEAN, 138 of them UNVERIFIABLE only. Earlier on 2026-10-21, 779 of these benign Hub files (every one under 50 MB) were also scanned with 0.7.0 from PyPI and with this branch, and no verdict changed.
+
+## wasmtime 49.0.0 vs 50.0.1 (2026-10-29)
+
+`eval-wasmtime49-20261029T160844Z.*`, `eval-wasmtime50-20261029T160844Z.*` and `compare-wasmtime49-50-20261029.md`: the same safeloadai 0.10.0 wheel in two venvs that differ only in wasmtime, on the same 136 files: the lab corpus from `build_corpus.py` (66 malicious, 12 benign) and the 58 benign files `make_local_benign.py` wrote with the latest libraries (keras 3.15.1, TensorFlow 2.21.0, scikit-learn 1.9.1, numpy 2.5.4), as the `upstream-drift` job does. `--no-opt-in`, Python 3.13.
+
+- **No verdict changed** between the two wasmtime versions. Detection 66/66 on both.
+- **The one false positive** on both is `k2_convnext_tiny.h5`: `LayerScale` without its module in a legacy `.h5`, UNVERIFIABLE only, as since 2026-10-18 (DECISIONS.md W3).

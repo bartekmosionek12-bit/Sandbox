@@ -21,8 +21,7 @@ SAMPLES = os.path.join(ROOT, "tests", "fixtures", "poc")
 
 
 @pytest.fixture(autouse=True)
-def _no_judge_no_cache(monkeypatch):
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+def _no_cache(monkeypatch):
     monkeypatch.delenv("SAFELOADAI_CACHE_DIR", raising=False)
 
 

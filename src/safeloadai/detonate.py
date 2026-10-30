@@ -49,7 +49,7 @@ def _truncate(value: object, limit: int = 400) -> str:
 # Moduły biblioteki standardowej, które same generują kod przez exec/eval:
 # collections.namedtuple (eval lambdy) i dataclasses (exec __init__). Przy
 # wczytaniu modelu scikit-learn daje to kilkadziesiąt zdarzeń "code_exec",
-# które nie pochodzą od ładunku i tylko zaszumiałyby dowody dla sędziego.
+# które nie pochodzą od ładunku i tylko zaszumiałyby dowody.
 _CODEGEN_MODULES = {"collections", "dataclasses", "typing", "enum"}
 
 # Pakiety, których wewnętrzne importy nie są ruchem ładunku.
@@ -202,7 +202,7 @@ def _install_patches() -> None:
     # Logujemy tylko wykonanie kodu podanego jako ŹRÓDŁO (str/bytes) — czyli
     # to, co faktycznie mógł dostarczyć payload. Maszyneria importów Pythona
     # woła exec() na gotowych obiektach code przy każdym imporcie; wrzucanie
-    # tego do logu zaśmiecałoby dowody i myliło sędziego.
+    # tego do logu zaśmiecałoby dowody.
     def traced_eval(expr, *a, **kw):  # noqa: ANN001, ANN002, ANN003
         if isinstance(expr, (str, bytes)) and _caller_module() not in _CODEGEN_MODULES:
             _emit("code_exec", f"eval: {_truncate(expr)}")

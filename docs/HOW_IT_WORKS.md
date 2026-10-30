@@ -68,10 +68,7 @@ README has the short version; this page has the details.
      - process, network, file write, code execution and native code: MALICIOUS;
      - environment probes, anomalies, an incomplete run or an import outside
        the allowlist: SUSPICIOUS.
-4. **LLM judge, optional (`--judge`).** It receives structured evidence only,
-   with no disassembly, logs or other free text from the file. It can raise the
-   verdict but never lower it. Without `ANTHROPIC_API_KEY` it is skipped.
-5. **Deep mode, optional (`--deep`).** It loads the file with the real
+4. **Deep mode, optional (`--deep`).** It loads the file with the real
    framework inside Docker, bubblewrap or nsjail and watches what happens. It
    can only add findings, and if no backend is available the scan is
    SUSPICIOUS.
@@ -142,6 +139,5 @@ request or commit that changes a family carries its tag in the title (see
 | Corrupt and over-limit streams | `static/pickle_vm.py`, `static/pickle_static.py: walk_problem`, `parsing/decompress.py`, `shared/hdf5_meta.py` | streams a loader rejects or reads differently, limits on size, opcodes, depth, ratio | T5, T10 | `[LLM03]` `[ML06]` `[AML.T0076]` |
 | Look-alike names | `static/lookalike.py` | module names imitating allowlisted ones | T6 | `[LLM03]` `[ML06]` `[AML.T0010.003]` |
 | Evidence integrity | `sandbox/host.py`, `behaviour.py` | writes without the nonce, broken sequences (tampering) | T9 | `[LLM03]` `[AML.T0011.000]` |
-| Judge escalation | `judge.py`, `verdict.judge_layer` | injection attempts in the evidence | T11 | `[LLM01]` |
 | Runtime integrity | `sandbox/runtime.py` | a WASI runtime that is not the pinned build (E401) | T13 | `[LLM03]` `[AML.T0010.001]` |
 

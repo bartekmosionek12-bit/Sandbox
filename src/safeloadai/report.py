@@ -1,7 +1,7 @@
 """Report data model and the monotone verdict combination.
 
 The final verdict is the maximum over layer verdicts. No layer can lower what
-another layer found: that is how "the judge can only raise severity" and
+another layer found: that is how "deep detonation can only raise severity" and
 "detonation evidence always affects the verdict" are enforced in code.
 
 Every reason also carries a category (``Category``): MALICIOUS evidence, RISKY

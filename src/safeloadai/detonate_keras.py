@@ -123,7 +123,7 @@ def _import_keras():
 
     Sam import Kerasa woła setki ``open()`` i importuje ``os``/``socket``.
     Gdyby patche już siedziały, log zdarzeń zapełniłby się ruchem biblioteki
-    i sędzia dostałby dowody, których payload nie wygenerował. Ten sam błąd
+    i werdykt opierałby się na dowodach, których payload nie wygenerował. Ten sam błąd
     popełniliśmy raz na ``exec`` wołanym przez maszynerię importów.
     """
     # Backend domyslny to TensorFlow, nie numpy. Backend numpy segfaultuje

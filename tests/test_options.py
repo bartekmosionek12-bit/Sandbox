@@ -22,7 +22,7 @@ def _clean(tmp_path, name="m.pkl"):
 
 # --- every default is the safe one -------------------------------------------------------
 
-SAFE_API_DEFAULTS = {"judge": False, "deep": False, "allow": (), "limits": None, "progress": None,
+SAFE_API_DEFAULTS = {"deep": False, "allow": (), "limits": None, "progress": None,
                      "option_sources": None, "accept_unverified": None,
                      # off: no installed distribution is trusted; on: the shipped reviewed-hash list
                      # (turning it off is the stricter setting, docs/OPTIONS.md)
@@ -43,7 +43,7 @@ def test_every_cli_option_defaults_to_the_safe_value():
     args = _build_parser().parse_args(["scan", "x.pkl"])
     assert args.allow == [] and args.accept_unverified == [] and args.trust_inert_from == []
     assert args.no_known_good is False
-    assert args.judge is False and args.deep is False
+    assert args.deep is False
     assert args.config is None  # no config file is read unless named
     assert args.no_input is False  # the prompt's default answer is No (test_override)
 
@@ -53,7 +53,7 @@ def test_registry_defaults_are_safe_and_looser_options_never_come_from_the_envir
         if option.direction == "looser":
             assert option.env is None, option.name
             assert not option.default, option.name
-    assert options.BY_NAME["deep"].default is False and options.BY_NAME["judge"].default is False
+    assert options.BY_NAME["deep"].default is False
     assert options.is_default("limits", Limits()) and options.is_default("limits", None)
 
 
@@ -171,14 +171,14 @@ def test_environment_never_enables_a_looser_option(tmp_path, fake_emulation, mon
     for option in options.OPTIONS:
         if option.env:
             monkeypatch.setenv(option.env, "x")
-    for name in ("SAFELOADAI_ALLOW", "SAFELOADAI_ACCEPT_UNVERIFIED", "SAFELOADAI_DEEP", "SAFELOADAI_JUDGE"):
+    for name in ("SAFELOADAI_ALLOW", "SAFELOADAI_ACCEPT_UNVERIFIED", "SAFELOADAI_DEEP"):
         monkeypatch.setenv(name, "1")
     monkeypatch.delenv("SAFELOADAI_WASI_PYTHON")  # a bogus runtime path would refuse the scan
     path = tmp_path / "u.pkl"
     path.write_bytes(UNKNOWN)
     report = pipeline.scan(str(path))
     assert report.verdict.value == "SUSPICIOUS"
-    assert [o["name"] for o in report.options] == []  # deep/judge are off, so their env settings do not apply
+    assert [o["name"] for o in report.options] == []  # deep is off, so its env settings do not apply
 
 
 def test_options_command_prints_table_and_found_config(tmp_path, capsys, monkeypatch):

@@ -1,6 +1,6 @@
 # Decisions
 
-Owner decisions (Bartek, 2026-10-17) and the defaults Claude picked where the owner left a
+Owner decisions (Bartek, 2026-10-17) and the defaults picked where the owner left a
 point open. Defaults follow the rule "most conservative, fail-closed option".
 
 ## Owner decisions
@@ -14,7 +14,7 @@ point open. Defaults follow the rule "most conservative, fail-closed option".
 | D7 | Default branch is not changed until the owner approves (asked at M8). |
 | -- | Lambda layers: CLEAN only if static analysis succeeds AND emulation completes AND neither records dangerous behaviour. Any anomaly => SUSPICIOUS. No Python-version guessing. **Superseded by L1 (2026-10-22): Lambda bytecode is never CLEAN.** |
 
-## Defaults picked by Claude
+## Defaults
 
 | ID | Default | Rationale |
 |---|---|---|
@@ -53,7 +53,7 @@ point open. Defaults follow the rule "most conservative, fail-closed option".
 ## 0.3.0: bundled runtime, joblib, legacy HDF5
 
 Owner request of 2026-10-18 (`pip install safeloadai` must be enough; joblib and legacy
-Keras `.h5` supported; false positives re-measured). Defaults picked by Claude:
+Keras `.h5` supported; false positives re-measured). Defaults:
 
 | ID | Default | Rationale |
 |---|---|---|
@@ -94,7 +94,7 @@ Keras `.h5` supported; false positives re-measured). Defaults picked by Claude:
 
 Owner request of 2026-10-18 (grow the allowlist from the reviewed false-positive list,
 an informed override for files the scanner cannot verify, automated update monitoring).
-Defaults picked by Claude are marked "default".
+Defaults are marked "default".
 
 | ID | Decision | Rationale |
 |---|---|---|
@@ -116,8 +116,8 @@ Defaults picked by Claude are marked "default".
 
 ## 0.5.0: every reading of a file, builtins rule, CRC rule, tune/held-out split
 
-Owner request of 2026-10-19, after the 310-file Hugging Face run. Defaults picked by
-Claude are marked "default".
+Owner request of 2026-10-19, after the 310-file Hugging Face run. Defaults are marked
+"default".
 
 | ID | Decision | Rationale |
 |---|---|---|
@@ -149,7 +149,7 @@ Claude are marked "default".
 ## 0.7.0: false-positive reduction and beta release
 
 Owner request of 2026-10-19 (after the 0.5.0 Hub run: held-out 150/502 by default).
-Defaults picked by Claude are marked "default".
+Defaults are marked "default".
 
 | ID | Decision | Rationale |
 |---|---|---|
@@ -168,7 +168,7 @@ Defaults picked by Claude are marked "default".
 ## 0.8.0: trust and stability
 
 Owner request of 2026-10-22 (after a senior security review: "UNSUPPORTED must not be a
-bag for exceptions"). Defaults picked by Claude are marked "default".
+bag for exceptions"). Defaults are marked "default".
 
 | ID | Decision | Rationale |
 |---|---|---|
@@ -184,8 +184,8 @@ bag for exceptions"). Defaults picked by Claude are marked "default".
 
 Owner request of 2026-10-28: lower false positives as far as possible without weakening any
 security rule; tuning on tune and tune-2 only; a new blind split held-out-3. Sources and
-versions behind each entry: `evaluation/results/source-review-0.10.0.md`. Defaults picked
-by Claude are marked "default".
+versions behind each entry: `evaluation/results/source-review-0.10.0.md`. Defaults are
+marked "default".
 
 | ID | Decision | Rationale |
 |---|---|---|
@@ -208,7 +208,7 @@ by Claude are marked "default".
 Owner request of 2026-10-29: find out why `--trust-inert-from` never changed a verdict; fix the
 next reducible false-positive causes (FP anatomy c to f) on tune and tune-2 only; a new blind
 split held-out-4. Sources and versions behind each entry:
-`evaluation/results/source-review-0.11.0.md`. Defaults picked by Claude are marked "default".
+`evaluation/results/source-review-0.11.0.md`. Defaults are marked "default".
 
 | ID | Decision | Rationale |
 |---|---|---|
@@ -233,3 +233,12 @@ only; nothing was loaded. For these five files held-out-4 is no longer blind.
 | H3 | Labels after review (`evaluation/hf_heldout4_review.tsv`): two `training_args.bin` files are benign (their one `getattr` is `getattr(IntervalStrategy, "STEPS")`, what `Enum.__reduce_ex__` writes); an ultralytics segmentation checkpoint is benign (`getattr(Detect, "forward")` stored as a value, what ultralytics 8.0.200 `Segment.__init__` assigns; nothing calls it on load); the pyannote checkpoint stays benign; the `.keras` proof of concept stays malicious (K1). | The Hub antivirus matches patterns (`getattr` as a GLOBAL), not behaviour; three of its four labels were wrong. No code was changed for those three: safeloadai's verdicts were right. |
 | P1 | `__builtin__.long`, `__builtin__.unicode` and `__builtin__.xrange` are the allowlisted `int`, `str` and `range`. Python 3 writes those types under these names at protocol 0 to 2 (`_compat_pickle.REVERSE_NAME_MAPPING`) and its Unpickler maps them back (`NAME_MAPPING`, `fix_imports`; CPython 3.11 to 3.13). The other names of those tables (`reduce`, `intern`, `unichr`) and every other `__builtin__` name stay sinks. | A bug, not tuning: `pickle.dumps(int, protocol=2)` was MALICIOUS. Reproduced on synthetic pickles and tested (`tests/test_py2_builtin_names.py`); the pyannote file is SUSPICIOUS now (omegaconf is outside the allowlist), not CLEAN. |
 | K1 | Every member of a `.keras` archive except the config that is a pickle is analysed as one: a sink in it makes the file MALICIOUS, otherwise it is RISKY ("Keras does not read it, but whoever unpacks and unpickles it runs it"). A member over 16 MiB that Keras does not read is RISKY too (not checked). `model.weights.npz` is an expected member. | Owner decision (decision card). The proof of concept hid `os.system` in `model.pkl`; Keras 3.15.1 never reads it (`saving_lib` reads config, metadata, weights with `allow_pickle=False` and assets), so 0.11.0 noted it and said CLEAN. Fail-closed: a working payload in a model file is never CLEAN (`tests/test_keras_member_pickles.py`). |
+
+## Removal of the LLM judge
+
+Owner decision of 2026-10-30: the optional LLM judge (`--judge`) is not used and adds nothing,
+so it is removed with its options, config key, dependency extra, tests and documentation.
+
+| ID | Decision | Rationale |
+|---|---|---|
+| R1 | No LLM judge layer. Supersedes C2 and C27; the judge rows of the threat model (A6, G3, B3, T11) are gone. | It was off by default and could only raise a verdict, so no default result changes; removing it also removes the only path by which scan data could leave the machine. |

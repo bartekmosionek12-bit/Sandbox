@@ -34,7 +34,6 @@ leave no trace in the file's structure (see [below](#why-a-file-scanner-cannot-f
 | A3 | The scanning host during a scan | Scanning must never run the file's code or let it touch the host, and a file must not exhaust the host's memory or time (T10, T16). |
 | A4 | The WASI runtime (`safeloadai-runtime`) | The emulation sandbox is only as good as the pinned CPython-on-WASI build and wasmtime. |
 | A5 | The release path (GitHub repository, Actions, PyPI) | A poisoned safeloadai release would turn the scanner into the attack. |
-| A6 | The user's Anthropic API key (optional judge) | Only when `--judge` is used. |
 | A7 | The evaluation corpus and its labels | Wrong labels make published numbers wrong; downloaded files are hostile. |
 
 ## Attackers and their goals
@@ -43,7 +42,6 @@ leave no trace in the file's structure (see [below](#why-a-file-scanner-cannot-f
 |---|---|---|
 | G1 | Publisher of a model file (on the Hub, in a repository, sent by mail) | The victim loads the file and the payload runs (A1), helped by a CLEAN verdict (A2). |
 | G2 | The same publisher, against the scanner | The payload runs *during the scan* (A3), or escapes the WASI sandbox (A4), or the scan crashes or hangs to wear users down. |
-| G3 | The same publisher, against the optional judge | Text in the file (strings, names) tries to talk the LLM judge into a lower verdict. |
 | G4 | Supply-chain attacker against safeloadai itself | A malicious release (compromised maintainer account, workflow, dependency or runtime build) (A5, A4). |
 | G5 | A user who wants to load a flagged file anyway | Not an attacker, but a risk: overrides that accept more than the user understands. |
 
@@ -57,7 +55,6 @@ leave no trace in the file's structure (see [below](#why-a-file-scanner-cannot-f
                           │          no network, one read-only directory]
                           │ evidence records (nonce, sequence)  ──► host decides
                           ▼
-   optional ──►      [B3 LLM judge: sees a structured summary; can only raise severity]
    optional ──►      [B4 deep mode: the REAL loader in Docker / bubblewrap / nsjail]
                           │
                           ▼
@@ -70,7 +67,6 @@ leave no trace in the file's structure (see [below](#why-a-file-scanner-cannot-f
 |---|---|---|
 | **B1 host ↔ file** | The file's bytes, parsed by safeloadai's own readers (pickle opcode walker, ZIP reader, Keras config reader, joblib decompressor). | Nothing is deserialised, imported or executed on the host. Readers are pure Python with limits (size, members, ratios, opcodes, depth). HDF5 is not parsed on the host at all (it is parsed in B2). Tests and evaluation run under a host-execution guard. An unexpected exception is a tool error (E2xx), never CLEAN. |
 | **B2 host ↔ WASI guest** | The bytes in, evidence records out. | wasmtime with fuel, a memory cap and a host-side wall-clock kill in a child process; no network; one read-only preopened directory; pinned runtime sha256 checked on every use (E401). The host validates every record (nonce, sequence); a write without the nonce is tampering (MALICIOUS). **Known weakness:** the recorder runs in the same interpreter as code a file carries (Lambda, dill), so that code can append well-formed records (noise) or keep its later behaviour out of the log; it cannot remove records already received, and an early `proc_exit` makes the run incomplete (0.8.0). Design and limits: [EVIDENCE_CHANNEL.md](EVIDENCE_CHANNEL.md). |
-| **B3 host ↔ judge** | A structured summary of the static and emulation evidence (no free text from the file). | The judge can only raise severity (`report.combine` is a max); a sign that the evidence tries to steer it is itself SUSPICIOUS; off by default. |
 | **B4 host ↔ deep mode** | The file, mounted alone, into a real loader. | Container or jail without network, read-only root, no capabilities, rlimits. Real code runs here by design; this is why deep mode is off by default and out of scope for bypass reports. Its events can only raise the verdict. |
 | **B5 verdict ↔ load** | The scanned bytes into a real loader on the host. | `safe_load` loads the private read-only copy it scanned (no TOCTOU), with loaders that enforce the policy again: an exact-pair `find_class`, `torch.load(weights_only=True)`, Keras `safe_mode=True`. A wrong verdict therefore does not turn into code execution by itself. |
 | **B6 maintainers ↔ users** | Source, workflows, wheels. | Actions pinned by SHA, Trusted Publishing (no API tokens), PEP 740 attestations, a required reviewer on the `pypi` environment, protected `v*` tags, OpenSSF Scorecard ([RELEASING.md](RELEASING.md)). |
@@ -90,7 +86,6 @@ leave no trace in the file's structure (see [below](#why-a-file-scanner-cannot-f
 | T9 | Forged evidence: the payload writes records that make the log look clean | Records without the nonce are MALICIOUS; out-of-sequence records are tampering; records cannot be removed. Residual risk: appended noise (B2) | LLM03 | ML06 | AML.T0011.000 |
 | T10 | Resource exhaustion: decompression bombs, deep nesting, huge opcode counts, guest loops | Limits everywhere; a limit hit on the file is SUSPICIOUS, a sandbox timeout or fuel exhaustion is ERROR (E303, E304). The emulation's budget grows with the file up to fixed ceilings (250 billion fuel, 120 s, 2 GiB guest memory), so the work one file can cause is bounded | LLM10 (resource use of the scanning pipeline) | ML06 | - |
 | T16 | Availability of the scanner: a file that makes the static analysis *on the host* hold far more memory than its size, so the scan or the process that runs it is killed (a CI job, a Hub-wide sweep), and the file is never judged | Every value the host-side walk holds is charged to a per-scan budget (512 MiB plus twice the file's size, at most 4 GiB; 64 bytes per opcode plus the bytes of each string); running out is ERROR E105, never a crash and never CLEAN. Per-opcode records and the dashboard listing are capped. Found on the 0.8.0 held-out run: a 211 MB pickle took more than 13 GB of host memory in the listing for the dashboard (fixed in 0.8.0) | LLM10 | ML06 | - |
-| T11 | Prompt injection into the optional judge through strings in the file | The judge sees a structured summary, can only raise severity, and an injection attempt is itself SUSPICIOUS | LLM01 | - | - |
 | T12 | Time-of-check / time-of-use: the file changes between scan and load | `safe_load` scans and loads one private read-only copy and re-checks its sha256 | LLM03 | ML06 | AML.T0010.003 |
 | T13 | A compromised or substituted WASI runtime | Exact pin and sha256 check before every use (E401); runtime built from a pinned upstream release | LLM03 | ML06 | AML.T0010.001 *AI Supply Chain Compromise: AI Software* |
 | T14 | A malicious safeloadai release (account, workflow or dependency compromise) | SHA-pinned actions, Trusted Publishing, attestations, environment reviewer, tag protection, Scorecard ([RELEASING.md](RELEASING.md)) | LLM03 | ML06 | AML.T0010.001 |

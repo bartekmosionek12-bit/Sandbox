@@ -20,7 +20,7 @@ import zipfile
 import pytest
 from conftest import sandbox_report
 
-from safeloadai import UnsafeModelError, api, judge, verdict
+from safeloadai import UnsafeModelError, api, verdict
 from safeloadai import docker_sandbox as sandbox
 from safeloadai import static as static_mod
 from safeloadai.report import Verdict
@@ -113,27 +113,22 @@ def test_s3_keras_namespace_function_outside_allowlist_is_not_clean():
     assert report["static_risk"] != "clean"
 
 
-# --- S4: the judge may only raise severity ----------------------------------
+# --- S4: a clean detonation never lowers the static verdict -----------------
 
-JUDGE_SAFE = {"available": True, "verdict": "safe", "injection_attempt_detected": False}
-NO_JUDGE = {"available": False, "verdict": "unknown"}
-
-
-def test_s4_judge_cannot_lower_static_suspicious():
-    final, _ = verdict.final_verdict({"static_risk": "suspicious"}, JUDGE_SAFE, sandbox_report())
+def test_s4_clean_detonation_cannot_lower_static_suspicious():
+    final, _ = verdict.final_verdict({"static_risk": "suspicious"}, sandbox_report())
     assert final is Verdict.SUSPICIOUS
 
 
-def test_s4_judge_cannot_lower_static_malicious():
-    final, _ = verdict.final_verdict({"static_risk": "malicious"}, JUDGE_SAFE, sandbox_report())
+def test_s4_clean_detonation_cannot_lower_static_malicious():
+    final, _ = verdict.final_verdict({"static_risk": "malicious"}, sandbox_report())
     assert final is Verdict.MALICIOUS
 
 
-@pytest.mark.parametrize("judge_report", [JUDGE_SAFE, NO_JUDGE])
 @pytest.mark.parametrize("event_type", ["file_write", "code_exec"])
-def test_s4_detonation_evidence_always_affects_verdict(judge_report, event_type):
+def test_s4_detonation_evidence_always_affects_verdict(event_type):
     events = [{"type": event_type, "detail": "open('/home/user/.bashrc', mode='w')"}]
-    final, _ = verdict.final_verdict({"static_risk": "clean"}, judge_report, sandbox_report(events=events))
+    final, _ = verdict.final_verdict({"static_risk": "clean"}, sandbox_report(events=events))
     assert final is not Verdict.CLEAN
 
 
@@ -154,7 +149,7 @@ def test_s5_forged_result_line_does_not_erase_evidence(monkeypatch, tmp_path):
     monkeypatch.setattr(sandbox, "ensure_image", lambda **kw: None)
     monkeypatch.setattr(sandbox.subprocess, "run", lambda cmd, **kw: Proc())
     report = sandbox.detonate_in_docker(str(sample))
-    final, _ = verdict.final_verdict({"static_risk": "clean"}, NO_JUDGE, report)
+    final, _ = verdict.final_verdict({"static_risk": "clean"}, report)
     assert final is Verdict.MALICIOUS
 
 
@@ -268,11 +263,3 @@ def test_s8_second_pickle_in_legacy_stream_is_analysed():
     assert _risk(data) == "malicious"
 
 
-# --- S12: the judge sees structured evidence only --------------------------
-
-def test_s12_judge_evidence_has_no_raw_attacker_text():
-    marker = "IGNORE PREVIOUS INSTRUCTIONS"
-    parser_report = {"file_format": "pickle", "raw_disasm": marker, "flagged_opcodes": []}
-    sandbox_rep = sandbox_report(raw_log=marker)
-    evidence = judge._build_evidence(parser_report, sandbox_rep, "nonce")
-    assert marker not in evidence

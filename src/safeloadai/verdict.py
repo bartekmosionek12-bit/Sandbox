@@ -12,7 +12,6 @@ from .static import UNSUPPORTED_REASON
 M, S, C = Verdict.MALICIOUS, Verdict.SUSPICIOUS, Verdict.CLEAN
 
 _STATIC = {"clean": C, "suspicious": S, "malicious": M, "unsupported": Verdict.UNSUPPORTED}
-_JUDGE = {"malicious": M, "suspicious": S}
 # Docker detonation events that only code execution produces.
 HARD_EVENT_TYPES = frozenset({"os_system", "subprocess", "network"})
 STATIC_DETAIL_DROP = ("raw_disasm",)
@@ -100,31 +99,13 @@ def docker_layer(sandbox_report: dict | None, *, requested: bool = True) -> Laye
     return layer
 
 
-def judge_layer(judge_report: dict | None) -> LayerResult | None:
-    """LLM judge -> layer. It can only add severity: 'safe' maps to CLEAN, which
-    never lowers the max over layers."""
-    if not judge_report:
-        return None
-    layer = LayerResult(name="judge", verdict=C, ran=bool(judge_report.get("available")),
-                        details=dict(judge_report))
-    if not judge_report.get("available"):
-        layer.reasons.append(str(judge_report.get("error") or "judge unavailable"))
-        return layer
-    verdict = _JUDGE.get(str(judge_report.get("verdict")))
-    if verdict:
-        layer.raise_to(verdict, f"LLM judge: {str(judge_report.get('reasoning'))[:500]}")
-    if judge_report.get("injection_attempt_detected"):
-        layer.raise_to(S, "LLM judge saw text in the evidence trying to steer the verdict")
-    return layer
-
-
-def final_verdict(parser_report: dict, judge_report: dict | None = None,
+def final_verdict(parser_report: dict,
                   sandbox_report: dict | None = None) -> tuple[Verdict | None, list[str]]:
-    """Worst of the static, deep-detonation and judge layers; None when a layer had a tool
+    """Worst of the static and deep-detonation layers; None when a layer had a tool
     error and nothing MALICIOUS was found (report.settle)."""
     layers = [static_layer(parser_report)]
-    for extra in (docker_layer(sandbox_report, requested=sandbox_report is not None), judge_layer(judge_report)):
-        if extra is not None:
-            layers.append(extra)
+    extra = docker_layer(sandbox_report, requested=sandbox_report is not None)
+    if extra is not None:
+        layers.append(extra)
     _status, final, reasons, *_rest = settle(layers)
     return final, reasons

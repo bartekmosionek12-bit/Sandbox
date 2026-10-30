@@ -80,8 +80,7 @@ High 7.0-8.9, Critical 9.0-10.0. As a guide:
 
 **These also count:**
 - anything that lets a scan run code on the host;
-- anything that lets the sandbox reach the network or the file system outside its one file;
-- anything that lets the optional judge lower a verdict.
+- anything that lets the sandbox reach the network or the file system outside its one file.
 
 **These are out of scope** (the threat model lists them with reasons:
 [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md#threats-out-of-scope)):
@@ -99,7 +98,7 @@ A confirmed bypass is fixed together with a test that rebuilds it with a harmles
 
 ## How the project handles untrusted files
 
-These rules apply to anyone working on the project, including AI agents:
+These rules apply to anyone working on the project:
 - **No file under test is ever deserialized on the host.** Tests and evaluation runs use a host-execution guard (`tests/conftest.py`, `evaluation/guard.py`).
 - **Payloads are markers only.**
 - **Downloaded models are never committed.**

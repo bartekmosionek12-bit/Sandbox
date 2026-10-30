@@ -63,7 +63,7 @@ from .pickle_static import is_dangerous_import
 SCHEMA_VERSION = "1.1"
 CONFIG_CANDIDATES = ("config.json", "model.json")
 METADATA_NAME = "metadata.json"
-EXPECTED_MEMBERS = frozenset({"config.json", "metadata.json", "model.weights.h5"})
+EXPECTED_MEMBERS = frozenset({"config.json", "metadata.json", "model.weights.h5", "model.weights.npz"})
 MAX_DEPTH = 200
 MAX_NODES = 1_000_000
 MAX_CONFIG_BYTES = 16 * 1024 * 1024
@@ -412,6 +412,38 @@ def _read_json(zf: SafeZip, name: str):
         raise ValueError(f"{name}: nesting too deep for the JSON parser") from exc
 
 
+def _member_pickles(zf: SafeZip, report: dict) -> None:
+    """A member Keras does not read (keras 3.15.1 saving_lib reads config.json,
+    metadata.json, model.weights.h5 or .npz with allow_pickle=False, and assets/ as
+    files) that is a pickle: never CLEAN (owner decision of 2026-10-30, DECISIONS.md K1).
+    Its findings are merged with a prefix, so a sink in it makes the file MALICIOUS;
+    without one it is RISKY, because whoever unpacks and unpickles it runs it."""
+    from ..parsing.detect import _looks_like_pickle
+    from .pickle_static import parse_pickle
+
+    for name in zf.names:  # every member: a weights file that is a pickle is caught too
+        if name in CONFIG_CANDIDATES or name.endswith("/"):
+            continue  # a config that is no JSON is refused when it is read
+        if zf.size(name) > zf.max_member_bytes:
+            if name not in EXPECTED_MEMBERS:
+                report["reasons"].append(f"archive member {name} ({zf.size(name)} bytes) is not a file Keras "
+                                         "reads and is too large to check for a pickle")
+            continue
+        data = zf.read(name)
+        if not _looks_like_pickle(data):
+            continue
+        sub = parse_pickle(data, f"{report['file_name']}:{name}")
+        prefix = f"archive member {name}: "
+        report["reasons"].append(f"archive member {name} is a pickle; Keras does not read it, but whoever "
+                                 "unpacks and unpickles it runs it")
+        report["reasons"].extend(prefix + r for r in sub["reasons"])
+        report["notes"].extend(prefix + n for n in sub["notes"])
+        report["tool_errors"].extend(sub.get("tool_errors") or [])
+        if sub["static_risk"] == "malicious":
+            report["member_malicious"] = True
+            report["evidence"].extend(prefix + r for r in sub.get("evidence") or sub["reasons"])
+
+
 def parse_keras(data: bytes, file_name: str = "<memory>") -> dict:
     report = _empty_report(file_name)
     reasons: list[str] = report["reasons"]
@@ -421,6 +453,7 @@ def parse_keras(data: bytes, file_name: str = "<memory>") -> dict:
             unexpected = [n for n in zf.names if n not in EXPECTED_MEMBERS and not n.startswith("assets/")]
             if unexpected:
                 report["notes"].append(f"unexpected archive members: {', '.join(unexpected[:20])}")
+            _member_pickles(zf, report)
             config_name = next((n for n in CONFIG_CANDIDATES if n in zf.names), None)
             if config_name is None:
                 raise ValueError("archive has no config.json")
@@ -588,7 +621,7 @@ def finalize(report: dict) -> dict:
         if flag["name"] != "Lambda":
             reasons.append(flag["reason"])
 
-    if report["suspicious_imports"]:
+    if report["suspicious_imports"] or report.get("member_malicious"):
         report["static_risk"] = "malicious"
     elif reasons:
         report["static_risk"] = "suspicious"

@@ -206,20 +206,20 @@ Run of 2026-10-29, safeloadai 0.11.0, Python 3.13.17, in a disposable cloud cont
 
 What still blocks held-out files most often (by default; files that need the item): `xgboost.core.Booster` (119), `lightgbm.basic.Booster` (39), `sklearn.preprocessing._function_transformer.FunctionTransformer` (16), `builtins.categorical_crossentropy` (9), `builtins.preprocess_input` (9), `catboost.core.CatBoostClassifier` (9).
 
-**held-out-4 (blind; aggregates only, [`heldout4-v0110.json`](evaluation/results/heldout4-v0110.json)).**
+**held-out-4 (blind; aggregates only, [`heldout4-v0110-reviewed.json`](evaluation/results/heldout4-v0110-reviewed.json)).**
 
 | configuration | CLEAN | soft block | hard block | UNSUPPORTED | ERROR | benign files | FPR on readable files [95 % CI] | benign files, without PoC rule | FPR, without PoC rule |
 |---|---|---|---|---|---|---|---|---|---|
-| before (0.10.0): default | 993 | 117 | 108 | 12 | 0 | 1230 | 0.185 [0.164, 0.208] | 1251 | 0.194 [0.173, 0.217] |
-| before (0.10.0): `--trust-inert-from` | 988 | 122 | 108 | 12 | 0 | 1230 | 0.189 [0.168, 0.212] | 1251 | 0.198 [0.177, 0.221] |
-| before (0.10.0): `--validate-boosters` | 998 | 112 | 108 | 12 | 0 | 1230 | 0.181 [0.160, 0.203] | 1251 | 0.190 [0.169, 0.212] |
-| before (0.10.0): default without the known-file list | 993 | 117 | 108 | 12 | 0 | 1230 | 0.185 [0.164, 0.208] | 1251 | 0.194 [0.173, 0.217] |
-| before (0.10.0): upper bound (not recommended) | 1110 | 0 | 108 | 12 | 0 | 1230 | 0.089 [0.074, 0.106] | 1251 | 0.098 [0.082, 0.115] |
-| **after (0.11.0)**: default | 1007 | 111 | 100 | 12 | 0 | 1230 | 0.173 [0.153, 0.196] | 1251 | 0.182 [0.162, 0.205] |
-| **after (0.11.0)**: `--trust-inert-from` | 1007 | 111 | 100 | 12 | 0 | 1230 | 0.173 [0.153, 0.196] | 1251 | 0.182 [0.162, 0.205] |
-| **after (0.11.0)**: `--validate-boosters` | 1012 | 106 | 100 | 12 | 0 | 1230 | 0.169 [0.149, 0.191] | 1251 | 0.178 [0.158, 0.201] |
-| **after (0.11.0)**: default without the known-file list | 1007 | 111 | 100 | 12 | 0 | 1230 | 0.173 [0.153, 0.196] | 1251 | 0.182 [0.162, 0.205] |
-| **after (0.11.0)**: upper bound (not recommended) | 1118 | 0 | 100 | 12 | 0 | 1230 | 0.082 [0.068, 0.099] | 1251 | 0.091 [0.076, 0.109] |
+| before (0.10.0): default | 996 | 117 | 108 | 12 | 0 | 1233 | 0.184 [0.164, 0.207] | 1254 | 0.193 [0.172, 0.216] |
+| before (0.10.0): `--trust-inert-from` | 991 | 122 | 108 | 12 | 0 | 1233 | 0.188 [0.167, 0.211] | 1254 | 0.197 [0.176, 0.220] |
+| before (0.10.0): `--validate-boosters` | 1001 | 112 | 108 | 12 | 0 | 1233 | 0.180 [0.160, 0.203] | 1254 | 0.189 [0.168, 0.212] |
+| before (0.10.0): default without the known-file list | 996 | 117 | 108 | 12 | 0 | 1233 | 0.184 [0.164, 0.207] | 1254 | 0.193 [0.172, 0.216] |
+| before (0.10.0): upper bound (not recommended) | 1113 | 0 | 108 | 12 | 0 | 1233 | 0.088 [0.074, 0.106] | 1254 | 0.097 [0.082, 0.115] |
+| **after (0.11.0)**: default | 1010 | 111 | 100 | 12 | 0 | 1233 | 0.173 [0.153, 0.195] | 1254 | 0.182 [0.161, 0.204] |
+| **after (0.11.0)**: `--trust-inert-from` | 1010 | 111 | 100 | 12 | 0 | 1233 | 0.173 [0.153, 0.195] | 1254 | 0.182 [0.161, 0.204] |
+| **after (0.11.0)**: `--validate-boosters` | 1015 | 106 | 100 | 12 | 0 | 1233 | 0.169 [0.149, 0.191] | 1254 | 0.178 [0.158, 0.200] |
+| **after (0.11.0)**: default without the known-file list | 1010 | 111 | 100 | 12 | 0 | 1233 | 0.173 [0.153, 0.195] | 1254 | 0.182 [0.161, 0.204] |
+| **after (0.11.0)**: upper bound (not recommended) | 1121 | 0 | 100 | 12 | 0 | 1233 | 0.082 [0.068, 0.099] | 1254 | 0.091 [0.076, 0.108] |
 
 **Headline: false positives a review can still remove.** The FPR on readable benign files with the irreducible floor (files that need code their author wrote) taken out of both sides, and the floor itself.
 
@@ -231,8 +231,8 @@ What still blocks held-out files most often (by default; files that need the ite
 | hf-heldout2 | `--validate-boosters` | 0.048 [0.040, 0.056] | 119 (0.043) | 0.088 [0.078, 0.099] |
 | hf-heldout3 | default | 0.058 [0.047, 0.072] | 70 (0.050) | 0.105 [0.090, 0.122] |
 | hf-heldout3 | `--validate-boosters` | 0.046 [0.036, 0.058] | 70 (0.050) | 0.093 [0.079, 0.110] |
-| hf-heldout4 (blind) | default | 0.055 [0.043, 0.071] | 152 (0.125) | 0.173 [0.153, 0.196] |
-| hf-heldout4 (blind) | `--validate-boosters` | 0.051 [0.039, 0.066] | 152 (0.125) | 0.169 [0.149, 0.191] |
+| hf-heldout4 (blind) | default | 0.055 [0.043, 0.071] | 152 (0.124) | 0.173 [0.153, 0.195] |
+| hf-heldout4 (blind) | `--validate-boosters` | 0.051 [0.039, 0.065] | 152 (0.124) | 0.169 [0.149, 0.191] |
 
 **Irreducible floor.** Some benign files can never be CLEAN by default: they need classes their author wrote (`__main__` or a module in no public package) or custom Keras objects the author registered, and rebuilding those runs code safeloadai cannot read (hf-heldout: 30 of 496 benign files, 6.0 %; hf-heldout2: 119 of 2806 benign files, 4.2 %; hf-heldout3: 70 of 1415 benign files, 5.0 %). They stay soft blocks, accepted per file after reading the code. Root causes of every blocked benign file: [docs/EVALUATION.md](docs/EVALUATION.md#why-benign-files-are-not-clean-root-causes).
 

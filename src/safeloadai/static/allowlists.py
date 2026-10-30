@@ -33,6 +33,13 @@ PICKLE_GLOBALS: frozenset[tuple[str, str]] = frozenset(
         ("copyreg", "_reconstructor"),
         ("copy_reg", "_reconstructor"),
         ("_codecs", "encode"),  # bytes in protocol 2 (tuning corpus)
+        # Python 3 writes int, str and range as these Python 2 names at protocol 0-2
+        # (_compat_pickle.REVERSE_NAME_MAPPING) and its Unpickler maps them back
+        # (NAME_MAPPING, fix_imports; CPython 3.11 to 3.13). The other names of those
+        # tables (reduce, intern, unichr) are not types and stay outside (0.11.1).
+        ("__builtin__", "long"),
+        ("__builtin__", "unicode"),
+        ("__builtin__", "xrange"),
         ("collections", "OrderedDict"),
         # numpy arrays and scalars (tuning corpus; numpy.core.* is the same
         # function under numpy < 2)

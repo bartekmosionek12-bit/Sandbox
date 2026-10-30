@@ -182,3 +182,66 @@ def test_option_never_clears_a_hook_class_or_a_sink(tmp_path):
     sink = tmp_path / "lab_sink.pkl"
     sink.write_bytes(P4 + s("posix") + s("system") + b"\x93" + s("echo MARKER") + b"\x85R" + STOP)
     assert scan(sink, trust_inert_from=["threadpoolctl"]).verdict is Verdict.MALICIOUS
+
+
+# --- 0.11.0: the option only adds (DECISIONS.md T1, T2) ----------------------------------
+
+@pytest.mark.parametrize("pair", [
+    ("sklearn.utils.parallel", "Parallel"),  # a base (joblib.Parallel) outside the named distribution
+    ("sklearn.ensemble.forest", "RandomForestClassifier"),  # an old module path (historical_paths.json)
+    ("sklearn.tree.tree", "DecisionTreeClassifier"),
+])
+def test_naming_a_distribution_never_removes_a_pinned_policy_class(pair):
+    # Until 0.11.0 the installed analysis replaced the pinned policies for a named
+    # distribution, so these, CLEAN by default, were UNVERIFIABLE with the "looser" option:
+    # it cannot read joblib's source, and an old module path does not exist in the
+    # installed release. The evaluation never scanned a file CLEAN by default again, which
+    # hid it. Named or not, a pinned policy class stays accepted.
+    pytest.importorskip("sklearn")  # its installed metadata is read; nothing is imported
+    from safeloadai.static import upstream
+
+    assert upstream.state_only(pair), pair
+    data = rebuilt(*pair)
+    assert parse_pickle(data)["static_risk"] == "clean"
+    report = check(data, ("scikit-learn",))
+    assert report["static_risk"] == "clean", report["reasons"]
+    assert report["cleared"][0]["mechanism"] == "policy"
+
+
+def test_every_pinned_policy_class_of_a_named_distribution_stays_accepted():
+    pytest.importorskip("sklearn")
+    from safeloadai.static import upstream
+
+    trust = clearance.for_distributions(("scikit-learn",))
+    pinned = [pair for pair, entry in upstream._state_only().items() if entry["distribution"] == "scikit-learn"]
+    old = [pair for pair in upstream._historical() if upstream.state_only(pair)
+           and upstream.state_only(pair)["distribution"] == "scikit-learn"]
+    assert len(pinned) > 400 and len(old) > 200
+    lost = [pair for pair in pinned + old if trust.state_only(pair) is None]
+    assert not lost, lost[:5]
+
+
+def test_installed_analysis_still_adds_a_class_the_pins_lack(fake_dists):
+    # the other half: a state-only class outside the pinned policies is what the option is for
+    report = check(rebuilt("fakelib.models", "Plain"), ("fakelib",))
+    assert report["static_risk"] == "clean" and report["cleared"][0]["mechanism"] == "inert-class"
+
+
+def test_a_hook_in_the_installed_version_still_removes_a_pinned_class(fake_dists, monkeypatch):
+    # What the option keeps from replacing: when the installed source gives a pinned class
+    # code of its own that runs on load (here __setstate__, as if a newer release added it),
+    # the class is not state-only for that scan. Only a hook does this, never a limit of the
+    # installed analysis (an old path it lacks, a base it cannot read).
+    from safeloadai.static import upstream
+
+    real = upstream.state_only
+    pinned = {("fakelib.models", "WithState"), ("fakelib.models", "ChildOfNative")}
+    monkeypatch.setattr(upstream, "state_only",
+                        lambda pair: {"distribution": "fakelib"} if pair in pinned else real(pair))
+    monkeypatch.setattr(upstream, "label", lambda dist: dist)
+    hooked = rebuilt("fakelib.models", "WithState")
+    assert parse_pickle(hooked)["static_risk"] == "clean"  # the pinned policy, option off
+    report = check(hooked, ("fakelib",))
+    assert report["static_risk"] != "clean" and not report["cleared"]
+    native = check(rebuilt("fakelib.models", "ChildOfNative"), ("fakelib",))
+    assert native["static_risk"] == "clean" and native["cleared"][0]["mechanism"] == "policy"

@@ -110,11 +110,25 @@ def _analyze_bytes(data: bytes, file_name: str, extra_allowed: frozenset) -> dic
         # The only reading is a valid data-only file: whatever loader the name suggests either
         # reads it as data or fails before it can import or call anything.
         report["notes"].append(mismatch)
+    elif mismatch and _hdf5_named_keras(file_name, primary, views):
+        report["notes"].append(f"{mismatch}: tf.keras reads a .keras file that is not a ZIP archive as HDF5, "
+                               "the reading analysed here; Keras 3 refuses it")
     elif mismatch:
         report["reasons"].append(mismatch)
     if report["reasons"] and report["static_risk"] == "clean":
         report["static_risk"] = "suspicious"
     return report
+
+
+def _hdf5_named_keras(file_name: str, primary, views: list) -> bool:
+    """A ``.keras`` file whose only reading is HDF5 (0.11.0, DECISIONS.md N6). Keras 3
+    (3.15.1 saving/saving_api.py load_model) opens a ``.keras`` path only as a ZIP archive
+    and raises ValueError for anything else, before reading it. tf.keras 2.x (tf_keras
+    2.15.1 saving/legacy/save.py load_model and saving_utils.is_hdf5_filepath) sends any
+    file that is not a directory or a ``.keras`` ZIP to load_model_from_hdf5, the reader a
+    ``.h5`` file gets: the HDF5 reading already analysed. The name opens no other reading."""
+    return (file_name.lower().endswith(".keras") and primary is not None and primary.fmt == detect_mod.H5
+            and primary.start == 0 and len(views) == 1)
 
 
 def _only_unverifiable(report: dict) -> bool:

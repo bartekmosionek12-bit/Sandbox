@@ -282,20 +282,17 @@ def _run_safeloadai(path: str, trust: tuple[str, ...] = ()) -> dict:
     else:
         result["no_known_good"] = {k: result[k] for k in ("outcome", "verdict", "category", "unverifiable_only",
                                                           "seconds", "block")}
-    # The real opt-in: trust_inert_from for the named distributions. A file CLEAN by default
-    # is not scanned again: with the installed versions equal to the pins, the option only
-    # widens the pinned analysis (docs/OPTIONS.md).
+    # The real opt-in: trust_inert_from for the named distributions. Every file is scanned
+    # again, CLEAN ones too: until 0.11.0 a file CLEAN by default was not, on the assumption
+    # that the option only widens the pinned analysis, and that hid the option making 230
+    # pinned classes stricter (DECISIONS.md T2).
     if trust:
-        if report.clean:
-            result["trust"] = dict(result["no_known_good"], outcome="clean", verdict=report.verdict.value,
-                                   category=None, unverifiable_only=False, block="clean")
-        else:
-            t = time.perf_counter()
-            try:
-                result["trust"] = _column(scan(path, trust_inert_from=trust), time.perf_counter() - t)
-            except Exception as exc:  # noqa: BLE001
-                result["trust"] = {"outcome": "error", "error": f"{type(exc).__name__}: {exc}", "seconds": 0.0,
-                                   "block": "error"}
+        t = time.perf_counter()
+        try:
+            result["trust"] = _column(scan(path, trust_inert_from=trust), time.perf_counter() - t)
+        except Exception as exc:  # noqa: BLE001
+            result["trust"] = {"outcome": "error", "error": f"{type(exc).__name__}: {exc}", "seconds": 0.0,
+                               "block": "error"}
     # --validate-boosters: scanned again only when a Booster class is what blocked the file.
     result["boosters"] = {k: result[k] for k in ("outcome", "verdict", "category", "unverifiable_only",
                                                  "seconds", "block")}

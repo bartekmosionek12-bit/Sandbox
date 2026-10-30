@@ -1,4 +1,4 @@
-"""Aggregate numbers of a blind split (held-out-3, 0.10.0), and nothing per file.
+"""Aggregate numbers of a blind split (held-out-3 in 0.10.0, held-out-4 in 0.11.0), and nothing per file.
 
     python evaluation/blind_aggregate.py --after AFTER.json --before BEFORE.json \\
         --anatomy ANATOMY.json --group hf-heldout3 --out evaluation/results/heldout3-v0100.json
@@ -19,8 +19,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from make_evaluation_doc import BLOCKS, blocks_of, rule_count, without_rule  # noqa: E402
 
-COLUMNS = ("safeloadai", "safeloadai validate-boosters", "safeloadai without known-file list",
-           "safeloadai upper bound")
+COLUMNS = ("safeloadai", "safeloadai trust-inert-from", "safeloadai validate-boosters",
+           "safeloadai without known-file list", "safeloadai upper bound")
 
 
 def percentile(values: list[float], q: float) -> float | None:
@@ -53,6 +53,12 @@ def summarise(data: dict, group: str) -> dict:
             "malicious_let_through": sum(1 for e in entries if e["label"] == "malicious" and tool in e["results"]
                                          and e["results"][tool].get("verdict") == "CLEAN"),
         }
+    trust = [e for e in entries if e["label"] == "benign" and "safeloadai trust-inert-from" in e["results"]]
+    if trust:  # counts only: how often the option and the default disagree, in each direction
+        clean = [(e["results"]["safeloadai"].get("block") == "clean",
+                  e["results"]["safeloadai trust-inert-from"].get("block") == "clean") for e in trust]
+        out["trust_vs_default"] = {"loosened": sum(1 for d, t in clean if t and not d),
+                                   "tightened": sum(1 for d, t in clean if d and not t)}
     seconds = [e["results"]["safeloadai"]["seconds"] for e in entries if "seconds" in e["results"]["safeloadai"]]
     rss = [max(e["results"]["safeloadai"].get("rss_peak_mb") or 0, e["results"]["safeloadai"].get(
         "children_rss_peak_mb") or 0) for e in entries]

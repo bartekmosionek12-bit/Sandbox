@@ -105,6 +105,17 @@ PICKLE_GLOBALS: frozenset[tuple[str, str]] = frozenset(
         ("sklearn.feature_extraction.text", "TfidfTransformer"),  # plain estimator
         ("sklearn.linear_model._ridge", "Ridge"),  # plain estimator
         ("sklearn.linear_model._sgd_fast", "Hinge"),  # Cython loss; __reduce__ is (Hinge, (threshold,))
+        # 0.11.0 review (scikit-learn 1.0.2, 1.3.2 and 1.5.2 linear_model/_sgd_fast.pyx[.tp]): the
+        # other Cython losses of the same file. cdef classes holding at most one double, no
+        # __cinit__, __setstate__ or __dealloc__; __reduce__ is (cls, ()) or (cls, (double,)) and a
+        # non-number argument raises TypeError in the typed __init__
+        ("sklearn.linear_model._sgd_fast", "Log"),
+        ("sklearn.linear_model._sgd_fast", "ModifiedHuber"),
+        ("sklearn.linear_model._sgd_fast", "SquaredHinge"),
+        ("sklearn.linear_model._sgd_fast", "SquaredLoss"),
+        ("sklearn.linear_model._sgd_fast", "Huber"),
+        ("sklearn.linear_model._sgd_fast", "EpsilonInsensitive"),
+        ("sklearn.linear_model._sgd_fast", "SquaredEpsilonInsensitive"),
         ("sklearn.linear_model._stochastic_gradient", "SGDClassifier"),  # BaseEstimator.__setstate__ only
         ("sklearn.neural_network._multilayer_perceptron", "MLPClassifier"),  # plain estimator
         ("sklearn.neural_network._stochastic_optimizers", "AdamOptimizer"),  # holds arrays and floats
@@ -166,6 +177,12 @@ STATE_ONLY_CLASSES = frozenset({
     ("pandas.core.indexes.base", "Index"),
     ("pandas.core.indexes.range", "RangeIndex"),
     ("pandas", "RangeIndex"),
+    # 0.11.0 review: pandas 3.x names Index and MultiIndex "pandas" (@set_module("pandas"),
+    # pandas 3.0.6 indexes/base.py:323 and multi.py:196); MultiIndex adds no pickling hook,
+    # __setattr__ or __getattr__ to Index (multi.py, pandas 1.4.4, 2.2.3 and 3.0.6)
+    ("pandas", "Index"),
+    ("pandas.core.indexes.multi", "MultiIndex"),
+    ("pandas", "MultiIndex"),
     # scikit-learn 1.9.1 estimators: BaseEstimator.__setstate__ only (version warning,
     # then a __dict__ update); constructors only store their parameters
     ("sklearn.calibration", "CalibratedClassifierCV"),
@@ -323,8 +340,8 @@ ENUM_CLASSES = frozenset({
 })
 # pandas.core.indexes.base._new_Index(cls, d) returns cls.__new__(cls, **d): it calls its
 # first argument. Accepted only as pandas writes it for a plain Index: _new_Index(Index,
-# {"data": ..., "name": ...}) (pandas 3.0.5 Index.__reduce__). Other Index classes are not
-# reviewed (their form was seen only in held-out files).
+# {"data": ..., "name": ...}) (pandas 3.0.5 Index.__reduce__), RangeIndex and (0.11.0, seen
+# in tune files) MultiIndex. Other Index classes are not reviewed.
 PANDAS_NEW_INDEX = ("pandas.core.indexes.base", "_new_Index")
 # class -> the dict keys its __reduce__ writes
 PANDAS_INDEX_KEYS = {
@@ -335,7 +352,16 @@ PANDAS_INDEX_KEYS = {
     # range. Accepted only with int start/stop/step (pickle_static._argument_check).
     ("pandas.core.indexes.range", "RangeIndex"): frozenset({"name", "start", "stop", "step"}),
     ("pandas", "RangeIndex"): frozenset({"name", "start", "stop", "step"}),
+    ("pandas", "Index"): frozenset({"data", "name"}),
+    # MultiIndex.__reduce__ writes {"levels", "codes", "sortorder", "names"} (pandas 1.4.4,
+    # 2.2.3 and 3.0.6 multi.py); _new_Index adds copy=False and verify_integrity=False and
+    # calls MultiIndex.__new__, which stores the levels (Index objects), the codes (arrays),
+    # the names and int(sortorder). Accepted only with levels made by _new_Index, numpy arrays
+    # as codes, plain names and an int or None sortorder (pickle_static._argument_check).
+    ("pandas.core.indexes.multi", "MultiIndex"): frozenset({"levels", "codes", "sortorder", "names"}),
+    ("pandas", "MultiIndex"): frozenset({"levels", "codes", "sortorder", "names"}),
 }
+PANDAS_MULTI_INDEX = frozenset({("pandas.core.indexes.multi", "MultiIndex"), ("pandas", "MultiIndex")})
 PANDAS_RANGE_INDEX = frozenset({("pandas.core.indexes.range", "RangeIndex"), ("pandas", "RangeIndex")})
 PANDAS_INDEX_CLASSES = frozenset(PANDAS_INDEX_KEYS)
 # collections.defaultdict(factory): the factory is called later, on a missing key, never
@@ -623,6 +649,20 @@ KERAS_CLASS_PAIRS = frozenset({
     ("keras.src.ops.numpy", "Multiply"),
     ("keras.src.ops.numpy", "Subtract"),  # 2026-10-19 review: elementwise, no callable argument
     ("keras.src.ops.numpy", "TrueDivide"),  # 2026-10-19 review: elementwise, no callable argument
+    # 0.11.0 review (keras 3.0.5 and 3.15.1 src/ops/numpy.py, nn.py, core.py): Operation
+    # subclasses whose __init__ takes only numbers, bools or a dtype string (axis, keepdims,
+    # negative_slope, approximate, dtype) and whose call is fixed tensor maths or indexing;
+    # Operation.from_config is cls(**config). GetItem's key comes from the node's arguments
+    # (ints, None and the __slice__ / __ellipsis__ / __tensor__ markers, checked on their own).
+    ("keras.src.ops.numpy", "NotEqual"),
+    ("keras.src.ops.numpy", "LogicalOr"),
+    ("keras.src.ops.numpy", "Any"),
+    ("keras.src.ops.numpy", "Concatenate"),
+    ("keras.src.ops.numpy", "Stack"),
+    ("keras.src.ops.numpy", "GetItem"),
+    ("keras.src.ops.core", "Cast"),
+    ("keras.src.ops.nn", "LeakyRelu"),
+    ("keras.src.ops.nn", "Gelu"),
     # the tf-keras module of TFOpLambda; the layer itself passes only when its op is on
     # TF_OP_ALLOWED (keras_static)
     ("keras.src.layers.core.tf_op_layer", "TFOpLambda"),
@@ -689,7 +729,20 @@ KERAS_CLASSES = frozenset({
     # 0.10.0 review (keras 3.0.5 and 3.12.0 src/metrics/accuracy_metrics.py): MeanMetricWrapper
     # subclasses with a fixed fn; get_config is name, dtype, k (and from_sorted_ids, a bool)
     "TopKCategoricalAccuracy", "SparseTopKCategoricalAccuracy",
+    # 0.11.0 review (keras 3.15.1): RandomBrightness is one more augmentation layer (factor,
+    # value_range, seed; image_preprocessing/random_brightness.py); CosineDecayRestarts takes
+    # numbers only (optimizers/schedules/learning_rate_schedule.py); TextVectorization is
+    # accepted only with the config keras_static.text_vectorization_problem allows (built-in
+    # standardize and split, a vocabulary given inline, never a file path)
+    "RandomBrightness", "CosineDecayRestarts", "TextVectorization",
 })
+
+# Keras 3 writes some plain values as marker objects (keras 3.15.1
+# saving/serialization_lib.py: serialize_keras_object and deserialize_keras_object): an
+# Ellipsis, a slice (start, stop, step) and a constant tensor (value as nested lists, dtype).
+# Rebuilding one imports nothing and calls only backend.convert_to_tensor or slice(); each is
+# accepted only in the form keras_static.marker_problem allows.
+KERAS_DATA_MARKERS = frozenset({"__ellipsis__", "__slice__", "__tensor__"})
 
 # Keras serializes functions as {"class_name": "function", "config": "<name>",
 # "module": "keras.activations"}. Only these exact (module, name) pairs are fine.

@@ -1,0 +1,358 @@
+{
+ "after": {
+  "columns": {
+   "safeloadai": {
+    "benign_malicious_verdict": 1,
+    "blocks": {
+     "benign": 1233,
+     "clean": 1010,
+     "error": 0,
+     "fp": 211,
+     "fpr_readable": 0.1728,
+     "hard": 100,
+     "readable": 1221,
+     "soft": 111,
+     "unsupported": 12
+    },
+    "blocks_without_poc_rule": {
+     "benign": 1254,
+     "clean": 1016,
+     "error": 0,
+     "fp": 226,
+     "fpr_readable": 0.182,
+     "hard": 113,
+     "readable": 1242,
+     "soft": 113,
+     "unsupported": 12
+    },
+    "malicious_let_through": 1
+   },
+   "safeloadai trust-inert-from": {
+    "benign_malicious_verdict": 1,
+    "blocks": {
+     "benign": 1233,
+     "clean": 1010,
+     "error": 0,
+     "fp": 211,
+     "fpr_readable": 0.1728,
+     "hard": 100,
+     "readable": 1221,
+     "soft": 111,
+     "unsupported": 12
+    },
+    "blocks_without_poc_rule": {
+     "benign": 1254,
+     "clean": 1016,
+     "error": 0,
+     "fp": 226,
+     "fpr_readable": 0.182,
+     "hard": 113,
+     "readable": 1242,
+     "soft": 113,
+     "unsupported": 12
+    },
+    "malicious_let_through": 1
+   },
+   "safeloadai upper bound": {
+    "benign_malicious_verdict": 1,
+    "blocks": {
+     "benign": 1233,
+     "clean": 1121,
+     "error": 0,
+     "fp": 100,
+     "fpr_readable": 0.0819,
+     "hard": 100,
+     "readable": 1221,
+     "soft": 0,
+     "unsupported": 12
+    },
+    "blocks_without_poc_rule": {
+     "benign": 1254,
+     "clean": 1129,
+     "error": 0,
+     "fp": 113,
+     "fpr_readable": 0.091,
+     "hard": 113,
+     "readable": 1242,
+     "soft": 0,
+     "unsupported": 12
+    },
+    "malicious_let_through": 1
+   },
+   "safeloadai validate-boosters": {
+    "benign_malicious_verdict": 1,
+    "blocks": {
+     "benign": 1233,
+     "clean": 1015,
+     "error": 0,
+     "fp": 206,
+     "fpr_readable": 0.1687,
+     "hard": 100,
+     "readable": 1221,
+     "soft": 106,
+     "unsupported": 12
+    },
+    "blocks_without_poc_rule": {
+     "benign": 1254,
+     "clean": 1021,
+     "error": 0,
+     "fp": 221,
+     "fpr_readable": 0.1779,
+     "hard": 113,
+     "readable": 1242,
+     "soft": 108,
+     "unsupported": 12
+    },
+    "malicious_let_through": 1
+   },
+   "safeloadai without known-file list": {
+    "benign_malicious_verdict": 1,
+    "blocks": {
+     "benign": 1233,
+     "clean": 1010,
+     "error": 0,
+     "fp": 211,
+     "fpr_readable": 0.1728,
+     "hard": 100,
+     "readable": 1221,
+     "soft": 111,
+     "unsupported": 12
+    },
+    "blocks_without_poc_rule": {
+     "benign": 1254,
+     "clean": 1016,
+     "error": 0,
+     "fp": 226,
+     "fpr_readable": 0.182,
+     "hard": 113,
+     "readable": 1242,
+     "soft": 113,
+     "unsupported": 12
+    },
+    "malicious_let_through": 1
+   }
+  },
+  "created": "20261030T065729Z",
+  "files": 1790,
+  "labels": {
+   "benign": 1233,
+   "malicious": 4,
+   "unclear": 553
+  },
+  "poc_rule_unclear": 21,
+  "rss_peak_mb": 1054.5,
+  "safeloadai": "0.11.0",
+  "seconds": {
+   "max": 83.345,
+   "median": 0.468,
+   "p95": 1.524
+  },
+  "trust_vs_default": {
+   "loosened": 0,
+   "tightened": 0
+  }
+ },
+ "anatomy": {
+  "benign_files": 1230,
+  "classes": {
+   "a": {
+    "files": 12,
+    "share_of_benign": 0.0098,
+    "text": "user-defined classes (__main__, modules in no public package)"
+   },
+   "b": {
+    "files": 140,
+    "share_of_benign": 0.1138,
+    "text": "custom Keras objects registered by the model author"
+   },
+   "c": {
+    "files": 47,
+    "share_of_benign": 0.0382,
+    "text": "classes from known public libraries missing from the allowlist"
+   },
+   "d": {
+    "files": 1,
+    "share_of_benign": 0.0008,
+    "text": "old module paths of already reviewed classes"
+   },
+   "e": {
+    "files": 12,
+    "share_of_benign": 0.0098,
+    "text": "data-only formats safeloadai does not parse (UNSUPPORTED)"
+   },
+   "f": {
+    "files": 11,
+    "share_of_benign": 0.0089,
+    "text": "other (code in the file, emulation limits, structure, tool errors)"
+   }
+  },
+  "floor": {
+   "files": 152,
+   "share_of_benign": 0.1236,
+   "share_of_not_clean": 0.6816
+  },
+  "not_clean": 223,
+  "reducible_by_allowlist": {
+   "files": 48,
+   "only_native_parser_classes": 9,
+   "share_of_benign": 0.039,
+   "share_of_not_clean": 0.2152
+  }
+ },
+ "before": {
+  "columns": {
+   "safeloadai": {
+    "benign_malicious_verdict": 1,
+    "blocks": {
+     "benign": 1233,
+     "clean": 996,
+     "error": 0,
+     "fp": 225,
+     "fpr_readable": 0.1843,
+     "hard": 108,
+     "readable": 1221,
+     "soft": 117,
+     "unsupported": 12
+    },
+    "blocks_without_poc_rule": {
+     "benign": 1254,
+     "clean": 1002,
+     "error": 0,
+     "fp": 240,
+     "fpr_readable": 0.1932,
+     "hard": 121,
+     "readable": 1242,
+     "soft": 119,
+     "unsupported": 12
+    },
+    "malicious_let_through": 1
+   },
+   "safeloadai trust-inert-from": {
+    "benign_malicious_verdict": 1,
+    "blocks": {
+     "benign": 1233,
+     "clean": 991,
+     "error": 0,
+     "fp": 230,
+     "fpr_readable": 0.1884,
+     "hard": 108,
+     "readable": 1221,
+     "soft": 122,
+     "unsupported": 12
+    },
+    "blocks_without_poc_rule": {
+     "benign": 1254,
+     "clean": 997,
+     "error": 0,
+     "fp": 245,
+     "fpr_readable": 0.1973,
+     "hard": 121,
+     "readable": 1242,
+     "soft": 124,
+     "unsupported": 12
+    },
+    "malicious_let_through": 1
+   },
+   "safeloadai upper bound": {
+    "benign_malicious_verdict": 1,
+    "blocks": {
+     "benign": 1233,
+     "clean": 1113,
+     "error": 0,
+     "fp": 108,
+     "fpr_readable": 0.0885,
+     "hard": 108,
+     "readable": 1221,
+     "soft": 0,
+     "unsupported": 12
+    },
+    "blocks_without_poc_rule": {
+     "benign": 1254,
+     "clean": 1121,
+     "error": 0,
+     "fp": 121,
+     "fpr_readable": 0.0974,
+     "hard": 121,
+     "readable": 1242,
+     "soft": 0,
+     "unsupported": 12
+    },
+    "malicious_let_through": 1
+   },
+   "safeloadai validate-boosters": {
+    "benign_malicious_verdict": 1,
+    "blocks": {
+     "benign": 1233,
+     "clean": 1001,
+     "error": 0,
+     "fp": 220,
+     "fpr_readable": 0.1802,
+     "hard": 108,
+     "readable": 1221,
+     "soft": 112,
+     "unsupported": 12
+    },
+    "blocks_without_poc_rule": {
+     "benign": 1254,
+     "clean": 1007,
+     "error": 0,
+     "fp": 235,
+     "fpr_readable": 0.1892,
+     "hard": 121,
+     "readable": 1242,
+     "soft": 114,
+     "unsupported": 12
+    },
+    "malicious_let_through": 1
+   },
+   "safeloadai without known-file list": {
+    "benign_malicious_verdict": 1,
+    "blocks": {
+     "benign": 1233,
+     "clean": 996,
+     "error": 0,
+     "fp": 225,
+     "fpr_readable": 0.1843,
+     "hard": 108,
+     "readable": 1221,
+     "soft": 117,
+     "unsupported": 12
+    },
+    "blocks_without_poc_rule": {
+     "benign": 1254,
+     "clean": 1002,
+     "error": 0,
+     "fp": 240,
+     "fpr_readable": 0.1932,
+     "hard": 121,
+     "readable": 1242,
+     "soft": 119,
+     "unsupported": 12
+    },
+    "malicious_let_through": 1
+   }
+  },
+  "created": "20261030T065619Z",
+  "files": 1790,
+  "labels": {
+   "benign": 1233,
+   "malicious": 4,
+   "unclear": 553
+  },
+  "poc_rule_unclear": 21,
+  "rss_peak_mb": 1053.7,
+  "safeloadai": "0.10.0",
+  "seconds": {
+   "max": 83.817,
+   "median": 0.468,
+   "p95": 1.474
+  },
+  "trust_vs_default": {
+   "loosened": 0,
+   "tightened": 5
+  }
+ },
+ "generated_by": "evaluation/blind_aggregate.py",
+ "group": "hf-heldout4",
+ "post_review": "After the measurement was final, the five files these aggregates pointed to were looked at (DECISIONS.md H3; fetched again, read as bytes and opcodes, nothing loaded) and their labels set from that review (evaluation/hf_heldout4_review.tsv); the table above uses them. Three of the four files the Hub's antivirus called malicious are benign: two training arguments whose one getattr is an enum member, and an ultralytics checkpoint holding Detect.forward as a value. The fourth is a .keras proof of concept with os.system in a model.pkl member Keras never reads: CLEAN in 0.11.0, MALICIOUS from 0.11.1 (DECISIONS.md K1). The benign file MALICIOUS in both releases is a pyannote checkpoint where Python 3 wrote int as __builtin__.long: SUSPICIOUS from 0.11.1 (DECISIONS.md P1). The rest of held-out-4 stays unread."
+}

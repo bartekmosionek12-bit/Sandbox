@@ -93,6 +93,8 @@ The held-out rule (nothing is tuned on held-out files) is about the allowlists, 
 | dill globals | dill's `__builtin__.__main__` (the globals of a pickled function) was a sink | `tests/test_cloudpickle.py` |
 | emulation budget | large pickles ran out of the emulation's compute budget (ERROR E304); the budget now grows with the file, up to a fixed ceiling | `tests/test_emulation.py` |
 | --validate-boosters (0.10.0) | a Booster stored in an `XGBClassifier`'s state was refused, because the walk for other uses of the class went into the stored instance and found its class; the option's column was scanned again after the fix (the default is not affected) | `tests/test_boosters.py` |
+| Python 2 names (0.11.1) | Python 3 writes `int`, `str` and `range` as `__builtin__.long`, `unicode` and `xrange` at protocol 0 to 2; they were sinks, so a benign held-out-4 checkpoint was MALICIOUS | `tests/test_py2_builtin_names.py` |
+| .keras members (0.11.1) | a pickle in a `.keras` member Keras never reads was only a note, so a held-out-4 proof of concept with `os.system` there was CLEAN; such a member is analysed now and never CLEAN (owner decision) | `tests/test_keras_member_pickles.py` |
 
 ## Confusion matrix per group
 
@@ -291,24 +293,26 @@ The same 1415 benign files (same commit and sha256) with safeloadai 0.10.0 (befo
 
 ## held-out-4 (blind)
 
-1790 files from repositories no earlier split or results file used, planned before the 0.11.0 allowlist work and measured once, with the final scanner. Nobody looked at its files or per-file results: the results stay outside the repository and only the aggregates below ([`heldout4-v0110.json`](../evaluation/results/heldout4-v0110.json)) were read. A file the Hub flags keeps the label the automatic rule gives its Hub evidence (`fetch_malicious_hf.proposed_label`), without the review by hand the other sets had, because that review means looking at it. Labels: 1230 benign, 7 malicious, 553 unclear.
+1790 files from repositories no earlier split or results file used, planned before the 0.11.0 allowlist work and measured once, with the final scanner. Nobody looked at its files or per-file results while tuning or measuring: the results stay outside the repository and only the aggregates below ([`heldout4-v0110-reviewed.json`](../evaluation/results/heldout4-v0110-reviewed.json)) were read. A file the Hub flags keeps the label the automatic rule gives its Hub evidence (`fetch_malicious_hf.proposed_label`), without the review by hand the other sets had, because that review means looking at it. Labels: 1233 benign, 4 malicious, 553 unclear.
 
 | configuration | CLEAN | soft block | hard block | UNSUPPORTED | ERROR | benign files | FPR on readable files [95 % CI] | benign files, without PoC rule | FPR, without PoC rule |
 |---|---|---|---|---|---|---|---|---|---|
-| before (0.10.0): default | 993 | 117 | 108 | 12 | 0 | 1230 | 0.185 [0.164, 0.208] | 1251 | 0.194 [0.173, 0.217] |
-| before (0.10.0): `--trust-inert-from` | 988 | 122 | 108 | 12 | 0 | 1230 | 0.189 [0.168, 0.212] | 1251 | 0.198 [0.177, 0.221] |
-| before (0.10.0): `--validate-boosters` | 998 | 112 | 108 | 12 | 0 | 1230 | 0.181 [0.160, 0.203] | 1251 | 0.190 [0.169, 0.212] |
-| before (0.10.0): default without the known-file list | 993 | 117 | 108 | 12 | 0 | 1230 | 0.185 [0.164, 0.208] | 1251 | 0.194 [0.173, 0.217] |
-| before (0.10.0): upper bound (not recommended) | 1110 | 0 | 108 | 12 | 0 | 1230 | 0.089 [0.074, 0.106] | 1251 | 0.098 [0.082, 0.115] |
-| **after (0.11.0)**: default | 1007 | 111 | 100 | 12 | 0 | 1230 | 0.173 [0.153, 0.196] | 1251 | 0.182 [0.162, 0.205] |
-| **after (0.11.0)**: `--trust-inert-from` | 1007 | 111 | 100 | 12 | 0 | 1230 | 0.173 [0.153, 0.196] | 1251 | 0.182 [0.162, 0.205] |
-| **after (0.11.0)**: `--validate-boosters` | 1012 | 106 | 100 | 12 | 0 | 1230 | 0.169 [0.149, 0.191] | 1251 | 0.178 [0.158, 0.201] |
-| **after (0.11.0)**: default without the known-file list | 1007 | 111 | 100 | 12 | 0 | 1230 | 0.173 [0.153, 0.196] | 1251 | 0.182 [0.162, 0.205] |
-| **after (0.11.0)**: upper bound (not recommended) | 1118 | 0 | 100 | 12 | 0 | 1230 | 0.082 [0.068, 0.099] | 1251 | 0.091 [0.076, 0.109] |
+| before (0.10.0): default | 996 | 117 | 108 | 12 | 0 | 1233 | 0.184 [0.164, 0.207] | 1254 | 0.193 [0.172, 0.216] |
+| before (0.10.0): `--trust-inert-from` | 991 | 122 | 108 | 12 | 0 | 1233 | 0.188 [0.167, 0.211] | 1254 | 0.197 [0.176, 0.220] |
+| before (0.10.0): `--validate-boosters` | 1001 | 112 | 108 | 12 | 0 | 1233 | 0.180 [0.160, 0.203] | 1254 | 0.189 [0.168, 0.212] |
+| before (0.10.0): default without the known-file list | 996 | 117 | 108 | 12 | 0 | 1233 | 0.184 [0.164, 0.207] | 1254 | 0.193 [0.172, 0.216] |
+| before (0.10.0): upper bound (not recommended) | 1113 | 0 | 108 | 12 | 0 | 1233 | 0.088 [0.074, 0.106] | 1254 | 0.097 [0.082, 0.115] |
+| **after (0.11.0)**: default | 1010 | 111 | 100 | 12 | 0 | 1233 | 0.173 [0.153, 0.195] | 1254 | 0.182 [0.161, 0.204] |
+| **after (0.11.0)**: `--trust-inert-from` | 1010 | 111 | 100 | 12 | 0 | 1233 | 0.173 [0.153, 0.195] | 1254 | 0.182 [0.161, 0.204] |
+| **after (0.11.0)**: `--validate-boosters` | 1015 | 106 | 100 | 12 | 0 | 1233 | 0.169 [0.149, 0.191] | 1254 | 0.178 [0.158, 0.200] |
+| **after (0.11.0)**: default without the known-file list | 1010 | 111 | 100 | 12 | 0 | 1233 | 0.173 [0.153, 0.195] | 1254 | 0.182 [0.161, 0.204] |
+| **after (0.11.0)**: upper bound (not recommended) | 1121 | 0 | 100 | 12 | 0 | 1233 | 0.082 [0.068, 0.099] | 1254 | 0.091 [0.076, 0.108] |
 
-Benign files MALICIOUS by default: 1. Malicious files let through: 4.
+Benign files MALICIOUS by default: 1. Malicious files let through: 1.
 
 `--trust-inert-from` against the default, on benign files: 0 made CLEAN that the default blocks, 0 blocked that the default finds CLEAN.
+
+After the measurement was final, the five files these aggregates pointed to were looked at (DECISIONS.md H3; fetched again, read as bytes and opcodes, nothing loaded) and their labels set from that review (evaluation/hf_heldout4_review.tsv); the table above uses them. Three of the four files the Hub's antivirus called malicious are benign: two training arguments whose one getattr is an enum member, and an ultralytics checkpoint holding Detect.forward as a value. The fourth is a .keras proof of concept with os.system in a model.pkl member Keras never reads: CLEAN in 0.11.0, MALICIOUS from 0.11.1 (DECISIONS.md K1). The benign file MALICIOUS in both releases is a pyannote checkpoint where Python 3 wrote int as __builtin__.long: SUSPICIOUS from 0.11.1 (DECISIONS.md P1). The rest of held-out-4 stays unread.
 
 | cause | files | share of benign |
 |---|---|---|

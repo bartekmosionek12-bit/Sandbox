@@ -33,7 +33,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEFAULT_RESULT = os.path.join(ROOT, "evaluation", "results", "eval-v0110-20261029T201034Z.json")
 DEFAULT_BEFORE = os.path.join(ROOT, "evaluation", "results", "eval-v0110-before-v0100-20261029T200929Z.json")
 DEFAULT_ANATOMY = os.path.join(ROOT, "evaluation", "results", "fp-anatomy-v0110-20261030.json")
-DEFAULT_BLIND = os.path.join(ROOT, "evaluation", "results", "heldout4-v0110.json")
+DEFAULT_BLIND = os.path.join(ROOT, "evaluation", "results", "heldout4-v0110-reviewed.json")
 OUT = os.path.join(ROOT, "docs", "EVALUATION.md")
 README = os.path.join(ROOT, "README.md")
 README_START, README_END = "<!-- evaluation:start -->", "<!-- evaluation:end -->"
@@ -451,6 +451,12 @@ HELDOUT_BUGS = (
                                      "for other uses of the class went into the stored instance and found its class; "
                                      "the option's column was scanned again after the fix (the default is not "
                                      "affected)", "tests/test_boosters.py"),
+    ("Python 2 names (0.11.1)", "Python 3 writes `int`, `str` and `range` as `__builtin__.long`, `unicode` and "
+                                "`xrange` at protocol 0 to 2; they were sinks, so a benign held-out-4 checkpoint was "
+                                "MALICIOUS", "tests/test_py2_builtin_names.py"),
+    (".keras members (0.11.1)", "a pickle in a `.keras` member Keras never reads was only a note, so a held-out-4 "
+                                "proof of concept with `os.system` there was CLEAN; such a member is analysed now "
+                                "and never CLEAN (owner decision)", "tests/test_keras_member_pickles.py"),
 )
 
 
@@ -495,8 +501,8 @@ def blind_section(blind: dict | None) -> list[str]:
     lines = [f"## {blind_title(blind)}", "",
              f"{after['files']} files from repositories no earlier split or results file used, planned before the "
              f"{after['safeloadai']} allowlist work and measured once, with the final scanner. Nobody looked at its "
-             "files or per-file "
-             "results: the results stay outside the repository and only the aggregates below "
+             "files or per-file results while tuning or measuring: "
+             "the results stay outside the repository and only the aggregates below "
              f"([`{blind['source']}`](../evaluation/results/{blind['source']})) were read. A file the Hub flags "
              "keeps the label the automatic rule gives its Hub evidence (`fetch_malicious_hf.proposed_label`), "
              "without the review by hand the other sets had, because that review means looking at it. Labels: "

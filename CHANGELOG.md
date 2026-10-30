@@ -5,6 +5,20 @@ This file follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Vers
 - `safeloadai` (the scanner);
 - `safeloadai-runtime` (the pinned sandbox runtime). It has its own version and changes only when the runtime does.
 
+## safeloadai 0.11.1 (unreleased)
+
+In short: the five held-out-4 files the 0.11.0 aggregates pointed to were reviewed after the measurement (owner decision). Three Hub labels were wrong and need no code; two real defects are fixed: Python 3's protocol-2 names for `int`, `str` and `range` were sinks, and a pickle hidden in a `.keras` member Keras never reads was CLEAN.
+
+### Security
+- **`.keras` members** (DECISIONS.md K1, owner decision): every member except the config that is a pickle is analysed; a sink in it makes the file MALICIOUS, otherwise it is RISKY. A member over 16 MiB that Keras does not read is RISKY. A held-out-4 proof of concept with `os.system` in `model.pkl` was CLEAN in 0.11.0 and 0.10.0. On the 130 ZIP `.keras` files of tune that were not CLEAN, the rule adds nothing. [LLM03]
+
+### Fixed
+- `__builtin__.long`, `__builtin__.unicode` and `__builtin__.xrange` are `int`, `str` and `range`, as Python 3 writes and reads them at protocol 0 to 2 (DECISIONS.md P1). `pickle.dumps(int, protocol=2)` was MALICIOUS, and so was a benign pyannote checkpoint in held-out-4 (SUSPICIOUS now: omegaconf is outside the allowlist). Every other `__builtin__` name stays a sink. [LLM03]
+
+### Measured
+- held-out-4 after the review of those five files (`evaluation/hf_heldout4_review.tsv`, `evaluation/results/heldout4-v0110-reviewed.json`): 1,233 benign, 4 malicious; 0.11.0 lets 1 malicious file through (the `.keras` proof of concept) and calls 1 benign file MALICIOUS (the pyannote checkpoint); 0.11.1 is MALICIOUS and SUSPICIOUS on them. FPR 0.184 to 0.173 (0.10.0 to 0.11.0). The rest of held-out-4 stays unread.
+- Detection with 0.11.1: lab 66/66, mutations 774/774, no benign lab or mutation file MALICIOUS.
+
 ## safeloadai 0.11.0 (unreleased)
 
 In short: `--trust-inert-from` made verdicts stricter instead of looser (it replaced the pinned policies); it now adds to them and still refuses a class to which the installed version adds a hook. It has not yet loosened a verdict on any evaluated file, and the reasons are documented. pandas 3 `Index`/`MultiIndex`, Keras 3 operations and data markers, `TextVectorization`, `RandomBrightness`, `CosineDecayRestarts` and scikit-learn's SGD losses are accepted after a source review; an HDF5 model named `.keras` is read as tf.keras reads it. A new blind split, held-out-4. No rule was loosened by default. Detection unchanged (lab 66/66, mutations 774/774, Hub malicious 49/49); benign FPR on readable files 0.124 to 0.117 (held-out-2), 0.164 to 0.160 (held-out), 0.118 to 0.105 (held-out-3), 0.185 to 0.173 (held-out-4, blind).

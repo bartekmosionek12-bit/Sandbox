@@ -15,6 +15,9 @@ In short: the five held-out-4 files the 0.11.0 aggregates pointed to were review
 ### Fixed
 - `__builtin__.long`, `__builtin__.unicode` and `__builtin__.xrange` are `int`, `str` and `range`, as Python 3 writes and reads them at protocol 0 to 2 (DECISIONS.md P1). `pickle.dumps(int, protocol=2)` was MALICIOUS, and so was a benign pyannote checkpoint in held-out-4 (SUSPICIOUS now: omegaconf is outside the allowlist). Every other `__builtin__` name stays a sink. [LLM03]
 
+### Removed
+- **The LLM judge** (owner decision 2026-10-30, DECISIONS.md R1): `--judge`, `scan(judge=...)`, `safe_load(judge=...)`, the `judge` config key, `SAFELOADAI_JUDGE_MODEL`, `verdict.judge_layer`, the `judge` layer in reports and the optional `judge` extra (`anthropic`). It was off by default and could only raise a verdict, so no default verdict changes. A config file that still sets `judge` is refused (E501, unknown key). `verdict.final_verdict` takes `(parser_report, sandbox_report)`.
+
 ### Measured
 - held-out-4 after the review of those five files (`evaluation/hf_heldout4_review.tsv`, `evaluation/results/heldout4-v0110-reviewed.json`): 1,233 benign, 4 malicious; 0.11.0 lets 1 malicious file through (the `.keras` proof of concept) and calls 1 benign file MALICIOUS (the pyannote checkpoint); 0.11.1 is MALICIOUS and SUSPICIOUS on them. FPR 0.184 to 0.173 (0.10.0 to 0.11.0). The rest of held-out-4 stays unread.
 - Detection with 0.11.1: lab 66/66, mutations 774/774, no benign lab or mutation file MALICIOUS.

@@ -49,7 +49,7 @@ _WRITE_FLAGS = ("O_WRONLY", "O_RDWR", "O_CREAT", "O_APPEND", "O_TRUNC")
 
 # Syscalle, które nas interesują, i typ zdarzenia w kontrakcie sandboksa.
 # Celowo WĄSKA lista: pełny strace na starcie Pythona to tysiące linii
-# importów, a zasypanie sędziego szumem to ten sam błąd, który popełniliśmy
+# importów, a zasypanie dowodów szumem to ten sam błąd, który popełniliśmy
 # raz na exec() wołanym przez maszynerię importów.
 _INTERESTING = {
     "execve": "syscall_exec",
@@ -121,7 +121,7 @@ def parse_strace(text: str, limit: int = 200) -> list[dict]:
     """Zamienia wyjście ``strace -f`` w listę zdarzeń kontraktu sandboksa.
 
     ``limit`` ucina listę, bo payload w pętli mógłby wygenerować setki tysięcy
-    linii i rozsadzić zarówno dashboard, jak i prompt sędziego.
+    linii i rozsadzić raport i dashboard.
     """
     events: list[dict] = []
     for raw in text.splitlines():

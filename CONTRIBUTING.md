@@ -4,7 +4,7 @@ Thank you for helping. safeloadai is a security tool, so a few rules are stricte
 than usual. Security reports go through [SECURITY.md](SECURITY.md), never a public
 issue.
 
-## Safety rules (everyone, including AI agents)
+## Safety rules (everyone)
 
 - **Never load or deserialise a model file outside `safeloadai.scan()`** on your
   machine: no `pickle.load`, `joblib.load`, `torch.load`, `keras.models.load_model` on
@@ -36,7 +36,6 @@ fakes) starts with the tag of the standard it serves, from
 | `[ML06]` | OWASP ML06:2023 AI Supply Chain Attacks, when the change is specific to classical ML files (scikit-learn, joblib, xgboost) |
 | `[AML.T0076]` | corrupt or truncated streams (MITRE ATLAS *Corrupt AI Model*) |
 | `[AML.T0018.002]` | code embedded in a model file (ATLAS *Embed Malware*) |
-| `[LLM01]` | the optional LLM judge and prompt injection |
 | `[FP]` | a change that only removes false positives (allowlist, policy, profile, known file); it still needs the tag of what it could weaken, e.g. `[LLM03][FP]` |
 
 Examples:

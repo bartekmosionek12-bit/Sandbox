@@ -1,7 +1,7 @@
 """Pomiar warstwy statycznej na wygenerowanym korpusie.
 
 Co mierzy: wyłącznie heurystykę parsera (static_risk) dla pickle'i —
-bez detonacji i bez sędziego. To NIE jest skuteczność całego narzędzia.
+bez detonacji. To NIE jest skuteczność całego narzędzia.
 
 Korpus powstaje w locie i niczego nie wczytuje:
   * łagodne: modele scikit-learn, tablice numpy i zwykłe struktury,

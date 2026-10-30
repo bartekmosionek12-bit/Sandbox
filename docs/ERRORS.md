@@ -141,8 +141,6 @@ The CLI checks options before it scans anything and exits 2 on a usage error, so
 
 ### Not errors
 
-- An unavailable LLM judge (`--judge`): the judge can only raise severity, so its
-  absence changes nothing; the judge layer says why it did not run.
 - A loader inside the deep sandbox that rejects the file: that is a statement about
   the file (SUSPICIOUS).
 

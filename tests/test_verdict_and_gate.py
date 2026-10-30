@@ -1,4 +1,4 @@
-"""Monotone verdict: no layer can lower another (judge escalate-only, evidence always counts)."""
+"""Monotone verdict: no layer can lower another (detonation evidence always counts)."""
 import pytest
 from conftest import sandbox_report
 
@@ -7,8 +7,6 @@ from safeloadai.report import LayerResult, Verdict, combine, settle
 from safeloadai.sandbox.host import GuestRun
 
 CLEAN_PARSER = {"static_risk": "clean"}
-JUDGE_SAFE = {"available": True, "verdict": "safe", "injection_attempt_detected": False}
-NO_JUDGE = {"available": False, "verdict": "unknown"}
 EXEC_EVENT = [{"type": "os_system", "detail": "echo MARKER"}]
 
 
@@ -17,35 +15,21 @@ def test_combine_is_the_worst_layer():
     assert combine(layers)[0] is Verdict.SUSPICIOUS
 
 
-def test_judge_cannot_clear_observed_execution():
-    assert verdict.final_verdict(CLEAN_PARSER, JUDGE_SAFE, sandbox_report(events=EXEC_EVENT))[0] is Verdict.MALICIOUS
+def test_sandbox_events_count_against_a_clean_static_layer():
+    assert verdict.final_verdict(CLEAN_PARSER, sandbox_report(events=EXEC_EVENT))[0] is Verdict.MALICIOUS
 
 
-def test_without_judge_sandbox_events_still_count():
-    assert verdict.final_verdict(CLEAN_PARSER, NO_JUDGE, sandbox_report(events=EXEC_EVENT))[0] is Verdict.MALICIOUS
-
-
-@pytest.mark.parametrize("judge_verdict", ["safe", "suspicious", "malicious", "unknown"])
 @pytest.mark.parametrize("static", ["clean", "suspicious", "malicious"])
-def test_judge_never_lowers(static, judge_verdict):
-    without, _ = verdict.final_verdict({"static_risk": static}, None, None)
-    with_judge, _ = verdict.final_verdict({"static_risk": static}, dict(JUDGE_SAFE, verdict=judge_verdict), None)
-    assert with_judge.rank >= without.rank
-
-
-def test_injection_attempt_raises_verdict():
-    judge = dict(JUDGE_SAFE, injection_attempt_detected=True)
-    assert verdict.final_verdict(CLEAN_PARSER, judge, None)[0] is Verdict.SUSPICIOUS
-
-
-def test_judge_can_escalate():
-    assert verdict.final_verdict(CLEAN_PARSER, dict(JUDGE_SAFE, verdict="malicious"), None)[0] is Verdict.MALICIOUS
+def test_clean_detonation_never_lowers(static):
+    without, _ = verdict.final_verdict({"static_risk": static})
+    with_deep, _ = verdict.final_verdict({"static_risk": static}, sandbox_report())
+    assert with_deep.rank >= without.rank
 
 
 def test_failed_load_in_deep_detonation_is_suspicious():
     # the loader rejected the file: a statement about the file
     report = sandbox_report(load_succeeded=False, error="ModuleNotFoundError")
-    assert verdict.final_verdict(CLEAN_PARSER, None, report)[0] is Verdict.SUSPICIOUS
+    assert verdict.final_verdict(CLEAN_PARSER, report)[0] is Verdict.SUSPICIOUS
 
 
 @pytest.mark.parametrize("overrides, code", [
@@ -54,13 +38,13 @@ def test_failed_load_in_deep_detonation_is_suspicious():
 ])
 def test_deep_detonation_that_did_not_finish_is_a_tool_error(overrides, code):
     report = sandbox_report(**overrides)
-    assert verdict.final_verdict(CLEAN_PARSER, None, report)[0] is None
+    assert verdict.final_verdict(CLEAN_PARSER, report)[0] is None
     assert [e["code"] for e in verdict.docker_layer(report).errors] == [code]
 
 
 def test_malicious_deep_evidence_decides_despite_a_timeout():
     report = sandbox_report(timed_out=True, events=EXEC_EVENT)
-    assert verdict.final_verdict(CLEAN_PARSER, None, report)[0] is Verdict.MALICIOUS
+    assert verdict.final_verdict(CLEAN_PARSER, report)[0] is Verdict.MALICIOUS
 
 
 def test_unknown_static_risk_is_suspicious():

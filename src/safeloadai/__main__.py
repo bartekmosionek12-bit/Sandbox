@@ -1,6 +1,6 @@
 """Command line.
 
-    safeloadai scan <file|dir>... [--json] [--judge] [--deep] [--allow MODULE:QUALNAME]...
+    safeloadai scan <file|dir>... [--json] [--deep] [--allow MODULE:QUALNAME]...
                     [--accept-unverified [SHA256:]ITEM]... [--config FILE] [--sarif FILE]
                     [--malicious-only]
     safeloadai options [--config FILE]
@@ -103,7 +103,6 @@ def _build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("scan", help="scan files or directories without loading them")
     s.add_argument("paths", nargs="+", help="files or directories")
     s.add_argument("--json", action="store_true", help="print the Report JSON (a list for several files)")
-    s.add_argument("--judge", action="store_true", help="ask the LLM judge (escalate only; needs ANTHROPIC_API_KEY)")
     s.add_argument("--deep", action="store_true", help="also detonate in the deep sandbox (Docker)")
     s.add_argument("--allow", action="append", type=_allow_pair, default=[], metavar="MODULE:QUALNAME",
                    help="extra exact pickle global to allow (repeatable)")
@@ -253,7 +252,7 @@ def main(argv: list[str] | None = None) -> int:
               "and exit 0; safe_load still refuses every file that is not CLEAN", file=sys.stderr)
     reports = []
     for path in files:
-        report = scan(path, judge=settings["judge"], deep=settings["deep"], allow=settings["allow"],
+        report = scan(path, deep=settings["deep"], allow=settings["allow"],
                       trust_inert_from=settings["trust_inert_from"], known_good=settings["known_good"],
                       validate_boosters=settings["validate_boosters"], option_sources=settings["sources"])
         if not report.ok:
@@ -313,13 +312,13 @@ def _settings(args) -> dict:
     """Effective scan options: CLI flags, then the config file named with --config (a
     flag and the file are combined; the file never removes a flag). ``sources`` says
     where each non-default option came from."""
-    settings = {"allow": list(args.allow), "judge": args.judge, "deep": args.deep,
+    settings = {"allow": list(args.allow), "deep": args.deep,
                 "trust_inert_from": list(args.trust_inert_from), "known_good": not args.no_known_good,
                 "validate_boosters": args.validate_boosters,
                 "accept_unverified": [(sha, item, "CLI flag --accept-unverified")
                                       for sha, item in args.accept_unverified],
                 "sources": {}, "config": None}
-    flag_sources = {"allow": "CLI flag --allow", "judge": "CLI flag --judge", "deep": "CLI flag --deep",
+    flag_sources = {"allow": "CLI flag --allow", "deep": "CLI flag --deep",
                     "trust_inert_from": "CLI flag --trust-inert-from",
                     "validate_boosters": "CLI flag --validate-boosters"}
     for name, source in flag_sources.items():
@@ -336,14 +335,14 @@ def _settings(args) -> dict:
         for text in config.get("accept_unverified", []):
             sha, item = _accept_item(text)
             settings["accept_unverified"].append((sha, item, source))
-        for name in ("judge", "deep", "validate_boosters"):
+        for name in ("deep", "validate_boosters"):
             if config.get(name):
                 settings[name] = True
         settings["trust_inert_from"] += config.get("trust_inert_from", [])
         if config.get("known_good") is False:
             settings["known_good"] = False
             settings["sources"]["known_good"] = source
-        for name in ("allow", "judge", "deep", "trust_inert_from", "validate_boosters"):
+        for name in ("allow", "deep", "trust_inert_from", "validate_boosters"):
             if config.get(name):
                 settings["sources"][name] = (settings["sources"][name] + " and " + source
                                              if name in settings["sources"] else source)
@@ -361,7 +360,7 @@ def _announce(settings: dict) -> list[str]:
     if settings["config"]:
         lines.append(f"safeloadai: reading options from config file {settings['config']}")
     entries = [options_mod.record(name, settings[name], settings["sources"][name])
-               for name in ("allow", "trust_inert_from", "validate_boosters", "known_good", "deep", "judge")
+               for name in ("allow", "trust_inert_from", "validate_boosters", "known_good", "deep")
                if not options_mod.is_default(name, settings[name])]
     if settings["accept_unverified"]:
         sources = sorted({source for _sha, _item, source in settings["accept_unverified"]})

@@ -376,8 +376,6 @@ non-CLEAN benign file, soft blocks included).
 - **The runtime package is trusted at install time.** safeloadai checks the `.wasm`
   hash before every use, but pip runs whatever a package does when it is installed.
   Install `safeloadai-runtime` only from PyPI under that exact name and version.
-- **The judge (`--judge`, off) only adds cost and escalation.** It sees no free text
-  and can never lower a verdict.
 
 ## Reporting a bypass
 
@@ -420,13 +418,6 @@ python evaluation/run_eval.py --lab /tmp/corpus --hf /path/to/hf_corpus   # --he
 The report viewer runs with `flask --app app.server run --host 127.0.0.1`; it renders
 Report JSON and does not scan files. The audit that started this rewrite is in
 [AUDIT.md](AUDIT.md).
-
-## Statement on AI use
-
-This project was written by Bartosz Mosionek together with an LLM assistant (Claude):
-code, tests, reviews of library source and documentation. The optional judge uses the
-Anthropic API. The author understands the code and takes technical responsibility for
-it.
 
 ## License
 

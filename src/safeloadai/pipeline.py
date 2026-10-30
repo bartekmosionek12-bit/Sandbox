@@ -1,5 +1,5 @@
 """One scan: container parsing and static analysis, fake-API emulation in the WASI
-sandbox, then the optional deep detonation and the optional LLM judge.
+sandbox, then the optional deep detonation.
 
 The final verdict is the worst layer verdict (report.combine). CLEAN therefore
 needs a clean static layer AND a completed emulation without any recorded
@@ -179,15 +179,7 @@ def _deep_layer(path: str, file_format: str) -> LayerResult:
     return verdict.docker_layer(deep.run_deep(path, file_format))
 
 
-def _judge_layer(parser_report: dict, emulation: LayerResult) -> LayerResult | None:
-    from . import judge as judge_mod
-
-    summary = {"detonated": emulation.ran, "load_succeeded": emulation.details.get("completed"),
-               "events": emulation.evidence}
-    return verdict.judge_layer(judge_mod.judge(parser_report, summary))
-
-
-def scan(path: str | os.PathLike, *, judge: bool = False, deep: bool = False,
+def scan(path: str | os.PathLike, *, deep: bool = False,
          allow: Iterable[tuple[str, str]] = (), limits: Limits | None = None,
          progress: Progress = None, option_sources: Mapping[str, str] | None = None,
          trust_inert_from: Iterable[str] = (), known_good: bool = True,
@@ -208,7 +200,7 @@ def scan(path: str | os.PathLike, *, judge: bool = False, deep: bool = False,
         trust_inert_from = options_mod.validate_trust_inert_from(trust_inert_from)
         if not isinstance(validate_boosters, bool):
             raise options_mod.OptionError(f"validate_boosters must be True or False, got {validate_boosters!r}")
-        used_options = options_mod.scan_options(allow=allow, judge=judge, deep=deep, limits=limits,
+        used_options = options_mod.scan_options(allow=allow, deep=deep, limits=limits,
                                                 sources=option_sources, trust_inert_from=trust_inert_from,
                                                 known_good=known_good, validate_boosters=validate_boosters)
         trust = clearance_mod.for_distributions(trust_inert_from)
@@ -219,7 +211,7 @@ def scan(path: str | os.PathLike, *, judge: bool = False, deep: bool = False,
     extra_allowed = frozenset(allow)
     try:
         with clearance_mod.active(trust):
-            report = _scan(path, judge=judge, deep=deep, extra_allowed=extra_allowed, limits=limits, step=step)
+            report = _scan(path, deep=deep, extra_allowed=extra_allowed, limits=limits, step=step)
     except RuntimeIntegrityError as exc:
         # The runtime is not the pinned one: no result of this scan is trusted, not even
         # MALICIOUS evidence from the sandbox.
@@ -267,7 +259,7 @@ def error_report(path: str, error: dict, *, options: list[dict] | None = None) -
                   options=list(options or []), status="error", error=error, errors=[error])
 
 
-def _scan(path: str, *, judge: bool, deep: bool, extra_allowed: frozenset, limits: Limits | None,
+def _scan(path: str, *, deep: bool, extra_allowed: frozenset, limits: Limits | None,
           step: Callable[[str], None]) -> Report:
     from . import __version__
 
@@ -319,14 +311,6 @@ def _scan(path: str, *, judge: bool, deep: bool, extra_allowed: frozenset, limit
         t = time.perf_counter()
         layers.append(_guarded("deep", "E310", _deep_layer, path, file_format))
         timings["deep"] = _ms(t)
-
-    if judge:
-        step("LLM judge")
-        t = time.perf_counter()
-        judged = _judge_layer(parser_report, emulation)
-        if judged is not None:
-            layers.append(judged)
-        timings["judge"] = _ms(t)
 
     status, final, reasons, findings, category, tool_errors = settle(layers)
     if final is Verdict.CLEAN and parser_report.get("data_only") and not extra_views:

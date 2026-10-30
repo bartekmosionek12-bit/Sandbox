@@ -84,7 +84,7 @@ only.
   One instance cannot read the other's memory, so code in the second cannot learn the
   first one's nonce or touch its records.
 - **Evidence from code can raise severity, never clear.** Whatever the code instance
-  reports is treated like the LLM judge: it may make a file SUSPICIOUS or MALICIOUS,
+  reports can only raise severity: it may make a file SUSPICIOUS or MALICIOUS,
   never CLEAN. Host-observed WASI calls from it are recorded as host evidence.
 - **Consequence, decided and in force since 0.8.0 (DECISIONS.md L1):** a Keras Lambda
   or dill function is never CLEAN on emulation alone; it is at least SUSPICIOUS

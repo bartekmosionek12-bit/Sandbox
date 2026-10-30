@@ -39,10 +39,6 @@ dependencies = [
 lz4 = [
     "lz4>=4.0,<5",
 ]
-# The LLM judge is optional and off by default; the library works without it.
-judge = [
-    "anthropic>=0.125,<1.0",
-]
 # The dashboard (app/) is a report viewer, not part of the library.
 dashboard = [
     "Flask>=3.0,<4.0",

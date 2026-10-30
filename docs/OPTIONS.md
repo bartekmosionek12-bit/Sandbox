@@ -2,7 +2,7 @@
 
 Plain `scan(path)` and `safeloadai scan FILE` use only the defaults below. Every
 default is the strictest behaviour: no user allowlist, no accepted UNVERIFIABLE items,
-no deep detonation, no LLM judge and no config file.
+no deep detonation and no config file.
 
 Every option that can make a verdict less strict follows these rules:
 
@@ -32,10 +32,8 @@ file is not used unless you name it.
 | [`validate_boosters`](#validate_boosters) | `False` | looser | medium |
 | [`known_good`](#known_good) | `True` (shipped list used) | stricter when turned off | low |
 | [`deep`](#deep) | `False` | stricter (but runs the file's code) | high |
-| [`judge`](#judge) | `False` | stricter (but sends data out) | medium |
 | [`limits`](#limits) | `None` (built-in limits) | neutral (lower limits are stricter) | low |
 | [`deep_backend`](#deep_backend) | `None` (first available) | neutral | low |
-| [`judge_model`](#judge_model) | `None` (built-in model) | neutral | low |
 | [`runtime_path`](#runtime_path) | `None` (bundled runtime) | neutral | none |
 | [`prompt`](#prompt) | `True` (ask on a terminal, default No) | stricter when turned off | low |
 | [config file](#config-file) | not read | depends on what it sets | as the options it sets |
@@ -342,30 +340,6 @@ Every entry in `Report.options` looks like this:
    never run the file's code on the host. For more certainty, ask the publisher for
    `.safetensors`.
 
-## `judge`
-
-1. **What it does.** It sends the static and emulation evidence to an LLM judge,
-   which can only raise the verdict.
-2. **Risk you accept.** File names, import names, strings and other evidence from
-   the file leave your machine for the Anthropic API, which needs
-   `ANTHROPIC_API_KEY`. The judge cannot lower a verdict, so it cannot make a file
-   look safer.
-3. **When to use it, and when not to.**
-   - **Use it** for a second opinion on files you are allowed to share.
-   - **Do not use it** for confidential models, or where data must not leave the
-     network.
-4. **How to use it.**
-   ```python
-   report = scan("model.pkl", judge=True)
-   ```
-   ```bash
-   safeloadai scan model.pkl --judge
-   ```
-5. **How to check it in the report.** Look at:
-   - `report.options[*]` with `name == "judge"`;
-   - the layer named `judge`, with `details` (the judge's answer) and `verdict`.
-6. **Safer alternative.** Leave it off, and read the categorised `findings` yourself.
-
 ## `limits`
 
 1. **What it does.** It sets the resource limits of the WASI emulation: memory,
@@ -412,27 +386,6 @@ Every entry in `Report.options` looks like this:
      `source == "environment variable SAFELOADAI_DEEP_BACKEND"`;
    - the `deep` layer's `details`.
 6. **Safer alternative.** Do not use `deep`.
-
-## `judge_model`
-
-1. **What it does.** It picks which Claude model the judge asks, through
-   `SAFELOADAI_JUDGE_MODEL`. It has an effect only when `judge` is on.
-2. **Risk you accept.** A weaker model may miss things, but the judge can only
-   raise a verdict, so nothing becomes less strict.
-3. **When to use it, and when not to.** Use it when your organisation requires a
-   specific model.
-4. **How to use it.** This option is only an environment variable. It never turns
-   `judge` on.
-   ```python
-   import os; os.environ["SAFELOADAI_JUDGE_MODEL"] = "claude-sonnet-5-5"
-   report = scan("model.pkl", judge=True)
-   ```
-   ```bash
-   SAFELOADAI_JUDGE_MODEL=claude-sonnet-5-5 safeloadai scan model.pkl --judge
-   ```
-5. **How to check it in the report.** Look at `report.options[*]` with
-   `name == "judge_model"`, and the `judge` layer's `details`.
-6. **Safer alternative.** The default model.
 
 ## `runtime_path`
 
@@ -485,7 +438,7 @@ Every entry in `Report.options` looks like this:
 ## Config file
 
 1. **What it does.** `safeloadai scan --config FILE` reads `allow`,
-   `accept_unverified`, `deep` and `judge` from the `[scan]` table of a TOML file.
+   `accept_unverified`, `deep`, `trust_inert_from`, `known_good` and `validate_boosters` from the `[scan]` table of a TOML file.
    The file adds to the CLI flags and never removes one.
 2. **Risk you accept.** A config file can make every scan that names it less
    strict, for the options it sets. That is why it is never read unless named. A

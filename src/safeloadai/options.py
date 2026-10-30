@@ -63,18 +63,12 @@ OPTIONS: tuple[Option, ...] = (
     Option("deep", False, "stricter", "high",
            "also run the file's own code in a Docker/bwrap/nsjail sandbox (can only raise the verdict)",
            "deep", "--deep", config=True),
-    Option("judge", False, "stricter", "medium",
-           "send the scan evidence to an LLM judge (can only raise the verdict; data leaves the machine)",
-           "judge", "--judge", config=True),
     Option("limits", None, "neutral", "low",
            "resource limits of the WASI emulation (lower limits only make more files SUSPICIOUS)",
            "limits", None),
     Option("deep_backend", None, "neutral", "low",
            "which deep sandbox to use when --deep is on (docker, bwrap, nsjail)",
            None, None, env="SAFELOADAI_DEEP_BACKEND"),
-    Option("judge_model", None, "neutral", "low",
-           "which Claude model the judge asks when --judge is on",
-           None, None, env="SAFELOADAI_JUDGE_MODEL"),
     Option("runtime_path", None, "neutral", "none",
            "another copy of the pinned WASI runtime; it must still match the pinned sha256",
            None, None, env="SAFELOADAI_WASI_PYTHON"),
@@ -114,7 +108,7 @@ def record(name: str, value, source: str) -> dict:
             "direction": BY_NAME[name].direction}
 
 
-def scan_options(*, allow, judge: bool, deep: bool, limits, sources: Mapping[str, str] | None,
+def scan_options(*, allow, deep: bool, limits, sources: Mapping[str, str] | None,
                  trust_inert_from=(), known_good: bool = True, validate_boosters: bool = False) -> list[dict]:
     """Report.options entries for the non-default scan() arguments, plus environment
     settings that change how an enabled option runs."""
@@ -122,12 +116,12 @@ def scan_options(*, allow, judge: bool, deep: bool, limits, sources: Mapping[str
     out = []
     for name, value in (("allow", allow), ("trust_inert_from", trust_inert_from),
                         ("validate_boosters", validate_boosters), ("known_good", known_good),
-                        ("deep", deep), ("judge", judge), ("limits", limits)):
+                        ("deep", deep), ("limits", limits)):
         if not is_default(name, value):
             out.append(record(name, value, sources.get(name, ARGUMENT)))
     for option in OPTIONS:
         if option.env and os.environ.get(option.env):
-            if (option.name == "deep_backend" and not deep) or (option.name == "judge_model" and not judge):
+            if option.name == "deep_backend" and not deep:
                 continue
             out.append(record(option.name, os.environ[option.env], f"{ENV} {option.env}"))
     return out
@@ -175,7 +169,7 @@ def validate_trust_inert_from(names: Iterable[str]) -> tuple[str, ...]:
 
 # --- config file -----------------------------------------------------------------------
 
-CONFIG_KEYS = {"allow": list, "accept_unverified": list, "deep": bool, "judge": bool, "trust_inert_from": list,
+CONFIG_KEYS = {"allow": list, "accept_unverified": list, "deep": bool, "trust_inert_from": list,
                "known_good": bool, "validate_boosters": bool}
 
 

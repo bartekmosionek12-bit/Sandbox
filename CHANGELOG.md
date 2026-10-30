@@ -5,6 +5,26 @@ This file follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Vers
 - `safeloadai` (the scanner);
 - `safeloadai-runtime` (the pinned sandbox runtime). It has its own version and changes only when the runtime does.
 
+## safeloadai 0.11.0 (unreleased)
+
+In short: `--trust-inert-from` made verdicts stricter instead of looser (it replaced the pinned policies); it now adds to them and still refuses a class to which the installed version adds a hook. It has not yet loosened a verdict on any evaluated file, and the reasons are documented. pandas 3 `Index`/`MultiIndex`, Keras 3 operations and data markers, `TextVectorization`, `RandomBrightness`, `CosineDecayRestarts` and scikit-learn's SGD losses are accepted after a source review; an HDF5 model named `.keras` is read as tf.keras reads it. A new blind split, held-out-4. No rule was loosened by default. Detection unchanged (lab 66/66, mutations 774/774, Hub malicious 49/49); benign FPR on readable files 0.124 to 0.117 (held-out-2), 0.164 to 0.160 (held-out), 0.118 to 0.105 (held-out-3), 0.185 to 0.173 (held-out-4, blind).
+
+### Added
+- **held-out-4** (`evaluation/splits/hf-heldout4.txt`, plan committed): 1,792 benign-stratum files from 1,392 repositories in no earlier split, measured once and blind with the frozen scanner; only aggregates are published (`evaluation/results/heldout4-v0110.json`). held-out-3 is reported with the other held-out sets now (its aggregates were read in 0.10.0); `evaluation/hf_heldout3_labels.tsv` holds its labels, with the two files reviewed after the 0.10.0 measurement as benign.
+- Evaluation: the `--trust-inert-from` column scans every file again, so a verdict it makes stricter shows (DECISIONS.md T3); the blind aggregate counts how often it disagrees with the default.
+
+### Security
+- **`--trust-inert-from`** (DECISIONS.md T1, T2; [docs/OPTIONS.md](docs/OPTIONS.md#trust_inert_from)): the installed analysis replaced the pinned policies for a named distribution and, at the pinned versions, refused 230 classes they accept (old scikit-learn module paths, `Parallel`, DeepSpeed configuration classes). It now adds to them, and removes a pinned class only when the installed source gives it or a base a hook, property setter, metaclass, decorator or slots the pinned review did not see. With the evaluation's versions no pinned class is removed. [LLM03]
+- **Reviewed classes** ([evaluation/results/source-review-0.11.0.md](evaluation/results/source-review-0.11.0.md), tune and tune-2 only): pandas `Index` and `MultiIndex` under pandas 3's names, `MultiIndex` only through `_new_Index` with `_new_Index` levels, array codes, plain names and an int or None sortorder, and an empty frame's block manager (pandas 1.4.4, 2.2.3, 3.0.6); nine `keras.src.ops` classes and the `__ellipsis__`, `__slice__` and `__tensor__` markers in the exact form Keras writes (3.0.5, 3.15.1); `RandomBrightness`, `CosineDecayRestarts`; `TextVectorization` only with built-in `standardize`/`split` and an inline vocabulary; scikit-learn's Cython SGD losses (1.0.2, 1.3.2, 1.5.2). Misuse and sinks stay flagged (`tests/test_allowlist_review_0_11_0.py`). [LLM03]
+
+### Changed
+- A file named `.keras` whose content is HDF5 from offset 0, with no other reading, is a note instead of an extension mismatch: Keras 3 refuses it and tf.keras 2.x reads it as the HDF5 model safeloadai analyses (DECISIONS.md N6). A userblock, a second reading or any other extension keeps the finding.
+
+### Measured (0.10.0 and 0.11.0 on the same files, same commits and sha256)
+- Detection: lab 66/66, mutations 774/774, Hub malicious 49/49, Hub unsafe 5/5 and every malicious file of held-out, held-out-2 and held-out-3, with and without the options; 0 benign files of these sets MALICIOUS. held-out-4 (blind, labels from the automatic rule on Hub evidence, not reviewed): 4 files that rule calls malicious are CLEAN and 1 file benign by selection is MALICIOUS, the same in 0.10.0 and 0.11.0 (EVALUATION.md, held-out-4).
+- FPR on readable benign files, default: held-out 0.164 to 0.160, held-out-2 0.124 to 0.117, held-out-3 0.118 to 0.105, held-out-4 0.185 to 0.173. With `--validate-boosters`: 0.117, 0.088, 0.093, 0.169.
+- `--trust-inert-from` against the default on benign files: 0.10.0 was stricter on 2, 14, 8 and 5 files of held-out, held-out-2, held-out-3 and held-out-4; 0.11.0 on none, and it loosens none.
+
 ## safeloadai 0.10.0 (unreleased)
 
 In short: Core ML, CTranslate2 and whisper.cpp weights are read and CLEAN when valid; scikit-learn's `_loss` alias, training-argument dataclasses, LightGBM's wrappers, pandas `RangeIndex` and Keras top-k metrics are accepted after a source review; pathlib path classes are RISKY instead of MALICIOUS; an opt-in `--validate-boosters`; a new blind split, held-out-3. No rule was loosened by default. Detection unchanged (lab 66/66, mutations 774/774, Hub malicious 49/49); benign FPR on readable files 0.149 to 0.124 (held-out-2), 0.179 to 0.164 (held-out), 0.142 to 0.118 (held-out-3, blind).

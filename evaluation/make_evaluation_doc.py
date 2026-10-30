@@ -30,10 +30,10 @@ import sys
 from collections import Counter, defaultdict
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DEFAULT_RESULT = os.path.join(ROOT, "evaluation", "results", "eval-v0100-20261029T052707Z.json")
-DEFAULT_BEFORE = os.path.join(ROOT, "evaluation", "results", "eval-v0100-before-v090-20261029T052656Z.json")
-DEFAULT_ANATOMY = os.path.join(ROOT, "evaluation", "results", "fp-anatomy-v0100-20261029.json")
-DEFAULT_BLIND = os.path.join(ROOT, "evaluation", "results", "heldout3-v0100.json")
+DEFAULT_RESULT = os.path.join(ROOT, "evaluation", "results", "eval-v0110-20261029T201034Z.json")
+DEFAULT_BEFORE = os.path.join(ROOT, "evaluation", "results", "eval-v0110-before-v0100-20261029T200929Z.json")
+DEFAULT_ANATOMY = os.path.join(ROOT, "evaluation", "results", "fp-anatomy-v0110-20261030.json")
+DEFAULT_BLIND = os.path.join(ROOT, "evaluation", "results", "heldout4-v0110.json")
 OUT = os.path.join(ROOT, "docs", "EVALUATION.md")
 README = os.path.join(ROOT, "README.md")
 README_START, README_END = "<!-- evaluation:start -->", "<!-- evaluation:end -->"

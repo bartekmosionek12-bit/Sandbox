@@ -219,8 +219,7 @@ Every entry in `Report.options` looks like this:
      the 230 was refused for a hook: each was a limit of the installed analysis. A hook
      your installed version adds to a pinned class still makes it refused (point 1).
    - **Why it still loosens nothing on the Hub files.** 60 classes outside the pinned
-     policies reach the question on tune, tune-2, held-out and held-out-2 (on the blind
-     held-out-3 and held-out-4 only the column's totals were read). None qualifies, and for the same
+     policies reach the question on tune, tune-2, held-out and held-out-2. None qualifies, and for the same
      reasons the pinned analysis gives: a module on the class's import path runs code at
      import (scikit-learn's `KNeighborsRegressor` module appends to a dict at top level), a
      hook the review has not seen (`MultiheadAttention.__setstate__`, a `theta` property
@@ -229,7 +228,9 @@ Every entry in `Report.options` looks like this:
      source (`_gb_losses`, `_ball_tree`, `sgd_fast`), or an owner exclusion
      (`FunctionTransformer`). The option is for classes your installed version has and the
      pinned one lacks, or for distributions safeloadai does not pin; the evaluation has
-     neither.
+     neither. Measured with every file scanned again, 0.11.0 with the option gives the
+     default verdict on every benign file of held-out, held-out-2, held-out-3 and the
+     blind held-out-4; 0.10.0 was stricter on 2, 14, 8 and 5 of them.
 
 ## `validate_boosters`
 
